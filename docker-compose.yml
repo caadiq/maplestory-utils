@@ -1,0 +1,49 @@
+services:
+  frontend:
+    container_name: maplestory-frontend
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - frontend_modules:/app/node_modules
+    command: sh -c "npm install && npm run dev"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    networks:
+      - caddy
+
+  backend:
+    container_name: maplestory-backend
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - backend_modules:/app/node_modules
+    command: sh -c "npm install && npm run dev"
+    env_file: .env
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    networks:
+      - caddy
+      - db
+      - app
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    networks:
+      - app
+
+volumes:
+  frontend_modules:
+  backend_modules:
+  redis-data:
+
+networks:
+  caddy:
+    external: true
+  db:
+    external: true
+  app:
+    external: true
