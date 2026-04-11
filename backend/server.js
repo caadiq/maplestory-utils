@@ -1,11 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import { sessionMiddleware } from './middleware/session.js';
-import authRoutes from './routes/auth.js';
 import characterRoutes from './routes/characters.js';
 import bossRoutes from './routes/boss/bosses.js';
-import selectionRoutes from './routes/boss/selections.js';
-import calculateRoutes from './routes/boss/calculate.js';
+import adminRoutes from './routes/admin.js';
 import { sequelize } from './lib/db.js';
 
 const app = express();
@@ -18,13 +15,10 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
-app.use(sessionMiddleware);
 
-app.use('/api/auth', authRoutes);
 app.use('/api/characters', characterRoutes);
 app.use('/api/boss', bossRoutes);
-app.use('/api/boss/selections', selectionRoutes);
-app.use('/api/boss/calculate', calculateRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
