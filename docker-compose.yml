@@ -28,17 +28,9 @@ services:
       - db
       - app
 
-  redis:
-    image: redis:7-alpine
-    volumes:
-      - redis-data:/data
-    networks:
-      - app
-
 volumes:
   frontend_modules:
   backend_modules:
-  redis-data:
 
 networks:
   caddy:

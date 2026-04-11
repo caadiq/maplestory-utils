@@ -1,5 +1,4 @@
 import { Outlet, Link } from 'react-router-dom'
-import LoginButton from './LoginButton'
 
 export default function Layout() {
   return (
@@ -9,7 +8,6 @@ export default function Layout() {
           <Link to="/" className="text-xl font-bold">메이플스토리 도우미</Link>
           <nav className="flex items-center gap-6">
             <Link to="/boss" className="text-gray-400 hover:text-white transition">보스 계산기</Link>
-            <LoginButton />
           </nav>
         </div>
       </header>
