@@ -2,7 +2,7 @@
 export const DIFFICULTIES = [
   { key: 'easy', label: '이지', color: 'text-slate-300 border-slate-400/40 bg-slate-400/10' },
   { key: 'normal', label: '노말', color: 'text-sky-300 border-sky-400/40 bg-sky-400/10' },
-  { key: 'hard', label: '하드', color: 'text-pink-300 border-pink-400/40 bg-pink-400/10' },
+  { key: 'hard', label: '하드', color: 'text-fuchsia-300 border-fuchsia-400/40 bg-fuchsia-400/10' },
   { key: 'chaos', label: '카오스', color: 'text-amber-300 border-amber-500/40 bg-amber-500/10' },
   { key: 'extreme', label: '익스트림', color: 'text-red-400 border-red-500/40 bg-red-500/10' },
 ]
