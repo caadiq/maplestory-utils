@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
 
 /* ── 공용 모달 ── */
@@ -232,42 +233,127 @@ function ImageCard({ image, selected, selectMode, onToggle, onCopyUrl, copied })
   )
 }
 
+/* ── 페이지네이션 ── */
+function Pagination({ page, totalPages, onChange }) {
+  if (totalPages <= 1) return null
+
+  const pages = []
+  const maxButtons = 7
+  let start = Math.max(1, page - Math.floor(maxButtons / 2))
+  let end = Math.min(totalPages, start + maxButtons - 1)
+  if (end - start + 1 < maxButtons) start = Math.max(1, end - maxButtons + 1)
+  for (let i = start; i <= end; i++) pages.push(i)
+
+  const btn = "min-w-9 h-9 px-3 rounded-lg text-sm transition flex items-center justify-center"
+
+  return (
+    <div className="flex items-center justify-center gap-1 pt-2">
+      <button
+        onClick={() => onChange(page - 1)}
+        disabled={page === 1}
+        className={`${btn} border border-white/10 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed`}
+      >
+        ‹
+      </button>
+
+      {start > 1 && (
+        <>
+          <button onClick={() => onChange(1)} className={`${btn} border border-white/10 hover:bg-white/5`}>1</button>
+          {start > 2 && <span className="text-gray-600 px-1">…</span>}
+        </>
+      )}
+
+      {pages.map((p) => (
+        <button
+          key={p}
+          onClick={() => onChange(p)}
+          className={`${btn} ${
+            p === page
+              ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-medium'
+              : 'border border-white/10 hover:bg-white/5'
+          }`}
+        >
+          {p}
+        </button>
+      ))}
+
+      {end < totalPages && (
+        <>
+          {end < totalPages - 1 && <span className="text-gray-600 px-1">…</span>}
+          <button onClick={() => onChange(totalPages)} className={`${btn} border border-white/10 hover:bg-white/5`}>{totalPages}</button>
+        </>
+      )}
+
+      <button
+        onClick={() => onChange(page + 1)}
+        disabled={page === totalPages}
+        className={`${btn} border border-white/10 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed`}
+      >
+        ›
+      </button>
+    </div>
+  )
+}
+
+const PAGE_SIZE = 24
+
 /* ── 메인 ── */
 export default function AdminImages() {
-  const [images, setImages] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [uploadOpen, setUploadOpen] = useState(false)
-  const [uploading, setUploading] = useState(false)
+  const queryClient = useQueryClient()
+  const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [uploadOpen, setUploadOpen] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [confirmDelete, setConfirmDelete] = useState(null) // {ids, names}
-  const [deleting, setDeleting] = useState(false)
   const [copiedId, setCopiedId] = useState(null)
 
-  const fetchImages = async () => {
-    setLoading(true)
-    try {
-      const data = await api('/api/admin/images')
-      setImages(data)
-    } catch {
-      setImages([])
-    } finally {
-      setLoading(false)
-    }
+  // 검색어 디바운싱
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(t)
+  }, [search])
+
+  // 이미지 목록 (페이징 + 검색)
+  const { data: imagesData, isLoading } = useQuery({
+    queryKey: ['admin', 'images', { page, search: debouncedSearch }],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page,
+        limit: PAGE_SIZE,
+        ...(debouncedSearch && { search: debouncedSearch }),
+      })
+      return api(`/api/admin/images?${params}`)
+    },
+    placeholderData: (prev) => prev,
+  })
+
+  const images = imagesData?.items || []
+  const totalPages = imagesData?.total_pages || 1
+
+  // 전체 이름 (중복 체크용)
+  const { data: allNamesArray = [] } = useQuery({
+    queryKey: ['admin', 'images', 'names'],
+    queryFn: () => api('/api/admin/images/names'),
+  })
+  const allNames = new Set(allNamesArray)
+
+  const invalidateImages = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin', 'images'] })
   }
 
-  useEffect(() => { fetchImages() }, [])
-
-  const handleUpload = async (items) => {
-    setUploading(true)
-    try {
+  // 업로드
+  const uploadMutation = useMutation({
+    mutationFn: async (items) => {
       const formData = new FormData()
       items.forEach((it) => {
         formData.append('files', it.file)
         formData.append('names', it.name.trim())
       })
-
       const adminKey = localStorage.getItem('maple-admin-key')
       const res = await fetch('/api/admin/images', {
         method: 'POST',
@@ -276,19 +362,17 @@ export default function AdminImages() {
       })
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || '업로드 실패')
-
+      return result
+    },
+    onSuccess: (result) => {
       if (result.errors?.length > 0) {
         alert(`일부 업로드 실패:\n${result.errors.map((e) => `- ${e.name}: ${e.error}`).join('\n')}`)
       }
-
       setUploadOpen(false)
-      await fetchImages()
-    } catch (err) {
-      alert(err.message)
-    } finally {
-      setUploading(false)
-    }
-  }
+      invalidateImages()
+    },
+    onError: (err) => alert(err.message),
+  })
 
   const toggleSelect = (id) => {
     setSelectedIds((prev) => {
@@ -303,15 +387,11 @@ export default function AdminImages() {
     setSelectedIds(new Set())
   }
 
-  const filtered = images.filter((img) =>
-    img.name.toLowerCase().includes(search.toLowerCase())
-  )
-
   const selectAll = () => {
-    if (selectedIds.size === filtered.length) {
+    if (selectedIds.size === images.length) {
       setSelectedIds(new Set())
     } else {
-      setSelectedIds(new Set(filtered.map((img) => img.id)))
+      setSelectedIds(new Set(images.map((img) => img.id)))
     }
   }
 
@@ -323,23 +403,17 @@ export default function AdminImages() {
     })
   }
 
-  const handleDeleteConfirm = async () => {
-    setDeleting(true)
-    try {
-      await api('/api/admin/images/delete', {
-        method: 'POST',
-        body: { ids: confirmDelete.ids },
-      })
+  // 삭제
+  const deleteMutation = useMutation({
+    mutationFn: (ids) => api('/api/admin/images/delete', { method: 'POST', body: { ids } }),
+    onSuccess: () => {
       setConfirmDelete(null)
       setSelectedIds(new Set())
       setSelectMode(false)
-      await fetchImages()
-    } catch (err) {
-      alert(err.message)
-    } finally {
-      setDeleting(false)
-    }
-  }
+      invalidateImages()
+    },
+    onError: (err) => alert(err.message),
+  })
 
   const copyUrl = (image) => {
     navigator.clipboard.writeText(image.url)
@@ -362,7 +436,7 @@ export default function AdminImages() {
                 onClick={selectAll}
                 className="rounded-lg border border-white/10 px-3 py-2 text-sm hover:bg-white/5 transition"
               >
-                {selectedIds.size === filtered.length && filtered.length > 0 ? '전체 해제' : '전체 선택'}
+                {selectedIds.size === images.length && images.length > 0 ? '전체 해제' : '전체 선택'}
               </button>
               <button
                 onClick={requestDelete}
@@ -383,9 +457,9 @@ export default function AdminImages() {
               {images.length > 0 && (
                 <button
                   onClick={toggleSelectMode}
-                  className="rounded-lg border border-white/10 px-3 py-2 text-sm hover:bg-white/5 transition"
+                  className="rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 px-3 py-2 text-sm transition"
                 >
-                  선택
+                  삭제
                 </button>
               )}
               <button
@@ -415,19 +489,19 @@ export default function AdminImages() {
       )}
 
       {/* 이미지 그리드 */}
-      {loading ? (
+      {isLoading ? (
         <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="aspect-square rounded-xl bg-white/[0.02] animate-pulse" />
           ))}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : images.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-16 text-center">
           <div className="text-5xl mb-3 opacity-30">🖼️</div>
           <p className="text-gray-400 mb-4">
-            {images.length === 0 ? '업로드된 이미지가 없습니다' : '검색 결과가 없습니다'}
+            {debouncedSearch ? '검색 결과가 없습니다' : '업로드된 이미지가 없습니다'}
           </p>
-          {images.length === 0 && (
+          {!debouncedSearch && (
             <button
               onClick={() => setUploadOpen(true)}
               className="text-sm text-emerald-400 hover:text-emerald-300 transition"
@@ -437,38 +511,41 @@ export default function AdminImages() {
           )}
         </div>
       ) : (
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-          {filtered.map((image) => (
-            <ImageCard
-              key={image.id}
-              image={image}
-              selected={selectedIds.has(image.id)}
-              selectMode={selectMode}
-              onToggle={toggleSelect}
-              onCopyUrl={copyUrl}
-              copied={copiedId === image.id}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+            {images.map((image) => (
+              <ImageCard
+                key={image.id}
+                image={image}
+                selected={selectedIds.has(image.id)}
+                selectMode={selectMode}
+                onToggle={toggleSelect}
+                onCopyUrl={copyUrl}
+                copied={copiedId === image.id}
+              />
+            ))}
+          </div>
+          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+        </>
       )}
 
       <UploadModal
         open={uploadOpen}
         onClose={() => setUploadOpen(false)}
-        onUpload={handleUpload}
-        uploading={uploading}
-        existingNames={new Set(images.map((img) => img.name))}
+        onUpload={(items) => uploadMutation.mutate(items)}
+        uploading={uploadMutation.isPending}
+        existingNames={allNames}
       />
 
       <ConfirmDialog
         open={!!confirmDelete}
         onClose={() => setConfirmDelete(null)}
-        onConfirm={handleDeleteConfirm}
+        onConfirm={() => deleteMutation.mutate(confirmDelete.ids)}
         title="이미지 삭제"
         description={confirmDelete ? `${confirmDelete.ids.length}개의 이미지를 삭제하시겠습니까?\n\n${confirmDelete.names.slice(0, 5).map((n) => `· ${n}`).join('\n')}${confirmDelete.names.length > 5 ? `\n· 외 ${confirmDelete.names.length - 5}개` : ''}\n\n이 작업은 되돌릴 수 없습니다.` : ''}
         confirmText="삭제"
         destructive
-        loading={deleting}
+        loading={deleteMutation.isPending}
       />
     </div>
   )
