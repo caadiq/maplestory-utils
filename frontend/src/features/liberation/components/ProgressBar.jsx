@@ -22,14 +22,12 @@ export default function ProgressBar({ totalAccumulated, completionDate }) {
 
   const renderSegment = ({ chapter, status, current }) => {
     const pct = (current / chapter.required) * 100
+    const bg = status === 'done' ? '#10b981' : status === 'active' ? '#fbbf24' : 'transparent'
     return (
       <div key={`seg-${chapter.idx}`} className="flex-1 h-2 rounded bg-gray-900 overflow-hidden">
         <div
-          className={`h-full transition-all ${
-            status === 'done' ? 'bg-emerald-500' :
-            status === 'active' ? 'bg-amber-400' : 'bg-transparent'
-          }`}
-          style={{ width: `${pct}%` }}
+          className="h-full transition-all"
+          style={{ width: `${pct}%`, background: bg }}
         />
       </div>
     )
@@ -62,22 +60,21 @@ export default function ProgressBar({ totalAccumulated, completionDate }) {
       {/* 섹션 제목 */}
       <div className="text-lg font-semibold text-emerald-300">퀘스트 진행 상황</div>
 
-      {/* 1차 / 2차 라벨 */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1 flex flex-col items-center gap-2">
-          <span className="text-base font-bold" style={{ color: '#5eead4' }}>1차 해방</span>
-          <div style={{ width: '100%', height: 3, background: 'rgba(94, 234, 212, 0.5)', borderRadius: 999 }} />
+      {/* 1차 / 2차 라벨 + 세그먼트 바 */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-1">
+          <div className="flex-1 flex flex-col items-center gap-2">
+            <span className="text-base font-bold" style={{ color: '#5eead4' }}>1차 해방</span>
+            <div style={{ width: '100%', height: 3, background: 'rgba(94, 234, 212, 0.5)', borderRadius: 999 }} />
+          </div>
+          <div className="flex-1 flex flex-col items-center gap-2">
+            <span className="text-base font-bold" style={{ color: '#fda4af' }}>2차 해방</span>
+            <div style={{ width: '100%', height: 3, background: 'rgba(253, 164, 175, 0.5)', borderRadius: 999 }} />
+          </div>
         </div>
-        <div className="w-2" />
-        <div className="flex-1 flex flex-col items-center gap-2">
-          <span className="text-base font-bold" style={{ color: '#fda4af' }}>2차 해방</span>
-          <div style={{ width: '100%', height: 3, background: 'rgba(253, 164, 175, 0.5)', borderRadius: 999 }} />
+        <div className="flex gap-1">
+          {chapterStates.map(renderSegment)}
         </div>
-      </div>
-
-      {/* 세그먼트 바 (붙어있음) */}
-      <div className="flex gap-1">
-        {chapterStates.map(renderSegment)}
       </div>
 
       {/* 초상화 (붙어있음) */}
