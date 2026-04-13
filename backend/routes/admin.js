@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { Image } from '../models/index.js';
+import { Image, Menu } from '../models/index.js';
 import { convertAndUpload, deleteFromS3 } from '../services/image.js';
 import { getPublicUrl } from '../lib/s3.js';
+import { sequelize } from '../lib/db.js';
 
 const router = Router();
 const upload = multer({
@@ -170,6 +171,136 @@ router.post('/images/delete', async (req, res) => {
   } catch (err) {
     console.error('이미지 삭제 오류:', err.message);
     res.status(500).json({ error: '이미지 삭제 실패' });
+  }
+});
+
+/* ── 메뉴 관리 ── */
+
+function serializeMenu(menu) {
+  const json = menu.toJSON();
+  return {
+    id: json.id,
+    title: json.title,
+    description: json.description,
+    url: json.url,
+    sort_order: json.sort_order,
+    image_id: json.image_id,
+    image: json.image ? { id: json.image.id, name: json.image.name, url: getPublicUrl(json.image.path) } : null,
+  };
+}
+
+// 메뉴 목록
+router.get('/menus', async (_req, res) => {
+  try {
+    const menus = await Menu.findAll({
+      order: [['sort_order', 'ASC'], ['id', 'ASC']],
+      include: [{ model: Image, as: 'image' }],
+    });
+    res.json(menus.map(serializeMenu));
+  } catch (err) {
+    console.error('메뉴 목록 조회 오류:', err.message);
+    res.status(500).json({ error: '메뉴 목록 조회 실패' });
+  }
+});
+
+// 메뉴 단일 조회
+router.get('/menus/:id', async (req, res) => {
+  try {
+    const menu = await Menu.findByPk(req.params.id, {
+      include: [{ model: Image, as: 'image' }],
+    });
+    if (!menu) return res.status(404).json({ error: '메뉴를 찾을 수 없습니다' });
+    res.json(serializeMenu(menu));
+  } catch (err) {
+    console.error('메뉴 조회 오류:', err.message);
+    res.status(500).json({ error: '메뉴 조회 실패' });
+  }
+});
+
+// 메뉴 생성
+router.post('/menus', async (req, res) => {
+  const { title, description, url, image_id } = req.body;
+  if (!title?.trim()) return res.status(400).json({ error: '제목을 입력해주세요' });
+  if (!url?.trim()) return res.status(400).json({ error: 'URL을 입력해주세요' });
+  if (!url.startsWith('/')) return res.status(400).json({ error: 'URL은 /로 시작해야 합니다' });
+
+  try {
+    // 새 메뉴는 가장 마지막 순서로
+    const max = await Menu.max('sort_order') || 0;
+    const menu = await Menu.create({
+      title: title.trim(),
+      description: (description || '').trim(),
+      url: url.trim(),
+      image_id: image_id || null,
+      sort_order: max + 1,
+    });
+    const created = await Menu.findByPk(menu.id, { include: [{ model: Image, as: 'image' }] });
+    res.json(serializeMenu(created));
+  } catch (err) {
+    console.error('메뉴 생성 오류:', err.message);
+    res.status(500).json({ error: '메뉴 생성 실패' });
+  }
+});
+
+// 메뉴 수정
+router.patch('/menus/:id', async (req, res) => {
+  const { title, description, url, image_id } = req.body;
+
+  try {
+    const menu = await Menu.findByPk(req.params.id);
+    if (!menu) return res.status(404).json({ error: '메뉴를 찾을 수 없습니다' });
+
+    if (title !== undefined) {
+      if (!title.trim()) return res.status(400).json({ error: '제목을 입력해주세요' });
+      menu.title = title.trim();
+    }
+    if (description !== undefined) menu.description = description.trim();
+    if (url !== undefined) {
+      if (!url.trim()) return res.status(400).json({ error: 'URL을 입력해주세요' });
+      if (!url.startsWith('/')) return res.status(400).json({ error: 'URL은 /로 시작해야 합니다' });
+      menu.url = url.trim();
+    }
+    if (image_id !== undefined) menu.image_id = image_id || null;
+
+    await menu.save();
+    const updated = await Menu.findByPk(menu.id, { include: [{ model: Image, as: 'image' }] });
+    res.json(serializeMenu(updated));
+  } catch (err) {
+    console.error('메뉴 수정 오류:', err.message);
+    res.status(500).json({ error: '메뉴 수정 실패' });
+  }
+});
+
+// 메뉴 삭제
+router.delete('/menus/:id', async (req, res) => {
+  try {
+    const menu = await Menu.findByPk(req.params.id);
+    if (!menu) return res.status(404).json({ error: '메뉴를 찾을 수 없습니다' });
+    await menu.destroy();
+    res.json({ success: true });
+  } catch (err) {
+    console.error('메뉴 삭제 오류:', err.message);
+    res.status(500).json({ error: '메뉴 삭제 실패' });
+  }
+});
+
+// 메뉴 정렬 순서 변경 (드래그 앤 드롭용)
+router.post('/menus/reorder', async (req, res) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: '정렬할 메뉴 ID 목록이 필요합니다' });
+  }
+
+  try {
+    await sequelize.transaction(async (tx) => {
+      for (let i = 0; i < ids.length; i++) {
+        await Menu.update({ sort_order: i }, { where: { id: ids[i] }, transaction: tx });
+      }
+    });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('메뉴 정렬 변경 오류:', err.message);
+    res.status(500).json({ error: '메뉴 정렬 변경 실패' });
   }
 });
 
