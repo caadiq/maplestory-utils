@@ -1,1 +1,16 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Maplestory", "Noto Sans KR", system-ui, -apple-system, sans-serif;
+  --font-maple: "Maplestory", "Noto Sans KR", sans-serif;
+}
+
+html {
+  font-family: "Maplestory", "Noto Sans KR", system-ui, sans-serif;
+}
+
+body {
+  font-feature-settings: "ss01", "ss02";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
