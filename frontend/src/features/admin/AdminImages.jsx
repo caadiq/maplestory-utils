@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
+import ConfirmDialog from '../../components/ConfirmDialog'
 
 /* ── 공용 모달 ── */
 function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }) {
@@ -159,33 +160,6 @@ function UploadModal({ open, onClose, onUpload, uploading, existingNames }) {
           </button>
         </div>
       </form>
-    </Modal>
-  )
-}
-
-/* ── 삭제 확인 다이얼로그 ── */
-function ConfirmDialog({ open, onClose, onConfirm, title, description, confirmText = '삭제', destructive = false, loading = false }) {
-  return (
-    <Modal open={open} onClose={onClose} title={title}>
-      <div className="p-6">
-        <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{description}</p>
-      </div>
-      <div className="flex gap-2 px-6 py-4 border-t border-white/5">
-        <button onClick={onClose} className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-sm hover:bg-white/5 transition">
-          취소
-        </button>
-        <button
-          onClick={onConfirm}
-          disabled={loading}
-          className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50 ${
-            destructive
-              ? 'bg-red-600 hover:bg-red-500 shadow-lg shadow-red-500/20'
-              : 'bg-emerald-600 hover:bg-emerald-500'
-          }`}
-        >
-          {loading ? '처리 중...' : confirmText}
-        </button>
-      </div>
     </Modal>
   )
 }
