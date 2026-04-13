@@ -96,25 +96,29 @@ export function calcPoints(basePoints, partySize) {
 // 목요일 기준 주차 계산 (KST)
 // 이번 주 목요일 자정 = 이번 주의 시작
 export function getThursdayOfWeek(date) {
-  const d = new Date(date)
-  const day = d.getDay() // 0=일, 4=목
-  // 직전 목요일 찾기 (오늘이 목요일이면 오늘)
+  const d = dayjs(date).tz(KST)
+  const day = d.day() // 0=일, 4=목
   const diff = (day - 4 + 7) % 7
-  d.setDate(d.getDate() - diff)
-  d.setHours(0, 0, 0, 0)
-  return d
+  return d.subtract(diff, 'day').startOf('day').toDate()
 }
 
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+const KST = 'Asia/Seoul'
+
 export function formatDate(date) {
-  const d = new Date(date)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  return dayjs(date).tz(KST).format('YYYY-MM-DD')
 }
 
 export function addWeeks(date, weeks) {
-  const d = new Date(date)
-  d.setDate(d.getDate() + weeks * 7)
-  return d
+  return dayjs(date).tz(KST).add(weeks, 'week').toDate()
+}
+
+export function todayKST() {
+  return dayjs().tz(KST).startOf('day').toDate()
 }
