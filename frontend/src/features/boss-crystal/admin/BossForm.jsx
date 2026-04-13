@@ -29,7 +29,7 @@ const inputCls = 'w-full rounded-lg border border-white/10 bg-gray-950 px-3 py-2
 function emptyDifficultyState() {
   const obj = {}
   DIFFICULTIES.forEach((d) => {
-    obj[d.key] = { enabled: false, crystal_price: '', max_party_size: 6 }
+    obj[d.key] = { enabled: false, crystal_price: '' }
   })
   return obj
 }
@@ -42,6 +42,7 @@ export default function BossForm() {
   const fileInputRef = useRef(null)
 
   const [name, setName] = useState('')
+  const [maxPartySize, setMaxPartySize] = useState(6)
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [existingImageUrl, setExistingImageUrl] = useState(null)
@@ -59,6 +60,7 @@ export default function BossForm() {
   useEffect(() => {
     if (!isEdit) {
       setName('')
+      setMaxPartySize(6)
       setImageFile(null)
       setImagePreview(null)
       setExistingImageUrl(null)
@@ -67,6 +69,7 @@ export default function BossForm() {
     }
     if (bossData) {
       setName(bossData.name || '')
+      setMaxPartySize(bossData.max_party_size || 6)
       setExistingImageUrl(bossData.image_url || null)
       setImagePreview(null)
       setImageFile(null)
@@ -76,7 +79,6 @@ export default function BossForm() {
         next[d.difficulty] = {
           enabled: true,
           crystal_price: String(d.crystal_price),
-          max_party_size: d.max_party_size,
         }
       })
       setDifficulties(next)
@@ -121,6 +123,7 @@ export default function BossForm() {
     mutationFn: async () => {
       const formData = new FormData()
       formData.append('name', name.trim())
+      formData.append('max_party_size', String(maxPartySize))
       if (imageFile) formData.append('image', imageFile)
 
       const diffsPayload = DIFFICULTIES
@@ -128,7 +131,6 @@ export default function BossForm() {
         .map((d) => ({
           difficulty: d.key,
           crystal_price: Number(difficulties[d.key].crystal_price),
-          max_party_size: Number(difficulties[d.key].max_party_size),
         }))
       formData.append('difficulties', JSON.stringify(diffsPayload))
 
@@ -179,16 +181,26 @@ export default function BossForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-white/5 bg-gray-900/40 p-6">
-        {/* 이름 */}
-        <Field label="보스 이름" required error={errors.name}>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="예: 검은 마법사"
-            className={inputCls}
-          />
-        </Field>
+        {/* 이름 + 최대 인원 */}
+        <div className="grid grid-cols-[1fr_auto] gap-3">
+          <Field label="보스 이름" required error={errors.name}>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="예: 검은 마법사"
+              className={inputCls}
+            />
+          </Field>
+          <Field label="최대 인원">
+            <Select
+              value={maxPartySize}
+              onChange={setMaxPartySize}
+              options={PARTY_OPTIONS}
+              className="w-24"
+            />
+          </Field>
+        </div>
 
         {/* 이미지 */}
         <Field label="보스 이미지" required={!isEdit} error={errors.image}>
@@ -260,9 +272,13 @@ export default function BossForm() {
                     <div className="flex-1 min-w-0">
                       <div className="relative">
                         <input
-                          type="number"
-                          value={v.crystal_price}
-                          onChange={(e) => updateDifficulty(d.key, { crystal_price: e.target.value })}
+                          type="text"
+                          inputMode="numeric"
+                          value={v.crystal_price ? Number(v.crystal_price).toLocaleString() : ''}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/[^\d]/g, '')
+                            updateDifficulty(d.key, { crystal_price: digits })
+                          }}
                           disabled={!v.enabled}
                           placeholder="결정 가격"
                           className={`w-full rounded-lg border bg-gray-900 pl-4 pr-28 py-2 text-sm outline-none focus:border-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition ${
@@ -276,16 +292,6 @@ export default function BossForm() {
                         )}
                       </div>
                     </div>
-
-                    {/* 최대 인원 */}
-                    <Select
-                      value={v.max_party_size}
-                      onChange={(val) => updateDifficulty(d.key, { max_party_size: val })}
-                      options={PARTY_OPTIONS}
-                      disabled={!v.enabled}
-                      className="w-20 shrink-0"
-                      align="right"
-                    />
                   </div>
                 </div>
               )

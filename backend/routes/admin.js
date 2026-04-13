@@ -4,6 +4,7 @@ import { Image, Menu } from '../models/index.js';
 import { convertAndUpload, deleteFromS3 } from '../services/image.js';
 import { getPublicUrl } from '../lib/s3.js';
 import { sequelize } from '../lib/db.js';
+import bossCrystalRouter from './admin/boss-crystal.js';
 
 const router = Router();
 const upload = multer({
@@ -31,6 +32,9 @@ router.post('/verify', (req, res) => {
 
 // 이하 모든 라우트는 인증 필요
 router.use(requireAdmin);
+
+// 기능별 sub-router
+router.use('/boss-crystal', bossCrystalRouter);
 
 /* ── 이미지 관리 ── */
 
