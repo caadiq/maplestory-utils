@@ -20,11 +20,11 @@ export default function App() {
           <Route path="images" element={<AdminImages />} />
           <Route path="menus/new" element={<AdminMenuForm />} />
           <Route path="menus/:id" element={<AdminMenuForm />} />
-          <Route path=":slug" element={<AdminFeaturePage />} />
+          <Route path=":slug/*" element={<AdminFeaturePage />} />
         </Route>
 
         {/* 동적 기능 페이지 */}
-        <Route path="/:slug" element={<FeaturePage />} />
+        <Route path="/:slug/*" element={<FeaturePage />} />
       </Route>
     </Routes>
   )
