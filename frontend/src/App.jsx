@@ -15,6 +15,7 @@ export default function App() {
           <Route index element={<AdminHome />} />
           <Route path="images" element={<AdminImages />} />
           <Route path="menus/new" element={<AdminMenuForm />} />
+          <Route path="menus/:id" element={<AdminMenuForm />} />
         </Route>
       </Route>
     </Routes>

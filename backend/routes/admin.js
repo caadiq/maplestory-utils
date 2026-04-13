@@ -33,19 +33,52 @@ router.use(requireAdmin);
 
 /* ── 이미지 관리 ── */
 
-// 이미지 목록
-router.get('/images', async (_req, res) => {
+// 전체 이미지 이름 (중복 체크용)
+router.get('/images/names', async (_req, res) => {
   try {
-    const images = await Image.findAll({ order: [['created_at', 'DESC']] });
-    res.json(images.map((img) => ({
-      id: img.id,
-      name: img.name,
-      url: getPublicUrl(img.path),
-      width: img.width,
-      height: img.height,
-      size: img.size,
-      created_at: img.created_at,
-    })));
+    const images = await Image.findAll({ attributes: ['name'] });
+    res.json(images.map((img) => img.name));
+  } catch (err) {
+    console.error('이미지 이름 조회 오류:', err.message);
+    res.status(500).json({ error: '조회 실패' });
+  }
+});
+
+// 이미지 목록 (페이징 + 검색)
+router.get('/images', async (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 24));
+  const search = (req.query.search || '').trim();
+
+  const where = {};
+  if (search) {
+    const { Op } = await import('sequelize');
+    where.name = { [Op.like]: `%${search}%` };
+  }
+
+  try {
+    const { rows, count } = await Image.findAndCountAll({
+      where,
+      order: [['created_at', 'DESC']],
+      limit,
+      offset: (page - 1) * limit,
+    });
+
+    res.json({
+      items: rows.map((img) => ({
+        id: img.id,
+        name: img.name,
+        url: getPublicUrl(img.path),
+        width: img.width,
+        height: img.height,
+        size: img.size,
+        created_at: img.created_at,
+      })),
+      total: count,
+      page,
+      limit,
+      total_pages: Math.ceil(count / limit),
+    });
   } catch (err) {
     console.error('이미지 목록 조회 오류:', err.message);
     res.status(500).json({ error: '이미지 목록 조회 실패' });

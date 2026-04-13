@@ -1,35 +1,38 @@
-import { useState, useEffect } from 'react'
 import { useSearchParams, Outlet, Navigate, Link, useLocation } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
 
 export default function AdminLayout() {
+  const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
-  const [verified, setVerified] = useState(null)
   const location = useLocation()
   const isRoot = location.pathname === '/admin' || location.pathname === '/admin/'
 
-  useEffect(() => {
-    const keyFromUrl = searchParams.get('key')
-    const keyFromStorage = localStorage.getItem('maple-admin-key')
-    const key = keyFromUrl || keyFromStorage
+  const keyFromUrl = searchParams.get('key')
+  const key = keyFromUrl || localStorage.getItem('maple-admin-key')
 
-    if (!key) {
-      setVerified(false)
-      return
-    }
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin', 'verify', key],
+    queryFn: async () => {
+      if (!key) throw new Error('no key')
+      await api('/api/admin/verify', { method: 'POST', body: { key } })
+      localStorage.setItem('maple-admin-key', key)
+      return true
+    },
+    enabled: !!key,
+    retry: false,
+    staleTime: Infinity,
+  })
 
-    api('/api/admin/verify', { method: 'POST', body: { key } })
-      .then(() => {
-        localStorage.setItem('maple-admin-key', key)
-        setVerified(true)
-      })
-      .catch(() => {
-        localStorage.removeItem('maple-admin-key')
-        setVerified(false)
-      })
-  }, [searchParams])
+  const verified = data === true
 
-  if (verified === null) {
+  const handleLogout = () => {
+    localStorage.removeItem('maple-admin-key')
+    queryClient.removeQueries({ queryKey: ['admin'] })
+    window.location.href = '/'
+  }
+
+  if (key && isLoading) {
     return (
       <div className="flex items-center justify-center pt-20">
         <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
@@ -38,6 +41,7 @@ export default function AdminLayout() {
   }
 
   if (!verified) {
+    if (key) localStorage.removeItem('maple-admin-key')
     return <Navigate to="/" replace />
   }
 
@@ -60,7 +64,7 @@ export default function AdminLayout() {
           </div>
         </div>
         <button
-          onClick={() => { localStorage.removeItem('maple-admin-key'); setVerified(false) }}
+          onClick={handleLogout}
           className="text-sm text-gray-500 hover:text-gray-300 transition"
         >
           로그아웃

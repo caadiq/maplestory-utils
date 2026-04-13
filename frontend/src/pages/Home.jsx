@@ -1,17 +1,12 @@
-import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 
 export default function Home() {
-  const [menus, setMenus] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    api('/api/menus')
-      .then(setMenus)
-      .catch(() => setMenus([]))
-      .finally(() => setLoading(false))
-  }, [])
+  const { data: menus = [], isLoading: loading } = useQuery({
+    queryKey: ['menus'],
+    queryFn: () => api('/api/menus').catch(() => []),
+  })
 
   return (
     <div className="space-y-12">
@@ -52,12 +47,8 @@ export default function Home() {
               >
                 <div className="absolute -top-16 -right-16 w-40 h-40 rounded-full bg-emerald-500/0 group-hover:bg-emerald-500/10 blur-3xl transition-all duration-500" />
                 <div className="relative space-y-3">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border border-white/5 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:border-emerald-500/30 transition-all duration-300">
-                    {menu.image_url ? (
-                      <img src={menu.image_url} alt={menu.title} className="w-7 h-7 object-contain" />
-                    ) : (
-                      menu.icon || '📋'
-                    )}
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border border-white/5 flex items-center justify-center overflow-hidden group-hover:scale-110 group-hover:border-emerald-500/30 transition-all duration-300">
+                    <img src={menu.image?.url || '/default.png'} alt={menu.title} className="w-9 h-9 object-contain" />
                   </div>
                   <div>
                     <h2 className="font-semibold group-hover:text-emerald-300 transition">{menu.title}</h2>
