@@ -1,9 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import characterRoutes from './routes/characters.js';
-import bossRoutes from './routes/boss/bosses.js';
 import adminRoutes from './routes/admin.js';
 import { sequelize } from './lib/db.js';
+import './models/index.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,8 +15,6 @@ app.use(cors({
 }));
 app.use(express.json());
 
-app.use('/api/characters', characterRoutes);
-app.use('/api/boss', bossRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (_req, res) => {
