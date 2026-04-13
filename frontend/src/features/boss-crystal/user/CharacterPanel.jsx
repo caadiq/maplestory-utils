@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { Reorder } from 'framer-motion'
 import { api } from '../../../api/client'
 import ConfirmDialog from '../../../components/ConfirmDialog'
+import Tooltip from '../../../components/Tooltip'
 import { useFitText } from '../../../hooks/useFitText'
 import { DIFFICULTIES, formatMeso, getDifficultyBadgeStyle } from '../admin/constants'
 
@@ -58,23 +59,24 @@ function CharacterContent({ char, selections, bosses }) {
               {visibleBosses.map((item) => {
                 const diff = DIFFICULTIES.find((d) => d.key === item.difficulty)
                 return (
-                  <div
+                  <Tooltip
                     key={item.boss.id}
-                    className="space-y-0.5"
-                    title={`${item.boss.name} ${diff?.label || ''} - ${formatMeso(item.revenue)}`}
+                    text={`${item.boss.name} ${diff?.label || ''} · ${formatMeso(item.revenue)}`}
                   >
-                    <div className="aspect-square rounded bg-gray-900 overflow-hidden border border-white/5">
-                      <img src={item.boss.image_url || '/default.png'} alt="" draggable={false} className="w-full h-full object-cover select-none" />
-                    </div>
-                    <div className="flex justify-center">
-                      <div
-                        className="text-[9px] font-bold leading-none rounded border w-3.5 h-3.5 flex items-center justify-center"
-                        style={getDifficultyBadgeStyle(item.difficulty)}
-                      >
-                        {diff?.initial}
+                    <div className="space-y-0.5">
+                      <div className="aspect-square rounded bg-gray-900 overflow-hidden border border-white/5">
+                        <img src={item.boss.image_url || '/default.png'} alt="" draggable={false} className="w-full h-full object-cover select-none" />
+                      </div>
+                      <div className="flex justify-center">
+                        <div
+                          className="text-[9px] font-bold leading-none rounded border w-3.5 h-3.5 flex items-center justify-center"
+                          style={getDifficultyBadgeStyle(item.difficulty)}
+                        >
+                          {diff?.initial}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </Tooltip>
                 )
               })}
             </div>
@@ -85,8 +87,9 @@ function CharacterContent({ char, selections, bosses }) {
       </div>
 
       <div className="flex items-center justify-between border-t border-white/5 pt-2">
-        <div className={`text-sm tabular-nums ${count > 0 ? 'text-gray-400' : 'text-gray-600'}`}>
-          {count}<span className="text-gray-700">/{MAX_PER_CHARACTER}</span>
+        <div className="flex items-baseline gap-1 tabular-nums">
+          <span className={`text-base font-bold ${count > 0 ? 'text-amber-300' : 'text-gray-600'}`}>{count}</span>
+          <span className="text-base font-bold text-amber-300/40">/ {MAX_PER_CHARACTER}</span>
         </div>
         <div className={`text-sm font-semibold tabular-nums whitespace-nowrap ${count > 0 ? 'text-emerald-300' : 'text-gray-700'}`}>
           {count > 0 ? formatMeso(totalRevenue) : '-'}
@@ -221,39 +224,52 @@ export default function CharacterPanel({
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-400">총 결정 개수</span>
-            <span className={`tabular-nums font-semibold ${totalCount > MAX_PER_ACCOUNT ? 'text-amber-400' : 'text-gray-200'}`}>
-              {accountUsage}<span className="text-gray-600 font-normal">/{MAX_PER_ACCOUNT}</span>
+        <div className="grid grid-cols-[1fr_auto] gap-x-3 items-center">
+          <div className="space-y-2">
+            <div className="text-sm text-gray-400">총 결정 개수</div>
+            <div className="h-2 rounded-full bg-gray-900 overflow-hidden">
+              <div
+                className={`h-full transition-all ${totalCount > MAX_PER_ACCOUNT ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                style={{ width: `${usagePct}%` }}
+              />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-1 tabular-nums">
+            <span className={`text-2xl font-bold leading-none ${totalCount > MAX_PER_ACCOUNT ? 'text-red-400' : 'text-amber-300'}`}>
+              {accountUsage}
+            </span>
+            <span className={`text-2xl font-bold leading-none ${totalCount > MAX_PER_ACCOUNT ? 'text-red-400/40' : 'text-amber-300/40'}`}>
+              / {MAX_PER_ACCOUNT}
             </span>
           </div>
-          <div className="h-2 rounded-full bg-gray-900 overflow-hidden">
-            <div
-              className={`h-full transition-all ${totalCount > MAX_PER_ACCOUNT ? 'bg-amber-500' : 'bg-emerald-500'}`}
-              style={{ width: `${usagePct}%` }}
-            />
-          </div>
-          {totalCount > MAX_PER_ACCOUNT && (
-            <p className="text-[10px] text-amber-400">⚠ 한도 {totalCount - MAX_PER_ACCOUNT}개 초과</p>
-          )}
         </div>
+        {totalCount > MAX_PER_ACCOUNT && (
+          <p className="text-[10px] text-amber-400">⚠ 한도 {totalCount - MAX_PER_ACCOUNT}개 초과</p>
+        )}
       </div>
 
       {/* 캐릭터 추가 (고정) */}
       <div className="shrink-0">
         <form onSubmit={handleSubmit} className="flex gap-2">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => { setName(e.target.value); if (error) setError('') }}
-            placeholder="캐릭터 닉네임 입력"
-            className="flex-1 min-w-0 rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm outline-none focus:border-emerald-500/50 transition"
-          />
+          <div className="relative flex-1 min-w-0">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M10 10L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </span>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => { setName(e.target.value); if (error) setError('') }}
+              placeholder="캐릭터 닉네임 검색"
+              className="w-full rounded-lg border-2 border-white/10 bg-gray-950 pl-10 pr-3 py-2.5 text-sm outline-none focus:border-emerald-500/60 hover:border-white/20 transition"
+            />
+          </div>
           <button
             type="submit"
             disabled={searchMutation.isPending}
-            className="rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-4 py-2 text-sm font-medium transition shrink-0"
+            className="rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-5 py-2.5 text-sm font-medium transition shrink-0 shadow-lg shadow-emerald-500/20"
           >
             {searchMutation.isPending ? '...' : '추가'}
           </button>

@@ -1,4 +1,5 @@
 import Select from '../../../components/Select'
+import Tooltip from '../../../components/Tooltip'
 import { DIFFICULTIES, formatMeso, getDifficultyImageUrl } from '../admin/constants'
 
 export default function BossSelector({ characterName, bosses, selections, onChange, maxReached, selectedCount, maxPerCharacter }) {
@@ -67,23 +68,23 @@ export default function BossSelector({ characterName, bosses, selections, onChan
                   {availableDiffs.map((d) => {
                     const active = sel?.difficulty === d.key
                     return (
-                      <button
-                        key={d.key}
-                        type="button"
-                        tabIndex={-1}
-                        onClick={(e) => {
-                          e.currentTarget.blur()
-                          if (active) {
-                            onChange(boss.id, null)
-                          } else {
-                            onChange(boss.id, { difficulty: d.key, party: partyN })
-                          }
-                        }}
-                        className={`shrink-0 transition focus:outline-none ${active ? 'opacity-100 scale-105' : 'opacity-40 hover:opacity-70'}`}
-                        title={d.label}
-                      >
-                        <img src={getDifficultyImageUrl(d.key)} alt={d.label} className="h-5" />
-                      </button>
+                      <Tooltip key={d.key} text={d.label}>
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          onClick={(e) => {
+                            e.currentTarget.blur()
+                            if (active) {
+                              onChange(boss.id, null)
+                            } else {
+                              onChange(boss.id, { difficulty: d.key, party: partyN })
+                            }
+                          }}
+                          className={`shrink-0 transition focus:outline-none ${active ? 'opacity-100 scale-105' : 'opacity-40 hover:opacity-70'}`}
+                        >
+                          <img src={getDifficultyImageUrl(d.key)} alt={d.label} className="h-5" />
+                        </button>
+                      </Tooltip>
                     )
                   })}
                 </div>
