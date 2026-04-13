@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { Reorder } from 'framer-motion'
+import { Reorder, useDragControls } from 'framer-motion'
 import { api } from '../../../api/client'
 import ConfirmDialog from '../../../components/ConfirmDialog'
 import Tooltip from '../../../components/Tooltip'
@@ -101,10 +101,13 @@ function CharacterContent({ char, selections, bosses }) {
 
 function CharacterItem({ char, isSelected, selections, bosses, onSelect, onRemove }) {
   const [dragged, setDragged] = useState(false)
+  const dragControls = useDragControls()
 
   return (
     <Reorder.Item
       value={char}
+      dragListener={false}
+      dragControls={dragControls}
       onDragStart={() => setDragged(true)}
       onDragEnd={() => {
         // 다음 click 이벤트 후에 reset
@@ -115,14 +118,18 @@ function CharacterItem({ char, isSelected, selections, bosses, onSelect, onRemov
         if (e.target.closest('button')) return
         onSelect(char.character_name)
       }}
-      className={`group relative rounded-xl border cursor-grab active:cursor-grabbing select-none ${
+      className={`group relative rounded-xl border cursor-pointer select-none ${
         isSelected
           ? 'border-emerald-500/40 bg-emerald-500/[0.08]'
           : 'border-white/5 hover:border-white/15 bg-gray-950/40 hover:bg-gray-950/60'
       }`}
     >
-      {/* 드래그 핸들 아이콘 (시각적 표시용) */}
-      <div className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-600 pointer-events-none">
+      {/* 드래그 핸들 */}
+      <div
+        onPointerDown={(e) => { e.preventDefault(); dragControls.start(e) }}
+        className="absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center text-gray-600 hover:text-gray-400 cursor-grab active:cursor-grabbing"
+        style={{ touchAction: 'none' }}
+      >
         <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
           <circle cx="3" cy="3" r="1.2" />
           <circle cx="9" cy="3" r="1.2" />
