@@ -1,10 +1,10 @@
-// 난이도 정의 (key, label, color)
+// 난이도 정의 (key, label, color) — 색상은 게임 내 난이도 배지 이미지와 매치
 export const DIFFICULTIES = [
-  { key: 'easy', label: '이지', color: 'text-green-400 border-green-500/30 bg-green-500/10' },
-  { key: 'normal', label: '노말', color: 'text-gray-300 border-gray-500/30 bg-gray-500/10' },
-  { key: 'hard', label: '하드', color: 'text-rose-400 border-rose-500/30 bg-rose-500/10' },
-  { key: 'chaos', label: '카오스', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10' },
-  { key: 'extreme', label: '익스트림', color: 'text-red-500 border-red-500/30 bg-red-500/10' },
+  { key: 'easy', label: '이지', color: 'text-slate-300 border-slate-400/40 bg-slate-400/10' },
+  { key: 'normal', label: '노말', color: 'text-sky-300 border-sky-400/40 bg-sky-400/10' },
+  { key: 'hard', label: '하드', color: 'text-pink-300 border-pink-400/40 bg-pink-400/10' },
+  { key: 'chaos', label: '카오스', color: 'text-amber-300 border-amber-500/40 bg-amber-500/10' },
+  { key: 'extreme', label: '익스트림', color: 'text-red-400 border-red-500/40 bg-red-500/10' },
 ]
 
 export function formatMeso(n) {
