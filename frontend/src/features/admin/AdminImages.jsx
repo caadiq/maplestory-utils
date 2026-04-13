@@ -1,159 +1,249 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { api } from '../../api/client'
 
-function UploadModal({ open, onClose, onUpload, uploading }) {
-  const [file, setFile] = useState(null)
-  const [name, setName] = useState('')
-  const [preview, setPreview] = useState(null)
-  const fileInputRef = useRef(null)
+/* ── 공용 모달 ── */
+function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }) {
+  if (!open) return null
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className={`w-full ${maxWidth} rounded-2xl bg-gray-900 border border-white/10 shadow-2xl max-h-[90vh] flex flex-col`} onClick={(e) => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between shrink-0">
+          <h3 className="font-semibold">{title}</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-white transition text-xl leading-none">×</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+/* ── 업로드 모달 (다중 지원) ── */
+function UploadModal({ open, onClose, onUpload, uploading, existingNames }) {
+  const [items, setItems] = useState([]) // { file, name, preview, id }
   const [dragOver, setDragOver] = useState(false)
 
   useEffect(() => {
-    if (!open) {
-      setFile(null)
-      setName('')
-      setPreview(null)
-    }
+    if (!open) setItems([])
   }, [open])
 
-  const handleFile = (f) => {
-    if (!f || !f.type.startsWith('image/')) return
-    setFile(f)
-    setName(f.name.replace(/\.[^.]+$/, ''))
-    const reader = new FileReader()
-    reader.onload = (e) => setPreview(e.target.result)
-    reader.readAsDataURL(f)
+  const addFiles = (fileList) => {
+    const newItems = []
+    Array.from(fileList).forEach((file) => {
+      if (!file.type.startsWith('image/')) return
+      const id = `${Date.now()}-${Math.random()}`
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setItems((prev) => prev.map((it) => it.id === id ? { ...it, preview: e.target.result } : it))
+      }
+      reader.readAsDataURL(file)
+      newItems.push({
+        id,
+        file,
+        name: file.name.replace(/\.[^.]+$/, ''),
+        preview: null,
+      })
+    })
+    setItems((prev) => [...prev, ...newItems])
   }
+
+  const updateName = (id, name) => {
+    setItems((prev) => prev.map((it) => it.id === id ? { ...it, name } : it))
+  }
+
+  const removeItem = (id) => {
+    setItems((prev) => prev.filter((it) => it.id !== id))
+  }
+
+  const trimmedNames = items.map((it) => it.name.trim())
+  const hasEmpty = trimmedNames.some((n) => !n)
+  const hasDupExisting = trimmedNames.some((n) => existingNames.has(n))
+  const hasDupInList = trimmedNames.some((n, i) => trimmedNames.indexOf(n) !== i)
+  const canSubmit = items.length > 0 && !hasEmpty && !hasDupExisting && !hasDupInList
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!file || !name.trim()) return
-    await onUpload({ file, name: name.trim() })
+    if (!canSubmit) return
+    await onUpload(items)
   }
 
-  if (!open) return null
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-gray-900 border border-white/10 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
-          <h3 className="font-semibold">이미지 업로드</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition">×</button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* 파일 업로드 영역 */}
+    <Modal open={open} onClose={onClose} title={`이미지 업로드${items.length > 0 ? ` (${items.length})` : ''}`} maxWidth="max-w-2xl">
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+        <div className="p-6 space-y-4 overflow-y-auto flex-1">
+          {/* 파일 추가 영역 */}
           <label
             onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
             onDragLeave={() => setDragOver(false)}
             onDrop={(e) => {
               e.preventDefault()
               setDragOver(false)
-              handleFile(e.dataTransfer.files[0])
+              addFiles(e.dataTransfer.files)
             }}
-            className={`relative rounded-xl border-2 border-dashed transition cursor-pointer min-h-[180px] flex flex-col items-center justify-center overflow-hidden ${
+            className={`relative rounded-xl border-2 border-dashed transition cursor-pointer min-h-[120px] flex flex-col items-center justify-center ${
               dragOver ? 'border-emerald-500 bg-emerald-500/10' : 'border-white/10 hover:border-white/20 bg-white/[0.02]'
             }`}
           >
-            {preview ? (
-              <img src={preview} alt="" className="max-h-40 object-contain p-3" />
-            ) : (
-              <>
-                <div className="text-3xl mb-2 opacity-50">🖼️</div>
-                <p className="text-sm text-gray-400">클릭하거나 이미지를 끌어다 놓으세요</p>
-                <p className="text-xs text-gray-600 mt-1">PNG, JPG, WEBP 등</p>
-              </>
-            )}
+            <div className="text-2xl mb-1 opacity-50">📥</div>
+            <p className="text-sm text-gray-400">클릭하거나 이미지를 끌어다 놓으세요</p>
+            <p className="text-xs text-gray-600 mt-0.5">여러 개 선택 가능</p>
             <input
-              ref={fileInputRef}
               type="file"
               accept="image/*"
-              onChange={(e) => handleFile(e.target.files[0])}
+              multiple
+              onChange={(e) => { addFiles(e.target.files); e.target.value = '' }}
               className="hidden"
             />
           </label>
 
-          {/* 이름 */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1.5">이미지 이름</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="예: 강렬한 힘의 결정"
-              className="w-full rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm outline-none focus:border-emerald-500/50 transition"
-            />
-          </div>
+          {/* 선택된 파일 리스트 */}
+          {items.length > 0 && (
+            <div className="space-y-2">
+              {items.map((item, idx) => {
+                const trimmed = item.name.trim()
+                const dupExisting = trimmed && existingNames.has(trimmed)
+                const dupInList = trimmed && items.some((it, j) => j !== idx && it.name.trim() === trimmed)
+                const empty = !trimmed
+                const errorMsg = empty ? '이름을 입력해주세요'
+                  : dupExisting ? '이미 존재하는 이름입니다'
+                  : dupInList ? '같은 이름이 중복됩니다'
+                  : null
 
-          {/* 버튼 */}
-          <div className="flex gap-2 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-sm hover:bg-white/5 transition">
-              취소
-            </button>
-            <button
-              type="submit"
-              disabled={!file || !name.trim() || uploading}
-              className="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
-            >
-              {uploading ? '업로드 중...' : '업로드'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+                return (
+                  <div key={item.id} className={`flex items-start gap-3 rounded-lg border bg-gray-950/50 p-2 ${
+                    errorMsg ? 'border-red-500/40' : 'border-white/5'
+                  }`}>
+                    <div className="w-12 h-12 rounded bg-gray-900 flex items-center justify-center overflow-hidden shrink-0">
+                      {item.preview ? (
+                        <img src={item.preview} alt="" className="w-full h-full object-contain" />
+                      ) : (
+                        <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <input
+                        type="text"
+                        value={item.name}
+                        onChange={(e) => updateName(item.id, e.target.value)}
+                        className={`w-full rounded border bg-gray-900 px-2 py-1.5 text-sm outline-none transition ${
+                          errorMsg ? 'border-red-500/40 focus:border-red-500/60' : 'border-white/10 focus:border-emerald-500/50'
+                        }`}
+                      />
+                      {errorMsg && <div className="text-[11px] text-red-400 px-0.5">{errorMsg}</div>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(item.id)}
+                      className="w-7 h-7 rounded text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition shrink-0"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* 버튼 */}
+        <div className="flex gap-2 px-6 py-4 border-t border-white/5 shrink-0">
+          <button type="button" onClick={onClose} className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-sm hover:bg-white/5 transition">
+            취소
+          </button>
+          <button
+            type="submit"
+            disabled={!canSubmit || uploading}
+            className="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            {uploading ? '업로드 중...' : `${items.length > 0 ? `${items.length}개 ` : ''}업로드`}
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
-function ImageCard({ image, onDelete }) {
-  const [showMenu, setShowMenu] = useState(false)
-  const [copied, setCopied] = useState(false)
-
-  const copyUrl = () => {
-    navigator.clipboard.writeText(image.url)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
-
+/* ── 삭제 확인 다이얼로그 ── */
+function ConfirmDialog({ open, onClose, onConfirm, title, description, confirmText = '삭제', destructive = false, loading = false }) {
   return (
-    <div className="group relative rounded-xl border border-white/5 bg-gray-900/40 overflow-hidden hover:border-white/15 transition">
-      {/* 이미지 영역 */}
+    <Modal open={open} onClose={onClose} title={title}>
+      <div className="p-6">
+        <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{description}</p>
+      </div>
+      <div className="flex gap-2 px-6 py-4 border-t border-white/5">
+        <button onClick={onClose} className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-sm hover:bg-white/5 transition">
+          취소
+        </button>
+        <button
+          onClick={onConfirm}
+          disabled={loading}
+          className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50 ${
+            destructive
+              ? 'bg-red-600 hover:bg-red-500 shadow-lg shadow-red-500/20'
+              : 'bg-emerald-600 hover:bg-emerald-500'
+          }`}
+        >
+          {loading ? '처리 중...' : confirmText}
+        </button>
+      </div>
+    </Modal>
+  )
+}
+
+/* ── 이미지 카드 ── */
+function ImageCard({ image, selected, selectMode, onToggle, onCopyUrl, copied }) {
+  return (
+    <div
+      onClick={() => selectMode && onToggle(image.id)}
+      className={`group relative rounded-xl border overflow-hidden transition ${
+        selected
+          ? 'border-emerald-500/60 bg-emerald-500/5 ring-2 ring-emerald-500/30'
+          : 'border-white/5 bg-gray-900/40 hover:border-white/15'
+      } ${selectMode ? 'cursor-pointer' : ''}`}
+    >
+      {/* 체크박스 (선택모드) */}
+      {selectMode && (
+        <div className={`absolute top-2 left-2 z-10 w-5 h-5 rounded border-2 flex items-center justify-center transition ${
+          selected ? 'border-emerald-500 bg-emerald-500' : 'border-white/30 bg-gray-950/80'
+        }`}>
+          {selected && <span className="text-xs text-white">✓</span>}
+        </div>
+      )}
+
       <div className="aspect-square bg-gradient-to-br from-gray-900 to-gray-950 flex items-center justify-center p-4 relative">
         <img src={image.url} alt={image.name} className="max-w-full max-h-full object-contain" />
 
-        {/* 액션 버튼 */}
-        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
-          <button
-            onClick={copyUrl}
-            className="w-7 h-7 rounded-md bg-gray-950/80 backdrop-blur-sm border border-white/10 hover:bg-emerald-500/20 hover:border-emerald-500/40 text-xs flex items-center justify-center transition"
-            title="URL 복사"
-          >
-            {copied ? '✓' : '⧉'}
-          </button>
-          <button
-            onClick={() => onDelete(image)}
-            className="w-7 h-7 rounded-md bg-gray-950/80 backdrop-blur-sm border border-white/10 hover:bg-red-500/20 hover:border-red-500/40 text-xs flex items-center justify-center transition"
-            title="삭제"
-          >
-            ×
-          </button>
-        </div>
+        {!selectMode && (
+          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+            <button
+              onClick={(e) => { e.stopPropagation(); onCopyUrl(image) }}
+              className="w-7 h-7 rounded-md bg-gray-950/80 backdrop-blur-sm border border-white/10 hover:bg-emerald-500/20 hover:border-emerald-500/40 text-xs flex items-center justify-center transition"
+              title="URL 복사"
+            >
+              {copied ? '✓' : '⧉'}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* 정보 */}
       <div className="px-3 py-2 border-t border-white/5">
         <div className="text-sm font-medium truncate">{image.name}</div>
-        <div className="text-xs text-gray-500 truncate mt-0.5">{image.url}</div>
       </div>
     </div>
   )
 }
 
+/* ── 메인 ── */
 export default function AdminImages() {
   const [images, setImages] = useState([])
   const [loading, setLoading] = useState(true)
-  const [modalOpen, setModalOpen] = useState(false)
+  const [uploadOpen, setUploadOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [search, setSearch] = useState('')
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [confirmDelete, setConfirmDelete] = useState(null) // {ids, names}
+  const [deleting, setDeleting] = useState(false)
+  const [copiedId, setCopiedId] = useState(null)
 
   const fetchImages = async () => {
     setLoading(true)
@@ -167,16 +257,16 @@ export default function AdminImages() {
     }
   }
 
-  useEffect(() => {
-    fetchImages()
-  }, [])
+  useEffect(() => { fetchImages() }, [])
 
-  const handleUpload = async ({ file, name }) => {
+  const handleUpload = async (items) => {
     setUploading(true)
     try {
       const formData = new FormData()
-      formData.append('file', file)
-      formData.append('name', name)
+      items.forEach((it) => {
+        formData.append('files', it.file)
+        formData.append('names', it.name.trim())
+      })
 
       const adminKey = localStorage.getItem('maple-admin-key')
       const res = await fetch('/api/admin/images', {
@@ -184,11 +274,14 @@ export default function AdminImages() {
         headers: { 'x-admin-key': adminKey },
         body: formData,
       })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || '업로드 실패')
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || '업로드 실패')
+
+      if (result.errors?.length > 0) {
+        alert(`일부 업로드 실패:\n${result.errors.map((e) => `- ${e.name}: ${e.error}`).join('\n')}`)
       }
-      setModalOpen(false)
+
+      setUploadOpen(false)
       await fetchImages()
     } catch (err) {
       alert(err.message)
@@ -197,19 +290,62 @@ export default function AdminImages() {
     }
   }
 
-  const handleDelete = async (image) => {
-    if (!confirm(`"${image.name}" 이미지를 삭제하시겠습니까?`)) return
-    try {
-      await api(`/api/admin/images/${image.id}`, { method: 'DELETE' })
-      await fetchImages()
-    } catch (err) {
-      alert(err.message)
-    }
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectMode = () => {
+    setSelectMode((prev) => !prev)
+    setSelectedIds(new Set())
   }
 
   const filtered = images.filter((img) =>
     img.name.toLowerCase().includes(search.toLowerCase())
   )
+
+  const selectAll = () => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filtered.map((img) => img.id)))
+    }
+  }
+
+  const requestDelete = () => {
+    const items = images.filter((img) => selectedIds.has(img.id))
+    setConfirmDelete({
+      ids: items.map((i) => i.id),
+      names: items.map((i) => i.name),
+    })
+  }
+
+  const handleDeleteConfirm = async () => {
+    setDeleting(true)
+    try {
+      await api('/api/admin/images/delete', {
+        method: 'POST',
+        body: { ids: confirmDelete.ids },
+      })
+      setConfirmDelete(null)
+      setSelectedIds(new Set())
+      setSelectMode(false)
+      await fetchImages()
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const copyUrl = (image) => {
+    navigator.clipboard.writeText(image.url)
+    setCopiedId(image.id)
+    setTimeout(() => setCopiedId(null), 1500)
+  }
 
   return (
     <div className="space-y-6">
@@ -218,13 +354,50 @@ export default function AdminImages() {
           <h2 className="text-lg font-semibold">이미지 관리</h2>
           <p className="text-sm text-gray-500 mt-0.5">공용 이미지를 업로드하고 관리합니다</p>
         </div>
-        <button
-          onClick={() => setModalOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-sm font-medium transition shadow-lg shadow-emerald-500/20"
-        >
-          <span className="text-base leading-none">+</span>
-          이미지 업로드
-        </button>
+        <div className="flex items-center gap-2">
+          {selectMode ? (
+            <>
+              <span className="text-sm text-gray-400">{selectedIds.size}개 선택</span>
+              <button
+                onClick={selectAll}
+                className="rounded-lg border border-white/10 px-3 py-2 text-sm hover:bg-white/5 transition"
+              >
+                {selectedIds.size === filtered.length && filtered.length > 0 ? '전체 해제' : '전체 선택'}
+              </button>
+              <button
+                onClick={requestDelete}
+                disabled={selectedIds.size === 0}
+                className="rounded-lg bg-red-600 hover:bg-red-500 px-3 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-red-500/20"
+              >
+                삭제
+              </button>
+              <button
+                onClick={toggleSelectMode}
+                className="rounded-lg border border-white/10 px-3 py-2 text-sm hover:bg-white/5 transition"
+              >
+                완료
+              </button>
+            </>
+          ) : (
+            <>
+              {images.length > 0 && (
+                <button
+                  onClick={toggleSelectMode}
+                  className="rounded-lg border border-white/10 px-3 py-2 text-sm hover:bg-white/5 transition"
+                >
+                  선택
+                </button>
+              )}
+              <button
+                onClick={() => setUploadOpen(true)}
+                className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-sm font-medium transition shadow-lg shadow-emerald-500/20"
+              >
+                <span className="text-base leading-none">+</span>
+                이미지 업로드
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* 검색 */}
@@ -256,7 +429,7 @@ export default function AdminImages() {
           </p>
           {images.length === 0 && (
             <button
-              onClick={() => setModalOpen(true)}
+              onClick={() => setUploadOpen(true)}
               className="text-sm text-emerald-400 hover:text-emerald-300 transition"
             >
               첫 이미지 업로드하기 →
@@ -266,16 +439,36 @@ export default function AdminImages() {
       ) : (
         <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
           {filtered.map((image) => (
-            <ImageCard key={image.id} image={image} onDelete={handleDelete} />
+            <ImageCard
+              key={image.id}
+              image={image}
+              selected={selectedIds.has(image.id)}
+              selectMode={selectMode}
+              onToggle={toggleSelect}
+              onCopyUrl={copyUrl}
+              copied={copiedId === image.id}
+            />
           ))}
         </div>
       )}
 
       <UploadModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
         onUpload={handleUpload}
         uploading={uploading}
+        existingNames={new Set(images.map((img) => img.name))}
+      />
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={handleDeleteConfirm}
+        title="이미지 삭제"
+        description={confirmDelete ? `${confirmDelete.ids.length}개의 이미지를 삭제하시겠습니까?\n\n${confirmDelete.names.slice(0, 5).map((n) => `· ${n}`).join('\n')}${confirmDelete.names.length > 5 ? `\n· 외 ${confirmDelete.names.length - 5}개` : ''}\n\n이 작업은 되돌릴 수 없습니다.` : ''}
+        confirmText="삭제"
+        destructive
+        loading={deleting}
       />
     </div>
   )
