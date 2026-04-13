@@ -5,6 +5,11 @@
   --font-maple: "Maplestory", "Noto Sans KR", sans-serif;
 }
 
+html, body, #root {
+  height: 100%;
+  background: #030712;
+}
+
 html {
   font-family: "Maplestory", "Noto Sans KR", system-ui, sans-serif;
 }
@@ -33,4 +38,28 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 input[type="number"] {
   -moz-appearance: textfield;
+}
+
+/* 커스텀 스크롤바 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }

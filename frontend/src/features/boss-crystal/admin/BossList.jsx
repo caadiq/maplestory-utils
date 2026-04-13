@@ -11,7 +11,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { api } from '../../../api/client'
-import { DIFFICULTIES, formatMeso } from './constants'
+import { DIFFICULTIES, formatMeso, getDifficultyBadgeStyle } from './constants'
 
 function BossCardContent({ boss, dragging = false }) {
   return (
@@ -45,7 +45,12 @@ function BossCardContent({ boss, dragging = false }) {
             {DIFFICULTIES.filter((d) => boss.difficulties?.some((bd) => bd.difficulty === d.key)).map((d) => {
               const bd = boss.difficulties.find((x) => x.difficulty === d.key)
               return (
-                <span key={d.key} className={`text-[10px] px-1.5 py-0.5 rounded border ${d.color}`} title={formatMeso(bd.crystal_price)}>
+                <span
+                  key={d.key}
+                  className="text-[10px] font-medium px-1.5 py-0.5 rounded border"
+                  style={getDifficultyBadgeStyle(d.key)}
+                  title={`${d.label} - ${formatMeso(bd.crystal_price)}`}
+                >
                   {d.label}
                 </span>
               )

@@ -1,11 +1,36 @@
-// 난이도 정의 (key, label, color) — 색상은 게임 내 난이도 배지 이미지와 매치
+// 난이도 정의 (key, label, initial, colors)
 export const DIFFICULTIES = [
-  { key: 'easy', label: '이지', color: 'text-slate-300 border-slate-400/40 bg-slate-400/10' },
-  { key: 'normal', label: '노말', color: 'text-sky-300 border-sky-400/40 bg-sky-400/10' },
-  { key: 'hard', label: '하드', color: 'text-fuchsia-300 border-fuchsia-400/40 bg-fuchsia-400/10' },
-  { key: 'chaos', label: '카오스', color: 'text-amber-300 border-amber-500/40 bg-amber-500/10' },
-  { key: 'extreme', label: '익스트림', color: 'text-red-400 border-red-500/40 bg-red-500/10' },
+  {
+    key: 'easy', label: '이지', initial: 'E',
+    colors: { border: '#999999', bg: '#999999', text: '#ffffff' },
+  },
+  {
+    key: 'normal', label: '노말', initial: 'N',
+    colors: { border: '#33aabb', bg: '#33aabb', text: '#ffffff' },
+  },
+  {
+    key: 'hard', label: '하드', initial: 'H',
+    colors: { border: '#dd4489', bg: '#dd4489', text: '#ffffff' },
+  },
+  {
+    key: 'chaos', label: '카오스', initial: 'C',
+    colors: { border: '#ddbb88', bg: '#444444', text: '#ffddbb' },
+  },
+  {
+    key: 'extreme', label: '익스트림', initial: 'E',
+    colors: { border: '#ee3355', bg: '#444444', text: '#ee4455' },
+  },
 ]
+
+export function getDifficultyBadgeStyle(key) {
+  const diff = DIFFICULTIES.find((d) => d.key === key)
+  if (!diff) return {}
+  return {
+    borderColor: diff.colors.border,
+    backgroundColor: diff.colors.bg,
+    color: diff.colors.text,
+  }
+}
 
 export function formatMeso(n) {
   if (!n || n < 10000) return (n || 0).toLocaleString()
