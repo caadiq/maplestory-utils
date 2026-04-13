@@ -61,7 +61,7 @@ export default function BossList() {
                     {DIFFICULTIES.filter((d) => boss.difficulties?.some((bd) => bd.difficulty === d.key)).map((d) => {
                       const bd = boss.difficulties.find((x) => x.difficulty === d.key)
                       return (
-                        <span key={d.key} className={`text-[10px] px-1.5 py-0.5 rounded border ${d.color}`} title={`${formatMeso(bd.crystal_price)} / ${bd.max_party_size}인`}>
+                        <span key={d.key} className={`text-[10px] px-1.5 py-0.5 rounded border ${d.color}`} title={`${formatMeso(bd.crystal_price)} / ${boss.max_party_size}인`}>
                           {d.label}
                         </span>
                       )
