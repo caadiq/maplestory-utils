@@ -8,14 +8,17 @@ export default function Footer() {
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2 text-xs text-gray-500">
-          <div>
-            <p>이 사이트는 NEXON Korea의 공식 사이트가 아닙니다.</p>
-            <p>MapleStory의 모든 저작권은 NEXON Korea에 있습니다.</p>
+          <div className="space-y-1">
+            <p>This site is not associated with NEXON Korea.</p>
+            <p>
+              Data based on{' '}
+              <a href="https://openapi.nexon.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400/80 hover:text-emerald-300 transition">
+                NEXON Open API
+              </a>
+              .
+            </p>
           </div>
           <div className="sm:text-right">
-            <p>
-              데이터 출처: <a href="https://openapi.nexon.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400/80 hover:text-emerald-300 transition">NEXON Open API</a>
-            </p>
             <p>© {new Date().getFullYear()} caadiq</p>
           </div>
         </div>
