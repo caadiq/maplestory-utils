@@ -5,20 +5,15 @@ function formatKoreanDate(s) {
   return `${y}년 ${m}월 ${d}일`
 }
 
-export default function ProgressBar({ totalAccumulated, completionDate }) {
-  const chapterStates = []
-  let remaining = totalAccumulated
-  for (const c of GENESIS_CHAPTERS) {
-    if (remaining >= c.required) {
-      chapterStates.push({ chapter: c, status: 'done', current: c.required })
-      remaining -= c.required
-    } else if (remaining > 0) {
-      chapterStates.push({ chapter: c, status: 'active', current: remaining })
-      remaining = 0
-    } else {
-      chapterStates.push({ chapter: c, status: 'pending', current: 0 })
+export default function ProgressBar({ startChapter, currentPoints, completionDate }) {
+  const chapterStates = GENESIS_CHAPTERS.map((c) => {
+    if (c.idx < startChapter) return { chapter: c, status: 'done', current: c.required }
+    if (c.idx === startChapter) {
+      const filled = Math.min(currentPoints, c.required)
+      return { chapter: c, status: filled > 0 ? 'active' : 'active', current: filled }
     }
-  }
+    return { chapter: c, status: 'pending', current: 0 }
+  })
 
   const renderSegment = ({ chapter, status, current }) => {
     const pct = (current / chapter.required) * 100

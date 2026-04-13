@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
-import { GENESIS_CHAPTERS, QUEST_BTBOSS_IMAGE_BASE } from '../data'
+import { GENESIS_CHAPTERS, QUEST_BOSS_IMAGE_BASE } from '../data'
 
 /**
  * 진행 중인 퀘스트 드롭다운
- * - 선택된 옵션과 옵션 리스트 모두 btboss 이미지로 표시
+ * - 보스 초상화 + 이름 텍스트
  */
 export default function QuestSelector({ value, onChange }) {
   const [open, setOpen] = useState(false)
@@ -25,25 +25,30 @@ export default function QuestSelector({ value, onChange }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`relative w-full h-12 flex items-center justify-center rounded-lg border bg-gray-950 px-3 transition ${
+        className={`w-full h-12 flex items-center gap-3 rounded-lg border bg-gray-950 pl-2 pr-3 transition ${
           open ? 'border-emerald-500/50' : 'border-white/10 hover:border-white/20'
         }`}
       >
-        <img
-          src={`${QUEST_BTBOSS_IMAGE_BASE}/${selected.boss}.png`}
-          alt={selected.boss}
-          className="h-8 block"
-        />
+        <div className="w-9 h-9 rounded overflow-hidden shrink-0 bg-gray-900">
+          <img
+            src={`${QUEST_BOSS_IMAGE_BASE}/${selected.boss}.png`}
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <span className="flex-1 text-left text-sm font-medium text-gray-100">
+          {selected.boss}
+        </span>
         <svg
           width="14" height="14" viewBox="0 0 12 12" fill="none"
-          className={`absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
         >
           <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 right-0 mt-1 z-50 flex flex-col items-center gap-1">
+        <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-white/10 bg-gray-900 shadow-2xl py-1 max-h-72 overflow-y-auto">
           {GENESIS_CHAPTERS.map((chapter) => {
             const isSelected = chapter.idx === value
             return (
@@ -51,15 +56,22 @@ export default function QuestSelector({ value, onChange }) {
                 key={chapter.idx}
                 type="button"
                 onClick={() => { onChange(chapter.idx); setOpen(false) }}
-                className={`relative transition ${
-                  isSelected ? 'scale-105' : 'opacity-60 hover:opacity-100'
+                className={`w-full flex items-center gap-3 px-2 py-1.5 transition ${
+                  isSelected ? 'bg-emerald-500/10' : 'hover:bg-white/5'
                 }`}
               >
-                <img
-                  src={`${QUEST_BTBOSS_IMAGE_BASE}/${chapter.boss}.png`}
-                  alt={chapter.boss}
-                  className="h-10 block drop-shadow-lg"
-                />
+                <div className="w-9 h-9 rounded overflow-hidden shrink-0 bg-gray-950">
+                  <img
+                    src={`${QUEST_BOSS_IMAGE_BASE}/${chapter.boss}.png`}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span className={`flex-1 text-left text-sm font-medium ${
+                  isSelected ? 'text-emerald-300' : 'text-gray-200'
+                }`}>
+                  {chapter.boss}
+                </span>
               </button>
             )
           })}

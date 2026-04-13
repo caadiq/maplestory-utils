@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import dayjs from 'dayjs'
 import {
   GENESIS_CHAPTERS,
   GENESIS_TOTAL,
@@ -7,6 +8,7 @@ import {
   calcPoints,
   addWeeks,
   formatDate,
+  todayKST,
 } from './data'
 import WeekCard from './components/WeekCard'
 import QuestSelector from './components/QuestSelector'
@@ -26,7 +28,7 @@ function makeEmptyWeek(startDate) {
     }
   })
   return {
-    startDate: startDate.toISOString(),
+    startDate: dayjs(startDate).toISOString(),
     bosses,
     blackMage: {
       enabled: false,
@@ -62,7 +64,7 @@ export default function Liberation() {
     return {
       startChapter: 0,
       currentPoints: 0,
-      weeks: [makeEmptyWeek(new Date())],
+      weeks: [makeEmptyWeek(todayKST())],
     }
   })
 
@@ -76,7 +78,9 @@ export default function Liberation() {
     const startConsumedBefore = GENESIS_CHAPTERS
       .slice(0, state.startChapter)
       .reduce((s, c) => s + c.required, 0)
-    let totalAccumulated = startConsumedBefore + state.currentPoints
+    const currentChapterCap = GENESIS_CHAPTERS[state.startChapter]?.required ?? 0
+    const clampedCurrent = Math.min(state.currentPoints, currentChapterCap)
+    let totalAccumulated = startConsumedBefore + clampedCurrent
 
     for (const week of state.weeks) {
       const earned = calcWeekPoints(week)
@@ -108,11 +112,19 @@ export default function Liberation() {
     return result
   }, [state])
 
+  const initialCap = GENESIS_CHAPTERS[state.startChapter]?.required ?? 0
+  const initialClamped = Math.min(state.currentPoints, initialCap)
+  const initialAccumulated = GENESIS_CHAPTERS
+    .slice(0, state.startChapter)
+    .reduce((s, c) => s + c.required, 0) + initialClamped
+  const alreadyDone = initialAccumulated >= GENESIS_TOTAL
   const completedWeekIdx = progressByWeek.findIndex((w) => w.completed)
-  const isDone = completedWeekIdx >= 0
-  const completionDate = isDone
-    ? addWeeks(new Date(state.weeks[completedWeekIdx].startDate), 1)
-    : null
+  const isDone = alreadyDone || completedWeekIdx >= 0
+  const completionDate = alreadyDone
+    ? todayKST()
+    : completedWeekIdx >= 0
+      ? addWeeks(state.weeks[completedWeekIdx].startDate, 1)
+      : null
 
   const updateWeek = (idx, newWeekData) => {
     setState((prev) => ({
@@ -124,10 +136,10 @@ export default function Liberation() {
   const addWeek = () => {
     setState((prev) => {
       const lastWeek = prev.weeks[prev.weeks.length - 1]
-      const nextStart = addWeeks(new Date(lastWeek.startDate), 1)
+      const nextStart = addWeeks(lastWeek.startDate, 1)
       return {
         ...prev,
-        weeks: [...prev.weeks, { ...lastWeek, startDate: nextStart.toISOString() }],
+        weeks: [...prev.weeks, { ...lastWeek, startDate: dayjs(nextStart).toISOString() }],
       }
     })
   }
@@ -141,16 +153,15 @@ export default function Liberation() {
     setState({
       startChapter: 0,
       currentPoints: 0,
-      weeks: [makeEmptyWeek(new Date())],
+      weeks: [makeEmptyWeek(todayKST())],
     })
   }
 
   const setFirstWeekDate = (dateStr) => {
-    const d = new Date(dateStr)
     setState((prev) => {
       const weeks = prev.weeks.map((w, i) => ({
         ...w,
-        startDate: addWeeks(d, i).toISOString(),
+        startDate: dayjs(addWeeks(dateStr, i)).toISOString(),
       }))
       return { ...prev, weeks }
     })
@@ -163,9 +174,43 @@ export default function Liberation() {
   return (
     <div className="space-y-6">
       <ProgressBar
-        totalAccumulated={totalCumulative}
+        startChapter={state.startChapter}
+        currentPoints={state.currentPoints}
         completionDate={isDone ? formatDate(completionDate) : null}
       />
+
+      {/* 현재 진행 상태 입력 */}
+      <div className="max-w-2xl mx-auto rounded-2xl border border-white/10 bg-gray-900/60 p-6 space-y-4">
+        <div className="text-lg font-semibold text-emerald-300">현재 진행 상태</div>
+
+        <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 1.2fr 1fr' }}>
+          <div className="space-y-1.5">
+            <label className="block text-xs text-gray-400">시작 날짜</label>
+            <DatePicker
+              value={formatDate(state.weeks[0].startDate)}
+              onChange={setFirstWeekDate}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-xs text-gray-400">진행 중인 퀘스트</label>
+            <QuestSelector
+              value={state.startChapter}
+              onChange={(idx) => setState((prev) => ({ ...prev, startChapter: idx }))}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-xs text-gray-400">현재 흔적</label>
+            <PointsInput
+              value={state.currentPoints}
+              max={3000}
+              onChange={(n) => setState((prev) => ({ ...prev, currentPoints: n }))}
+              className="w-full h-12 rounded-lg border border-white/10 bg-gray-950 px-3 text-base text-right tabular-nums outline-none focus:border-emerald-500/50 hover:border-white/20 transition"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
