@@ -1,8 +1,16 @@
 export async function api(url, options = {}) {
+  const headers = { 'Content-Type': 'application/json', ...options.headers }
+
+  // 관리자 API에는 인증 헤더 자동 추가
+  if (url.startsWith('/api/admin')) {
+    const adminKey = localStorage.getItem('maple-admin-key')
+    if (adminKey) headers['x-admin-key'] = adminKey
+  }
+
   const res = await fetch(url, {
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
+    headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
   })
 
