@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api/client'
 
@@ -60,6 +60,7 @@ function AddCard({ to, icon, label }) {
 }
 
 export default function AdminHome() {
+  const { handleLogout } = useOutletContext() || {}
   const { data: menus = [], isLoading: loading } = useQuery({
     queryKey: ['admin', 'menus'],
     queryFn: () => api('/api/admin/menus').catch(() => []),
@@ -120,6 +121,18 @@ export default function AdminHome() {
           </Link>
         </div>
       </section>
+
+      {/* 로그아웃 */}
+      {handleLogout && (
+        <div className="pt-4 text-center">
+          <button
+            onClick={handleLogout}
+            className="text-xs text-gray-600 hover:text-red-400 transition"
+          >
+            관리자 로그아웃
+          </button>
+        </div>
+      )}
     </div>
   )
 }
