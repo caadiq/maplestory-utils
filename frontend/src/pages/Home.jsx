@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
+import NoticeWidget from '../components/NoticeWidget'
 
 export default function Home() {
   const { data: menus = [], isLoading: loading } = useQuery({
@@ -9,20 +10,16 @@ export default function Home() {
   })
 
   return (
-    <div className="space-y-12">
-      {/* Hero */}
-      <section className="text-center pt-12 pb-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 mb-6">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          MapleStory Utility
-        </div>
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-gradient-to-br from-white via-white to-gray-500 bg-clip-text text-transparent">
-          메이플스토리 유틸리티
-        </h1>
-        <p className="text-gray-400 mt-4 text-base">
-          메이플스토리 플레이를 위한 유용한 도구 모음
-        </p>
-      </section>
+    <div className="space-y-10">
+      {/* 메이플 공지 */}
+      <NoticeWidget />
+
+      {/* 구분선 */}
+      <div className="flex items-center gap-4">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <span className="text-xs text-gray-500 uppercase tracking-widest">Utilities</span>
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      </div>
 
       {/* 메뉴 그리드 */}
       <section>
