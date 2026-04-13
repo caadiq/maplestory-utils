@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import adminRoutes from './routes/admin.js';
 import menuRoutes from './routes/menus.js';
+import noticeRoutes from './routes/notices.js';
 import { sequelize } from './lib/db.js';
 import './models/index.js';
 
@@ -17,6 +18,7 @@ app.use(cors({
 app.use(express.json());
 
 app.use('/api/menus', menuRoutes);
+app.use('/api/notices', noticeRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (_req, res) => {
