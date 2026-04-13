@@ -42,7 +42,7 @@ export default function BossForm() {
   const fileInputRef = useRef(null)
 
   const [name, setName] = useState('')
-  const [maxPartySize, setMaxPartySize] = useState(6)
+  const [maxPartySize, setMaxPartySize] = useState(3)
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [existingImageUrl, setExistingImageUrl] = useState(null)
@@ -60,7 +60,7 @@ export default function BossForm() {
   useEffect(() => {
     if (!isEdit) {
       setName('')
-      setMaxPartySize(6)
+      setMaxPartySize(3)
       setImageFile(null)
       setImagePreview(null)
       setExistingImageUrl(null)
@@ -69,7 +69,7 @@ export default function BossForm() {
     }
     if (bossData) {
       setName(bossData.name || '')
-      setMaxPartySize(bossData.max_party_size || 6)
+      setMaxPartySize(bossData.max_party_size || 3)
       setExistingImageUrl(bossData.image_url || null)
       setImagePreview(null)
       setImageFile(null)
@@ -259,6 +259,7 @@ export default function BossForm() {
                       <Checkbox
                         checked={v.enabled}
                         onChange={(checked) => updateDifficulty(d.key, { enabled: checked })}
+                        tabIndex={-1}
                       />
                       <img
                         src={getDifficultyImageUrl(d.key)}

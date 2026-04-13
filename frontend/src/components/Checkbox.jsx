@@ -2,7 +2,7 @@
  * 커스텀 체크박스
  * <Checkbox checked={x} onChange={(checked) => ...} />
  */
-export default function Checkbox({ checked, onChange, disabled, className = '', size = 'md' }) {
+export default function Checkbox({ checked, onChange, disabled, className = '', size = 'md', tabIndex }) {
   const sizeCls = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5'
   const iconSize = size === 'sm' ? 'text-[10px]' : 'text-xs'
 
@@ -12,6 +12,7 @@ export default function Checkbox({ checked, onChange, disabled, className = '', 
       role="checkbox"
       aria-checked={checked}
       disabled={disabled}
+      tabIndex={tabIndex}
       onClick={(e) => { e.stopPropagation(); !disabled && onChange?.(!checked) }}
       className={`${sizeCls} shrink-0 rounded-md border-2 flex items-center justify-center transition ${
         checked
