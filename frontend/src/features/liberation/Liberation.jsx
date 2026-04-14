@@ -93,43 +93,46 @@ export default function Liberation() {
     staleTime: Infinity,
   })
 
-  const [state, setState] = useState(() => {
+  const makeInitialSlot = () => ({
+    startChapter: 0,
+    currentPoints: 0,
+    startDate: dayjs(todayKST()).toISOString(),
+    weekly: makeEmptyWeekly(),
+    weekOverrides: {},
+    weeks: [makeEmptyWeek(todayKST())],
+  })
+
+  const [root, setRoot] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        if (!parsed.weekly) parsed.weekly = makeEmptyWeekly()
-        if (!parsed.startDate) parsed.startDate = dayjs(todayKST()).toISOString()
-        if (!parsed.weekOverrides) parsed.weekOverrides = {}
-        // enabled/'none' 필드 제거 마이그레이션
-        const migrate = (sel, defaultDiff) => {
-          if (!sel) return sel
-          if (!sel.difficulty || sel.difficulty === 'none') sel.difficulty = defaultDiff
-          delete sel.enabled
-          return sel
+        // 구버전(단일 slot) → 새 구조로 마이그레이션
+        if (!parsed.calcMode) {
+          if (!parsed.weekly) parsed.weekly = makeEmptyWeekly()
+          if (!parsed.startDate) parsed.startDate = dayjs(todayKST()).toISOString()
+          if (!parsed.weekOverrides) parsed.weekOverrides = {}
+          return { calcMode: 'simple', simple: parsed, weekly: makeInitialSlot() }
         }
-        WEEKLY_BOSSES.forEach((b) => {
-          if (parsed.weekly.bosses?.[b.key]) {
-            parsed.weekly.bosses[b.key] = migrate(parsed.weekly.bosses[b.key], b.difficulties[0].key)
-          }
-        })
-        parsed.weekly.blackMage = migrate(parsed.weekly.blackMage, MONTHLY_BOSSES[0].difficulties[0].key)
         return parsed
       } catch { /* ignore */ }
     }
-    return {
-      startChapter: 0,
-      currentPoints: 0,
-      startDate: dayjs(todayKST()).toISOString(),
-      weekly: makeEmptyWeekly(),
-      weekOverrides: {},
-      weeks: [makeEmptyWeek(todayKST())],
-    }
+    return { calcMode: 'simple', simple: makeInitialSlot(), weekly: makeInitialSlot() }
   })
 
+  const calcMode = root.calcMode
+  const state = root[calcMode]
+  const setState = (updater) => {
+    setRoot((prev) => ({
+      ...prev,
+      [prev.calcMode]: typeof updater === 'function' ? updater(prev[prev.calcMode]) : updater,
+    }))
+  }
+  const setCalcMode = (mode) => setRoot((prev) => ({ ...prev, calcMode: mode }))
+
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  }, [state])
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(root))
+  }, [root])
 
   // 주차별 계산
   const progressByWeek = useMemo(() => {
@@ -260,14 +263,7 @@ export default function Liberation() {
 
   const [resetOpen, setResetOpen] = useState(false)
   const doReset = () => {
-    setState({
-      startChapter: 0,
-      currentPoints: 0,
-      startDate: dayjs(todayKST()).toISOString(),
-      weekly: makeEmptyWeekly(),
-      weekOverrides: {},
-      weeks: [makeEmptyWeek(todayKST())],
-    })
+    setState(makeInitialSlot())
     setResetOpen(false)
   }
 
@@ -315,6 +311,27 @@ export default function Liberation() {
           <div className="text-sm text-gray-500">데스티니 해방 계산기는 준비 중입니다.</div>
         </div>
       ) : (<>
+      {/* 계산 모드 탭 */}
+      <div className="max-w-3xl mx-auto flex gap-1 p-1 rounded-xl border border-white/10 bg-gray-950/60">
+        {[
+          { key: 'simple', label: '단순 계산' },
+          { key: 'weekly', label: '주차별 계산' },
+        ].map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setCalcMode(t.key)}
+            className={`flex-1 h-10 rounded-lg text-sm font-semibold transition ${
+              calcMode === t.key
+                ? 'bg-emerald-500/20 text-emerald-300'
+                : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       <ProgressBar
         startChapter={state.startChapter}
         currentPoints={state.currentPoints}
@@ -359,6 +376,7 @@ export default function Liberation() {
         onChange={(w) => setState((prev) => ({ ...prev, weekly: w }))}
         totalWeekly={weeklyEarn}
         totalMonthly={monthlyEarn}
+        mode={calcMode}
       />
 
       <div className="max-w-3xl mx-auto flex justify-end">
@@ -380,7 +398,7 @@ export default function Liberation() {
         onClose={() => setResetOpen(false)}
         onConfirm={doReset}
         title="전체 초기화"
-        description={'입력한 내용을 모두 초기화하시겠습니까?\n\n시작 날짜, 현재 진행 상태, 주간 보스 설정이 모두 초기값으로 되돌아갑니다.'}
+        description={`${calcMode === 'simple' ? '단순 계산' : '주차별 계산'} 모드의 입력을 모두 초기화하시겠습니까?\n\n시작 날짜, 현재 진행 상태, 주간 보스 설정이 모두 초기값으로 되돌아갑니다.\n다른 모드의 값은 유지됩니다.`}
         confirmText="초기화"
         destructive
       />

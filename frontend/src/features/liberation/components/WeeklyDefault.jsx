@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Select from '../../../components/Select'
 import Tooltip from '../../../components/Tooltip'
+import WeeklyDesignMocks from './WeeklyDesignMocks'
 import { WEEKLY_BOSSES, MONTHLY_BOSSES, LIBERATION_BOSS_IMAGE_BASE, calcPoints } from '../data'
 
 const PARTY_OPTIONS = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n}인` }))
@@ -16,7 +17,7 @@ function diffLabel(d, party) {
   )
 }
 
-function BossRow({ boss, sel, onChange, monthly = false }) {
+export function BossRow({ boss, sel, onChange, monthly = false, showDone = true }) {
   const disabled = sel.difficulty === 'none'
   const difficultyOptions = [NONE_DIFFICULTY, ...boss.difficulties]
     .map((d) => ({ value: d.key, label: diffLabel(d, sel.party) }))
@@ -49,27 +50,27 @@ function BossRow({ boss, sel, onChange, monthly = false }) {
           disabled={disabled}
         />
       </div>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => onChange({ done: !sel.done })}
-        className={`shrink-0 w-20 rounded-md h-8 text-xs font-semibold transition border ${
-          disabled
-            ? 'border-white/5 text-gray-700 cursor-not-allowed'
-            : sel.done
-              ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
-              : 'border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300'
-        }`}
-      >
-        {sel.done ? '완료' : '미완료'}
-      </button>
+      {showDone && (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange({ done: !sel.done })}
+          className={`shrink-0 w-20 rounded-md h-8 text-xs font-semibold transition border ${
+            disabled
+              ? 'border-white/5 text-gray-700 cursor-not-allowed'
+              : sel.done
+                ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                : 'border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300'
+          }`}
+        >
+          {sel.done ? '완료' : '미완료'}
+        </button>
+      )}
     </div>
   )
 }
 
-export default function WeeklyDefault({ weekly, onChange, totalWeekly, totalMonthly }) {
-  const [mode, setMode] = useState('simple') // 'simple' | 'weekly'
-
+export default function WeeklyDefault({ weekly, onChange, totalWeekly, totalMonthly, mode = 'simple' }) {
   const updateBoss = (key, patch) => {
     onChange({ ...weekly, bosses: { ...weekly.bosses, [key]: { ...weekly.bosses[key], ...patch } } })
   }
@@ -81,63 +82,39 @@ export default function WeeklyDefault({ weekly, onChange, totalWeekly, totalMont
     <div className="max-w-3xl mx-auto rounded-2xl border border-white/10 bg-gray-900/60 p-6 space-y-4">
       <div className="flex items-center justify-between">
         <div className="text-lg font-semibold text-emerald-300">주간 보스 설정</div>
-        <div className="inline-flex rounded-lg border border-white/10 bg-gray-950 p-0.5">
-          <TabButton active={mode === 'simple'} onClick={() => setMode('simple')}>단순 계산</TabButton>
-          <TabButton active={mode === 'weekly'} onClick={() => setMode('weekly')}>주차별 계산</TabButton>
+        <div className="flex items-baseline text-sm text-gray-400 gap-3">
+          <span>
+            주간 획득 <span className="text-emerald-300 font-semibold tabular-nums">+{totalWeekly}</span>
+          </span>
+          <span>
+            월간 획득 <span className="text-amber-300 font-semibold tabular-nums">+{totalMonthly}</span>
+          </span>
         </div>
       </div>
 
       {mode === 'simple' ? (
-        <>
-          <div className="flex items-baseline justify-end text-sm text-gray-400 gap-3">
-            <span>
-              주간 획득 <span className="text-emerald-300 font-semibold tabular-nums">+{totalWeekly}</span>
-            </span>
-            <span>
-              월간 획득 <span className="text-amber-300 font-semibold tabular-nums">+{totalMonthly}</span>
-            </span>
-          </div>
-          <div className="divide-y divide-white/5">
-            {WEEKLY_BOSSES.map((boss) => (
-              <BossRow
-                key={boss.key}
-                boss={boss}
-                sel={weekly.bosses[boss.key]}
-                onChange={(patch) => updateBoss(boss.key, patch)}
-              />
-            ))}
-            {MONTHLY_BOSSES.map((boss) => (
-              <BossRow
-                key={boss.key}
-                boss={boss}
-                sel={weekly.blackMage}
-                onChange={updateBlackMage}
-                monthly
-              />
-            ))}
-          </div>
-        </>
-      ) : (
-        <div className="py-12 text-center text-sm text-gray-500">
-          주차별 계산 UI 준비 중
+        <div className="divide-y divide-white/5">
+          {WEEKLY_BOSSES.map((boss) => (
+            <BossRow
+              key={boss.key}
+              boss={boss}
+              sel={weekly.bosses[boss.key]}
+              onChange={(patch) => updateBoss(boss.key, patch)}
+            />
+          ))}
+          {MONTHLY_BOSSES.map((boss) => (
+            <BossRow
+              key={boss.key}
+              boss={boss}
+              sel={weekly.blackMage}
+              onChange={updateBlackMage}
+              monthly
+            />
+          ))}
         </div>
+      ) : (
+        <WeeklyDesignMocks />
       )}
     </div>
-  )
-}
-
-function TabButton({ active, onClick, children }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`px-3 h-8 rounded-md text-sm font-medium transition ${
-        active
-          ? 'bg-emerald-500/20 text-emerald-300'
-          : 'text-gray-400 hover:text-gray-200'
-      }`}
-    >
-      {children}
-    </button>
   )
 }
