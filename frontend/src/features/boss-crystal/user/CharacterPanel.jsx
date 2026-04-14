@@ -61,7 +61,7 @@ function CharacterContent({ char, selections, bosses }) {
                 return (
                   <Tooltip
                     key={item.boss.id}
-                    text={`${item.boss.name} ${diff?.label || ''} · ${formatMeso(item.revenue)}`}
+                    text={`${diff?.label || ''} ${item.boss.name} · ${formatMeso(item.revenue)}`}
                   >
                     <div className="space-y-0.5">
                       <div className="aspect-square rounded bg-gray-900 overflow-hidden border border-white/5">
