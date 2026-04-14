@@ -1,8 +1,21 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import dayjs from 'dayjs'
-import { LIBERATION_BOSS_IMAGE_BASE, WEEKLY_BOSSES, MONTHLY_BOSSES } from '../data'
+import { LIBERATION_BOSS_IMAGE_BASE, WEEKLY_BOSSES, MONTHLY_BOSSES, calcPoints } from '../data'
 import { BossRow } from './WeeklyDefault'
+
+function bossEarn(boss, sel) {
+  if (!sel || !sel.difficulty || sel.difficulty === 'none') return 0
+  const d = boss.difficulties.find((x) => x.key === sel.difficulty)
+  if (!d) return 0
+  return calcPoints(d.points, sel.party)
+}
+
+function calcWeeklySum(config) {
+  let sum = 0
+  WEEKLY_BOSSES.forEach((b) => { sum += bossEarn(b, config.bosses[b.key]) })
+  return sum
+}
 
 const KST = 'Asia/Seoul'
 
@@ -219,8 +232,21 @@ export default function WeeklyScheduler({ startDate, weeks: weeksProp, onChangeW
                   {WEEKLY_BOSSES.map((b) => (
                     <BossAvatar key={b.key} boss={b} difficulty={w.config.bosses[b.key]?.difficulty} size={40} />
                   ))}
-                  <BossAvatar boss={MONTHLY_BOSSES[0]} difficulty={w.config.blackMage?.difficulty} size={40} />
+                  <BossAvatar boss={MONTHLY_BOSSES[0]} difficulty={monthlyLockedByWeek != null ? 'none' : w.config.blackMage?.difficulty} size={40} />
                 </div>
+
+                {(() => {
+                  const weeklySum = calcWeeklySum(w.config)
+                  const monthlySum = monthlyLockedByWeek != null ? 0 : bossEarn(MONTHLY_BOSSES[0], w.config.blackMage)
+                  return (
+                    <div className="text-right shrink-0 pr-1 tabular-nums leading-tight">
+                      <div className="text-base font-bold text-emerald-300">+{weeklySum}</div>
+                      {monthlySum > 0 && (
+                        <div className="text-sm font-semibold text-amber-300">+{monthlySum}</div>
+                      )}
+                    </div>
+                  )
+                })()}
 
                 <svg
                   width="16" height="16" viewBox="0 0 12 12" fill="none"
