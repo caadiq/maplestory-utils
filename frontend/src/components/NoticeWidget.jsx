@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '../api/client'
 
 const TABS = [
@@ -148,32 +149,58 @@ export default function NoticeWidget() {
             ))}
           </div>
         ) : initialItems.length === 0 ? (
-          <div className="py-12 text-center text-sm text-gray-500">
-            {tab.filterOngoing ? `진행중인 ${tab.label}이 없습니다` : `등록된 ${tab.label}이 없습니다`}
-          </div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`empty-${activeTab}`}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              className="py-12 text-center text-sm text-gray-500"
+            >
+              {tab.filterOngoing ? `진행중인 ${tab.label}이 없습니다` : `등록된 ${tab.label}이 없습니다`}
+            </motion.div>
+          </AnimatePresence>
         ) : (
           <>
-            <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              {initialItems.map((notice) => (
-                <NoticeCard key={notice.notice_id} notice={notice} tab={tab} />
-              ))}
-            </div>
-
-            {/* 펼쳐지는 영역 - grid-template-rows 트릭으로 부드럽게 애니메이션 */}
-            {hasMore && (
-              <div
-                className="grid transition-[grid-template-rows] duration-300 ease-out"
-                style={{ gridTemplateRows: expanded ? '1fr' : '0fr' }}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`grid-${activeTab}`}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
               >
-                <div className="overflow-hidden">
+                {initialItems.map((notice) => (
+                  <NoticeCard key={notice.notice_id} notice={notice} tab={tab} />
+                ))}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* 펼쳐지는 영역 */}
+            <AnimatePresence initial={false}>
+              {hasMore && expanded && (
+                <motion.div
+                  key="extra"
+                  initial={{ height: 0, opacity: 0, y: -8 }}
+                  animate={{ height: 'auto', opacity: 1, y: 0 }}
+                  exit={{ height: 0, opacity: 0, y: -8 }}
+                  transition={{
+                    height: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+                    opacity: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+                    y: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+                  }}
+                  style={{ overflow: 'hidden' }}
+                >
                   <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 pt-2">
                     {extraItems.map((notice) => (
                       <NoticeCard key={notice.notice_id} notice={notice} tab={tab} />
                     ))}
                   </div>
-                </div>
-              </div>
-            )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </>
         )}
 
@@ -189,7 +216,7 @@ export default function NoticeWidget() {
               height="12"
               viewBox="0 0 12 12"
               fill="none"
-              className={`transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
+              className={`transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${expanded ? 'rotate-180' : ''}`}
             >
               <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
