@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
+import { api } from '../../api/client'
 import {
   GENESIS_CHAPTERS,
   GENESIS_TOTAL,
@@ -16,6 +18,8 @@ import PointsInput from './components/PointsInput'
 import ProgressBar from './components/ProgressBar'
 import WeeklyDefault from './components/WeeklyDefault'
 import DatePicker from '../../components/DatePicker'
+import ConfirmDialog from '../../components/ConfirmDialog'
+import { useLayout } from '../../components/Layout'
 
 const STORAGE_KEY = 'maple-liberation'
 
@@ -70,6 +74,25 @@ function calcMonthlyDoneEarn(weekData) {
 }
 
 export default function Liberation() {
+  const { setFullscreen } = useLayout()
+  useEffect(() => {
+    setFullscreen(true)
+    return () => setFullscreen(false)
+  }, [setFullscreen])
+
+  const [liberationType, setLiberationType] = useState('genesis') // 'genesis' | 'destiny'
+
+  const genesisImg = useQuery({
+    queryKey: ['image', '제네시스 스태프'],
+    queryFn: () => api('/api/images/' + encodeURIComponent('제네시스 스태프')).catch(() => null),
+    staleTime: Infinity,
+  })
+  const destinyImg = useQuery({
+    queryKey: ['image', '데스티니 스태프'],
+    queryFn: () => api('/api/images/' + encodeURIComponent('데스티니 스태프')).catch(() => null),
+    staleTime: Infinity,
+  })
+
   const [state, setState] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
@@ -77,6 +100,7 @@ export default function Liberation() {
         const parsed = JSON.parse(saved)
         if (!parsed.weekly) parsed.weekly = makeEmptyWeekly()
         if (!parsed.startDate) parsed.startDate = dayjs(todayKST()).toISOString()
+        if (!parsed.weekOverrides) parsed.weekOverrides = {}
         // enabled/'none' 필드 제거 마이그레이션
         const migrate = (sel, defaultDiff) => {
           if (!sel) return sel
@@ -98,6 +122,7 @@ export default function Liberation() {
       currentPoints: 0,
       startDate: dayjs(todayKST()).toISOString(),
       weekly: makeEmptyWeekly(),
+      weekOverrides: {},
       weeks: [makeEmptyWeek(todayKST())],
     }
   })
@@ -233,15 +258,17 @@ export default function Liberation() {
     setState((prev) => ({ ...prev, weeks: prev.weeks.filter((_, i) => i !== idx) }))
   }
 
-  const resetAll = () => {
-    if (!confirm('입력한 내용을 모두 초기화하시겠습니까?')) return
+  const [resetOpen, setResetOpen] = useState(false)
+  const doReset = () => {
     setState({
       startChapter: 0,
       currentPoints: 0,
       startDate: dayjs(todayKST()).toISOString(),
       weekly: makeEmptyWeekly(),
+      weekOverrides: {},
       weeks: [makeEmptyWeek(todayKST())],
     })
+    setResetOpen(false)
   }
 
   const setFirstWeekDate = (dateStr) => {
@@ -260,6 +287,34 @@ export default function Liberation() {
 
   return (
     <div className="space-y-6">
+      {/* 해방 종류 탭 */}
+      <div className="max-w-2xl mx-auto flex gap-2">
+        {[
+          { key: 'genesis', label: '제네시스 해방', img: genesisImg.data?.url },
+          { key: 'destiny', label: '데스티니 해방', img: destinyImg.data?.url },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setLiberationType(tab.key)}
+            className={`flex-1 flex items-center justify-center gap-3 rounded-2xl border px-5 py-3 transition ${
+              liberationType === tab.key
+                ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200 shadow-lg shadow-emerald-500/10'
+                : 'border-white/10 bg-gray-900/40 text-gray-400 hover:border-white/20 hover:text-gray-200'
+            }`}
+          >
+            {tab.img && <img src={tab.img} alt="" className="w-8 h-8 object-contain" />}
+            <span className="text-base font-semibold">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {liberationType === 'destiny' ? (
+        <div className="max-w-2xl mx-auto rounded-2xl border border-white/10 bg-gray-900/60 p-16 text-center space-y-3">
+          <div className="text-2xl font-bold text-gray-300">구현 예정</div>
+          <div className="text-sm text-gray-500">데스티니 해방 계산기는 준비 중입니다.</div>
+        </div>
+      ) : (<>
       <ProgressBar
         startChapter={state.startChapter}
         currentPoints={state.currentPoints}
@@ -270,7 +325,7 @@ export default function Liberation() {
       <div className="max-w-2xl mx-auto rounded-2xl border border-white/10 bg-gray-900/60 p-6 space-y-4">
         <div className="text-lg font-semibold text-emerald-300">현재 진행 상태</div>
 
-        <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 1.2fr 1fr' }}>
+        <div className="grid gap-3" style={{ gridTemplateColumns: '1.2fr 1.2fr 0.7fr' }}>
           <div className="space-y-1.5">
             <label className="block text-xs text-gray-400">시작 날짜</label>
             <DatePicker
@@ -309,7 +364,7 @@ export default function Liberation() {
       <div className="max-w-2xl mx-auto flex justify-end">
         <button
           type="button"
-          onClick={resetAll}
+          onClick={() => setResetOpen(true)}
           className="inline-flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/10 hover:bg-red-500/20 text-red-300 hover:text-red-200 px-5 py-2.5 text-sm font-semibold transition shadow-lg shadow-red-500/10"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -318,6 +373,17 @@ export default function Liberation() {
           전체 초기화
         </button>
       </div>
+      </>)}
+
+      <ConfirmDialog
+        open={resetOpen}
+        onClose={() => setResetOpen(false)}
+        onConfirm={doReset}
+        title="전체 초기화"
+        description={'입력한 내용을 모두 초기화하시겠습니까?\n\n시작 날짜, 현재 진행 상태, 주간 보스 설정이 모두 초기값으로 되돌아갑니다.'}
+        confirmText="초기화"
+        destructive
+      />
     </div>
   )
 }

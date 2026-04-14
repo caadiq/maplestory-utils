@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import Select from '../../../components/Select'
 import Tooltip from '../../../components/Tooltip'
 import { WEEKLY_BOSSES, MONTHLY_BOSSES, LIBERATION_BOSS_IMAGE_BASE, calcPoints } from '../data'
@@ -17,13 +18,11 @@ function diffLabel(d, party) {
 
 function BossRow({ boss, sel, onChange, monthly = false }) {
   const disabled = sel.difficulty === 'none'
-  const rowStyle = ''
-
   const difficultyOptions = [NONE_DIFFICULTY, ...boss.difficulties]
     .map((d) => ({ value: d.key, label: diffLabel(d, sel.party) }))
 
   return (
-    <div className={`flex items-center gap-3 rounded-lg px-3 h-14 transition ${rowStyle}`}>
+    <div className="flex items-center gap-3 rounded-lg px-3 h-14 transition">
       <Tooltip text={boss.name}>
         <img src={`${LIBERATION_BOSS_IMAGE_BASE}/${boss.image}`} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
       </Tooltip>
@@ -69,6 +68,8 @@ function BossRow({ boss, sel, onChange, monthly = false }) {
 }
 
 export default function WeeklyDefault({ weekly, onChange, totalWeekly, totalMonthly }) {
+  const [mode, setMode] = useState('simple') // 'simple' | 'weekly'
+
   const updateBoss = (key, patch) => {
     onChange({ ...weekly, bosses: { ...weekly.bosses, [key]: { ...weekly.bosses[key], ...patch } } })
   }
@@ -78,37 +79,65 @@ export default function WeeklyDefault({ weekly, onChange, totalWeekly, totalMont
 
   return (
     <div className="max-w-2xl mx-auto rounded-2xl border border-white/10 bg-gray-900/60 p-6 space-y-4">
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-center justify-between">
         <div className="text-lg font-semibold text-emerald-300">주간 보스 설정</div>
-        <div className="text-sm text-gray-400 flex items-baseline gap-3">
-          <span>
-            주간 획득 <span className="text-emerald-300 font-semibold tabular-nums">+{totalWeekly}</span>
-          </span>
-          <span>
-            월간 획득 <span className="text-amber-300 font-semibold tabular-nums">+{totalMonthly}</span>
-          </span>
+        <div className="inline-flex rounded-lg border border-white/10 bg-gray-950 p-0.5">
+          <TabButton active={mode === 'simple'} onClick={() => setMode('simple')}>단순 계산</TabButton>
+          <TabButton active={mode === 'weekly'} onClick={() => setMode('weekly')}>주차별 계산</TabButton>
         </div>
       </div>
 
-      <div className="divide-y divide-white/5">
-        {WEEKLY_BOSSES.map((boss) => (
-          <BossRow
-            key={boss.key}
-            boss={boss}
-            sel={weekly.bosses[boss.key]}
-            onChange={(patch) => updateBoss(boss.key, patch)}
-          />
-        ))}
-        {MONTHLY_BOSSES.map((boss) => (
-          <BossRow
-            key={boss.key}
-            boss={boss}
-            sel={weekly.blackMage}
-            onChange={updateBlackMage}
-            monthly
-          />
-        ))}
-      </div>
+      {mode === 'simple' ? (
+        <>
+          <div className="flex items-baseline justify-end text-sm text-gray-400 gap-3">
+            <span>
+              주간 획득 <span className="text-emerald-300 font-semibold tabular-nums">+{totalWeekly}</span>
+            </span>
+            <span>
+              월간 획득 <span className="text-amber-300 font-semibold tabular-nums">+{totalMonthly}</span>
+            </span>
+          </div>
+          <div className="divide-y divide-white/5">
+            {WEEKLY_BOSSES.map((boss) => (
+              <BossRow
+                key={boss.key}
+                boss={boss}
+                sel={weekly.bosses[boss.key]}
+                onChange={(patch) => updateBoss(boss.key, patch)}
+              />
+            ))}
+            {MONTHLY_BOSSES.map((boss) => (
+              <BossRow
+                key={boss.key}
+                boss={boss}
+                sel={weekly.blackMage}
+                onChange={updateBlackMage}
+                monthly
+              />
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="py-12 text-center text-sm text-gray-500">
+          주차별 계산 UI 준비 중
+        </div>
+      )}
     </div>
+  )
+}
+
+function TabButton({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-3 h-8 rounded-md text-sm font-medium transition ${
+        active
+          ? 'bg-emerald-500/20 text-emerald-300'
+          : 'text-gray-400 hover:text-gray-200'
+      }`}
+    >
+      {children}
+    </button>
   )
 }
