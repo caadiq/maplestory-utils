@@ -69,10 +69,12 @@ export default function DatePicker({ value, onChange, placeholder = '날짜 선�
   const selectYear = (y) => setViewDate(new Date(y, month, 1))
   const selectMonth = (m) => { setViewDate(new Date(year, m, 1)); setViewMode('days') }
 
+  const DOW = ['일', '월', '화', '수', '목', '금', '토']
   const formatDisplay = (s) => {
     if (!s) return ''
     const [y, m, d] = s.split('-')
-    return `${y}년 ${parseInt(m)}월 ${parseInt(d)}일`
+    const dow = DOW[new Date(`${s}T00:00:00+09:00`).getDay()]
+    return `${y}년 ${parseInt(m)}월 ${parseInt(d)}일 (${dow})`
   }
 
   const isSelected = (day) => {

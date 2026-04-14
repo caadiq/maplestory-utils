@@ -22,13 +22,13 @@ function BossRow({ boss, sel, onChange, monthly = false }) {
     .map((d) => ({ value: d.key, label: diffLabel(d, sel.party) }))
 
   return (
-    <div className="flex items-center gap-3 rounded-lg px-3 h-14 transition">
+    <div className="flex items-center gap-3 rounded-lg px-3 h-16 transition">
       <Tooltip text={boss.name}>
-        <img src={`${LIBERATION_BOSS_IMAGE_BASE}/${boss.image}`} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
+        <img src={`${LIBERATION_BOSS_IMAGE_BASE}/${boss.image}`} alt="" className="w-10 h-10 rounded-md object-cover shrink-0" />
       </Tooltip>
-      <span className="text-sm font-medium flex-1 truncate">
+      <span className="text-base font-semibold flex-1 truncate">
         {boss.name}
-        {monthly && <span className="ml-1.5 text-[10px] text-amber-400/80">월간</span>}
+        {monthly && <span className="ml-1.5 text-[11px] text-amber-400/80 font-medium">월간</span>}
       </span>
 
       <div className="w-36">
@@ -78,7 +78,7 @@ export default function WeeklyDefault({ weekly, onChange, totalWeekly, totalMont
   }
 
   return (
-    <div className="max-w-2xl mx-auto rounded-2xl border border-white/10 bg-gray-900/60 p-6 space-y-4">
+    <div className="max-w-3xl mx-auto rounded-2xl border border-white/10 bg-gray-900/60 p-6 space-y-4">
       <div className="flex items-center justify-between">
         <div className="text-lg font-semibold text-emerald-300">주간 보스 설정</div>
         <div className="inline-flex rounded-lg border border-white/10 bg-gray-950 p-0.5">

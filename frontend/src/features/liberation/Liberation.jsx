@@ -288,7 +288,7 @@ export default function Liberation() {
   return (
     <div className="space-y-6 pb-10">
       {/* 해방 종류 탭 */}
-      <div className="max-w-2xl mx-auto flex gap-2">
+      <div className="max-w-3xl mx-auto flex gap-2">
         {[
           { key: 'genesis', label: '제네시스 해방', img: genesisImg.data?.url },
           { key: 'destiny', label: '데스티니 해방', img: destinyImg.data?.url },
@@ -310,7 +310,7 @@ export default function Liberation() {
       </div>
 
       {liberationType === 'destiny' ? (
-        <div className="max-w-2xl mx-auto rounded-2xl border border-white/10 bg-gray-900/60 p-16 text-center space-y-3 flex flex-col items-center justify-center" style={{ minHeight: 'calc(100vh - 220px)' }}>
+        <div className="max-w-3xl mx-auto rounded-2xl border border-white/10 bg-gray-900/60 p-16 text-center space-y-3 flex flex-col items-center justify-center" style={{ minHeight: 'calc(100vh - 220px)' }}>
           <div className="text-2xl font-bold text-gray-300">구현 예정</div>
           <div className="text-sm text-gray-500">데스티니 해방 계산기는 준비 중입니다.</div>
         </div>
@@ -322,7 +322,7 @@ export default function Liberation() {
       />
 
       {/* 현재 진행 상태 입력 */}
-      <div className="max-w-2xl mx-auto rounded-2xl border border-white/10 bg-gray-900/60 p-6 space-y-4">
+      <div className="max-w-3xl mx-auto rounded-2xl border border-white/10 bg-gray-900/60 p-6 space-y-4">
         <div className="text-lg font-semibold text-emerald-300">현재 진행 상태</div>
 
         <div className="grid gap-3" style={{ gridTemplateColumns: '1.2fr 1.2fr 0.7fr' }}>
@@ -361,7 +361,7 @@ export default function Liberation() {
         totalMonthly={monthlyEarn}
       />
 
-      <div className="max-w-2xl mx-auto flex justify-end">
+      <div className="max-w-3xl mx-auto flex justify-end">
         <button
           type="button"
           onClick={() => setResetOpen(true)}
