@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import Select from '../../../components/Select'
 import Tooltip from '../../../components/Tooltip'
 import WeeklyScheduler from './WeeklyScheduler'

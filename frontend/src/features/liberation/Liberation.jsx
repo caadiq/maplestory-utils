@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import { api } from '../../api/client'
@@ -8,11 +8,9 @@ import {
   WEEKLY_BOSSES,
   MONTHLY_BOSSES,
   calcPoints,
-  addWeeks,
   formatDate,
   todayKST,
 } from './data'
-import WeekCard from './components/WeekCard'
 import QuestSelector from './components/QuestSelector'
 import PointsInput from './components/PointsInput'
 import ProgressBar from './components/ProgressBar'
@@ -22,13 +20,6 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 import { useLayout } from '../../components/Layout'
 
 const STORAGE_KEY = 'maple-liberation'
-
-function makeEmptyWeek(startDate) {
-  return {
-    startDate: dayjs(startDate).toISOString(),
-    ...makeEmptyWeekly(),
-  }
-}
 
 function makeEmptyWeekly() {
   const bosses = {}
@@ -69,9 +60,6 @@ function calcMonthlyEarn(weekData) {
   return bossEarn(MONTHLY_BOSSES[0], weekData.blackMage)
 }
 
-function calcMonthlyDoneEarn(weekData) {
-  return weekData.blackMage?.done ? bossEarn(MONTHLY_BOSSES[0], weekData.blackMage) : 0
-}
 
 export default function Liberation() {
   const { setFullscreen } = useLayout()
@@ -98,8 +86,6 @@ export default function Liberation() {
     currentPoints: 0,
     startDate: dayjs(todayKST()).toISOString(),
     weekly: makeEmptyWeekly(),
-    weekOverrides: {},
-    weeks: [makeEmptyWeek(todayKST())],
     schedulerWeeks: [{ id: 1, config: makeEmptyWeekly() }],
   })
 
@@ -112,11 +98,9 @@ export default function Liberation() {
         if (!parsed.calcMode) {
           if (!parsed.weekly) parsed.weekly = makeEmptyWeekly()
           if (!parsed.startDate) parsed.startDate = dayjs(todayKST()).toISOString()
-          if (!parsed.weekOverrides) parsed.weekOverrides = {}
           if (!parsed.schedulerWeeks) parsed.schedulerWeeks = [{ id: 1, config: makeEmptyWeekly() }]
           return { calcMode: 'simple', simple: parsed, weekly: makeInitialSlot() }
         }
-        // 새 구조에서 schedulerWeeks 누락 시 채움
         ;['simple', 'weekly'].forEach((k) => {
           if (parsed[k] && !parsed[k].schedulerWeeks) {
             parsed[k].schedulerWeeks = [{ id: 1, config: makeEmptyWeekly() }]
@@ -141,46 +125,6 @@ export default function Liberation() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(root))
   }, [root])
-
-  // 주차별 계산
-  const progressByWeek = useMemo(() => {
-    const result = []
-    const startConsumedBefore = GENESIS_CHAPTERS
-      .slice(0, state.startChapter)
-      .reduce((s, c) => s + c.required, 0)
-    const currentChapterCap = GENESIS_CHAPTERS[state.startChapter]?.required ?? 0
-    const clampedCurrent = Math.min(state.currentPoints, currentChapterCap)
-    let totalAccumulated = startConsumedBefore + clampedCurrent
-
-    for (const week of state.weeks) {
-      const earned = calcWeekPoints(week)
-      totalAccumulated += earned
-
-      let temp = totalAccumulated
-      let chapterIdx = 0
-      while (chapterIdx < GENESIS_CHAPTERS.length && temp >= GENESIS_CHAPTERS[chapterIdx].required) {
-        temp -= GENESIS_CHAPTERS[chapterIdx].required
-        chapterIdx++
-      }
-
-      const isCompleted = totalAccumulated >= GENESIS_TOTAL
-      const chapterInfo = isCompleted
-        ? { name: '완료', current: GENESIS_TOTAL, required: GENESIS_TOTAL }
-        : {
-            name: GENESIS_CHAPTERS[chapterIdx]?.boss || '',
-            current: temp,
-            required: GENESIS_CHAPTERS[chapterIdx]?.required || 0,
-          }
-
-      result.push({
-        points: earned,
-        cumulative: totalAccumulated,
-        completed: isCompleted,
-        chapterInfo,
-      })
-    }
-    return result
-  }, [state])
 
   // 포인트 이월 계산: 현재 퀘스트의 required를 초과하면 자동으로 다음 퀘스트로 넘어감
   const priorConsumed = GENESIS_CHAPTERS
@@ -359,47 +303,11 @@ export default function Liberation() {
   const completionDate = computeCompletionDate()
   const isDone = completionDate !== null
 
-  const updateWeek = (idx, newWeekData) => {
-    setState((prev) => ({
-      ...prev,
-      weeks: prev.weeks.map((w, i) => (i === idx ? newWeekData : w)),
-    }))
-  }
-
-  const addWeek = () => {
-    setState((prev) => {
-      const lastWeek = prev.weeks[prev.weeks.length - 1]
-      const nextStart = addWeeks(lastWeek.startDate, 1)
-      return {
-        ...prev,
-        weeks: [...prev.weeks, { ...lastWeek, startDate: dayjs(nextStart).toISOString() }],
-      }
-    })
-  }
-
-  const removeWeek = (idx) => {
-    setState((prev) => ({ ...prev, weeks: prev.weeks.filter((_, i) => i !== idx) }))
-  }
-
   const [resetOpen, setResetOpen] = useState(false)
   const doReset = () => {
     setState(makeInitialSlot())
     setResetOpen(false)
   }
-
-  const setFirstWeekDate = (dateStr) => {
-    setState((prev) => {
-      const weeks = prev.weeks.map((w, i) => ({
-        ...w,
-        startDate: dayjs(addWeeks(dateStr, i)).toISOString(),
-      }))
-      return { ...prev, weeks }
-    })
-  }
-
-  const totalCumulative = progressByWeek[progressByWeek.length - 1]?.cumulative
-    || (GENESIS_CHAPTERS.slice(0, state.startChapter).reduce((s, c) => s + c.required, 0) + state.currentPoints)
-  const overallProgress = Math.min((totalCumulative / GENESIS_TOTAL) * 100, 100)
 
   return (
     <div className="space-y-6 pb-10">
