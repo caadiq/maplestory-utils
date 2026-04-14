@@ -146,59 +146,70 @@ export default function Liberation() {
     return result
   }, [state])
 
-  const currentChapterCap = GENESIS_CHAPTERS[state.startChapter]?.required ?? 0
-  const currentChapterFilled = Math.min(state.currentPoints, currentChapterCap)
-  const initialAccumulated = GENESIS_CHAPTERS
+  // 포인트 이월 계산: 현재 퀘스트의 required를 초과하면 자동으로 다음 퀘스트로 넘어감
+  const priorConsumed = GENESIS_CHAPTERS
     .slice(0, state.startChapter)
-    .reduce((s, c) => s + c.required, 0) + currentChapterFilled
+    .reduce((s, c) => s + c.required, 0)
+  let cascadeIdx = state.startChapter
+  let cascadeRemain = state.currentPoints
+  let cascadeConsumed = 0
+  while (cascadeIdx < GENESIS_CHAPTERS.length && cascadeRemain >= GENESIS_CHAPTERS[cascadeIdx].required) {
+    cascadeConsumed += GENESIS_CHAPTERS[cascadeIdx].required
+    cascadeRemain -= GENESIS_CHAPTERS[cascadeIdx].required
+    cascadeIdx++
+  }
+  const initialAccumulated = priorConsumed + cascadeConsumed + cascadeRemain
   const alreadyDone = initialAccumulated >= GENESIS_TOTAL
   const weeklyEarn = calcWeekPoints(state.weekly)
   const remaining = Math.max(GENESIS_TOTAL - initialAccumulated, 0)
-  // 주간/월간 분리 계산
+  // 주간/월간 분리
   const doneEarn = calcDoneEarn(state.weekly)
   const monthlyEarn = calcMonthlyEarn(state.weekly)
-  const monthlyDoneEarn = calcMonthlyDoneEarn(state.weekly)
+  const monthlyDoneThisMonth = !!state.weekly.blackMage?.done
 
-  function monthResetsBetween(start, end) {
-    let count = 0
-    let cursor = start.add(1, 'month').startOf('month')
-    while (!cursor.isAfter(end)) {
-      count++
-      cursor = cursor.add(1, 'month').startOf('month')
+  // 날짜 이벤트 시뮬레이션으로 해방일 계산
+  function computeCompletionDate() {
+    if (alreadyDone) return todayKST()
+    if (weeklyEarn === 0 && monthlyEarn === 0) return null
+    if (remaining <= 0) return dayjs(state.startDate).tz('Asia/Seoul').startOf('day').toDate()
+
+    const startKST = dayjs(state.startDate).tz('Asia/Seoul').startOf('day')
+    const events = []
+
+    // 시작일 당일: (주간 - 완료된 주간) + (이번 달 월간, 아직 안 잡았을 때)
+    const day0Weekly = Math.max(weeklyEarn - doneEarn, 0)
+    const day0Monthly = monthlyEarn > 0 && !monthlyDoneThisMonth ? monthlyEarn : 0
+    events.push({ date: startKST, amount: day0Weekly + day0Monthly })
+
+    // 다음 목요일부터 매주 주간 적립
+    const dow = startKST.day()
+    const daysToNextThu = dow < 4 ? 4 - dow : 11 - dow
+    let nextThu = startKST.add(daysToNextThu, 'day')
+    for (let i = 0; i < 520; i++) {
+      events.push({ date: nextThu, amount: weeklyEarn })
+      nextThu = nextThu.add(1, 'week')
     }
-    return count
-  }
 
-  const startKST = dayjs(state.startDate).tz('Asia/Seoul')
-  const currentMonthBMAvailable = monthlyEarn > 0 && monthlyDoneEarn === 0 ? monthlyEarn : 0
-  const adjustedRemaining = remaining + doneEarn + monthlyDoneEarn
-  let weeksNeeded = null
-  if (!alreadyDone && (weeklyEarn > 0 || monthlyEarn > 0)) {
-    for (let N = 1; N <= 520; N++) {
-      const weeklyCum = N * weeklyEarn
-      const endKST = startKST.add(N, 'week')
-      const monthlyCum = currentMonthBMAvailable + monthResetsBetween(startKST, endKST) * monthlyEarn
-      if (weeklyCum + monthlyCum >= adjustedRemaining) {
-        weeksNeeded = N
-        break
+    // 다음 달 1일부터 매월 월간 적립
+    if (monthlyEarn > 0) {
+      let nextMonth = startKST.add(1, 'month').startOf('month')
+      for (let i = 0; i < 120; i++) {
+        events.push({ date: nextMonth, amount: monthlyEarn })
+        nextMonth = nextMonth.add(1, 'month')
       }
     }
+
+    events.sort((a, b) => a.date.diff(b.date))
+    let cumulative = 0
+    for (const e of events) {
+      cumulative += e.amount
+      if (cumulative >= remaining) return e.date.toDate()
+    }
+    return null
   }
 
-  // 시작 날짜 기준 다음(또는 당일) 목요일
-  const startDay = dayjs(state.startDate).tz('Asia/Seoul')
-  const dow = startDay.day() // 0=일 ... 4=목
-  const daysToThu = dow <= 4 ? 4 - dow : 11 - dow
-  const upcomingThursday = startDay.add(daysToThu, 'day').startOf('day')
-
-  const isDone = alreadyDone || weeksNeeded !== null
-  // 시작일의 주 = 1주차, 다음 목요일 = 2주차 시작
-  // 완료일 = N주차의 목요일 = upcomingThursday + (weeksNeeded - 2) * 7일
-  const completionDate = alreadyDone
-    ? todayKST()
-    : weeksNeeded !== null
-      ? upcomingThursday.add(weeksNeeded - 2, 'week').toDate()
-      : null
+  const completionDate = computeCompletionDate()
+  const isDone = completionDate !== null
 
   const updateWeek = (idx, newWeekData) => {
     setState((prev) => ({
