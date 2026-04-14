@@ -203,35 +203,137 @@ export default function Liberation() {
   const monthlyEarn = calcMonthlyEarn(state.weekly)
   const monthlyDoneThisMonth = !!state.weekly.blackMage?.done
 
+  // 주차별 모드에서는 모든 주차 합산 (검은 마법사는 월별 슬롯 1회만 카운트)
+  const headerWeekly = calcMode === 'weekly'
+    ? (state.schedulerWeeks || []).reduce((s, w) => s + calcWeekPoints(w.config), 0)
+    : weeklyEarn
+  const headerMonthly = (() => {
+    if (calcMode !== 'weekly') return monthlyEarn
+    const sw = state.schedulerWeeks || []
+    if (!state.startDate) return 0
+    const claimed = {}
+    sw.forEach((w, idx) => {
+      const diff = w.config.blackMage?.difficulty
+      if (!diff || diff === 'none') return
+      const r = (() => {
+        const start = dayjs(state.startDate).tz('Asia/Seoul').startOf('day')
+        const dow = start.day()
+        const daysToNextThu = dow < 4 ? 4 - dow : 11 - dow
+        const nextThu = start.add(daysToNextThu, 'day')
+        if (idx + 1 === 1) return { start, end: nextThu.subtract(1, 'day') }
+        const ws = nextThu.add((idx + 1 - 2) * 7, 'day')
+        return { start: ws, end: ws.add(6, 'day') }
+      })()
+      const months = [r.start.format('YYYY-MM'), r.end.format('YYYY-MM')]
+      for (const m of months) {
+        if (!(m in claimed)) {
+          claimed[m] = bossEarn(MONTHLY_BOSSES[0], w.config.blackMage)
+          return
+        }
+      }
+    })
+    return Object.values(claimed).reduce((s, v) => s + v, 0)
+  })()
+
   // 날짜 이벤트 시뮬레이션으로 해방일 계산
   function computeCompletionDate() {
     if (alreadyDone) return todayKST()
-    if (weeklyEarn === 0 && monthlyEarn === 0) return null
     if (remaining <= 0) return dayjs(state.startDate).tz('Asia/Seoul').startOf('day').toDate()
 
     const startKST = dayjs(state.startDate).tz('Asia/Seoul').startOf('day')
     const events = []
 
-    // 시작일 당일: (주간 - 완료된 주간) + (이번 달 월간, 아직 안 잡았을 때)
-    const day0Weekly = Math.max(weeklyEarn - doneEarn, 0)
-    const day0Monthly = monthlyEarn > 0 && !monthlyDoneThisMonth ? monthlyEarn : 0
-    events.push({ date: startKST, amount: day0Weekly + day0Monthly })
+    if (calcMode === 'weekly') {
+      // 주차별 모드: 각 주차의 설정에 따라 적립
+      const sw = state.schedulerWeeks || []
+      if (sw.length === 0) return null
+      // 주간 보스: 시작일 당일 = 1주차 설정, 이후 매 목요일 = 2주차/3주차 설정
+      const dow = startKST.day()
+      const daysToNextThu = dow < 4 ? 4 - dow : 11 - dow
+      // 1주차: 시작일 당일에 (주간 - done) 적립
+      const week1Cfg = sw[0]?.config || makeEmptyWeekly()
+      const w1Weekly = calcWeekPoints(week1Cfg)
+      const w1Done = calcDoneEarn(week1Cfg)
+      events.push({ date: startKST, amount: Math.max(w1Weekly - w1Done, 0) })
+      // 2주차 이후: 각 목요일에 해당 주차 설정의 주간 합 적립
+      // 마지막 주차 이후로는 마지막 주차 설정을 반복 적용
+      let nextThu = startKST.add(daysToNextThu, 'day')
+      for (let i = 1; i < 520; i++) {
+        const cfg = sw[i]?.config || sw[sw.length - 1]?.config || makeEmptyWeekly()
+        events.push({ date: nextThu, amount: calcWeekPoints(cfg) })
+        nextThu = nextThu.add(1, 'week')
+      }
 
-    // 다음 목요일부터 매주 주간 적립
-    const dow = startKST.day()
-    const daysToNextThu = dow < 4 ? 4 - dow : 11 - dow
-    let nextThu = startKST.add(daysToNextThu, 'day')
-    for (let i = 0; i < 520; i++) {
-      events.push({ date: nextThu, amount: weeklyEarn })
-      nextThu = nextThu.add(1, 'week')
-    }
+      // 검은 마법사: 슬롯 배정에 따라 해당 주차의 첫날(or 1주차이면 시작일)에 적립
+      const claimed = {} // monthKey -> { weekIdx, earn, doneAlready }
+      sw.forEach((w, i) => {
+        const diff = w.config.blackMage?.difficulty
+        if (!diff || diff === 'none') return
+        const range = getSchedulerWeekRange(state.startDate, i + 1)
+        const months = [range.start.format('YYYY-MM'), range.end.format('YYYY-MM')]
+        for (const m of months) {
+          if (!(m in claimed)) {
+            claimed[m] = {
+              weekIdx: i,
+              earn: bossEarn(MONTHLY_BOSSES[0], w.config.blackMage),
+              done: !!w.config.blackMage.done,
+            }
+            return
+          }
+        }
+      })
+      Object.entries(claimed).forEach(([, info]) => {
+        if (info.done) return
+        const wIdx = info.weekIdx
+        // 1주차면 시작일, 그 외엔 해당 주차의 시작 목요일
+        const date = wIdx === 0
+          ? startKST
+          : startKST.add(daysToNextThu + (wIdx - 1) * 7, 'day')
+        events.push({ date, amount: info.earn })
+      })
 
-    // 다음 달 1일부터 매월 월간 적립
-    if (monthlyEarn > 0) {
-      let nextMonth = startKST.add(1, 'month').startOf('month')
-      for (let i = 0; i < 120; i++) {
-        events.push({ date: nextMonth, amount: monthlyEarn })
-        nextMonth = nextMonth.add(1, 'month')
+      // 마지막 주차 이후로는 마지막 주차의 검은 마법사 설정을 매월 반복 적용
+      const lastCfg = sw[sw.length - 1]?.config
+      const lastBmEarn = lastCfg ? bossEarn(MONTHLY_BOSSES[0], lastCfg.blackMage) : 0
+      if (lastBmEarn > 0) {
+        const lastWeekStart = sw.length === 1
+          ? startKST
+          : startKST.add(daysToNextThu + (sw.length - 2) * 7, 'day')
+        const claimedMonths = new Set(Object.keys(claimed))
+        let cursor = lastWeekStart.add(1, 'month').startOf('month')
+        for (let i = 0; i < 120; i++) {
+          const m = cursor.format('YYYY-MM')
+          if (!claimedMonths.has(m)) {
+            events.push({ date: cursor, amount: lastBmEarn })
+          }
+          cursor = cursor.add(1, 'month')
+        }
+      }
+    } else {
+      // 단순 계산 모드: 매주 동일 설정
+      if (weeklyEarn === 0 && monthlyEarn === 0) return null
+
+      // 시작일 당일: (주간 - 완료된 주간) + (이번 달 월간, 아직 안 잡았을 때)
+      const day0Weekly = Math.max(weeklyEarn - doneEarn, 0)
+      const day0Monthly = monthlyEarn > 0 && !monthlyDoneThisMonth ? monthlyEarn : 0
+      events.push({ date: startKST, amount: day0Weekly + day0Monthly })
+
+      // 다음 목요일부터 매주 주간 적립
+      const dow = startKST.day()
+      const daysToNextThu = dow < 4 ? 4 - dow : 11 - dow
+      let nextThu = startKST.add(daysToNextThu, 'day')
+      for (let i = 0; i < 520; i++) {
+        events.push({ date: nextThu, amount: weeklyEarn })
+        nextThu = nextThu.add(1, 'week')
+      }
+
+      // 다음 달 1일부터 매월 월간 적립
+      if (monthlyEarn > 0) {
+        let nextMonth = startKST.add(1, 'month').startOf('month')
+        for (let i = 0; i < 120; i++) {
+          events.push({ date: nextMonth, amount: monthlyEarn })
+          nextMonth = nextMonth.add(1, 'month')
+        }
       }
     }
 
@@ -242,6 +344,16 @@ export default function Liberation() {
       if (cumulative >= remaining) return e.date.toDate()
     }
     return null
+  }
+
+  function getSchedulerWeekRange(startDateStr, weekIdx) {
+    const start = dayjs(startDateStr).tz('Asia/Seoul').startOf('day')
+    const dow = start.day()
+    const daysToNextThu = dow < 4 ? 4 - dow : 11 - dow
+    const nextThu = start.add(daysToNextThu, 'day')
+    if (weekIdx === 1) return { start, end: nextThu.subtract(1, 'day') }
+    const ws = nextThu.add((weekIdx - 2) * 7, 'day')
+    return { start: ws, end: ws.add(6, 'day') }
   }
 
   const completionDate = computeCompletionDate()
@@ -382,8 +494,8 @@ export default function Liberation() {
       <WeeklyDefault
         weekly={state.weekly}
         onChange={(w) => setState((prev) => ({ ...prev, weekly: w }))}
-        totalWeekly={weeklyEarn}
-        totalMonthly={monthlyEarn}
+        totalWeekly={headerWeekly}
+        totalMonthly={headerMonthly}
         mode={calcMode}
         startDate={state.startDate}
         weeks={state.schedulerWeeks}
