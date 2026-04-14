@@ -100,6 +100,7 @@ export default function Liberation() {
     weekly: makeEmptyWeekly(),
     weekOverrides: {},
     weeks: [makeEmptyWeek(todayKST())],
+    schedulerWeeks: [{ id: 1, config: makeEmptyWeekly() }],
   })
 
   const [root, setRoot] = useState(() => {
@@ -112,8 +113,15 @@ export default function Liberation() {
           if (!parsed.weekly) parsed.weekly = makeEmptyWeekly()
           if (!parsed.startDate) parsed.startDate = dayjs(todayKST()).toISOString()
           if (!parsed.weekOverrides) parsed.weekOverrides = {}
+          if (!parsed.schedulerWeeks) parsed.schedulerWeeks = [{ id: 1, config: makeEmptyWeekly() }]
           return { calcMode: 'simple', simple: parsed, weekly: makeInitialSlot() }
         }
+        // 새 구조에서 schedulerWeeks 누락 시 채움
+        ;['simple', 'weekly'].forEach((k) => {
+          if (parsed[k] && !parsed[k].schedulerWeeks) {
+            parsed[k].schedulerWeeks = [{ id: 1, config: makeEmptyWeekly() }]
+          }
+        })
         return parsed
       } catch { /* ignore */ }
     }
@@ -377,6 +385,9 @@ export default function Liberation() {
         totalWeekly={weeklyEarn}
         totalMonthly={monthlyEarn}
         mode={calcMode}
+        startDate={state.startDate}
+        weeks={state.schedulerWeeks}
+        onChangeWeeks={(w) => setState((prev) => ({ ...prev, schedulerWeeks: w }))}
       />
 
       <div className="max-w-3xl mx-auto flex justify-end">

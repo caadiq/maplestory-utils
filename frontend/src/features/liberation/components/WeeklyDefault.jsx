@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Select from '../../../components/Select'
 import Tooltip from '../../../components/Tooltip'
-import WeeklyDesignMocks from './WeeklyDesignMocks'
+import WeeklyScheduler from './WeeklyScheduler'
 import { WEEKLY_BOSSES, MONTHLY_BOSSES, LIBERATION_BOSS_IMAGE_BASE, calcPoints } from '../data'
 
 const PARTY_OPTIONS = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n}인` }))
@@ -70,7 +70,7 @@ export function BossRow({ boss, sel, onChange, monthly = false, showDone = true 
   )
 }
 
-export default function WeeklyDefault({ weekly, onChange, totalWeekly, totalMonthly, mode = 'simple' }) {
+export default function WeeklyDefault({ weekly, onChange, totalWeekly, totalMonthly, mode = 'simple', startDate, weeks, onChangeWeeks }) {
   const updateBoss = (key, patch) => {
     onChange({ ...weekly, bosses: { ...weekly.bosses, [key]: { ...weekly.bosses[key], ...patch } } })
   }
@@ -113,7 +113,11 @@ export default function WeeklyDefault({ weekly, onChange, totalWeekly, totalMont
           ))}
         </div>
       ) : (
-        <WeeklyDesignMocks />
+        <WeeklyScheduler
+          startDate={startDate}
+          weeks={weeks}
+          onChangeWeeks={onChangeWeeks}
+        />
       )}
     </div>
   )
