@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 /**
  * 커스텀 드롭다운 셀렉트
@@ -37,33 +38,41 @@ export default function Select({ value, onChange, options, disabled, className =
         </svg>
       </button>
 
-      {open && (
-        <div className={`absolute top-full mt-1 z-20 min-w-full rounded-lg border border-white/10 bg-gray-900 shadow-xl overflow-hidden ${
-          align === 'right' ? 'right-0' : 'left-0'
-        }`}>
-          <div className="max-h-60 overflow-y-auto py-1">
-            {options.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => { onChange(opt.value); setOpen(false) }}
-                className={`w-full text-left px-3 py-1.5 text-sm transition flex items-center gap-2 ${
-                  opt.value === value
-                    ? 'bg-emerald-500/10 text-emerald-300'
-                    : 'hover:bg-white/5'
-                }`}
-              >
-                {opt.value === value && (
-                  <svg className="w-3 h-3 shrink-0" viewBox="0 0 12 12" fill="none">
-                    <path d="M2.5 6L5 8.5L9.5 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                )}
-                <span className={opt.value !== value ? 'pl-5' : ''}>{opt.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ duration: 0.15 }}
+            className={`absolute top-full mt-1 z-20 min-w-full rounded-lg border border-white/10 bg-gray-900 shadow-xl overflow-hidden origin-top ${
+              align === 'right' ? 'right-0' : 'left-0'
+            }`}
+          >
+            <div className="max-h-60 overflow-y-auto py-1">
+              {options.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => { onChange(opt.value); setOpen(false) }}
+                  className={`w-full text-left px-3 py-1.5 text-sm transition flex items-center gap-2 ${
+                    opt.value === value
+                      ? 'bg-emerald-500/10 text-emerald-300'
+                      : 'hover:bg-white/5'
+                  }`}
+                >
+                  {opt.value === value && (
+                    <svg className="w-3 h-3 shrink-0" viewBox="0 0 12 12" fill="none">
+                      <path d="M2.5 6L5 8.5L9.5 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                  <span className={opt.value !== value ? 'pl-5' : ''}>{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
