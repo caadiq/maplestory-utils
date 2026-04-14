@@ -16,6 +16,8 @@
     "@tanstack/react-query": "^5.91.0",
     "dayjs": "^1.11.20",
     "framer-motion": "^12.23.22",
+    "overlayscrollbars": "^2.15.1",
+    "overlayscrollbars-react": "^0.5.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.14.0"

@@ -57,7 +57,7 @@ export default function Layout() {
 
   return (
     <LayoutContext.Provider value={{ fullscreen, setFullscreen }}>
-      <div className={`min-w-[1280px] bg-gradient-to-br from-gray-950 via-gray-950 to-slate-900 text-white flex flex-col ${
+      <div className={`min-w-[1280px] text-white flex flex-col ${
         fullscreen ? 'h-dvh' : 'min-h-screen'
       }`}>
         <header className="sticky top-0 z-20 border-b border-white/5 bg-gray-950/80 backdrop-blur-md shrink-0">
