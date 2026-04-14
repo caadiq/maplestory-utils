@@ -7,7 +7,9 @@ import { motion, AnimatePresence } from 'framer-motion'
  */
 export default function Select({ value, onChange, options, disabled, className = '', placeholder = '선택', align = 'left' }) {
   const [open, setOpen] = useState(false)
+  const [flipUp, setFlipUp] = useState(false)
   const ref = useRef(null)
+  const buttonRef = useRef(null)
 
   useEffect(() => {
     if (!open) return
@@ -18,11 +20,21 @@ export default function Select({ value, onChange, options, disabled, className =
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
+  useEffect(() => {
+    if (!open || !buttonRef.current) return
+    const rect = buttonRef.current.getBoundingClientRect()
+    const estHeight = Math.min(options.length * 44 + 8, 240)
+    const spaceBelow = window.innerHeight - rect.bottom
+    const spaceAbove = rect.top
+    setFlipUp(spaceBelow < estHeight && spaceAbove > spaceBelow)
+  }, [open, options.length])
+
   const selected = options.find((o) => o.value === value)
 
   return (
     <div ref={ref} className={`relative ${className}`}>
       <button
+        ref={buttonRef}
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen((v) => !v)}
@@ -41,13 +53,13 @@ export default function Select({ value, onChange, options, disabled, className =
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            initial={{ opacity: 0, y: flipUp ? 6 : -6, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            exit={{ opacity: 0, y: flipUp ? 6 : -6, scale: 0.98 }}
             transition={{ duration: 0.15 }}
-            className={`absolute top-full mt-1 z-20 min-w-full rounded-lg border border-white/10 bg-gray-900 shadow-xl overflow-hidden origin-top ${
-              align === 'right' ? 'right-0' : 'left-0'
-            }`}
+            className={`absolute z-20 min-w-full rounded-lg border border-white/10 bg-gray-900 shadow-xl overflow-hidden ${
+              flipUp ? 'bottom-full mb-1 origin-bottom' : 'top-full mt-1 origin-top'
+            } ${align === 'right' ? 'right-0' : 'left-0'}`}
           >
             <div className="max-h-60 overflow-y-auto py-1">
               {options.map((opt) => (
@@ -55,7 +67,7 @@ export default function Select({ value, onChange, options, disabled, className =
                   key={opt.value}
                   type="button"
                   onClick={() => { onChange(opt.value); setOpen(false) }}
-                  className={`w-full text-left px-3 py-1.5 text-sm transition flex items-center gap-2 ${
+                  className={`w-full text-left px-3 py-2.5 text-sm transition flex items-center gap-2 ${
                     opt.value === value
                       ? 'bg-emerald-500/10 text-emerald-300'
                       : 'hover:bg-white/5'
