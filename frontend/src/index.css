@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "overlayscrollbars/overlayscrollbars.css";
 
 @theme {
   --font-sans: "Maplestory", "Noto Sans KR", system-ui, -apple-system, sans-serif;
@@ -6,8 +7,19 @@
 }
 
 html, body, #root {
-  height: 100%;
-  background: #030712;
+  min-height: 100%;
+  background: linear-gradient(to bottom right, #030712, #030712, #0f172a);
+  background-attachment: fixed;
+}
+
+/* OverlayScrollbars body 오버레이 테마 */
+.os-theme-maple.os-theme-dark {
+  --os-handle-bg: rgba(255, 255, 255, 0.25);
+  --os-handle-bg-hover: rgba(255, 255, 255, 0.4);
+  --os-handle-bg-active: rgba(255, 255, 255, 0.5);
+  --os-size: 12px;
+  --os-padding-perpendicular: 2px;
+  --os-padding-axis: 2px;
 }
 
 html {
@@ -46,26 +58,27 @@ input[type="number"] {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 커스텀 스크롤바 */
-* {
+
+/* 내부 스크롤 영역만 얇은 커스텀 스크롤바 (메인 페이지 스크롤은 기본) */
+*:not(html):not(body) {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
-*::-webkit-scrollbar {
+*:not(html):not(body)::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-*::-webkit-scrollbar-track {
+*:not(html):not(body)::-webkit-scrollbar-track {
   background: transparent;
 }
-*::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+*:not(html):not(body)::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 4px;
   transition: background 0.2s;
 }
-*::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.18);
+*:not(html):not(body)::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
 }
-*::-webkit-scrollbar-corner {
+*:not(html):not(body)::-webkit-scrollbar-corner {
   background: transparent;
 }

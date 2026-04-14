@@ -286,7 +286,7 @@ export default function Liberation() {
   const overallProgress = Math.min((totalCumulative / GENESIS_TOTAL) * 100, 100)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-10">
       {/* 해방 종류 탭 */}
       <div className="max-w-2xl mx-auto flex gap-2">
         {[
@@ -310,7 +310,7 @@ export default function Liberation() {
       </div>
 
       {liberationType === 'destiny' ? (
-        <div className="max-w-2xl mx-auto rounded-2xl border border-white/10 bg-gray-900/60 p-16 text-center space-y-3">
+        <div className="max-w-2xl mx-auto rounded-2xl border border-white/10 bg-gray-900/60 p-16 text-center space-y-3 flex flex-col items-center justify-center" style={{ minHeight: 'calc(100vh - 220px)' }}>
           <div className="text-2xl font-bold text-gray-300">구현 예정</div>
           <div className="text-sm text-gray-500">데스티니 해방 계산기는 준비 중입니다.</div>
         </div>
