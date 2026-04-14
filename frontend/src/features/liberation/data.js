@@ -95,15 +95,6 @@ export function calcPoints(basePoints, partySize) {
   return Math.floor(basePoints / partySize)
 }
 
-// 목요일 기준 주차 계산 (KST)
-// 이번 주 목요일 자정 = 이번 주의 시작
-export function getThursdayOfWeek(date) {
-  const d = dayjs(date).tz(KST)
-  const day = d.day() // 0=일, 4=목
-  const diff = (day - 4 + 7) % 7
-  return d.subtract(diff, 'day').startOf('day').toDate()
-}
-
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
@@ -115,10 +106,6 @@ const KST = 'Asia/Seoul'
 
 export function formatDate(date) {
   return dayjs(date).tz(KST).format('YYYY-MM-DD')
-}
-
-export function addWeeks(date, weeks) {
-  return dayjs(date).tz(KST).add(weeks, 'week').toDate()
 }
 
 export function todayKST() {
