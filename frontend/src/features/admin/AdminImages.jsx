@@ -185,7 +185,12 @@ function ImageCard({ image, selected, selectMode, onToggle, onCopyUrl, copied })
       )}
 
       <div className="aspect-square bg-gradient-to-br from-gray-900 to-gray-950 flex items-center justify-center p-4 relative">
-        <img src={image.url} alt={image.name} className="max-w-full max-h-full object-contain" />
+        <img
+          src={image.url}
+          alt={image.name}
+          className="w-full h-full object-contain"
+          style={{ imageRendering: 'pixelated' }}
+        />
 
         {!selectMode && (
           <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
@@ -464,7 +469,7 @@ export default function AdminImages() {
 
       {/* 이미지 그리드 */}
       {isLoading ? (
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid gap-3 grid-cols-3 sm:grid-cols-4 lg:grid-cols-6">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="aspect-square rounded-xl bg-white/[0.02] animate-pulse" />
           ))}
@@ -486,7 +491,7 @@ export default function AdminImages() {
         </div>
       ) : (
         <>
-          <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid gap-3 grid-cols-3 sm:grid-cols-4 lg:grid-cols-6">
             {images.map((image) => (
               <ImageCard
                 key={image.id}
