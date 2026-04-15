@@ -1,6 +1,7 @@
 import Select from '../../../components/Select'
-import Tooltip from '../../../components/Tooltip'
-import { DIFFICULTIES, formatMeso, getDifficultyImageUrl } from '../admin/constants'
+import { DIFFICULTIES, formatMeso } from '../admin/constants'
+
+const LABEL_EN = { easy: 'EASY', normal: 'NORMAL', hard: 'HARD', chaos: 'CHAOS', extreme: 'EXTREME' }
 
 export default function BossSelector({ characterName, bosses, selections, onChange, maxReached, selectedCount, maxPerCharacter }) {
   if (!characterName) {
@@ -67,24 +68,27 @@ export default function BossSelector({ characterName, bosses, selections, onChan
                 <div className="flex-1 flex items-center gap-2 flex-nowrap min-w-0">
                   {availableDiffs.map((d) => {
                     const active = sel?.difficulty === d.key
+                    const style = {
+                      background: d.colors.bg,
+                      borderColor: d.colors.border,
+                      color: d.colors.text,
+                      filter: active ? 'none' : 'brightness(0.4)',
+                    }
                     return (
-                      <Tooltip key={d.key} text={d.label}>
-                        <button
-                          type="button"
-                          tabIndex={-1}
-                          onClick={(e) => {
-                            e.currentTarget.blur()
-                            if (active) {
-                              onChange(boss.id, null)
-                            } else {
-                              onChange(boss.id, { difficulty: d.key, party: partyN })
-                            }
-                          }}
-                          className={`shrink-0 transition focus:outline-none ${active ? 'opacity-100 scale-105' : 'opacity-40 hover:opacity-70'}`}
-                        >
-                          <img src={getDifficultyImageUrl(d.key)} alt={d.label} className="h-5" />
-                        </button>
-                      </Tooltip>
+                      <button
+                        key={d.key}
+                        type="button"
+                        tabIndex={-1}
+                        onClick={(e) => {
+                          e.currentTarget.blur()
+                          if (active) onChange(boss.id, null)
+                          else onChange(boss.id, { difficulty: d.key, party: partyN })
+                        }}
+                        style={style}
+                        className="shrink-0 rounded-full border px-4 h-7 text-xs font-bold tracking-wider transition focus:outline-none"
+                      >
+                        {LABEL_EN[d.key] || d.key.toUpperCase()}
+                      </button>
                     )
                   })}
                 </div>
