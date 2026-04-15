@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   DndContext, DragOverlay, closestCenter, PointerSensor, KeyboardSensor,
   useSensor, useSensors,
@@ -9,13 +10,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-
-const MOCK_SYMBOLS = [
-  { id: 1, type: '아케인', region: '소멸의 여로', image_url: 'https://s3.caadiq.co.kr/maplestory/symbol/아케인심볼(소멸의 여로).webp', max_level: 20, daily_default: 20, weekly_default: 45 },
-  { id: 2, type: '아케인', region: '츄츄 아일랜드', image_url: 'https://s3.caadiq.co.kr/maplestory/symbol/아케인심볼(츄츄 아일랜드).webp', max_level: 20, daily_default: 20, weekly_default: 45 },
-  { id: 3, type: '어센틱', region: '세르니움', image_url: 'https://s3.caadiq.co.kr/maplestory/symbol/어센틱심볼(세르니움).webp', max_level: 11, daily_default: 10, weekly_default: 25 },
-  { id: 4, type: '그랜드 어센틱', region: '탈라하트', image_url: 'https://s3.caadiq.co.kr/maplestory/symbol/그랜드 어센틱심볼(탈라하트).webp', max_level: 11, daily_default: 0, weekly_default: 30 },
-]
+import { api } from '../../../api/client'
 
 const TYPE_COLOR = {
   '아케인': { text: 'text-violet-300', bg: 'bg-violet-500/15', border: 'border-violet-500/30' },
@@ -24,7 +19,7 @@ const TYPE_COLOR = {
 }
 
 function SymbolCardContent({ symbol, dragging = false }) {
-  const color = TYPE_COLOR[symbol.type]
+  const color = TYPE_COLOR[symbol.type] || TYPE_COLOR['아케인']
   return (
     <div className={`flex items-stretch rounded-2xl border bg-gradient-to-br from-gray-900/80 to-gray-900/40 ${
       dragging
@@ -88,13 +83,34 @@ function SortableSymbolCard({ symbol }) {
 }
 
 export default function SymbolList() {
-  const [items, setItems] = useState(MOCK_SYMBOLS)
+  const queryClient = useQueryClient()
+  const { data: symbols = [], isLoading } = useQuery({
+    queryKey: ['admin', 'symbol', 'symbols'],
+    queryFn: () => api('/api/admin/symbol/symbols').catch(() => []),
+  })
+
+  const [items, setItems] = useState([])
   const [activeId, setActiveId] = useState(null)
+  useEffect(() => { setItems(symbols) }, [symbols])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
+
+  const reorderMutation = useMutation({
+    mutationFn: (ids) => api('/api/admin/symbol/symbols/reorder', {
+      method: 'POST',
+      body: { ids },
+    }),
+    onError: (err) => {
+      alert(err.message)
+      queryClient.invalidateQueries({ queryKey: ['admin', 'symbol', 'symbols'] })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['symbol', 'symbols'] })
+    },
+  })
 
   const handleDragEnd = (event) => {
     const { active, over } = event
@@ -102,7 +118,9 @@ export default function SymbolList() {
     if (!over || active.id === over.id) return
     const oldIdx = items.findIndex((s) => s.id === active.id)
     const newIdx = items.findIndex((s) => s.id === over.id)
-    setItems(arrayMove(items, oldIdx, newIdx))
+    const next = arrayMove(items, oldIdx, newIdx)
+    setItems(next)
+    reorderMutation.mutate(next.map((s) => s.id))
   }
 
   const activeSymbol = items.find((s) => s.id === activeId)
@@ -123,7 +141,13 @@ export default function SymbolList() {
         </Link>
       </div>
 
-      {items.length === 0 ? (
+      {isLoading ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-24 rounded-2xl bg-white/[0.02] animate-pulse" />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-16 text-center">
           <div className="text-5xl mb-3 opacity-30">🔮</div>
           <p className="text-gray-400 mb-4">등록된 심볼이 없습니다</p>

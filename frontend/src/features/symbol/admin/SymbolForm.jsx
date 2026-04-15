@@ -1,5 +1,7 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { api } from '../../../api/client'
 import Select from '../../../components/Select'
 import ConfirmDialog from '../../../components/ConfirmDialog'
 
@@ -60,6 +62,7 @@ function Field({ label, hint, error, required, children }) {
 
 export default function SymbolForm() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { id } = useParams()
   const isEdit = !!id
   const fileInputRef = useRef(null)
@@ -71,8 +74,37 @@ export default function SymbolForm() {
   const [weeklyDefault, setWeeklyDefault] = useState('')
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
+  const [existingImageUrl, setExistingImageUrl] = useState(null)
   const [levels, setLevels] = useState([])
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [error, setError] = useState('')
+
+  // 편집 시 데이터 로드
+  const { data: symbolData } = useQuery({
+    queryKey: ['admin', 'symbol', 'symbols', id],
+    queryFn: () => api(`/api/admin/symbol/symbols/${id}`),
+    enabled: isEdit,
+  })
+
+  useEffect(() => {
+    if (!symbolData) return
+    setType(symbolData.type)
+    setRegion(symbolData.region)
+    setMaxLevel(String(symbolData.max_level))
+    setDailyDefault(String(symbolData.daily_default ?? ''))
+    setWeeklyDefault(String(symbolData.weekly_default ?? ''))
+    setExistingImageUrl(symbolData.image_url)
+    const rows = Array.from({ length: symbolData.max_level - 1 }, (_, i) => {
+      const level = i + 1
+      const existing = symbolData.levels.find((l) => l.level === level)
+      return {
+        level,
+        required_count: existing?.required_count ?? '',
+        meso_cost: existing?.meso_cost ?? '',
+      }
+    })
+    setLevels(rows)
+  }, [symbolData])
 
   const handleFile = (e) => {
     const file = e.target.files?.[0]
@@ -97,6 +129,65 @@ export default function SymbolForm() {
     })
   }
 
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const formData = new FormData()
+      formData.append('type', type)
+      formData.append('region', region.trim())
+      formData.append('max_level', String(maxLevel))
+      formData.append('daily_default', String(Number(dailyDefault) || 0))
+      formData.append('weekly_default', String(Number(weeklyDefault) || 0))
+      formData.append('levels', JSON.stringify(
+        levels
+          .filter((l) => l.required_count !== '' || l.meso_cost !== '')
+          .map((l) => ({
+            level: l.level,
+            required_count: Number(l.required_count) || 0,
+            meso_cost: Number(l.meso_cost) || 0,
+          }))
+      ))
+      if (imageFile) formData.append('image', imageFile)
+
+      const adminKey = localStorage.getItem('maple-admin-key')
+      const url = isEdit ? `/api/admin/symbol/symbols/${id}` : '/api/admin/symbol/symbols'
+      const res = await fetch(url, {
+        method: isEdit ? 'PATCH' : 'POST',
+        headers: { 'x-admin-key': adminKey },
+        body: formData,
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || '저장 실패')
+      return json
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'symbol', 'symbols'] })
+      queryClient.invalidateQueries({ queryKey: ['symbol', 'symbols'] })
+      navigate('..')
+    },
+    onError: (err) => setError(err.message),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api(`/api/admin/symbol/symbols/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'symbol', 'symbols'] })
+      queryClient.invalidateQueries({ queryKey: ['symbol', 'symbols'] })
+      navigate('..')
+    },
+    onError: (err) => alert(err.message),
+  })
+
+  const handleSubmit = () => {
+    setError('')
+    if (!type) return setError('심볼 종류를 선택해주세요')
+    if (!region.trim()) return setError('지역 이름을 입력해주세요')
+    if (!maxLevel || Number(maxLevel) < 2) return setError('만렙을 입력해주세요')
+    if (!isEdit && !imageFile) return setError('심볼 이미지를 업로드해주세요')
+    saveMutation.mutate()
+  }
+
+  const displayImage = imagePreview || existingImageUrl
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
@@ -111,15 +202,15 @@ export default function SymbolForm() {
         <Field label="심볼 이미지" required={!isEdit}>
           <label className="flex items-center gap-4 rounded-xl border-2 border-dashed border-white/10 hover:border-emerald-500/40 hover:bg-emerald-500/5 bg-gray-950/50 p-4 transition cursor-pointer">
             <div className="w-32 h-32 rounded-lg bg-gray-900 border border-white/5 flex items-center justify-center overflow-hidden shrink-0">
-              {imagePreview ? (
-                <img src={imagePreview} alt="" className="w-full h-full object-contain" style={{ imageRendering: 'pixelated' }} />
+              {displayImage ? (
+                <img src={displayImage} alt="" className="w-full h-full object-contain" style={{ imageRendering: 'pixelated' }} />
               ) : (
                 <span className="text-5xl text-gray-700">+</span>
               )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-gray-300">
-                {imagePreview ? '클릭하여 이미지 변경' : '클릭하여 이미지 업로드'}
+                {displayImage ? '클릭하여 이미지 변경' : '클릭하여 이미지 업로드'}
               </div>
               <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF 등 → WebP로 자동 변환됩니다</p>
               {imageFile && (
@@ -249,19 +340,27 @@ export default function SymbolForm() {
           </button>
           <button
             type="button"
-            className="rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 text-sm font-semibold shadow-lg shadow-emerald-500/20 transition"
+            onClick={handleSubmit}
+            disabled={saveMutation.isPending}
+            className="rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-5 py-2 text-sm font-semibold shadow-lg shadow-emerald-500/20 transition"
           >
-            {isEdit ? '저장' : '추가'}
+            {saveMutation.isPending ? '저장 중...' : isEdit ? '저장' : '추가'}
           </button>
         </div>
       </div>
 
+      {error && (
+        <div className="rounded-lg border border-red-500/40 bg-red-500/10 text-red-300 text-sm px-4 py-2">
+          {error}
+        </div>
+      )}
+
       <ConfirmDialog
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
-        onConfirm={() => setConfirmDelete(false)}
+        onConfirm={() => { setConfirmDelete(false); deleteMutation.mutate() }}
         title="심볼 삭제"
-        description="이 심볼을 삭제하시겠습니까?\n레벨별 데이터도 함께 삭제됩니다."
+        description={'이 심볼을 삭제하시겠습니까?\n레벨별 데이터도 함께 삭제됩니다.'}
         confirmText="삭제"
         destructive
       />
