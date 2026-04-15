@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { Outlet, Link, useLocation } from 'react-router-dom'
+import { Outlet, Link, useLocation, useMatch } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import Footer from './Footer'
@@ -54,6 +54,8 @@ function CurrentMenuTitle() {
 
 export default function Layout() {
   const [fullscreen, setFullscreen] = useState(false)
+  const isAdmin = !!useMatch('/admin/*')
+  const homeTo = isAdmin ? '/admin' : '/'
 
   return (
     <LayoutContext.Provider value={{ fullscreen, setFullscreen }}>
@@ -63,7 +65,7 @@ export default function Layout() {
         <header className="sticky top-0 z-20 border-b border-white/5 bg-gray-950/80 backdrop-blur-md shrink-0">
           <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3">
-              <Link to="/" className="group flex items-center gap-2.5">
+              <Link to={homeTo} className="group flex items-center gap-2.5">
                 <img src="/favicon.ico" alt="" className="w-8 h-8" />
                 <span className="text-lg font-bold tracking-tight">
                   메이플스토리 유틸리티
