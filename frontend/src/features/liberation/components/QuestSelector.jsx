@@ -32,7 +32,7 @@ export default function QuestSelector({ value, onChange }) {
       >
         <div className="w-9 h-9 rounded overflow-hidden shrink-0 bg-gray-900">
           <img
-            src={`${QUEST_BOSS_IMAGE_BASE}/${selected.boss}.png`}
+            src={`${QUEST_BOSS_IMAGE_BASE}/${selected.boss}.webp`}
             alt=""
             className="w-full h-full object-cover"
           />
@@ -70,7 +70,7 @@ export default function QuestSelector({ value, onChange }) {
               >
                 <div className="w-9 h-9 rounded overflow-hidden shrink-0 bg-gray-950">
                   <img
-                    src={`${QUEST_BOSS_IMAGE_BASE}/${chapter.boss}.png`}
+                    src={`${QUEST_BOSS_IMAGE_BASE}/${chapter.boss}.webp`}
                     alt=""
                     className="w-full h-full object-cover"
                   />

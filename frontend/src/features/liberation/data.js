@@ -13,7 +13,7 @@ export const GENESIS_CHAPTERS = [
 ]
 
 // 퀘스트 이미지 경로 (제네시스)
-export const QUEST_BOSS_IMAGE_BASE = 'https://s3.caadiq.co.kr/maplestory/liberation/genesis/quest/boss'
+export const QUEST_BOSS_IMAGE_BASE = 'https://s3.caadiq.co.kr/maplestory/liberation/genesis/quest'
 export const QUEST_BTBOSS_IMAGE_BASE = 'https://s3.caadiq.co.kr/maplestory/liberation/genesis/quest/btboss'
 // 주간/월간 보스 초상화 (해방용)
 export const LIBERATION_BOSS_IMAGE_BASE = 'https://s3.caadiq.co.kr/maplestory/liberation/genesis/boss'
@@ -23,7 +23,7 @@ export const GENESIS_TOTAL = GENESIS_CHAPTERS.reduce((s, c) => s + c.required, 0
 // 주간 보스 (주 1회)
 export const WEEKLY_BOSSES = [
   {
-    key: 'lotus', name: '스우', image: '스우.png',
+    key: 'lotus', name: '스우', image: '스우.webp',
     difficulties: [
       { key: 'normal', label: '노말', points: 10 },
       { key: 'hard', label: '하드', points: 50 },
@@ -31,14 +31,14 @@ export const WEEKLY_BOSSES = [
     ],
   },
   {
-    key: 'damien', name: '데미안', image: '데미안.png',
+    key: 'damien', name: '데미안', image: '데미안.webp',
     difficulties: [
       { key: 'normal', label: '노말', points: 10 },
       { key: 'hard', label: '하드', points: 50 },
     ],
   },
   {
-    key: 'lucid', name: '루시드', image: '루시드.png',
+    key: 'lucid', name: '루시드', image: '루시드.webp',
     difficulties: [
       { key: 'easy', label: '이지', points: 15 },
       { key: 'normal', label: '노말', points: 20 },
@@ -46,7 +46,7 @@ export const WEEKLY_BOSSES = [
     ],
   },
   {
-    key: 'will', name: '윌', image: '윌.png',
+    key: 'will', name: '윌', image: '윌.webp',
     difficulties: [
       { key: 'easy', label: '이지', points: 15 },
       { key: 'normal', label: '노말', points: 25 },
@@ -54,21 +54,21 @@ export const WEEKLY_BOSSES = [
     ],
   },
   {
-    key: 'dusk', name: '더스크', image: '더스크.png',
+    key: 'dusk', name: '더스크', image: '더스크.webp',
     difficulties: [
       { key: 'normal', label: '노말', points: 20 },
       { key: 'chaos', label: '카오스', points: 65 },
     ],
   },
   {
-    key: 'jinhilla', name: '진 힐라', image: '진 힐라.png',
+    key: 'jinhilla', name: '진 힐라', image: '진 힐라.webp',
     difficulties: [
       { key: 'normal', label: '노말', points: 45 },
       { key: 'hard', label: '하드', points: 90 },
     ],
   },
   {
-    key: 'darknell', name: '듄켈', image: '듄켈.png',
+    key: 'darknell', name: '듄켈', image: '듄켈.webp',
     difficulties: [
       { key: 'normal', label: '노말', points: 25 },
       { key: 'hard', label: '하드', points: 75 },
@@ -79,7 +79,7 @@ export const WEEKLY_BOSSES = [
 // 월간 보스
 export const MONTHLY_BOSSES = [
   {
-    key: 'blackmage', name: '검은 마법사', image: '검은 마법사.png',
+    key: 'blackmage', name: '검은 마법사', image: '검은 마법사.webp',
     difficulties: [
       { key: 'hard', label: '하드', points: 600 },
       { key: 'extreme', label: '익스트림', points: 600 },
