@@ -1,9 +1,21 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useQueries, useMutation } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import { useLayout } from '../../components/Layout'
 import Select from '../../components/Select'
+import Tooltip from '../../components/Tooltip'
 import { useSymbolStore } from './store'
+
+function formatMesoKorean(n) {
+  const v = Number(n) || 0
+  if (v <= 0) return '0'
+  const eok = Math.floor(v / 100_000_000)
+  const man = Math.floor((v % 100_000_000) / 10_000)
+  const parts = []
+  if (eok) parts.push(`${eok.toLocaleString()}억`)
+  if (man) parts.push(`${man.toLocaleString()}만`)
+  return parts.length ? parts.join(' ') : v.toLocaleString()
+}
 
 const TYPE_ORDER = ['아케인', '어센틱', '그랜드 어센틱']
 
@@ -67,12 +79,32 @@ function SymbolCard({ symbol, equipped, charId }) {
   const extra = progress?.extra ?? 0
   const patch = (p) => charId && updateSymbol(charId, symbol.id, p)
 
-  // 임시 목업 값 (계산 기능 미구현)
   const level = progress?.level ?? 0
   const growth = progress?.growth ?? 0
-  const requireGrowth = symbol.levels?.[0]?.required_count || 0
-  const remainingSymbols = '-'
-  const remainingMeso = '-'
+  const requireGrowth = symbol.levels?.find((l) => l.level === level)?.required_count || 0
+  const isMax = equipped && level >= symbol.max_level
+  const interactable = equipped && !isMax
+
+  // 남은 심볼: 현재 레벨→만렙 까지 필요한 심볼 총합 (현재 성장치 차감)
+  // 필요 메소: 현재 레벨→만렙 까지 필요한 메소 총합
+  // 체납 메소: 이미 성장치가 현재 레벨 요구치 이상이면 바로 올릴 수 있는 레벨의 메소
+  const { remainingSymbols, remainingMeso, arrearMeso } = useMemo(() => {
+    if (!equipped || !symbol.levels?.length) return { remainingSymbols: 0, remainingMeso: 0, arrearMeso: 0 }
+    let sym = 0, meso = 0, arr = 0
+    for (const l of symbol.levels) {
+      if (l.level < level) continue
+      if (l.level === level) {
+        sym += Math.max(l.required_count - growth, 0)
+        meso += l.meso_cost
+        if (growth >= l.required_count) arr += l.meso_cost
+      } else {
+        sym += l.required_count
+        meso += l.meso_cost
+      }
+    }
+    return { remainingSymbols: sym, remainingMeso: meso, arrearMeso: arr }
+  }, [equipped, level, growth, symbol.levels])
+
   const daysLeft = '-'
   const completeDate = '-'
 
@@ -100,31 +132,43 @@ function SymbolCard({ symbol, equipped, charId }) {
             <span className="text-gray-600"> / {symbol.max_level}</span>
           </div>
         </div>
-        <button
-          type="button"
-          disabled={!equipped}
-          onClick={() => patch({ dailyDone: !dailyDone })}
-          title="오늘 일퀘 완료 여부"
-          className={`shrink-0 rounded-md h-8 px-3 text-xs font-semibold border transition disabled:opacity-40 disabled:cursor-not-allowed ${
-            dailyDone
-              ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
-              : 'bg-red-500/10 border-red-500/40 text-red-300 hover:bg-red-500/20'
-          }`}
-        >
-          {dailyDone ? '금일 일퀘 완료' : '금일 일퀘 미완료'}
-        </button>
+        {!isMax && (
+          <button
+            type="button"
+            disabled={!equipped}
+            onClick={() => patch({ dailyDone: !dailyDone })}
+            title="오늘 일퀘 완료 여부"
+            className={`shrink-0 rounded-md h-8 px-3 text-xs font-semibold border transition disabled:opacity-40 disabled:cursor-not-allowed ${
+              dailyDone
+                ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                : 'bg-red-500/10 border-red-500/40 text-red-300 hover:bg-red-500/20'
+            }`}
+          >
+            {dailyDone ? '금일 일퀘 완료' : '금일 일퀘 미완료'}
+          </button>
+        )}
       </div>
 
       {/* 진행도 바 */}
       <div className="mb-4">
-        <div className="flex justify-between text-sm text-gray-400 tabular-nums mb-1.5">
-          <span>성장치 {growth} / {requireGrowth}</span>
-          <span>{requireGrowth ? Math.min(Math.floor((growth / requireGrowth) * 100), 100) : 0}%</span>
+        <div className="flex justify-between text-sm tabular-nums mb-1.5">
+          <span className="text-gray-400">
+            성장치 {isMax ? (
+              <span className="text-amber-300 font-bold">MAX</span>
+            ) : (
+              <>{growth} / {requireGrowth}</>
+            )}
+          </span>
+          {!isMax && (
+            <span className="text-gray-400">
+              {requireGrowth ? Math.min(Math.floor((growth / requireGrowth) * 100), 100) : 0}%
+            </span>
+          )}
         </div>
         <div className="h-2 rounded-full bg-gray-950 overflow-hidden">
           <div
-            className="h-full bg-emerald-500/80 transition-all"
-            style={{ width: `${Math.min((growth / requireGrowth) * 100, 100)}%` }}
+            className={`h-full transition-all ${isMax ? 'bg-amber-400' : 'bg-emerald-500/80'}`}
+            style={{ width: isMax ? '100%' : `${Math.min((growth / requireGrowth) * 100, 100)}%` }}
           />
         </div>
       </div>
@@ -141,7 +185,7 @@ function SymbolCard({ symbol, equipped, charId }) {
             inputMode="numeric"
             value={equipped ? String(daily) : '0'}
             onChange={(e) => patch({ daily: Number(e.target.value.replace(/[^\d]/g, '')) || 0 })}
-            disabled={!equipped}
+            disabled={!interactable}
             className="w-full h-10 rounded-md border border-white/10 bg-gray-950 px-3 text-base text-right tabular-nums outline-none focus:border-emerald-500/50 hover:border-white/20 disabled:opacity-50 transition"
           />
         </div>
@@ -155,7 +199,7 @@ function SymbolCard({ symbol, equipped, charId }) {
                 value: n,
                 label: `${n * symbol.weekly_default}개`,
               }))}
-              disabled={!equipped}
+              disabled={!interactable}
             />
           </div>
         )}
@@ -166,7 +210,7 @@ function SymbolCard({ symbol, equipped, charId }) {
             inputMode="numeric"
             value={equipped ? String(extra) : '0'}
             onChange={(e) => patch({ extra: Number(e.target.value.replace(/[^\d]/g, '')) || 0 })}
-            disabled={!equipped}
+            disabled={!interactable}
             className="w-full h-10 rounded-md border border-white/10 bg-gray-950 px-3 text-base text-right tabular-nums outline-none focus:border-emerald-500/50 hover:border-white/20 disabled:opacity-50 transition"
           />
         </div>
@@ -176,15 +220,33 @@ function SymbolCard({ symbol, equipped, charId }) {
       <div className="divide-y divide-white/5 text-base">
         <div className="flex justify-between py-2">
           <span className="text-gray-400">남은 심볼</span>
-          <span className="tabular-nums text-gray-200 font-medium">{remainingSymbols}</span>
+          <span className="tabular-nums text-gray-200 font-medium">
+            {equipped && !isMax ? `${remainingSymbols.toLocaleString()}개` : '-'}
+          </span>
         </div>
         <div className="flex justify-between py-2">
           <span className="text-gray-400">필요 메소</span>
-          <span className="tabular-nums text-amber-300 font-medium">{remainingMeso}</span>
+          {equipped && !isMax ? (
+            <Tooltip text={formatMesoKorean(remainingMeso)}>
+              <span className="tabular-nums text-amber-300 font-medium">
+                {remainingMeso.toLocaleString()}
+              </span>
+            </Tooltip>
+          ) : (
+            <span className="tabular-nums text-amber-300 font-medium">-</span>
+          )}
         </div>
         <div className="flex justify-between py-2">
           <span className="text-gray-400">체납 메소</span>
-          <span className="tabular-nums text-red-400 font-medium">-</span>
+          {equipped && !isMax ? (
+            <Tooltip text={formatMesoKorean(arrearMeso)}>
+              <span className="tabular-nums text-red-400 font-medium">
+                {arrearMeso.toLocaleString()}
+              </span>
+            </Tooltip>
+          ) : (
+            <span className="tabular-nums text-red-400 font-medium">-</span>
+          )}
         </div>
         <div className="flex justify-between py-2">
           <span className="text-gray-400">남은 일수</span>
@@ -234,6 +296,42 @@ export default function Symbol() {
   const addCharacter = useSymbolStore((s) => s.addCharacter)
   const removeCharacter = useSymbolStore((s) => s.removeCharacter)
   const selectCharacter = useSymbolStore((s) => s.selectCharacter)
+  const syncCharacterSymbols = useSymbolStore((s) => s.syncCharacterSymbols)
+
+  // 각 캐릭터의 장착 심볼 fetch (새로고침마다 갱신)
+  const symbolQueries = useQueries({
+    queries: characters.map((c) => ({
+      queryKey: ['character', 'symbols', c.id],
+      queryFn: () => api(`/api/character/symbols?ocid=${c.id}`),
+      enabled: !!c.id,
+      refetchOnMount: 'always',
+      staleTime: 0,
+    })),
+  })
+
+  // symbolQueries 결과를 store로 반영
+  useEffect(() => {
+    if (!allSymbols.length || !characters.length) return
+    // (type, region) → symbol id 매핑
+    const lookup = {}
+    for (const s of allSymbols) lookup[`${s.type}|${s.region}`] = s
+    characters.forEach((c, idx) => {
+      const q = symbolQueries[idx]
+      if (!q?.data?.symbols) return
+      const equippedMap = {}
+      for (const es of q.data.symbols) {
+        const match = lookup[`${es.type}|${es.region}`]
+        if (!match) continue
+        equippedMap[match.id] = {
+          level: es.level,
+          growth: es.growth_count,
+          require_growth: es.require_growth_count,
+        }
+      }
+      syncCharacterSymbols(c.id, equippedMap)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allSymbols, symbolQueries.map((q) => q.dataUpdatedAt).join(',')])
 
   const [addName, setAddName] = useState('')
   const [addError, setAddError] = useState('')
@@ -263,8 +361,28 @@ export default function Symbol() {
     searchMutation.mutate(n)
   }
 
-  // 임시: 첫 번째 심볼만 장착된 것으로 표시
-  const isEquipped = (i) => i === 0
+  const progress = useSymbolStore((s) => s.progress[selectedCharId])
+  const isEquipped = (symbolId) => !!progress?.[symbolId]?.equipped
+
+  // 현재 탭의 누적 메소 계산
+  const { totalRequiredMeso, totalArrearMeso } = useMemo(() => {
+    let req = 0, arr = 0
+    for (const s of symbols) {
+      const p = progress?.[s.id]
+      if (!p?.equipped) continue
+      if (p.level >= s.max_level) continue
+      for (const l of s.levels || []) {
+        if (l.level < p.level) continue
+        if (l.level === p.level) {
+          req += l.meso_cost
+          if ((p.growth || 0) >= l.required_count) arr += l.meso_cost
+        } else {
+          req += l.meso_cost
+        }
+      }
+    }
+    return { totalRequiredMeso: req, totalArrearMeso: arr }
+  }, [symbols, progress])
 
   return (
     <div className="space-y-6 pb-10 max-w-5xl mx-auto">
@@ -337,26 +455,34 @@ export default function Symbol() {
 
       {/* 심볼 카드 그리드 */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {symbols.map((s, i) => (
-          <SymbolCard key={s.id} symbol={s} equipped={isEquipped(i)} charId={selectedCharId} />
+        {symbols.map((s) => (
+          <SymbolCard key={s.id} symbol={s} equipped={isEquipped(s.id)} charId={selectedCharId} />
         ))}
       </div>
 
       {/* 전체 요약 */}
       <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-500/10 to-emerald-500/[0.02] p-6 flex items-center justify-between gap-6 flex-wrap">
         <div>
-          <div className="text-base text-emerald-200/80">{tabInfo?.label} 전체 만렙 완료 예상일</div>
-          <div className="text-3xl font-bold text-emerald-300 tabular-nums mt-1.5">2026년 09월 12일 (토)</div>
+          <div className="text-base text-gray-400">{tabInfo?.label} 전체 만렙 완료 예상일</div>
+          <div className="text-3xl font-bold text-emerald-300 tabular-nums mt-1.5">-</div>
         </div>
         <div className="flex items-center">
           <div className="text-right pr-10">
             <div className="text-base text-gray-400">누적 체납 메소</div>
-            <div className="text-2xl font-bold text-red-400 tabular-nums mt-1">108,000,000</div>
+            <Tooltip text={formatMesoKorean(totalArrearMeso)}>
+              <div className="text-2xl font-bold text-red-400 tabular-nums mt-1 inline-block">
+                {totalArrearMeso.toLocaleString()}
+              </div>
+            </Tooltip>
           </div>
           <div className="w-px h-12 bg-white/10" />
           <div className="text-right pl-10">
-            <div className="text-base text-gray-400">누적 필요 메소</div>
-            <div className="text-2xl font-bold text-amber-300 tabular-nums mt-1">768,000,000</div>
+            <div className="text-base text-gray-400">남은 필요 메소</div>
+            <Tooltip text={formatMesoKorean(totalRequiredMeso)}>
+              <div className="text-2xl font-bold text-amber-300 tabular-nums mt-1 inline-block">
+                {totalRequiredMeso.toLocaleString()}
+              </div>
+            </Tooltip>
           </div>
         </div>
       </div>
