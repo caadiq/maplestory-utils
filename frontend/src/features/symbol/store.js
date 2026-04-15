@@ -23,6 +23,11 @@ export const useSymbolStore = create(persist(
     characters: [],
     selectedCharId: null,
     progress: {},
+    selectedTabs: {},    // { [charId]: '아케인' | '어센틱' | '그랜드 어센틱' }
+
+    setTab: (charId, tabKey) => set((s) => ({
+      selectedTabs: { ...s.selectedTabs, [charId]: tabKey },
+    })),
 
     setCharacters: (next) => set((s) => ({
       characters: typeof next === 'function' ? next(s.characters) : next,
@@ -106,6 +111,7 @@ export const useSymbolStore = create(persist(
         characters: persisted.characters || [],
         selectedCharId: persisted.selectedCharId ?? null,
         progress: persisted.progress || {},
+        selectedTabs: persisted.selectedTabs || {},
       }
     },
   },
