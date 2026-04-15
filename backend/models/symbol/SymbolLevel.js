@@ -6,7 +6,7 @@ export const SymbolLevel = sequelize.define('SymbolLevel', {
   symbol_id: { type: DataTypes.INTEGER, allowNull: false },
   level: { type: DataTypes.TINYINT, allowNull: false },
   required_count: { type: DataTypes.SMALLINT, allowNull: false },
-  meso_cost: { type: DataTypes.INTEGER, allowNull: false },
+  meso_cost: { type: DataTypes.BIGINT, allowNull: false },
 }, {
   tableName: 'sym_levels',
   underscored: true,

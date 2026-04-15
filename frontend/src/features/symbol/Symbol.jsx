@@ -123,7 +123,10 @@ function SymbolCard({ symbol, equipped }) {
       </div>
 
       {/* 획득량 입력 */}
-      <div className="grid gap-2 mb-4" style={{ gridTemplateColumns: '0.7fr 1.3fr 1fr' }}>
+      <div
+        className="grid gap-2 mb-4"
+        style={{ gridTemplateColumns: symbol.weekly_default > 0 ? '0.7fr 1.3fr 1fr' : '1fr 1fr' }}
+      >
         <div className="space-y-1">
           <label className="block text-xs text-gray-400">일퀘 획득</label>
           <input
@@ -134,18 +137,20 @@ function SymbolCard({ symbol, equipped }) {
             className="w-full h-10 rounded-md border border-white/10 bg-gray-950 px-3 text-base text-right tabular-nums outline-none focus:border-emerald-500/50 hover:border-white/20 disabled:opacity-50 transition"
           />
         </div>
-        <div className="space-y-1">
-          <label className="block text-xs text-gray-400">주간퀘 획득</label>
-          <Select
-            value={weeklyCount}
-            onChange={setWeeklyCount}
-            options={[1, 2, 3].map((n) => ({
-              value: n,
-              label: `${n * (symbol.weekly_default || 0)}개`,
-            }))}
-            disabled={!equipped}
-          />
-        </div>
+        {symbol.weekly_default > 0 && (
+          <div className="space-y-1">
+            <label className="block text-xs text-gray-400">주간퀘 획득</label>
+            <Select
+              value={weeklyCount}
+              onChange={setWeeklyCount}
+              options={[1, 2, 3].map((n) => ({
+                value: n,
+                label: `${n * symbol.weekly_default}개`,
+              }))}
+              disabled={!equipped}
+            />
+          </div>
+        )}
         <div className="space-y-1">
           <label className="block text-xs text-gray-400">추가 심볼</label>
           <input
