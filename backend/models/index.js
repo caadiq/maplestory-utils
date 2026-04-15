@@ -2,6 +2,8 @@ import { Image } from './Image.js';
 import { Menu } from './Menu.js';
 import { BossCrystalBoss } from './boss-crystal/Boss.js';
 import { BossCrystalBossDifficulty } from './boss-crystal/BossDifficulty.js';
+import { Symbol } from './symbol/Symbol.js';
+import { SymbolLevel } from './symbol/SymbolLevel.js';
 
 // Menu <-> Image
 Menu.belongsTo(Image, { foreignKey: 'image_id', as: 'image', onDelete: 'SET NULL' });
@@ -14,4 +16,12 @@ BossCrystalBoss.hasMany(BossCrystalBossDifficulty, {
 });
 BossCrystalBossDifficulty.belongsTo(BossCrystalBoss, { foreignKey: 'boss_id', as: 'boss' });
 
-export { Image, Menu, BossCrystalBoss, BossCrystalBossDifficulty };
+// Symbol <-> SymbolLevel
+Symbol.hasMany(SymbolLevel, {
+  foreignKey: 'symbol_id',
+  as: 'levels',
+  onDelete: 'CASCADE',
+});
+SymbolLevel.belongsTo(Symbol, { foreignKey: 'symbol_id', as: 'symbol' });
+
+export { Image, Menu, BossCrystalBoss, BossCrystalBossDifficulty, Symbol, SymbolLevel };

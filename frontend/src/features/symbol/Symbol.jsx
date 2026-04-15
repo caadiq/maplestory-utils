@@ -126,7 +126,7 @@ function SymbolCard({ symbol, equipped }) {
           />
         </div>
         <div className="space-y-1">
-          <label className="block text-xs text-gray-400">주퀘 획득</label>
+          <label className="block text-xs text-gray-400">주간퀘 획득</label>
           <input
             type="text"
             inputMode="numeric"
