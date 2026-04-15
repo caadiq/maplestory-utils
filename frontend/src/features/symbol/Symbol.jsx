@@ -192,10 +192,9 @@ function SymbolCard({ symbol, equipped, charId }) {
             <span className="text-gray-600"> / {symbol.max_level}</span>
           </div>
         </div>
-        {!isMax && (
+        {equipped && !isMax && (
           <button
             type="button"
-            disabled={!equipped}
             onClick={() => patch({ dailyDone: !dailyDone })}
             title="오늘 일퀘 완료 여부"
             className={`shrink-0 rounded-md h-8 px-3 text-xs font-semibold border transition disabled:opacity-40 disabled:cursor-not-allowed ${
