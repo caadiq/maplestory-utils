@@ -1,10 +1,47 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useQueries, useMutation } from '@tanstack/react-query'
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
 import { api } from '../../api/client'
 import { useLayout } from '../../components/Layout'
 import Select from '../../components/Select'
 import Tooltip from '../../components/Tooltip'
 import { useSymbolStore } from './store'
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+const KST = 'Asia/Seoul'
+const DOW = ['일', '월', '화', '수', '목', '금', '토']
+
+function formatKoreanDate(d) {
+  const dj = dayjs(d).tz(KST)
+  return `${dj.year()}년 ${String(dj.month() + 1).padStart(2, '0')}월 ${String(dj.date()).padStart(2, '0')}일 (${DOW[dj.day()]})`
+}
+
+/**
+ * 심볼 완료까지 남은 일수/예상 완료일 계산
+ * - 일퀘는 매일, 주간퀘는 매주 목요일 리셋 시 N회분을 한 번에 지급한다고 가정
+ * - extra(추가 심볼)는 즉시 적용
+ * - dailyDone이면 오늘 일퀘는 이미 받은 걸로 간주 (내일부터 다시 지급)
+ */
+function computeCompletion({ remainingSymbols, daily, weeklyPerWeek, extra, dailyDone }) {
+  const need = Math.max(remainingSymbols - extra, 0)
+  if (need === 0) return { days: 0, date: dayjs().tz(KST).startOf('day').toDate() }
+  if (daily <= 0 && weeklyPerWeek <= 0) return { days: null, date: null }
+
+  let acc = 0
+  let cursor = dayjs().tz(KST).startOf('day')
+  for (let day = 0; day < 3650; day++) {
+    // 오늘은 dailyDone이면 일퀘 없음, 그 외엔 daily
+    if (!(day === 0 && dailyDone)) acc += daily
+    // 목요일(day=4)에 주간퀘 전량 지급
+    if (cursor.day() === 4 && weeklyPerWeek > 0) acc += weeklyPerWeek
+    if (acc >= need) return { days: day, date: cursor.toDate() }
+    cursor = cursor.add(1, 'day')
+  }
+  return { days: null, date: null }
+}
 
 function formatMesoKorean(n) {
   const v = Number(n) || 0
@@ -105,8 +142,31 @@ function SymbolCard({ symbol, equipped, charId }) {
     return { remainingSymbols: sym, remainingMeso: meso, arrearMeso: arr }
   }, [equipped, level, growth, symbol.levels])
 
-  const daysLeft = '-'
-  const completeDate = '-'
+  // 현재 성장치로 도달 가능한 최대 레벨 (연속 체납 반영)
+  const reachableLevel = useMemo(() => {
+    if (!equipped || isMax) return level
+    let lv = level
+    let g = growth
+    while (lv < symbol.max_level) {
+      const req = symbol.levels?.find((l) => l.level === lv)?.required_count
+      if (!req || g < req) break
+      g -= req
+      lv += 1
+    }
+    return lv
+  }, [equipped, isMax, level, growth, symbol.levels, symbol.max_level])
+
+  // 남은 일수/예상 완료일
+  const { days: daysLeft, date: completeDate } = useMemo(() => {
+    if (!equipped || isMax) return { days: null, date: null }
+    return computeCompletion({
+      remainingSymbols,
+      daily,
+      weeklyPerWeek: (weeklyCount || 0) * (symbol.weekly_default || 0),
+      extra,
+      dailyDone,
+    })
+  }, [equipped, isMax, remainingSymbols, daily, weeklyCount, symbol.weekly_default, extra, dailyDone])
 
   return (
     <div className={`rounded-2xl border p-5 transition ${
@@ -152,13 +212,21 @@ function SymbolCard({ symbol, equipped, charId }) {
       {/* 진행도 바 */}
       <div className="mb-4">
         <div className="flex justify-between text-sm tabular-nums mb-1.5">
-          <span className="text-gray-400">
-            성장치 {isMax ? (
-              <span className="text-amber-300 font-bold">MAX</span>
-            ) : (
-              <>{growth} / {requireGrowth}</>
-            )}
-          </span>
+          {reachableLevel > level ? (
+            <Tooltip text={`Lv.${reachableLevel}까지 상승 가능`}>
+              <span className="text-gray-400">
+                성장치 {growth} / {requireGrowth}
+              </span>
+            </Tooltip>
+          ) : (
+            <span className="text-gray-400">
+              성장치 {isMax ? (
+                <span className="text-amber-300 font-bold">MAX</span>
+              ) : (
+                <>{growth} / {requireGrowth}</>
+              )}
+            </span>
+          )}
           {!isMax && (
             <span className="text-gray-400">
               {requireGrowth ? Math.min(Math.floor((growth / requireGrowth) * 100), 100) : 0}%
@@ -195,7 +263,7 @@ function SymbolCard({ symbol, equipped, charId }) {
             <Select
               value={weeklyCount}
               onChange={(v) => patch({ weeklyCount: v })}
-              options={[1, 2, 3].map((n) => ({
+              options={[0, 1, 2, 3].map((n) => ({
                 value: n,
                 label: `${n * symbol.weekly_default}개`,
               }))}
@@ -250,12 +318,14 @@ function SymbolCard({ symbol, equipped, charId }) {
         </div>
         <div className="flex justify-between py-2">
           <span className="text-gray-400">남은 일수</span>
-          <span className="tabular-nums text-gray-200 font-medium">{typeof daysLeft === 'number' ? `${daysLeft}일` : daysLeft}</span>
+          <span className="tabular-nums text-gray-200 font-medium">
+            {equipped && !isMax && daysLeft != null ? `${daysLeft.toLocaleString()}일` : '-'}
+          </span>
         </div>
         <div className="flex justify-between py-2">
           <span className="text-gray-400">예상 완료일</span>
-          <span className={`tabular-nums font-semibold ${equipped ? 'text-emerald-300' : 'text-gray-600'}`}>
-            {completeDate}
+          <span className={`tabular-nums font-semibold ${equipped && !isMax && completeDate ? 'text-emerald-300' : 'text-gray-600'}`}>
+            {equipped && !isMax && completeDate ? formatKoreanDate(completeDate) : '-'}
           </span>
         </div>
       </div>
@@ -287,16 +357,17 @@ export default function Symbol() {
       .map((t) => ({ key: t, label: `${t} 심볼`, image_url: groups[t].image_url }))
   }, [allSymbols])
 
-  const [tab, setTab] = useState(null)
-  useEffect(() => {
-    if (!tab && tabs.length) setTab(tabs[0].key)
-  }, [tabs, tab])
   const characters = useSymbolStore((s) => s.characters)
   const selectedCharId = useSymbolStore((s) => s.selectedCharId)
   const addCharacter = useSymbolStore((s) => s.addCharacter)
   const removeCharacter = useSymbolStore((s) => s.removeCharacter)
   const selectCharacter = useSymbolStore((s) => s.selectCharacter)
   const syncCharacterSymbols = useSymbolStore((s) => s.syncCharacterSymbols)
+  const storedTab = useSymbolStore((s) => s.selectedTabs?.[selectedCharId])
+  const setTabStore = useSymbolStore((s) => s.setTab)
+
+  const tab = storedTab || tabs[0]?.key || null
+  const setTab = (t) => { if (selectedCharId) setTabStore(selectedCharId, t) }
 
   // 각 캐릭터의 장착 심볼 fetch (새로고침마다 갱신)
   const symbolQueries = useQueries({
@@ -364,24 +435,35 @@ export default function Symbol() {
   const progress = useSymbolStore((s) => s.progress[selectedCharId])
   const isEquipped = (symbolId) => !!progress?.[symbolId]?.equipped
 
-  // 현재 탭의 누적 메소 계산
-  const { totalRequiredMeso, totalArrearMeso } = useMemo(() => {
-    let req = 0, arr = 0
+  // 현재 탭의 누적 메소 + 최종 완료일 계산
+  const { totalRequiredMeso, totalArrearMeso, overallDate } = useMemo(() => {
+    let req = 0, arr = 0, latest = null
     for (const s of symbols) {
       const p = progress?.[s.id]
       if (!p?.equipped) continue
       if (p.level >= s.max_level) continue
+      let remaining = 0
       for (const l of s.levels || []) {
         if (l.level < p.level) continue
         if (l.level === p.level) {
           req += l.meso_cost
           if ((p.growth || 0) >= l.required_count) arr += l.meso_cost
+          remaining += Math.max(l.required_count - (p.growth || 0), 0)
         } else {
           req += l.meso_cost
+          remaining += l.required_count
         }
       }
+      const { date } = computeCompletion({
+        remainingSymbols: remaining,
+        daily: p.daily ?? s.daily_default ?? 0,
+        weeklyPerWeek: (p.weeklyCount ?? 3) * (s.weekly_default || 0),
+        extra: p.extra || 0,
+        dailyDone: !!p.dailyDone,
+      })
+      if (date && (!latest || date > latest)) latest = date
     }
-    return { totalRequiredMeso: req, totalArrearMeso: arr }
+    return { totalRequiredMeso: req, totalArrearMeso: arr, overallDate: latest }
   }, [symbols, progress])
 
   return (
@@ -464,7 +546,9 @@ export default function Symbol() {
       <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-500/10 to-emerald-500/[0.02] p-6 flex items-center justify-between gap-6 flex-wrap">
         <div>
           <div className="text-base text-gray-400">{tabInfo?.label} 전체 만렙 완료 예상일</div>
-          <div className="text-3xl font-bold text-emerald-300 tabular-nums mt-1.5">-</div>
+          <div className="text-3xl font-bold text-emerald-300 tabular-nums mt-1.5">
+            {overallDate ? formatKoreanDate(overallDate) : '-'}
+          </div>
         </div>
         <div className="flex items-center">
           <div className="text-right pr-10">
