@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import { useLayout } from '../../components/Layout'
 import Select from '../../components/Select'
-
+import { useSymbolStore } from './store'
 
 const TYPE_ORDER = ['아케인', '어센틱', '그랜드 어센틱']
 
@@ -57,12 +57,19 @@ function CharacterCard({ char, active, onSelect, onRemove }) {
   )
 }
 
-function SymbolCard({ symbol, equipped }) {
-  const [weeklyCount, setWeeklyCount] = useState(3)
-  const [dailyDone, setDailyDone] = useState(false)
+function SymbolCard({ symbol, equipped, charId }) {
+  const progress = useSymbolStore((s) => s.progress?.[charId]?.[symbol.id])
+  const updateSymbol = useSymbolStore((s) => s.updateSymbol)
+
+  const dailyDone = progress?.dailyDone ?? false
+  const weeklyCount = progress?.weeklyCount ?? 3
+  const daily = progress?.daily ?? symbol.daily_default
+  const extra = progress?.extra ?? 0
+  const patch = (p) => charId && updateSymbol(charId, symbol.id, p)
+
   // 임시 목업 값 (계산 기능 미구현)
-  const level = equipped ? 0 : 0
-  const growth = 0
+  const level = progress?.level ?? 0
+  const growth = progress?.growth ?? 0
   const requireGrowth = symbol.levels?.[0]?.required_count || 0
   const remainingSymbols = '-'
   const remainingMeso = '-'
@@ -96,7 +103,7 @@ function SymbolCard({ symbol, equipped }) {
         <button
           type="button"
           disabled={!equipped}
-          onClick={() => setDailyDone((v) => !v)}
+          onClick={() => patch({ dailyDone: !dailyDone })}
           title="오늘 일퀘 완료 여부"
           className={`shrink-0 rounded-md h-8 px-3 text-xs font-semibold border transition disabled:opacity-40 disabled:cursor-not-allowed ${
             dailyDone
@@ -132,7 +139,8 @@ function SymbolCard({ symbol, equipped }) {
           <input
             type="text"
             inputMode="numeric"
-            defaultValue={equipped ? String(symbol.daily_default) : '0'}
+            value={equipped ? String(daily) : '0'}
+            onChange={(e) => patch({ daily: Number(e.target.value.replace(/[^\d]/g, '')) || 0 })}
             disabled={!equipped}
             className="w-full h-10 rounded-md border border-white/10 bg-gray-950 px-3 text-base text-right tabular-nums outline-none focus:border-emerald-500/50 hover:border-white/20 disabled:opacity-50 transition"
           />
@@ -142,7 +150,7 @@ function SymbolCard({ symbol, equipped }) {
             <label className="block text-xs text-gray-400">주간퀘 획득</label>
             <Select
               value={weeklyCount}
-              onChange={setWeeklyCount}
+              onChange={(v) => patch({ weeklyCount: v })}
               options={[1, 2, 3].map((n) => ({
                 value: n,
                 label: `${n * symbol.weekly_default}개`,
@@ -156,7 +164,8 @@ function SymbolCard({ symbol, equipped }) {
           <input
             type="text"
             inputMode="numeric"
-            defaultValue="0"
+            value={equipped ? String(extra) : '0'}
+            onChange={(e) => patch({ extra: Number(e.target.value.replace(/[^\d]/g, '')) || 0 })}
             disabled={!equipped}
             className="w-full h-10 rounded-md border border-white/10 bg-gray-950 px-3 text-base text-right tabular-nums outline-none focus:border-emerald-500/50 hover:border-white/20 disabled:opacity-50 transition"
           />
@@ -199,8 +208,6 @@ export default function Symbol() {
     return () => setFullscreen(false)
   }, [setFullscreen])
 
-  const STORAGE_KEY = 'maple-symbol'
-
   // 심볼 목록 (DB에서 로드)
   const { data: allSymbols = [] } = useQuery({
     queryKey: ['symbol', 'symbols'],
@@ -222,42 +229,28 @@ export default function Symbol() {
   useEffect(() => {
     if (!tab && tabs.length) setTab(tabs[0].key)
   }, [tabs, tab])
-  const [characters, setCharacters] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) return JSON.parse(saved).characters || []
-    } catch { /* ignore */ }
-    return []
-  })
-  const [selectedCharId, setSelectedCharId] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) return JSON.parse(saved).selectedCharId ?? null
-    } catch { /* ignore */ }
-    return null
-  })
+  const characters = useSymbolStore((s) => s.characters)
+  const selectedCharId = useSymbolStore((s) => s.selectedCharId)
+  const addCharacter = useSymbolStore((s) => s.addCharacter)
+  const removeCharacter = useSymbolStore((s) => s.removeCharacter)
+  const selectCharacter = useSymbolStore((s) => s.selectCharacter)
+
   const [addName, setAddName] = useState('')
   const [addError, setAddError] = useState('')
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ characters, selectedCharId }))
-  }, [characters, selectedCharId])
   const symbols = allSymbols.filter((s) => s.type === tab)
   const tabInfo = tabs.find((t) => t.key === tab)
 
   const searchMutation = useMutation({
     mutationFn: (name) => api(`/api/character/search?name=${encodeURIComponent(name)}`),
     onSuccess: (data) => {
-      setCharacters((prev) => {
-        if (prev.find((c) => c.character_name === data.character_name)) {
-          setAddError('이미 추가된 캐릭터입니다')
-          return prev
-        }
-        setAddError('')
-        setAddName('')
-        setSelectedCharId(data.ocid)
-        return [...prev, { ...data, id: data.ocid }]
-      })
+      if (characters.find((c) => c.character_name === data.character_name)) {
+        setAddError('이미 추가된 캐릭터입니다')
+        return
+      }
+      setAddError('')
+      setAddName('')
+      addCharacter(data)
     },
     onError: (err) => setAddError(err.message || '조회 실패'),
   })
@@ -290,7 +283,7 @@ export default function Symbol() {
               value={addName}
               onChange={(e) => { setAddName(e.target.value); if (addError) setAddError('') }}
               placeholder="캐릭터 닉네임으로 장착 심볼 불러오기"
-              className="w-full h-12 rounded-lg border-2 border-white/10 bg-gray-950 pl-10 pr-4 text-base outline-none focus:border-emerald-500/60 hover:border-white/20 transition"
+              className="w-full h-12 box-border rounded-lg border border-white/10 bg-gray-950 pl-10 pr-4 text-base outline-none focus:border-emerald-500/60 hover:border-white/20 transition"
             />
           </div>
           <button
@@ -311,11 +304,8 @@ export default function Symbol() {
                 key={c.id}
                 char={c}
                 active={c.id === selectedCharId}
-                onSelect={() => setSelectedCharId(c.id)}
-                onRemove={() => {
-                  setCharacters((prev) => prev.filter((x) => x.id !== c.id))
-                  if (selectedCharId === c.id) setSelectedCharId(null)
-                }}
+                onSelect={() => selectCharacter(c.id)}
+                onRemove={() => removeCharacter(c.id)}
               />
             ))}
           </div>
@@ -348,7 +338,7 @@ export default function Symbol() {
       {/* 심볼 카드 그리드 */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {symbols.map((s, i) => (
-          <SymbolCard key={s.id} symbol={s} equipped={isEquipped(i)} />
+          <SymbolCard key={s.id} symbol={s} equipped={isEquipped(i)} charId={selectedCharId} />
         ))}
       </div>
 
