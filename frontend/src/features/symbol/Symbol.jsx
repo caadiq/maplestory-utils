@@ -120,7 +120,6 @@ function SymbolCard({ symbol, equipped, charId }) {
   const growth = progress?.growth ?? 0
   const requireGrowth = symbol.levels?.find((l) => l.level === level)?.required_count || 0
   const isMax = equipped && level >= symbol.max_level
-  const interactable = equipped && !isMax
 
   // 남은 심볼: 현재 레벨→만렙 까지 필요한 심볼 총합 (현재 성장치 차감)
   // 필요 메소: 현재 레벨→만렙 까지 필요한 메소 총합
@@ -128,19 +127,25 @@ function SymbolCard({ symbol, equipped, charId }) {
   const { remainingSymbols, remainingMeso, arrearMeso } = useMemo(() => {
     if (!equipped || !symbol.levels?.length) return { remainingSymbols: 0, remainingMeso: 0, arrearMeso: 0 }
     let sym = 0, meso = 0, arr = 0
+    // 체납: 현재 성장치로 올릴 수 있는 레벨까지 누적
+    let arrLv = level, arrG = growth
+    while (arrLv < symbol.max_level) {
+      const req = symbol.levels.find((l) => l.level === arrLv)?.required_count
+      const cost = symbol.levels.find((l) => l.level === arrLv)?.meso_cost
+      if (req == null || cost == null || arrG < req) break
+      arr += cost
+      arrG -= req
+      arrLv += 1
+    }
+    let g = growth
     for (const l of symbol.levels) {
       if (l.level < level) continue
-      if (l.level === level) {
-        sym += Math.max(l.required_count - growth, 0)
-        meso += l.meso_cost
-        if (growth >= l.required_count) arr += l.meso_cost
-      } else {
-        sym += l.required_count
-        meso += l.meso_cost
-      }
+      sym += Math.max(l.required_count - g, 0)
+      g = Math.max(g - l.required_count, 0)
+      meso += l.meso_cost
     }
     return { remainingSymbols: sym, remainingMeso: meso, arrearMeso: arr }
-  }, [equipped, level, growth, symbol.levels])
+  }, [equipped, level, growth, symbol.levels, symbol.max_level])
 
   // 현재 성장치로 도달 가능한 최대 레벨 (연속 체납 반영)
   const reachableLevel = useMemo(() => {
@@ -155,6 +160,10 @@ function SymbolCard({ symbol, equipped, charId }) {
     }
     return lv
   }, [equipped, isMax, level, growth, symbol.levels, symbol.max_level])
+
+  // 성장치로 만렙까지 도달 가능하지만 레벨업은 안 한 상태
+  const effectivelyMax = equipped && !isMax && reachableLevel >= symbol.max_level
+  const interactable = equipped && !isMax && !effectivelyMax
 
   // 남은 일수/예상 완료일
   const { days: daysLeft, date: completeDate } = useMemo(() => {
@@ -192,7 +201,7 @@ function SymbolCard({ symbol, equipped, charId }) {
             <span className="text-gray-600"> / {symbol.max_level}</span>
           </div>
         </div>
-        {equipped && !isMax && (
+        {equipped && !isMax && !effectivelyMax && (
           <button
             type="button"
             onClick={() => patch({ dailyDone: !dailyDone })}
@@ -211,7 +220,17 @@ function SymbolCard({ symbol, equipped, charId }) {
       {/* 진행도 바 */}
       <div className="mb-4">
         <div className="flex justify-between text-sm tabular-nums mb-1.5">
-          {reachableLevel > level ? (
+          {isMax ? (
+            <span className="text-gray-400">
+              성장치 <span className="text-amber-300 font-bold">MAX</span>
+            </span>
+          ) : effectivelyMax ? (
+            <Tooltip text={`Lv.${symbol.max_level}까지 상승 가능`}>
+              <span className="text-gray-400">
+                성장치 {growth} <span className="text-amber-300 font-bold">(MAX)</span> / {requireGrowth}
+              </span>
+            </Tooltip>
+          ) : reachableLevel > level ? (
             <Tooltip text={`Lv.${reachableLevel}까지 상승 가능`}>
               <span className="text-gray-400">
                 성장치 {growth} / {requireGrowth}
@@ -219,14 +238,10 @@ function SymbolCard({ symbol, equipped, charId }) {
             </Tooltip>
           ) : (
             <span className="text-gray-400">
-              성장치 {isMax ? (
-                <span className="text-amber-300 font-bold">MAX</span>
-              ) : (
-                <>{growth} / {requireGrowth}</>
-              )}
+              성장치 {growth} / {requireGrowth}
             </span>
           )}
-          {!isMax && (
+          {!isMax && !effectivelyMax && (
             <span className="text-gray-400">
               {requireGrowth ? Math.min(Math.floor((growth / requireGrowth) * 100), 100) : 0}%
             </span>
@@ -234,8 +249,8 @@ function SymbolCard({ symbol, equipped, charId }) {
         </div>
         <div className="h-2 rounded-full bg-gray-950 overflow-hidden">
           <div
-            className={`h-full transition-all ${isMax ? 'bg-amber-400' : 'bg-emerald-500/80'}`}
-            style={{ width: isMax ? '100%' : `${Math.min((growth / requireGrowth) * 100, 100)}%` }}
+            className={`h-full transition-all ${isMax || effectivelyMax ? 'bg-amber-400' : 'bg-emerald-500/80'}`}
+            style={{ width: isMax || effectivelyMax ? '100%' : `${Math.min((growth / requireGrowth) * 100, 100)}%` }}
           />
         </div>
       </div>
@@ -288,7 +303,7 @@ function SymbolCard({ symbol, equipped, charId }) {
         <div className="flex justify-between py-2">
           <span className="text-gray-400">남은 심볼</span>
           <span className="tabular-nums text-gray-200 font-medium">
-            {equipped && !isMax ? `${remainingSymbols.toLocaleString()}개` : '-'}
+            {equipped && !isMax && !effectivelyMax ? `${remainingSymbols.toLocaleString()}개` : '-'}
           </span>
         </div>
         <div className="flex justify-between py-2">
@@ -318,13 +333,13 @@ function SymbolCard({ symbol, equipped, charId }) {
         <div className="flex justify-between py-2">
           <span className="text-gray-400">남은 일수</span>
           <span className="tabular-nums text-gray-200 font-medium">
-            {equipped && !isMax && daysLeft != null ? `${daysLeft.toLocaleString()}일` : '-'}
+            {equipped && !isMax && !effectivelyMax && daysLeft != null ? `${daysLeft.toLocaleString()}일` : '-'}
           </span>
         </div>
         <div className="flex justify-between py-2">
           <span className="text-gray-400">예상 완료일</span>
-          <span className={`tabular-nums font-semibold ${equipped && !isMax && completeDate ? 'text-emerald-300' : 'text-gray-600'}`}>
-            {equipped && !isMax && completeDate ? formatKoreanDate(completeDate) : '-'}
+          <span className={`tabular-nums font-semibold ${equipped && !isMax && !effectivelyMax && completeDate ? 'text-emerald-300' : 'text-gray-600'}`}>
+            {equipped && !isMax && !effectivelyMax && completeDate ? formatKoreanDate(completeDate) : '-'}
           </span>
         </div>
       </div>
@@ -441,18 +456,33 @@ export default function Symbol() {
       const p = progress?.[s.id]
       if (!p?.equipped) continue
       if (p.level >= s.max_level) continue
+      // 체납 성장치로 만렙 도달 가능한지 확인
+      let lv = p.level, g = p.growth || 0
+      while (lv < s.max_level) {
+        const r = s.levels?.find((l) => l.level === lv)?.required_count
+        if (!r || g < r) break
+        g -= r; lv += 1
+      }
+      const effMax = lv >= s.max_level
+
+      // 체납 누적 (성장치 cascade)
+      let arrLv = p.level, arrG = p.growth || 0
+      while (arrLv < s.max_level) {
+        const lv = s.levels?.find((x) => x.level === arrLv)
+        if (!lv || arrG < lv.required_count) break
+        arr += lv.meso_cost
+        arrG -= lv.required_count
+        arrLv += 1
+      }
       let remaining = 0
+      let gg = p.growth || 0
       for (const l of s.levels || []) {
         if (l.level < p.level) continue
-        if (l.level === p.level) {
-          req += l.meso_cost
-          if ((p.growth || 0) >= l.required_count) arr += l.meso_cost
-          remaining += Math.max(l.required_count - (p.growth || 0), 0)
-        } else {
-          req += l.meso_cost
-          remaining += l.required_count
-        }
+        remaining += Math.max(l.required_count - gg, 0)
+        gg = Math.max(gg - l.required_count, 0)
+        req += l.meso_cost
       }
+      if (effMax) continue // 완료 예상일 계산에서 제외
       const { date } = computeCompletion({
         remainingSymbols: remaining,
         daily: p.daily ?? s.daily_default ?? 0,
