@@ -16,7 +16,9 @@ export async function api(url, options = {}) {
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({}))
-    throw new Error(error.error || `HTTP ${res.status}`)
+    const e = new Error(error.error || `HTTP ${res.status}`)
+    Object.assign(e, error, { status: res.status })
+    throw e
   }
 
   return res.json()

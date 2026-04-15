@@ -93,11 +93,13 @@ export default function NoticeWidget() {
   const [expanded, setExpanded] = useState(false)
   const tab = TABS.find((t) => t.key === activeTab)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['notices', activeTab],
     queryFn: () => api(`/api/notices?type=${activeTab}`),
     staleTime: 5 * 60 * 1000,
+    retry: (failureCount, err) => (err?.maintenance ? false : failureCount < 1),
   })
+  const isMaintenance = !!error?.maintenance
 
   const list = data?.[tab.dataKey] || []
   const allItems = tab.filterOngoing
@@ -147,6 +149,11 @@ export default function NoticeWidget() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="h-24 rounded-lg bg-white/[0.02] animate-pulse" />
             ))}
+          </div>
+        ) : isMaintenance ? (
+          <div className="py-12 text-center">
+            <div className="text-sm text-amber-300 font-medium">넥슨 Open API 점검중</div>
+            <div className="text-xs text-gray-500 mt-1">점검이 끝나면 다시 표시됩니다</div>
           </div>
         ) : initialItems.length === 0 ? (
           <AnimatePresence mode="wait">

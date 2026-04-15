@@ -31,6 +31,10 @@ router.get('/search', async (req, res) => {
       character_image: basic.character_image,
     });
   } catch (err) {
+    const code = err.response?.data?.error?.name;
+    if (['OPENAPI00001', 'OPENAPI00007', 'OPENAPI00010', 'OPENAPI00011'].includes(code)) {
+      return res.status(503).json({ error: 'API 점검중입니다', code, maintenance: true });
+    }
     if (err.response?.status === 400) {
       return res.status(404).json({ error: '존재하지 않는 캐릭터입니다' });
     }
@@ -65,6 +69,10 @@ router.get('/symbols', async (req, res) => {
 
     res.json({ ocid, character_class: data.character_class, symbols: parsed });
   } catch (err) {
+    const code = err.response?.data?.error?.name;
+    if (['OPENAPI00001', 'OPENAPI00007', 'OPENAPI00010', 'OPENAPI00011'].includes(code)) {
+      return res.status(503).json({ error: 'API 점검중입니다', code, maintenance: true });
+    }
     console.error('심볼 조회 오류:', err.response?.data || err.message);
     res.status(500).json({ error: '심볼 조회 실패' });
   }

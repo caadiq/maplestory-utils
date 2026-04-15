@@ -23,6 +23,13 @@ router.get('/', async (req, res) => {
     });
     res.json(data);
   } catch (err) {
+    const errData = err.response?.data?.error;
+    const code = errData?.name;
+    // Nexon 점검 코드: OPENAPI00001(게임 점검), OPENAPI00007(api 점검), OPENAPI00011(오픈 API 점검)
+    const underMaintenance = ['OPENAPI00001', 'OPENAPI00007', 'OPENAPI00010', 'OPENAPI00011'].includes(code);
+    if (underMaintenance) {
+      return res.status(503).json({ error: 'API 점검중입니다', code, maintenance: true });
+    }
     console.error(`공지 조회 오류 (${type}):`, err.response?.data || err.message);
     res.status(500).json({ error: '공지 조회 실패' });
   }
