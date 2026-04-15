@@ -37,7 +37,7 @@ export default function ProgressBar({ startChapter, currentPoints, completionDat
         status === 'pending' ? 'opacity-50' : ''
       }`}>
         <img
-          src={`${QUEST_BOSS_IMAGE_BASE}/${chapter.boss}.png`}
+          src={`${QUEST_BOSS_IMAGE_BASE}/${chapter.boss}.webp`}
           alt={chapter.boss}
           className={`block w-full h-full object-cover ${status === 'pending' ? 'grayscale' : ''}`}
         />
