@@ -82,11 +82,17 @@ export default function WeeklyDefault({ weekly, onChange, totalWeekly, totalMont
       <div className="flex items-center justify-between">
         <div className="text-lg font-semibold text-emerald-300">주간 보스 설정</div>
         <div className="text-sm tabular-nums">
-          <span className="text-emerald-300 font-semibold">{totalWeekly}</span>
-          <span className="text-gray-500 mx-1">+</span>
-          <span className="text-amber-300 font-semibold">{totalMonthly}</span>
-          <span className="text-gray-500 mx-1">/</span>
-          <span className="text-gray-300 font-semibold">6500</span>
+          {mode === 'weekly' ? (
+            <>
+              <span className="text-emerald-300 font-semibold">{totalWeekly}</span>
+              <span className="text-gray-500 mx-1">+</span>
+              <span className="text-amber-300 font-semibold">{totalMonthly}</span>
+              <span className="text-gray-500 mx-1">/</span>
+              <span className="text-gray-300 font-semibold">6500</span>
+            </>
+          ) : (
+            <span className="text-emerald-300 font-semibold">+{totalWeekly + totalMonthly}</span>
+          )}
         </div>
       </div>
 

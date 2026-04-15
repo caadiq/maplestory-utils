@@ -11,6 +11,7 @@ const MAX_PER_CHARACTER = 12
 const MAX_PER_ACCOUNT = 90
 
 function CharacterContent({ char, selections, bosses }) {
+  const bossIndex = new Map(bosses.map((b, i) => [b.id, i]))
   const selectedBosses = Object.entries(selections || {})
     .filter(([, sel]) => sel)
     .map(([bossId, sel]) => {
@@ -25,9 +26,12 @@ function CharacterContent({ char, selections, bosses }) {
       }
     })
     .filter(Boolean)
-    .sort((a, b) => b.revenue - a.revenue)
 
-  const visibleBosses = selectedBosses.slice(0, MAX_PER_CHARACTER)
+  // 12개 상한은 수익 높은 순으로 취한 뒤, 표시는 보스 목록 순서대로 정렬
+  const topByRevenue = [...selectedBosses].sort((a, b) => b.revenue - a.revenue).slice(0, MAX_PER_CHARACTER)
+  const visibleBosses = topByRevenue.sort(
+    (a, b) => (bossIndex.get(a.boss.id) ?? 0) - (bossIndex.get(b.boss.id) ?? 0)
+  )
   const totalRevenue = visibleBosses.reduce((s, x) => s + x.revenue, 0)
   const count = selectedBosses.length
 
