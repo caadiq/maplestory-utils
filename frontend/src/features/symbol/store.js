@@ -54,6 +54,10 @@ export const useSymbolStore = create(persist(
 
     selectCharacter: (id) => set({ selectedCharId: id }),
 
+    updateCharacter: (id, patch) => set((s) => ({
+      characters: s.characters.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+    })),
+
     getSymbolState: (charId, symbolId) => get().progress?.[charId]?.[symbolId],
 
     updateSymbol: (charId, symbolId, patch) => set((s) => {
