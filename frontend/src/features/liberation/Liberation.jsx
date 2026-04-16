@@ -11,6 +11,7 @@ import {
   formatDate,
   todayKST,
 } from './data'
+import { useLiberationStore } from './store'
 import QuestSelector from './components/QuestSelector'
 import PointsInput from './components/PointsInput'
 import ProgressBar from './components/ProgressBar'
@@ -18,8 +19,6 @@ import WeeklyDefault from './components/WeeklyDefault'
 import DatePicker from '../../components/DatePicker'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { useLayout } from '../../components/Layout'
-
-const STORAGE_KEY = 'maple-liberation'
 
 function makeEmptyWeekly() {
   const bosses = {}
@@ -81,50 +80,12 @@ export default function Liberation() {
     staleTime: Infinity,
   })
 
-  const makeInitialSlot = () => ({
-    startChapter: 0,
-    currentPoints: 0,
-    startDate: dayjs(todayKST()).toISOString(),
-    weekly: makeEmptyWeekly(),
-    schedulerWeeks: [{ id: 1, config: makeEmptyWeekly() }],
-  })
-
-  const [root, setRoot] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        // 구버전(단일 slot) → 새 구조로 마이그레이션
-        if (!parsed.calcMode) {
-          if (!parsed.weekly) parsed.weekly = makeEmptyWeekly()
-          if (!parsed.startDate) parsed.startDate = dayjs(todayKST()).toISOString()
-          if (!parsed.schedulerWeeks) parsed.schedulerWeeks = [{ id: 1, config: makeEmptyWeekly() }]
-          return { calcMode: 'simple', simple: parsed, weekly: makeInitialSlot() }
-        }
-        ;['simple', 'weekly'].forEach((k) => {
-          if (parsed[k] && !parsed[k].schedulerWeeks) {
-            parsed[k].schedulerWeeks = [{ id: 1, config: makeEmptyWeekly() }]
-          }
-        })
-        return parsed
-      } catch { /* ignore */ }
-    }
-    return { calcMode: 'simple', simple: makeInitialSlot(), weekly: makeInitialSlot() }
-  })
-
-  const calcMode = root.calcMode
-  const state = root[calcMode]
-  const setState = (updater) => {
-    setRoot((prev) => ({
-      ...prev,
-      [prev.calcMode]: typeof updater === 'function' ? updater(prev[prev.calcMode]) : updater,
-    }))
-  }
-  const setCalcMode = (mode) => setRoot((prev) => ({ ...prev, calcMode: mode }))
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(root))
-  }, [root])
+  const calcMode = useLiberationStore((s) => s.calcMode)
+  const state = useLiberationStore((s) => s[s.calcMode])
+  const setCalcMode = useLiberationStore((s) => s.setCalcMode)
+  const updateSlot = useLiberationStore((s) => s.updateSlot)
+  const resetSlot = useLiberationStore((s) => s.resetSlot)
+  const setState = (updater) => updateSlot(updater)
 
   // 포인트 이월 계산: 현재 퀘스트의 required를 초과하면 자동으로 다음 퀘스트로 넘어감
   const priorConsumed = GENESIS_CHAPTERS
@@ -305,7 +266,7 @@ export default function Liberation() {
 
   const [resetOpen, setResetOpen] = useState(false)
   const doReset = () => {
-    setState(makeInitialSlot())
+    resetSlot()
     setResetOpen(false)
   }
 
