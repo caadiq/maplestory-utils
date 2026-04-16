@@ -119,7 +119,7 @@ export default function AdminMenuForm() {
   })
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-2xl mx-auto">
       <div>
         <h2 className="text-lg font-semibold">{isEdit ? '메뉴 항목 편집' : '메뉴 항목 추가'}</h2>
         <p className="text-sm text-gray-500 mt-0.5">홈 화면에 표시되는 카드의 정보를 설정합니다</p>
