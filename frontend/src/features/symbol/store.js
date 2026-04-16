@@ -105,18 +105,5 @@ export const useSymbolStore = create(persist(
       return { progress: { ...s.progress, [charId]: charProg } }
     }),
   }),
-  {
-    name: 'maple-symbol',
-    version: 2,
-    migrate: (persisted) => {
-      // 이전 버전(단순 characters/selectedCharId 저장) 마이그레이션
-      if (!persisted) return { characters: [], selectedCharId: null, progress: {} }
-      return {
-        characters: persisted.characters || [],
-        selectedCharId: persisted.selectedCharId ?? null,
-        progress: persisted.progress || {},
-        selectedTabs: persisted.selectedTabs || {},
-      }
-    },
-  },
+  { name: 'maple-symbol' },
 ))

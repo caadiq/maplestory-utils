@@ -1,36 +1,23 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useQuery, useQueries } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import { useLayout } from '../../components/Layout'
 import CharacterPanel from './user/CharacterPanel'
 import BossSelector from './user/BossSelector'
+import { useBossStore } from './store'
 
-const STORAGE_CHARS = 'maple-bc-characters'
-const STORAGE_SELECTIONS = 'maple-bc-selections'
 const MAX_PER_CHARACTER = 12
 
 export default function BossCrystal() {
-  const [characters, setCharacters] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_CHARS)
-    return saved ? JSON.parse(saved) : []
-  })
-  const [selectedChar, setSelectedChar] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_CHARS)
-    const list = saved ? JSON.parse(saved) : []
-    return list[0]?.character_name || null
-  })
-  const [allSelections, setAllSelections] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_SELECTIONS)
-    return saved ? JSON.parse(saved) : {}
-  })
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_CHARS, JSON.stringify(characters))
-  }, [characters])
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_SELECTIONS, JSON.stringify(allSelections))
-  }, [allSelections])
+  const characters = useBossStore((s) => s.characters)
+  const selectedChar = useBossStore((s) => s.selectedChar)
+  const selections = useBossStore((s) => s.selections)
+  const addCharacter = useBossStore((s) => s.addCharacter)
+  const removeCharacter = useBossStore((s) => s.removeCharacter)
+  const selectCharacter = useBossStore((s) => s.selectCharacter)
+  const reorderCharacters = useBossStore((s) => s.reorderCharacters)
+  const setBossSelection = useBossStore((s) => s.setBossSelection)
+  const updateCharacter = useBossStore((s) => s.updateCharacter)
 
   // 풀스크린 모드 (푸터 숨김 + 내부 스크롤)
   const { setFullscreen } = useLayout()
@@ -44,7 +31,7 @@ export default function BossCrystal() {
     queryFn: () => api('/api/boss-crystal/bosses').catch(() => []),
   })
 
-  // 저장된 캐릭터의 기본 정보(코디 이미지 포함) 새로고침
+  // 저장된 캐릭터의 기본 정보 새로고침
   const charRefreshQueries = useQueries({
     queries: characters.map((c) => ({
       queryKey: ['character', 'basic', c.character_name],
@@ -57,62 +44,30 @@ export default function BossCrystal() {
   })
 
   useEffect(() => {
-    if (!charRefreshQueries.length) return
-    let changed = false
-    const next = characters.map((c, i) => {
+    characters.forEach((c, i) => {
       const d = charRefreshQueries[i]?.data
-      if (!d) return c
+      if (!d) return
       if (d.character_image !== c.character_image || d.character_level !== c.character_level || d.job_name !== c.job_name) {
-        changed = true
-        return { ...c, ...d }
+        updateCharacter(c.character_name, {
+          character_image: d.character_image,
+          character_level: d.character_level,
+          job_name: d.job_name,
+          world_name: d.world_name,
+          ocid: d.ocid,
+        })
       }
-      return c
     })
-    if (changed) setCharacters(next)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [charRefreshQueries.map((q) => q.dataUpdatedAt).join(',')])
 
-  const handleAddCharacter = (char) => {
-    setCharacters((prev) => [...prev, char])
-    setSelectedChar(char.character_name)
-  }
-
-  const handleRemoveCharacter = (name) => {
-    setCharacters((prev) => {
-      const next = prev.filter((c) => c.character_name !== name)
-      if (selectedChar === name) {
-        setSelectedChar(next[0]?.character_name || null)
-      }
-      return next
-    })
-    setAllSelections((prev) => {
-      const next = { ...prev }
-      delete next[name]
-      return next
-    })
-  }
-
-  const handleReorderCharacters = (next) => {
-    setCharacters(next)
-  }
-
   const handleBossChange = (bossId, sel) => {
     if (!selectedChar) return
-    setAllSelections((prev) => {
-      const charSel = { ...(prev[selectedChar] || {}) }
-      if (sel === null) {
-        delete charSel[bossId]
-      } else {
-        charSel[bossId] = sel
-      }
-      return { ...prev, [selectedChar]: charSel }
-    })
+    setBossSelection(selectedChar, bossId, sel)
   }
 
-  const currentSelections = selectedChar ? (allSelections[selectedChar] || {}) : {}
+  const currentSelections = selectedChar ? (selections[selectedChar] || {}) : {}
   const currentSelectedCount = Object.values(currentSelections).filter(Boolean).length
   const isMaxReached = currentSelectedCount >= MAX_PER_CHARACTER
-
 
   return (
     <div className="h-full">
@@ -122,21 +77,19 @@ export default function BossCrystal() {
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[420px_1fr] h-full min-h-0">
-          {/* 좌측: 캐릭터 + 결과 통합 (총 수익/추가 고정 + 목록 스크롤) */}
           <div className="rounded-2xl border border-white/5 bg-gray-900/40 p-4 min-h-0 max-h-full self-start overflow-hidden flex flex-col">
             <CharacterPanel
               characters={characters}
               selectedName={selectedChar}
-              allSelections={allSelections}
+              allSelections={selections}
               bosses={bosses}
-              onSelect={setSelectedChar}
-              onAdd={handleAddCharacter}
-              onRemove={handleRemoveCharacter}
-              onReorder={handleReorderCharacters}
+              onSelect={selectCharacter}
+              onAdd={addCharacter}
+              onRemove={removeCharacter}
+              onReorder={reorderCharacters}
             />
           </div>
 
-          {/* 우측: 보스 선택 (헤더 고정 + 목록 스크롤) */}
           <div className="min-h-0">
             <BossSelector
               characterName={selectedChar}
