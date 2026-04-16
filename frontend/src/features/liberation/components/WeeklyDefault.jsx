@@ -69,7 +69,7 @@ export function BossRow({ boss, sel, onChange, monthly = false, showDone = true 
   )
 }
 
-export default function WeeklyDefault({ weekly, onChange, totalWeekly, totalMonthly, mode = 'simple', startDate, weeks, onChangeWeeks }) {
+export default function WeeklyDefault({ weekly, onChange, totalWeekly, totalMonthly, remaining, mode = 'simple', startDate, weeks, onChangeWeeks }) {
   const updateBoss = (key, patch) => {
     onChange({ ...weekly, bosses: { ...weekly.bosses, [key]: { ...weekly.bosses[key], ...patch } } })
   }
@@ -88,7 +88,7 @@ export default function WeeklyDefault({ weekly, onChange, totalWeekly, totalMont
               <span className="text-gray-500 mx-1">+</span>
               <span className="text-amber-300 font-semibold">{totalMonthly}</span>
               <span className="text-gray-500 mx-1">/</span>
-              <span className="text-gray-300 font-semibold">6500</span>
+              <span className="text-gray-300 font-semibold">{(remaining ?? 0).toLocaleString()}</span>
             </>
           ) : (
             <span className="text-emerald-300 font-semibold">+{totalWeekly + totalMonthly}</span>

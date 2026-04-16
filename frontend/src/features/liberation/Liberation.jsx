@@ -370,7 +370,7 @@ export default function Liberation() {
       <div className="max-w-3xl mx-auto rounded-2xl border border-white/10 bg-gray-900/60 p-6 space-y-4">
         <div className="text-lg font-semibold text-emerald-300">현재 진행 상태</div>
 
-        <div className="grid gap-3" style={{ gridTemplateColumns: '1.2fr 1.2fr 0.7fr' }}>
+        <div className="grid gap-3 grid-cols-3">
           <div className="space-y-1.5">
             <label className="block text-xs text-gray-400">시작 날짜</label>
             <DatePicker
@@ -389,12 +389,17 @@ export default function Liberation() {
 
           <div className="space-y-1.5">
             <label className="block text-xs text-gray-400">현재 흔적</label>
-            <PointsInput
-              value={state.currentPoints}
-              max={3000}
-              onChange={(n) => setState((prev) => ({ ...prev, currentPoints: n }))}
-              className="w-full h-12 rounded-lg border border-white/10 bg-gray-950 px-3 text-base text-right tabular-nums outline-none focus:border-emerald-500/50 hover:border-white/20 transition"
-            />
+            <div className="flex items-stretch rounded-lg border border-white/10 bg-gray-950 transition focus-within:border-emerald-500/50 hover:border-white/20">
+              <PointsInput
+                value={state.currentPoints}
+                max={3000}
+                onChange={(n) => setState((prev) => ({ ...prev, currentPoints: n }))}
+                className="flex-1 min-w-0 bg-transparent px-3 h-12 text-base text-right tabular-nums outline-none"
+              />
+              <span className="flex items-center px-3 text-base text-gray-500 border-l border-white/10 select-none tabular-nums">
+                / {(GENESIS_CHAPTERS[state.startChapter]?.required ?? 0).toLocaleString()}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -404,6 +409,7 @@ export default function Liberation() {
         onChange={(w) => setState((prev) => ({ ...prev, weekly: w }))}
         totalWeekly={headerWeekly}
         totalMonthly={headerMonthly}
+        remaining={remaining}
         mode={calcMode}
         startDate={state.startDate}
         weeks={state.schedulerWeeks}
