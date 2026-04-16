@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueries } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import { useLayout } from '../../components/Layout'
 import CharacterPanel from './user/CharacterPanel'
@@ -43,6 +43,34 @@ export default function BossCrystal() {
     queryKey: ['boss-crystal', 'bosses'],
     queryFn: () => api('/api/boss-crystal/bosses').catch(() => []),
   })
+
+  // 저장된 캐릭터의 기본 정보(코디 이미지 포함) 새로고침
+  const charRefreshQueries = useQueries({
+    queries: characters.map((c) => ({
+      queryKey: ['character', 'basic', c.character_name],
+      queryFn: () => api(`/api/character/search?name=${encodeURIComponent(c.character_name)}`),
+      enabled: !!c.character_name,
+      refetchOnMount: 'always',
+      staleTime: 0,
+      retry: false,
+    })),
+  })
+
+  useEffect(() => {
+    if (!charRefreshQueries.length) return
+    let changed = false
+    const next = characters.map((c, i) => {
+      const d = charRefreshQueries[i]?.data
+      if (!d) return c
+      if (d.character_image !== c.character_image || d.character_level !== c.character_level || d.job_name !== c.job_name) {
+        changed = true
+        return { ...c, ...d }
+      }
+      return c
+    })
+    if (changed) setCharacters(next)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [charRefreshQueries.map((q) => q.dataUpdatedAt).join(',')])
 
   const handleAddCharacter = (char) => {
     setCharacters((prev) => [...prev, char])

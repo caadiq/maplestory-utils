@@ -377,11 +377,39 @@ export default function Symbol() {
   const removeCharacter = useSymbolStore((s) => s.removeCharacter)
   const selectCharacter = useSymbolStore((s) => s.selectCharacter)
   const syncCharacterSymbols = useSymbolStore((s) => s.syncCharacterSymbols)
+  const updateCharacter = useSymbolStore((s) => s.updateCharacter)
   const storedTab = useSymbolStore((s) => s.selectedTabs?.[selectedCharId])
   const setTabStore = useSymbolStore((s) => s.setTab)
 
   const tab = storedTab || tabs[0]?.key || null
   const setTab = (t) => { if (selectedCharId) setTabStore(selectedCharId, t) }
+
+  // 각 캐릭터 기본정보(코디 이미지) 새로고침
+  const basicQueries = useQueries({
+    queries: characters.map((c) => ({
+      queryKey: ['character', 'basic', c.character_name],
+      queryFn: () => api(`/api/character/search?name=${encodeURIComponent(c.character_name)}`),
+      enabled: !!c.character_name,
+      refetchOnMount: 'always',
+      staleTime: 0,
+      retry: false,
+    })),
+  })
+  useEffect(() => {
+    characters.forEach((c, idx) => {
+      const d = basicQueries[idx]?.data
+      if (!d) return
+      if (d.character_image !== c.character_image || d.character_level !== c.character_level || d.job_name !== c.job_name) {
+        updateCharacter(c.id, {
+          character_image: d.character_image,
+          character_level: d.character_level,
+          job_name: d.job_name,
+          world_name: d.world_name,
+        })
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [basicQueries.map((q) => q.dataUpdatedAt).join(',')])
 
   // 각 캐릭터의 장착 심볼 fetch (새로고침마다 갱신)
   const symbolQueries = useQueries({
