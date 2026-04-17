@@ -10,10 +10,7 @@ export default function Home() {
   })
 
   return (
-    <div className="space-y-10">
-      {/* 메이플 공지 */}
-      <NoticeWidget />
-
+    <div className="space-y-10 max-w-5xl mx-auto pt-6">
       {/* 구분선 */}
       <div className="flex items-center gap-4">
         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
@@ -57,6 +54,16 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {/* 구분선 */}
+      <div className="flex items-center gap-4">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <span className="text-xs text-gray-500 uppercase tracking-widest">Notices</span>
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      </div>
+
+      {/* 메이플 공지 */}
+      <NoticeWidget />
     </div>
   )
 }
