@@ -42,7 +42,7 @@ function CurrentMenuTitle() {
 
   return (
     <div
-      className="flex items-center gap-3 transition-colors duration-300"
+      className="flex items-center gap-3 transition-colors duration-500"
       style={{ color: 'var(--text-muted)' }}
     >
       <span style={{ color: 'var(--text-slash)' }}>/</span>
@@ -51,7 +51,7 @@ function CurrentMenuTitle() {
           <img src={menu.image.url} alt="" className="w-5 h-5 object-contain" />
         )}
         <span
-          className="text-sm font-medium transition-colors duration-300"
+          className="text-sm font-medium transition-colors duration-500"
           style={{ color: 'var(--text-emphasis)' }}
         >
           {menu.title}
@@ -66,13 +66,7 @@ function ThemeToggle() {
   const toggleTheme = useThemeStore((s) => s.toggleTheme)
   const isLight = theme === 'light'
 
-  const handleToggle = () => {
-    if (typeof document !== 'undefined' && document.startViewTransition) {
-      document.startViewTransition(() => toggleTheme())
-    } else {
-      toggleTheme()
-    }
-  }
+  const handleToggle = () => toggleTheme()
 
   return (
     <button
@@ -80,7 +74,7 @@ function ThemeToggle() {
       onClick={handleToggle}
       aria-label={isLight ? '다크 모드로 전환' : '라이트 모드로 전환'}
       title={isLight ? '다크 모드' : '라이트 모드'}
-      className="relative inline-flex h-8 w-14 items-center rounded-full border transition-colors duration-300 hover:border-emerald-500/40"
+      className="relative inline-flex h-8 w-14 items-center rounded-full border transition-colors duration-500 hover:border-emerald-500/40"
       style={{
         background: 'var(--toggle-bg)',
         borderColor: 'var(--toggle-border)',
@@ -123,15 +117,14 @@ export default function Layout() {
   return (
     <LayoutContext.Provider value={{ fullscreen, setFullscreen }}>
       <div
-        className={`min-w-[1280px] flex flex-col transition-colors duration-300 ${
+        className={`min-w-[1280px] flex flex-col transition-colors duration-500 ${
           fullscreen ? 'h-dvh' : 'min-h-screen'
         }`}
         style={{ color: 'var(--text-strong)' }}
       >
         <header
-          className="sticky top-0 z-20 border-b backdrop-blur-md shrink-0 transition-colors duration-300"
+          className="sticky top-0 z-20 border-b backdrop-blur-md shrink-0 transition-colors duration-500"
           style={{
-            background: 'var(--header-bg)',
             borderColor: 'var(--header-border)',
           }}
         >

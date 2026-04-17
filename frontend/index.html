@@ -9,6 +9,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/gh/fonts-archive/Maplestory/Maplestory.css" rel="stylesheet" />
     <script type="text/javascript" src="https://openapi.nexon.com/js/analytics.js?app_id=274844" async></script>
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('maple-theme');
+          if (!raw) return;
+          var theme = JSON.parse(raw).state && JSON.parse(raw).state.theme;
+          if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+        } catch (e) {}
+      })();
+    </script>
     <title>메이플스토리 유틸리티</title>
   </head>
   <body>

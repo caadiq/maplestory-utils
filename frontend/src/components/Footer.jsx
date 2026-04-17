@@ -1,7 +1,7 @@
 export default function Footer() {
   return (
     <footer
-      className="border-t mt-16 transition-colors duration-300"
+      className="border-t mt-16 transition-colors duration-500"
       style={{ borderColor: 'var(--header-border)' }}
     >
       <div className="mx-auto max-w-5xl px-6 py-8 space-y-4">
@@ -11,7 +11,7 @@ export default function Footer() {
         </div>
 
         <div
-          className="grid gap-2 sm:grid-cols-2 text-xs transition-colors duration-300"
+          className="grid gap-2 sm:grid-cols-2 text-xs transition-colors duration-500"
           style={{ color: 'var(--text-dim)' }}
         >
           <div className="space-y-1">
