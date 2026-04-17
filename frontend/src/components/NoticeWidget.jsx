@@ -75,19 +75,49 @@ function TextListSection({ cfg, items, isMaintenance, isLoading }) {
   const slice = items.slice(clamped * cfg.pageSize, (clamped + 1) * cfg.pageSize)
 
   return (
-    <section className="rounded-2xl border border-white/5 bg-gray-900/50 overflow-hidden flex flex-col">
-      <div className="px-4 py-3 border-b border-white/5">
-        <h3 className="text-sm font-bold text-gray-200">{cfg.label}</h3>
+    <section
+      className="rounded-2xl border overflow-hidden flex flex-col"
+      style={{
+        background: 'var(--panel-bg)',
+        borderColor: 'var(--panel-border)',
+        boxShadow: 'var(--panel-shadow)',
+      }}
+    >
+      <div
+        className="px-4 py-3 border-b"
+        style={{ borderColor: 'var(--panel-border)' }}
+      >
+        <h3
+          className="text-sm font-bold"
+          style={{ color: 'var(--text-emphasis)' }}
+        >
+          {cfg.label}
+        </h3>
       </div>
       <div className="relative overflow-hidden">
         {isLoading ? (
-          <div className="p-8 text-center text-sm text-gray-500">불러오는 중...</div>
+          <div
+            className="p-8 text-center text-sm"
+            style={{ color: 'var(--text-dim)' }}
+          >
+            불러오는 중...
+          </div>
         ) : isMaintenance ? (
           <div className="p-8 text-center">
-            <div className="text-sm text-amber-300 font-medium">넥슨 Open API 점검중</div>
+            <div
+              className="text-sm font-medium"
+              style={{ color: 'var(--maintenance-text)' }}
+            >
+              넥슨 Open API 점검중
+            </div>
           </div>
         ) : slice.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-500">등록된 항목이 없습니다</div>
+          <div
+            className="p-8 text-center text-sm"
+            style={{ color: 'var(--text-dim)' }}
+          >
+            등록된 항목이 없습니다
+          </div>
         ) : (
           <AnimatePresence mode="wait" initial={false}>
             <motion.ul
@@ -96,23 +126,41 @@ function TextListSection({ cfg, items, isMaintenance, isLoading }) {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -24 }}
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-              className="divide-y divide-white/[0.04]"
+              className="divide-y"
+              style={{ '--tw-divide-opacity': 1, borderColor: 'var(--row-divider)' }}
             >
               {slice.map((it) => (
-                <li key={it.notice_id} className="flex items-center gap-2">
+                <li
+                  key={it.notice_id}
+                  className="flex items-center gap-2 border-t first:border-t-0"
+                  style={{ borderColor: 'var(--row-divider)' }}
+                >
                   <a
                     href={it.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 min-w-0 flex items-center gap-2 px-3.5 py-2 hover:bg-white/[0.03] transition"
+                    className="flex-1 min-w-0 flex items-center gap-2 px-3.5 py-2 transition hover:bg-[var(--row-hover-bg)]"
                   >
                     {isRecent(it.date) && (
-                      <span className="shrink-0 inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500 text-[9px] font-bold text-gray-950">N</span>
+                      <span
+                        className="shrink-0 inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold"
+                        style={{ background: 'var(--accent)', color: 'var(--badge-text)' }}
+                      >
+                        N
+                      </span>
                     )}
-                    <span className="flex-1 min-w-0 text-[13px] text-gray-300 truncate hover:text-emerald-300 transition">
+                    <span
+                      className="flex-1 min-w-0 text-[13px] truncate transition-colors hover:text-[var(--accent-hover-text)]"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
                       {it.title}
                     </span>
-                    <span className="shrink-0 text-[11px] text-gray-500 tabular-nums">{fmtYMD(it.date)}</span>
+                    <span
+                      className="shrink-0 text-[11px] tabular-nums"
+                      style={{ color: 'var(--text-dim)' }}
+                    >
+                      {fmtYMD(it.date)}
+                    </span>
                   </a>
                 </li>
               ))}
@@ -121,12 +169,15 @@ function TextListSection({ cfg, items, isMaintenance, isLoading }) {
         )}
       </div>
       {pages > 1 && (
-        <div className="flex items-center justify-between border-t border-white/5 px-4 py-3 text-sm text-gray-400">
+        <div
+          className="flex items-center justify-between border-t px-4 py-3 text-sm"
+          style={{ borderColor: 'var(--panel-border)', color: 'var(--text-muted)' }}
+        >
           <button
             type="button"
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={clamped === 0}
-            className="inline-flex items-center gap-1.5 hover:text-gray-100 disabled:opacity-30 disabled:hover:text-gray-400 transition"
+            className="inline-flex items-center gap-1.5 transition hover:text-[var(--text-strong)] disabled:opacity-30 disabled:hover:text-[var(--text-muted)]"
           >
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7.5 3L4.5 6L7.5 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
             이전
@@ -138,7 +189,16 @@ function TextListSection({ cfg, items, isMaintenance, isLoading }) {
                 type="button"
                 onClick={() => setPage(i)}
                 aria-label={`${i + 1}페이지`}
-                className={`w-2 h-2 rounded-full transition ${i === clamped ? 'bg-emerald-400' : 'bg-gray-600 hover:bg-gray-500'}`}
+                className="w-2 h-2 rounded-full transition"
+                style={{
+                  background: i === clamped ? 'var(--accent)' : 'var(--dot-inactive)',
+                }}
+                onMouseEnter={(e) => {
+                  if (i !== clamped) e.currentTarget.style.background = 'var(--dot-inactive-hover)'
+                }}
+                onMouseLeave={(e) => {
+                  if (i !== clamped) e.currentTarget.style.background = 'var(--dot-inactive)'
+                }}
               />
             ))}
           </div>
@@ -146,7 +206,7 @@ function TextListSection({ cfg, items, isMaintenance, isLoading }) {
             type="button"
             onClick={() => setPage((p) => Math.min(pages - 1, p + 1))}
             disabled={clamped >= pages - 1}
-            className="inline-flex items-center gap-1.5 hover:text-gray-100 disabled:opacity-30 disabled:hover:text-gray-400 transition"
+            className="inline-flex items-center gap-1.5 transition hover:text-[var(--text-strong)] disabled:opacity-30 disabled:hover:text-[var(--text-muted)]"
           >
             다음
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -168,10 +228,10 @@ function CardItem({ item, cfg }) {
     : start || end
       ? `${fmtMD(start || item.date)} ~ ${fmtMD(end || item.date)}`
       : fmtYMD(item.date)
-  const toneCls = {
-    emerald: 'bg-emerald-600 text-white',
-    amber: 'bg-amber-600 text-white',
-    gray: 'bg-gray-700 text-white',
+  const badgeBg = {
+    emerald: 'var(--badge-emerald-bg)',
+    amber: 'var(--badge-amber-bg)',
+    gray: 'var(--badge-gray-bg)',
   }[badge?.tone]
 
   return (
@@ -179,30 +239,54 @@ function CardItem({ item, cfg }) {
       href={item.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative block rounded-xl overflow-hidden bg-gray-900 border border-white/5 hover:border-white/15 transition"
+      className="group relative block rounded-xl overflow-hidden border"
+      style={{
+        background: 'var(--panel-bg)',
+        borderColor: 'var(--panel-border)',
+        boxShadow: 'var(--panel-shadow)',
+      }}
     >
-      <div className="aspect-[2/1] bg-gray-950 overflow-hidden">
+      <div
+        className="aspect-[2/1] overflow-hidden"
+        style={{ background: 'var(--thumb-bg)' }}
+      >
         {item.thumbnail_url ? (
           <img
             src={item.thumbnail_url}
             alt=""
-            className="w-full h-full object-cover group-hover:scale-[1.03] transition duration-500"
+            className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-4xl text-gray-700">📢</div>
+          <div
+            className="w-full h-full flex items-center justify-center text-4xl"
+            style={{ color: 'var(--thumb-placeholder)' }}
+          >
+            📢
+          </div>
         )}
         {badge && (
-          <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[11px] font-medium ${toneCls}`}>
+          <span
+            className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[11px] font-medium"
+            style={{ background: badgeBg, color: 'var(--badge-text)' }}
+          >
             {badge.label}
           </span>
         )}
       </div>
       <div className="p-3 space-y-1">
-        <div className="text-sm font-medium text-gray-200 line-clamp-1 group-hover:text-emerald-300 transition">
+        <div
+          className="text-sm font-medium line-clamp-1 transition-colors group-hover:text-[var(--accent-hover-text)]"
+          style={{ color: 'var(--text-emphasis)' }}
+        >
           {item.title}
         </div>
-        <div className="text-xs text-gray-500 tabular-nums">{dateText}</div>
+        <div
+          className="text-xs tabular-nums"
+          style={{ color: 'var(--text-dim)' }}
+        >
+          {dateText}
+        </div>
       </div>
     </a>
   )
@@ -214,31 +298,41 @@ function CarouselSection({ cfg, items, isMaintenance, isLoading }) {
   const clamped = Math.min(page, pages - 1)
   const slice = items.slice(clamped * cfg.pageSize, (clamped + 1) * cfg.pageSize)
 
+  const navBtn = "w-7 h-7 rounded-md border flex items-center justify-center border-[var(--btn-border)] bg-[var(--btn-bg)] hover:bg-[var(--btn-bg-hover)] hover:border-[var(--btn-border-hover)] disabled:opacity-30 disabled:hover:bg-[var(--btn-bg)] disabled:hover:border-[var(--btn-border)]"
+
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-bold text-gray-200">{cfg.label}</h3>
+        <h3
+          className="text-base font-medium"
+          style={{ color: 'var(--text-emphasis)' }}
+        >
+          {cfg.label}
+        </h3>
         {pages > 1 && (
-          <div className="flex items-center gap-3 text-sm text-gray-400">
+          <div
+            className="flex items-center gap-3 text-sm"
+            style={{ color: 'var(--text-muted)' }}
+          >
             <button
               type="button"
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={clamped === 0}
-              className="w-7 h-7 rounded-md border border-white/10 bg-gray-900/60 hover:bg-gray-800 hover:border-white/20 disabled:opacity-30 disabled:hover:bg-gray-900/60 disabled:hover:border-white/10 transition flex items-center justify-center"
+              className={navBtn}
               aria-label="이전"
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7.5 3L4.5 6L7.5 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
-            <span className="tabular-nums text-gray-500 min-w-[48px] text-center">
-              <span className="text-gray-200">{clamped + 1}</span>
-              <span className="mx-1 text-gray-600">/</span>
+            <span className="tabular-nums min-w-[48px] text-center">
+              <span style={{ color: 'var(--text-emphasis)' }}>{clamped + 1}</span>
+              <span className="mx-1" style={{ color: 'var(--text-dim)' }}>/</span>
               {pages}
             </span>
             <button
               type="button"
               onClick={() => setPage((p) => Math.min(pages - 1, p + 1))}
               disabled={clamped >= pages - 1}
-              className="w-7 h-7 rounded-md border border-white/10 bg-gray-900/60 hover:bg-gray-800 hover:border-white/20 disabled:opacity-30 disabled:hover:bg-gray-900/60 disabled:hover:border-white/10 transition flex items-center justify-center"
+              className={navBtn}
               aria-label="다음"
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -246,19 +340,38 @@ function CarouselSection({ cfg, items, isMaintenance, isLoading }) {
           </div>
         )}
       </div>
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-x-clip pb-2">
         {isLoading ? (
           <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: cfg.pageSize }).map((_, i) => (
-              <div key={i} className="aspect-[2/1] rounded-xl bg-white/[0.02] animate-pulse" />
+              <div
+                key={i}
+                className="aspect-[2/1] rounded-xl animate-pulse"
+                style={{ background: 'var(--skeleton-bg)' }}
+              />
             ))}
           </div>
         ) : isMaintenance ? (
-          <div className="py-10 rounded-xl border border-white/5 bg-gray-900/50 text-center">
-            <div className="text-sm text-amber-300 font-medium">넥슨 Open API 점검중</div>
+          <div
+            className="py-10 rounded-xl border text-center"
+            style={{
+              background: 'var(--panel-bg)',
+              borderColor: 'var(--panel-border)',
+              boxShadow: 'var(--panel-shadow)',
+            }}
+          >
+            <div
+              className="text-sm font-medium"
+              style={{ color: 'var(--maintenance-text)' }}
+            >
+              넥슨 Open API 점검중
+            </div>
           </div>
         ) : slice.length === 0 ? (
-          <div className="py-10 rounded-xl border border-dashed border-white/10 text-center text-sm text-gray-500">
+          <div
+            className="py-10 rounded-xl border border-dashed text-center text-sm"
+            style={{ borderColor: 'var(--dashed-border)', color: 'var(--text-dim)' }}
+          >
             {cfg.filterOngoing ? `진행중인 ${cfg.label}이 없습니다` : `등록된 ${cfg.label}이 없습니다`}
           </div>
         ) : (
@@ -307,7 +420,9 @@ export default function NoticeWidget() {
         <TextListSection cfg={SECTIONS.notice} {...byKey.notice} />
         <TextListSection cfg={SECTIONS.update} {...byKey.update} />
       </div>
-      <CarouselSection cfg={SECTIONS.event} {...byKey.event} />
+      <div className="pt-2">
+        <CarouselSection cfg={SECTIONS.event} {...byKey.event} />
+      </div>
       <CarouselSection cfg={SECTIONS.cashshop} {...byKey.cashshop} />
     </section>
   )

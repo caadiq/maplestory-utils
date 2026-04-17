@@ -14,17 +14,17 @@ export default function Home() {
       {/* 구분선 */}
       <div className="flex items-center gap-4">
         <div
-          className="h-px flex-1 transition-colors duration-500"
+          className="h-px flex-1"
           style={{ backgroundImage: 'linear-gradient(to right, transparent, var(--divider-line), transparent)' }}
         />
         <span
-          className="text-xs uppercase tracking-widest transition-colors duration-500"
+          className="text-xs uppercase tracking-widest"
           style={{ color: 'var(--text-dim)' }}
         >
           Utilities
         </span>
         <div
-          className="h-px flex-1 transition-colors duration-500"
+          className="h-px flex-1"
           style={{ backgroundImage: 'linear-gradient(to right, transparent, var(--divider-line), transparent)' }}
         />
       </div>
@@ -36,14 +36,14 @@ export default function Home() {
             {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
-                className="h-32 rounded-2xl animate-pulse transition-colors duration-500"
+                className="h-32 rounded-2xl animate-pulse"
                 style={{ background: 'var(--skeleton-bg)' }}
               />
             ))}
           </div>
         ) : menus.length === 0 ? (
           <div
-            className="rounded-2xl border p-16 text-center transition-colors duration-500"
+            className="rounded-2xl border p-16 text-center"
             style={{ background: 'var(--empty-bg)', borderColor: 'var(--empty-border)' }}
           >
             <div className="text-5xl mb-4 opacity-50">🍁</div>
@@ -76,7 +76,7 @@ export default function Home() {
                   <div>
                     <h2 className="font-medium">{menu.title}</h2>
                     <p
-                      className="text-sm mt-1 leading-relaxed transition-colors duration-500"
+                      className="text-sm mt-1 leading-relaxed"
                       style={{ color: 'var(--text-muted)' }}
                     >
                       {menu.description}
@@ -92,17 +92,17 @@ export default function Home() {
       {/* 구분선 */}
       <div className="flex items-center gap-4">
         <div
-          className="h-px flex-1 transition-colors duration-500"
+          className="h-px flex-1"
           style={{ backgroundImage: 'linear-gradient(to right, transparent, var(--divider-line), transparent)' }}
         />
         <span
-          className="text-xs uppercase tracking-widest transition-colors duration-500"
+          className="text-xs uppercase tracking-widest"
           style={{ color: 'var(--text-dim)' }}
         >
           Notices
         </span>
         <div
-          className="h-px flex-1 transition-colors duration-500"
+          className="h-px flex-1"
           style={{ backgroundImage: 'linear-gradient(to right, transparent, var(--divider-line), transparent)' }}
         />
       </div>

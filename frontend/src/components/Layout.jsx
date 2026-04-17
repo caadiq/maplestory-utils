@@ -42,7 +42,7 @@ function CurrentMenuTitle() {
 
   return (
     <div
-      className="flex items-center gap-3 transition-colors duration-500"
+      className="flex items-center gap-3"
       style={{ color: 'var(--text-muted)' }}
     >
       <span style={{ color: 'var(--text-slash)' }}>/</span>
@@ -51,7 +51,7 @@ function CurrentMenuTitle() {
           <img src={menu.image.url} alt="" className="w-5 h-5 object-contain" />
         )}
         <span
-          className="text-sm font-medium transition-colors duration-500"
+          className="text-sm font-medium"
           style={{ color: 'var(--text-emphasis)' }}
         >
           {menu.title}
@@ -117,13 +117,13 @@ export default function Layout() {
   return (
     <LayoutContext.Provider value={{ fullscreen, setFullscreen }}>
       <div
-        className={`min-w-[1280px] flex flex-col transition-colors duration-500 ${
+        className={`min-w-[1280px] flex flex-col ${
           fullscreen ? 'h-dvh' : 'min-h-screen'
         }`}
         style={{ color: 'var(--text-strong)' }}
       >
         <header
-          className="sticky top-0 z-20 border-b backdrop-blur-md shrink-0 transition-colors duration-500"
+          className="sticky top-0 z-20 border-b backdrop-blur-md shrink-0"
           style={{
             borderColor: 'var(--header-border)',
           }}
