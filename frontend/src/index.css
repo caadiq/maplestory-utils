@@ -6,11 +6,64 @@
   --font-maple: "Maplestory", "Noto Sans KR", sans-serif;
 }
 
+/* 테마 토큰 - dark (default) */
+:root {
+  color-scheme: dark;
+  --bg-from: #030712;
+  --bg-via: #030712;
+  --bg-to: #0f172a;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.12);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.22);
+  --scrollbar-track: transparent;
+
+  --header-bg: rgba(3, 7, 18, 0.8);
+  --header-border: rgba(255, 255, 255, 0.05);
+
+  --text-strong: #ffffff;
+  --text-emphasis: #e5e7eb;
+  --text-muted: #9ca3af;
+  --text-dim: #6b7280;
+  --text-slash: rgba(255, 255, 255, 0.2);
+
+  --toggle-bg: rgba(17, 24, 39, 0.6);
+  --toggle-border: rgba(255, 255, 255, 0.1);
+  --toggle-thumb-from: #e5e7eb;
+  --toggle-thumb-to: #9ca3af;
+  --toggle-thumb-icon: #0f172a;
+}
+
+/* 테마 토큰 - light */
+[data-theme="light"] {
+  color-scheme: light;
+  --bg-from: #ffffff;
+  --bg-via: #ffffff;
+  --bg-to: #ffffff;
+  --scrollbar-thumb: #a0a0a0;
+  --scrollbar-thumb-hover: #707070;
+  --scrollbar-track: transparent;
+
+  --header-bg: rgba(255, 255, 255, 0.8);
+  --header-border: rgba(0, 0, 0, 0.08);
+
+  --text-strong: #0f172a;
+  --text-emphasis: #1f2937;
+  --text-muted: #475569;
+  --text-dim: #64748b;
+  --text-slash: rgba(0, 0, 0, 0.2);
+
+  --toggle-bg: rgba(241, 245, 249, 0.9);
+  --toggle-border: rgba(0, 0, 0, 0.08);
+  --toggle-thumb-from: #fde68a;
+  --toggle-thumb-to: #f59e0b;
+  --toggle-thumb-icon: #78350f;
+}
+
 html, body, #root {
   min-height: 100%;
-  background-color: #030712;
-  background-image: linear-gradient(to bottom right, #030712, #030712, #0f172a);
+  background-color: var(--bg-from);
+  background-image: linear-gradient(to bottom right, var(--bg-from), var(--bg-via), var(--bg-to));
   background-attachment: fixed;
+  transition: background-color 400ms ease, background-image 400ms ease;
 }
 html {
   overscroll-behavior-y: contain;
@@ -24,6 +77,13 @@ html {
   --os-size: 12px;
   --os-padding-perpendicular: 2px;
   --os-padding-axis: 2px;
+}
+
+/* 라이트 테마에서는 어두운 handle */
+[data-theme="light"] .os-theme-maple.os-theme-dark {
+  --os-handle-bg: #a0a0a0;
+  --os-handle-bg-hover: #707070;
+  --os-handle-bg-active: #505050;
 }
 
 html {
@@ -62,27 +122,46 @@ input[type="number"] {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* 테마 전환 뷰 트랜지션 - 부드러운 크로스페이드 */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 400ms;
+  animation-timing-function: ease;
+}
+::view-transition-old(root) {
+  animation-name: themeFadeOut;
+}
+::view-transition-new(root) {
+  animation-name: themeFadeIn;
+}
+@keyframes themeFadeOut {
+  to { opacity: 0; }
+}
+@keyframes themeFadeIn {
+  from { opacity: 0; }
+}
 
-/* 내부 스크롤 영역만 얇은 커스텀 스크롤바 (메인 페이지 스크롤은 기본) */
-*:not(html):not(body) {
+
+/* 커스텀 스크롤바 (테마별) */
+* {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
-*:not(html):not(body)::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
-*:not(html):not(body)::-webkit-scrollbar-track {
-  background: transparent;
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
 }
-*:not(html):not(body)::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 4px;
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 5px;
   transition: background 0.2s;
 }
-*:not(html):not(body)::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
 }
-*:not(html):not(body)::-webkit-scrollbar-corner {
+*::-webkit-scrollbar-corner {
   background: transparent;
 }
