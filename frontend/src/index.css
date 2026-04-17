@@ -49,6 +49,33 @@
   --accent: #10b981;
   --accent-hover-text: #6ee7b7;
   --accent-glow: rgba(16, 185, 129, 0.1);
+
+  --panel-bg: rgba(17, 24, 39, 0.5);
+  --panel-border: rgba(255, 255, 255, 0.05);
+  --panel-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+
+  --row-divider: rgba(255, 255, 255, 0.04);
+  --row-hover-bg: rgba(255, 255, 255, 0.03);
+
+  --btn-bg: rgba(17, 24, 39, 0.6);
+  --btn-bg-hover: #1f2937;
+  --btn-border: rgba(255, 255, 255, 0.1);
+  --btn-border-hover: rgba(255, 255, 255, 0.2);
+
+  --dot-inactive: #4b5563;
+  --dot-inactive-hover: #6b7280;
+
+  --thumb-bg: #030712;
+  --thumb-placeholder: #374151;
+
+  --badge-emerald-bg: #059669;
+  --badge-amber-bg: #d97706;
+  --badge-gray-bg: #374151;
+  --badge-text: #ffffff;
+
+  --maintenance-text: #fbbf24;
+
+  --dashed-border: rgba(255, 255, 255, 0.1);
 }
 
 /* 테마 토큰 - light */
@@ -94,6 +121,33 @@
   --accent: #059669;
   --accent-hover-text: #047857;
   --accent-glow: rgba(16, 185, 129, 0.12);
+
+  --panel-bg: #ffffff;
+  --panel-border: rgba(0, 0, 0, 0.06);
+  --panel-shadow: 0 2px 8px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+
+  --row-divider: rgba(0, 0, 0, 0.06);
+  --row-hover-bg: rgba(0, 0, 0, 0.03);
+
+  --btn-bg: #ffffff;
+  --btn-bg-hover: #f3f4f6;
+  --btn-border: rgba(0, 0, 0, 0.08);
+  --btn-border-hover: rgba(0, 0, 0, 0.15);
+
+  --dot-inactive: #cbd5e1;
+  --dot-inactive-hover: #94a3b8;
+
+  --thumb-bg: #f3f4f6;
+  --thumb-placeholder: #cbd5e1;
+
+  --badge-emerald-bg: #059669;
+  --badge-amber-bg: #d97706;
+  --badge-gray-bg: #475569;
+  --badge-text: #ffffff;
+
+  --maintenance-text: #b45309;
+
+  --dashed-border: rgba(0, 0, 0, 0.12);
 }
 
 html, body, #root {
