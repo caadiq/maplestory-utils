@@ -30,6 +30,25 @@
   --toggle-thumb-from: #e5e7eb;
   --toggle-thumb-to: #9ca3af;
   --toggle-thumb-icon: #0f172a;
+
+  --card-bg-from: rgba(17, 24, 39, 0.8);
+  --card-bg-to: rgba(17, 24, 39, 0.4);
+  --card-border: rgba(255, 255, 255, 0.05);
+  --card-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+
+  --icon-box-from: #1f2937;
+  --icon-box-to: #111827;
+  --icon-box-border: rgba(255, 255, 255, 0.05);
+
+  --divider-line: rgba(255, 255, 255, 0.1);
+  --skeleton-bg: rgba(255, 255, 255, 0.02);
+
+  --empty-bg: rgba(17, 24, 39, 0.4);
+  --empty-border: rgba(255, 255, 255, 0.05);
+
+  --accent: #10b981;
+  --accent-hover-text: #6ee7b7;
+  --accent-glow: rgba(16, 185, 129, 0.1);
 }
 
 /* 테마 토큰 - light */
@@ -56,6 +75,25 @@
   --toggle-thumb-from: #fde68a;
   --toggle-thumb-to: #f59e0b;
   --toggle-thumb-icon: #78350f;
+
+  --card-bg-from: #ffffff;
+  --card-bg-to: #ffffff;
+  --card-border: rgba(0, 0, 0, 0.06);
+  --card-shadow: 0 2px 8px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+
+  --icon-box-from: #f3f4f6;
+  --icon-box-to: #e5e7eb;
+  --icon-box-border: rgba(0, 0, 0, 0.06);
+
+  --divider-line: rgba(0, 0, 0, 0.1);
+  --skeleton-bg: rgba(0, 0, 0, 0.05);
+
+  --empty-bg: rgba(249, 250, 251, 0.9);
+  --empty-border: rgba(0, 0, 0, 0.06);
+
+  --accent: #059669;
+  --accent-hover-text: #047857;
+  --accent-glow: rgba(16, 185, 129, 0.12);
 }
 
 html, body, #root {
