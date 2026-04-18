@@ -98,8 +98,11 @@ export default function Tooltip({ text, children, placement = 'top', delay = 200
             zIndex: 9999,
             opacity: coords ? 1 : 0,
             transition: 'opacity 120ms ease-out',
+            background: 'var(--tooltip-bg)',
+            color: 'var(--tooltip-text)',
+            borderColor: 'var(--tooltip-border)',
           }}
-          className="pointer-events-none px-2 py-1 rounded-md bg-gray-900 border border-white/10 text-xs text-gray-200 shadow-lg whitespace-nowrap"
+          className="pointer-events-none px-2 py-1 rounded-md border text-xs shadow-lg whitespace-nowrap"
         >
           {text}
         </div>,

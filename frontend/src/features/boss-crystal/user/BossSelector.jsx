@@ -6,7 +6,14 @@ const LABEL_EN = { easy: 'EASY', normal: 'NORMAL', hard: 'HARD', chaos: 'CHAOS',
 export default function BossSelector({ characterName, bosses, selections, onChange, maxReached, selectedCount, maxPerCharacter }) {
   if (!characterName) {
     return (
-      <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-16 text-center text-sm text-gray-500">
+      <div
+        className="rounded-2xl border border-dashed p-16 text-center text-sm"
+        style={{
+          borderColor: 'var(--dashed-border)',
+          background: 'var(--skeleton-bg)',
+          color: 'var(--text-dim)',
+        }}
+      >
         좌측에서 캐릭터를 선택해주세요
       </div>
     )
@@ -14,16 +21,37 @@ export default function BossSelector({ characterName, bosses, selections, onChan
 
   if (bosses.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-16 text-center text-sm text-gray-500">
+      <div
+        className="rounded-2xl border border-dashed p-16 text-center text-sm"
+        style={{
+          borderColor: 'var(--dashed-border)',
+          background: 'var(--skeleton-bg)',
+          color: 'var(--text-dim)',
+        }}
+      >
         등록된 보스가 없습니다
       </div>
     )
   }
 
   return (
-    <div className="rounded-xl border border-white/5 bg-gray-900/40 overflow-hidden flex flex-col h-full">
+    <div
+      className="rounded-xl border overflow-hidden flex flex-col h-full"
+      style={{
+        background: 'var(--panel-bg)',
+        borderColor: 'var(--panel-border)',
+        boxShadow: 'var(--panel-shadow)',
+      }}
+    >
       {/* 헤더 (고정) */}
-      <div className="flex items-center gap-3 px-3 py-3 bg-gray-950/60 border-b border-white/5 text-base font-semibold text-gray-300 shrink-0">
+      <div
+        className="flex items-center gap-3 px-3 py-3 border-b text-base font-medium shrink-0"
+        style={{
+          background: 'var(--surface-2)',
+          borderColor: 'var(--panel-border)',
+          color: 'var(--text-emphasis)',
+        }}
+      >
         <div className="w-52 shrink-0">보스</div>
         <div className="flex-1">난이도</div>
         <div className="w-20 shrink-0 text-center">파티원 수</div>
@@ -31,7 +59,7 @@ export default function BossSelector({ characterName, bosses, selections, onChan
       </div>
       {/* 목록 (스크롤) */}
       <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="divide-y divide-white/5">
+        <div className="divide-y" style={{ '--tw-divide-opacity': 1 }}>
           {bosses.map((boss) => {
             const availableDiffs = DIFFICULTIES.filter((d) =>
               boss.difficulties.some((bd) => bd.difficulty === d.key)
@@ -52,13 +80,20 @@ export default function BossSelector({ characterName, bosses, selections, onChan
             return (
               <div
                 key={boss.id}
-                className={`flex items-center gap-3 px-3 py-3 transition ${
-                  disabled ? 'opacity-30 pointer-events-none' : ''
+                className={`flex items-center gap-3 px-3 py-3 border-t first:border-t-0 ${
+                  disabled ? 'pointer-events-none' : ''
                 }`}
+                style={{
+                  borderColor: 'var(--panel-border)',
+                  opacity: disabled ? 'var(--disabled-opacity)' : 1,
+                }}
               >
                 {/* 보스 이미지 + 이름 */}
                 <div className="flex items-center gap-2.5 w-52 shrink-0">
-                  <div className="shrink-0 w-11 h-11 rounded-lg bg-gray-900 overflow-hidden">
+                  <div
+                    className="shrink-0 w-11 h-11 rounded-lg overflow-hidden"
+                    style={{ background: 'var(--surface-nested)' }}
+                  >
                     <img src={boss.image_url || '/default.png'} alt={boss.name} className="w-full h-full object-cover" />
                   </div>
                   <span className="text-base font-medium leading-tight whitespace-nowrap overflow-hidden text-ellipsis">{boss.name}</span>
@@ -72,7 +107,7 @@ export default function BossSelector({ characterName, bosses, selections, onChan
                       background: d.colors.bg,
                       borderColor: d.colors.border,
                       color: d.colors.text,
-                      filter: active ? 'none' : 'brightness(0.4)',
+                      filter: active ? 'none' : 'var(--inactive-filter)',
                     }
                     return (
                       <button
@@ -103,12 +138,20 @@ export default function BossSelector({ characterName, bosses, selections, onChan
                       align="right"
                     />
                   ) : (
-                    <div className="text-xs text-gray-700 text-center">-</div>
+                    <div
+                      className="text-xs text-center"
+                      style={{ color: 'var(--text-dim)' }}
+                    >
+                      -
+                    </div>
                   )}
                 </div>
 
                 {/* 수익 */}
-                <div className={`w-32 shrink-0 text-right text-sm font-medium tabular-nums ${sel ? 'text-emerald-300' : 'text-gray-700'}`}>
+                <div
+                  className="w-32 shrink-0 text-right text-sm font-medium tabular-nums"
+                  style={{ color: sel ? 'var(--accent-bright)' : 'var(--text-dim)' }}
+                >
                   {sel ? formatMeso(revenue) : '-'}
                 </div>
               </div>
