@@ -63,8 +63,13 @@ function BossAvatar({ boss, difficulty, size = 40 }) {
   return (
     <div className="flex flex-col items-center gap-1">
       <div
-        className={`rounded-md overflow-hidden bg-gray-900 border border-white/5 ${enabled ? '' : 'opacity-30 grayscale'}`}
-        style={{ width: size, height: size }}
+        className={`rounded-md overflow-hidden border ${enabled ? '' : 'opacity-30 grayscale'}`}
+        style={{
+          width: size,
+          height: size,
+          background: 'var(--surface-nested)',
+          borderColor: 'var(--panel-border)',
+        }}
       >
         <img src={`${LIBERATION_BOSS_IMAGE_BASE}/${boss.image}`} alt={boss.name} className="w-full h-full object-cover" />
       </div>
@@ -72,9 +77,9 @@ function BossAvatar({ boss, difficulty, size = 40 }) {
         className="text-[10px] font-bold leading-none rounded flex items-center justify-center border"
         style={{
           width: 16, height: 16,
-          color: badge?.color || '#4b5563',
+          color: badge?.color || 'var(--text-dim)',
           background: badge?.bg || 'transparent',
-          borderColor: badge?.border || 'rgba(255,255,255,0.08)',
+          borderColor: badge?.border || 'var(--panel-border)',
         }}
       >
         {badge?.label || '-'}
@@ -94,17 +99,25 @@ function WeekEditor({ config, onChange, isCurrent, monthlyLockedByWeek }) {
   const blackmageLocked = monthlyLockedByWeek != null
 
   return (
-    <div className="divide-y divide-white/5">
-      {WEEKLY_BOSSES.map((boss) => (
-        <BossRow
+    <div>
+      {WEEKLY_BOSSES.map((boss, i) => (
+        <div
           key={boss.key}
-          boss={boss}
-          sel={config.bosses[boss.key]}
-          onChange={(patch) => updateBoss(boss.key, patch)}
-          showDone={isCurrent}
-        />
+          className={i > 0 ? 'border-t' : ''}
+          style={i > 0 ? { borderColor: 'var(--row-divider)' } : undefined}
+        >
+          <BossRow
+            boss={boss}
+            sel={config.bosses[boss.key]}
+            onChange={(patch) => updateBoss(boss.key, patch)}
+            showDone={isCurrent}
+          />
+        </div>
       ))}
-      <div className={blackmageLocked ? 'opacity-40 pointer-events-none' : ''}>
+      <div
+        className={`border-t ${blackmageLocked ? 'opacity-40 pointer-events-none' : ''}`}
+        style={{ borderColor: 'var(--row-divider)' }}
+      >
         <BossRow
           boss={MONTHLY_BOSSES[0]}
           sel={blackmageLocked ? { difficulty: 'none', party: 1, done: false } : config.blackMage}
@@ -114,7 +127,10 @@ function WeekEditor({ config, onChange, isCurrent, monthlyLockedByWeek }) {
         />
       </div>
       {blackmageLocked && (
-        <div className="text-[11px] text-amber-400/80 px-3 py-2">
+        <div
+          className="text-[11px] px-3 py-2"
+          style={{ color: 'var(--warning-text)' }}
+        >
           이번 달 검은 마법사는 {monthlyLockedByWeek}주차에 배정되어 있습니다.
         </div>
       )}
@@ -210,7 +226,11 @@ export default function WeeklyScheduler({ startDate, weeks: weeksProp, onChangeW
         return (
           <div
             key={w.id}
-            className="rounded-xl border border-white/5 bg-gray-950/30"
+            className="rounded-xl border"
+            style={{
+              background: 'var(--surface-3)',
+              borderColor: 'var(--panel-border)',
+            }}
           >
             <div className="flex items-center gap-3 pl-4 pr-2 py-3">
               <button
@@ -219,11 +239,19 @@ export default function WeeklyScheduler({ startDate, weeks: weeksProp, onChangeW
                 className="flex items-center gap-4 flex-1 text-left hover:opacity-90 transition"
               >
                 <div className="w-12 text-center shrink-0">
-                  <div className="text-[11px] text-gray-500 leading-tight">주차</div>
-                  <div className="text-xl font-extrabold tabular-nums leading-tight text-gray-200">{n}</div>
+                  <div className="text-[11px] leading-tight" style={{ color: 'var(--text-dim)' }}>주차</div>
+                  <div
+                    className="text-xl font-extrabold tabular-nums leading-tight"
+                    style={{ color: 'var(--text-emphasis)' }}
+                  >
+                    {n}
+                  </div>
                 </div>
                 {startDate && (
-                  <div className="text-sm text-gray-400 tabular-nums w-24 shrink-0">
+                  <div
+                    className="text-sm tabular-nums w-24 shrink-0"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
                     {formatRange(getWeekRange(startDate, n))}
                   </div>
                 )}
@@ -240,9 +268,9 @@ export default function WeeklyScheduler({ startDate, weeks: weeksProp, onChangeW
                   const monthlySum = monthlyLockedByWeek != null ? 0 : bossEarn(MONTHLY_BOSSES[0], w.config.blackMage)
                   return (
                     <div className="text-right shrink-0 pr-1 tabular-nums leading-tight">
-                      <div className="text-base font-bold text-emerald-300">+{weeklySum}</div>
+                      <div className="text-base font-bold" style={{ color: 'var(--accent-bright)' }}>+{weeklySum}</div>
                       {monthlySum > 0 && (
-                        <div className="text-sm font-semibold text-amber-300">+{monthlySum}</div>
+                        <div className="text-sm font-semibold" style={{ color: 'var(--warning-text-bright)' }}>+{monthlySum}</div>
                       )}
                     </div>
                   )
@@ -250,7 +278,8 @@ export default function WeeklyScheduler({ startDate, weeks: weeksProp, onChangeW
 
                 <svg
                   width="16" height="16" viewBox="0 0 12 12" fill="none"
-                  className={`text-gray-500 transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`}
+                  className={`transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`}
+                  style={{ color: 'var(--text-dim)' }}
                 >
                   <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -260,7 +289,8 @@ export default function WeeklyScheduler({ startDate, weeks: weeksProp, onChangeW
                 onClick={() => removeWeek(w.id)}
                 disabled={weeks.length <= 1}
                 title={weeks.length <= 1 ? '최소 한 주차는 유지되어야 합니다' : '이 주차 삭제'}
-                className="shrink-0 w-8 h-8 rounded-md text-gray-500 hover:text-red-400 hover:bg-red-500/10 disabled:opacity-30 disabled:hover:text-gray-500 disabled:hover:bg-transparent disabled:cursor-not-allowed transition flex items-center justify-center"
+                className="shrink-0 w-8 h-8 rounded-md hover:bg-[var(--danger-bg-hover)] hover:text-[var(--danger-text)] disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed flex items-center justify-center"
+                style={{ color: 'var(--text-dim)' }}
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                   <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -281,7 +311,13 @@ export default function WeeklyScheduler({ startDate, weeks: weeksProp, onChangeW
                   }}
                   style={{ overflow: 'hidden' }}
                 >
-                  <div className="border-t border-white/5 px-3 py-3 bg-gray-950/40">
+                  <div
+                    className="border-t px-3 py-3"
+                    style={{
+                      borderColor: 'var(--row-divider)',
+                      background: 'var(--skeleton-bg)',
+                    }}
+                  >
                     <WeekEditor
                       config={w.config}
                       onChange={(c) => updateWeek(w.id, c)}
@@ -299,7 +335,11 @@ export default function WeeklyScheduler({ startDate, weeks: weeksProp, onChangeW
       <button
         type="button"
         onClick={addWeek}
-        className="w-full rounded-xl border border-dashed border-white/10 hover:border-emerald-500/40 hover:bg-emerald-500/5 text-gray-500 hover:text-emerald-300 py-3 text-sm font-semibold transition flex items-center justify-center gap-2"
+        className="w-full rounded-xl border border-dashed py-3 text-sm font-semibold flex items-center justify-center gap-2 hover:border-[var(--selected-border)] hover:text-[var(--accent-bright)]"
+        style={{
+          borderColor: 'var(--dashed-border)',
+          color: 'var(--text-dim)',
+        }}
       >
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
           <path d="M7 1V13M1 7H13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />

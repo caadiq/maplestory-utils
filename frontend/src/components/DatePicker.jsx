@@ -97,14 +97,19 @@ export default function DatePicker({ value, onChange, placeholder = '날짜 선�
       <button
         type="button"
         onClick={(e) => stop(e, () => setIsOpen(!isOpen))}
-        className={`w-full h-12 rounded-lg border bg-gray-950 px-4 text-base flex items-center justify-between transition ${
-          isOpen ? 'border-emerald-500/50' : 'border-white/10 hover:border-white/20'
-        }`}
+        className="w-full h-12 rounded-lg border px-4 text-base flex items-center justify-between"
+        style={{
+          background: 'var(--input-bg)',
+          borderColor: isOpen ? 'var(--input-border-focus)' : 'var(--input-border)',
+        }}
       >
-        <span className={value ? 'text-white' : 'text-gray-500'}>
+        <span style={{ color: value ? 'var(--text-strong)' : 'var(--input-placeholder)' }}>
           {value ? formatDisplay(value) : placeholder}
         </span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-gray-400">
+        <svg
+          width="16" height="16" viewBox="0 0 24 24" fill="none"
+          style={{ color: 'var(--input-icon)' }}
+        >
           <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
           <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2" />
         </svg>
@@ -117,22 +122,29 @@ export default function DatePicker({ value, onChange, placeholder = '날짜 선�
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.15 }}
-            className="absolute z-50 mt-2 left-0 rounded-xl border border-white/10 bg-gray-900 shadow-2xl p-5"
-            style={{ width: 420 }}
+            className="absolute z-50 mt-2 left-0 rounded-xl border p-5"
+            style={{
+              width: 420,
+              background: 'var(--popup-bg)',
+              borderColor: 'var(--popup-border)',
+              boxShadow: 'var(--popup-shadow)',
+            }}
           >
             <div className="flex items-center justify-between mb-3">
               <button
                 type="button"
                 onClick={(e) => stop(e, viewMode === 'years' ? prevYearRange : prevMonth)}
                 disabled={viewMode === 'years' ? !canGoPrevYearRange : (year === minYear && month === 0)}
-                className="p-1.5 rounded hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed text-gray-400"
+                className="p-1.5 rounded hover:bg-[var(--row-hover-bg)] disabled:opacity-30 disabled:cursor-not-allowed"
+                style={{ color: 'var(--text-muted)' }}
               >
                 <ChevronIcon dir="left" size={18} />
               </button>
               <button
                 type="button"
                 onClick={(e) => stop(e, () => setViewMode(viewMode === 'days' ? 'years' : 'days'))}
-                className="flex items-center gap-1 text-sm font-medium text-gray-200 hover:text-emerald-300 transition"
+                className="flex items-center gap-1 text-sm font-medium hover:text-[var(--accent-bright)]"
+                style={{ color: 'var(--text-emphasis)' }}
               >
                 {viewMode === 'years' ? `${years[0]} - ${years[years.length - 1]}` : `${year}년 ${month + 1}월`}
                 <ChevronIcon dir={viewMode !== 'days' ? 'up' : 'down'} size={14} className="transition-transform" />
@@ -140,7 +152,8 @@ export default function DatePicker({ value, onChange, placeholder = '날짜 선�
               <button
                 type="button"
                 onClick={(e) => stop(e, viewMode === 'years' ? nextYearRange : nextMonth)}
-                className="p-1.5 rounded hover:bg-white/5 text-gray-400"
+                className="p-1.5 rounded hover:bg-[var(--row-hover-bg)]"
+                style={{ color: 'var(--text-muted)' }}
               >
                 <ChevronIcon dir="right" size={18} />
               </button>
@@ -149,43 +162,51 @@ export default function DatePicker({ value, onChange, placeholder = '날짜 선�
             <AnimatePresence mode="wait">
               {viewMode === 'years' ? (
                 <motion.div key="years" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
-                  <div className="text-center text-xs text-gray-500 mb-2">연도</div>
+                  <div className="text-center text-xs mb-2" style={{ color: 'var(--text-dim)' }}>연도</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '6px', marginBottom: '12px' }}>
-                    {years.map((y) => (
-                      <button
-                        key={y}
-                        type="button"
-                        onClick={(e) => stop(e, () => selectYear(y))}
-                        className={`py-2 rounded-lg text-sm transition ${
-                          year === y
-                            ? 'bg-emerald-500 text-white'
-                            : currentYear === y
-                              ? 'text-emerald-300 hover:bg-white/5'
-                              : 'text-gray-300 hover:bg-white/5'
-                        }`}
-                      >
-                        {y}
-                      </button>
-                    ))}
+                    {years.map((y) => {
+                      const isActive = year === y
+                      const isCurrent = currentYear === y && !isActive
+                      return (
+                        <button
+                          key={y}
+                          type="button"
+                          onClick={(e) => stop(e, () => selectYear(y))}
+                          className="py-2 rounded-lg text-sm hover:bg-[var(--row-hover-bg)]"
+                          style={isActive ? {
+                            background: 'var(--btn-primary-bg)',
+                            color: 'var(--btn-primary-text)',
+                          } : {
+                            color: isCurrent ? 'var(--accent-bright)' : 'var(--text-emphasis)',
+                          }}
+                        >
+                          {y}
+                        </button>
+                      )
+                    })}
                   </div>
-                  <div className="text-center text-xs text-gray-500 mb-2">월</div>
+                  <div className="text-center text-xs mb-2" style={{ color: 'var(--text-dim)' }}>월</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '6px' }}>
-                    {monthNames.map((m, i) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={(e) => stop(e, () => selectMonth(i))}
-                        className={`py-2 rounded-lg text-sm transition ${
-                          month === i
-                            ? 'bg-emerald-500 text-white'
-                            : (currentYear === year && currentMonth === i)
-                              ? 'text-emerald-300 hover:bg-white/5'
-                              : 'text-gray-300 hover:bg-white/5'
-                        }`}
-                      >
-                        {m}
-                      </button>
-                    ))}
+                    {monthNames.map((m, i) => {
+                      const isActive = month === i
+                      const isCurrent = (currentYear === year && currentMonth === i) && !isActive
+                      return (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={(e) => stop(e, () => selectMonth(i))}
+                          className="py-2 rounded-lg text-sm hover:bg-[var(--row-hover-bg)]"
+                          style={isActive ? {
+                            background: 'var(--btn-primary-bg)',
+                            color: 'var(--btn-primary-text)',
+                          } : {
+                            color: isCurrent ? 'var(--accent-bright)' : 'var(--text-emphasis)',
+                          }}
+                        >
+                          {m}
+                        </button>
+                      )
+                    })}
                   </div>
                 </motion.div>
               ) : (
@@ -194,9 +215,11 @@ export default function DatePicker({ value, onChange, placeholder = '날짜 선�
                     {['일', '월', '화', '수', '목', '금', '토'].map((d, i) => (
                       <div
                         key={d}
-                        className={`text-center text-xs font-medium py-1 ${
-                          i === 0 ? 'text-red-400/80' : i === 6 ? 'text-sky-400/80' : 'text-gray-500'
-                        }`}
+                        className="text-center text-xs font-medium py-1"
+                        style={{
+                          color: i === 0 ? 'var(--danger-text)' : i === 6 ? '#60a5fa' : 'var(--text-dim)',
+                          opacity: i === 0 || i === 6 ? 0.8 : 1,
+                        }}
                       >
                         {d}
                       </div>
@@ -207,20 +230,25 @@ export default function DatePicker({ value, onChange, placeholder = '날짜 선�
                       const dw = i % 7
                       const selected = isSelected(day)
                       const today = isToday(day)
+                      const textColor = today && !selected ? 'var(--accent-bright)'
+                        : day && !selected && !today && dw === 0 ? 'var(--danger-text)'
+                        : day && !selected && !today && dw === 6 ? '#60a5fa'
+                        : day && !selected && !today ? 'var(--text-emphasis)'
+                        : undefined
                       return (
                         <button
                           key={i}
                           type="button"
                           disabled={!day}
                           onClick={(e) => day && stop(e, () => selectDate(day))}
-                          style={{ aspectRatio: '1 / 1' }}
-                          className={`rounded-full text-base font-medium flex items-center justify-center transition-all
-                            ${!day ? '' : 'hover:bg-white/5'}
-                            ${selected ? 'bg-emerald-500 text-white hover:bg-emerald-500' : ''}
-                            ${today && !selected ? 'text-emerald-300 font-bold' : ''}
-                            ${day && !selected && !today && dw === 0 ? 'text-red-400' : ''}
-                            ${day && !selected && !today && dw === 6 ? 'text-sky-400' : ''}
-                            ${day && !selected && !today && dw > 0 && dw < 6 ? 'text-gray-300' : ''}
+                          style={{
+                            aspectRatio: '1 / 1',
+                            background: selected ? 'var(--btn-primary-bg)' : undefined,
+                            color: selected ? 'var(--btn-primary-text)' : textColor,
+                            fontWeight: today && !selected ? 'bold' : undefined,
+                          }}
+                          className={`rounded-full text-base font-medium flex items-center justify-center
+                            ${!day ? '' : 'hover:bg-[var(--row-hover-bg)]'}
                           `}
                         >
                           {day}

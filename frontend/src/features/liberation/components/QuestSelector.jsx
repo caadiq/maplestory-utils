@@ -26,23 +26,30 @@ export default function QuestSelector({ value, onChange }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`w-full h-12 flex items-center gap-3 rounded-lg border bg-gray-950 pl-2 pr-3 transition ${
-          open ? 'border-emerald-500/50' : 'border-white/10 hover:border-white/20'
-        }`}
+        className="w-full h-12 flex items-center gap-3 rounded-lg border pl-2 pr-3"
+        style={{
+          background: 'var(--input-bg)',
+          borderColor: open ? 'var(--input-border-focus)' : 'var(--input-border)',
+          color: 'var(--text-strong)',
+        }}
       >
-        <div className="w-9 h-9 rounded overflow-hidden shrink-0 bg-gray-900">
+        <div
+          className="w-9 h-9 rounded overflow-hidden shrink-0"
+          style={{ background: 'var(--surface-nested)' }}
+        >
           <img
             src={`${QUEST_BOSS_IMAGE_BASE}/${selected.boss}.webp`}
             alt=""
             className="w-full h-full object-cover"
           />
         </div>
-        <span className="flex-1 text-left text-sm font-medium text-gray-100">
+        <span className="flex-1 text-left text-sm font-medium">
           {selected.boss}
         </span>
         <svg
           width="14" height="14" viewBox="0 0 12 12" fill="none"
-          className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`transition-transform ${open ? 'rotate-180' : ''}`}
+          style={{ color: 'var(--input-icon)' }}
         >
           <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -55,7 +62,12 @@ export default function QuestSelector({ value, onChange }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-white/10 bg-gray-900 shadow-2xl py-1 max-h-72 overflow-y-auto origin-top"
+            className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border py-1 max-h-72 overflow-y-auto origin-top"
+            style={{
+              background: 'var(--popup-bg)',
+              borderColor: 'var(--popup-border)',
+              boxShadow: 'var(--popup-shadow)',
+            }}
           >
           {GENESIS_CHAPTERS.map((chapter) => {
             const isSelected = chapter.idx === value
@@ -64,20 +76,25 @@ export default function QuestSelector({ value, onChange }) {
                 key={chapter.idx}
                 type="button"
                 onClick={() => { onChange(chapter.idx); setOpen(false) }}
-                className={`w-full flex items-center gap-3 px-2 py-1.5 transition ${
-                  isSelected ? 'bg-emerald-500/10' : 'hover:bg-white/5'
-                }`}
+                className="w-full flex items-center gap-3 px-2 py-1.5"
+                style={isSelected ? { background: 'var(--option-selected-bg)' } : undefined}
+                onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = 'var(--row-hover-bg)' }}
+                onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = '' }}
               >
-                <div className="w-9 h-9 rounded overflow-hidden shrink-0 bg-gray-950">
+                <div
+                  className="w-9 h-9 rounded overflow-hidden shrink-0"
+                  style={{ background: 'var(--surface-nested)' }}
+                >
                   <img
                     src={`${QUEST_BOSS_IMAGE_BASE}/${chapter.boss}.webp`}
                     alt=""
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <span className={`flex-1 text-left text-sm font-medium ${
-                  isSelected ? 'text-emerald-300' : 'text-gray-200'
-                }`}>
+                <span
+                  className="flex-1 text-left text-sm font-medium"
+                  style={{ color: isSelected ? 'var(--option-selected-text)' : 'var(--text-emphasis)' }}
+                >
                   {chapter.boss}
                 </span>
               </button>
