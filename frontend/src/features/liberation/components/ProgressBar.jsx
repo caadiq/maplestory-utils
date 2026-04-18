@@ -74,12 +74,12 @@ export default function ProgressBar({ startChapter, currentPoints, completionDat
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <div className="flex-1 flex flex-col items-center gap-2">
-            <span className="text-base font-bold" style={{ color: '#a78bfa' }}>1차 해방</span>
-            <div style={{ width: '100%', height: 3, background: 'rgba(167, 139, 250, 0.5)', borderRadius: 999 }} />
+            <span className="text-base font-bold" style={{ color: 'var(--liberation-primary)' }}>1차 해방</span>
+            <div style={{ width: '100%', height: 3, background: 'var(--liberation-primary-bar)', borderRadius: 999 }} />
           </div>
           <div className="flex-1 flex flex-col items-center gap-2">
-            <span className="text-base font-bold" style={{ color: '#fda4af' }}>2차 해방</span>
-            <div style={{ width: '100%', height: 3, background: 'rgba(253, 164, 175, 0.5)', borderRadius: 999 }} />
+            <span className="text-base font-bold" style={{ color: 'var(--liberation-secondary)' }}>2차 해방</span>
+            <div style={{ width: '100%', height: 3, background: 'var(--liberation-secondary-bar)', borderRadius: 999 }} />
           </div>
         </div>
         <div className="flex gap-2">
