@@ -48,14 +48,16 @@ function CharacterContent({ char, selections, bosses }) {
               draggable={false}
             />
           ) : (
-            <span className="text-gray-700 text-4xl">?</span>
+            <span className="text-4xl" style={{ color: 'var(--text-dim)' }}>?</span>
           )}
         </div>
 
         <div className="flex-1 min-w-0 space-y-2">
           <div className="flex items-baseline gap-2 min-w-0">
             <span className="text-base font-semibold truncate">{char.character_name}</span>
-            <span className="text-xs text-gray-500 truncate">Lv.{char.character_level} · {char.job_name}</span>
+            <span className="text-xs truncate" style={{ color: 'var(--text-dim)' }}>
+              Lv.{char.character_level} · {char.job_name}
+            </span>
           </div>
 
           {visibleBosses.length > 0 ? (
@@ -68,7 +70,13 @@ function CharacterContent({ char, selections, bosses }) {
                     text={`${diff?.label || ''} ${item.boss.name} · ${formatMeso(item.revenue)}`}
                   >
                     <div className="space-y-0.5">
-                      <div className="aspect-square rounded bg-gray-900 overflow-hidden border border-white/5">
+                      <div
+                        className="aspect-square rounded overflow-hidden border"
+                        style={{
+                          background: 'var(--surface-nested)',
+                          borderColor: 'var(--panel-border)',
+                        }}
+                      >
                         <img src={item.boss.image_url || '/default.png'} alt="" draggable={false} className="w-full h-full object-cover select-none" />
                       </div>
                       <div className="flex justify-center">
@@ -85,17 +93,38 @@ function CharacterContent({ char, selections, bosses }) {
               })}
             </div>
           ) : (
-            <div className="text-xs text-gray-600 italic h-[58px] flex items-center">보스 미선택</div>
+            <div
+              className="text-xs italic h-[58px] flex items-center"
+              style={{ color: 'var(--text-dim)' }}
+            >
+              보스 미선택
+            </div>
           )}
         </div>
       </div>
 
-      <div className="flex items-center justify-between border-t border-white/5 pt-2">
+      <div
+        className="flex items-center justify-between border-t pt-2"
+        style={{ borderColor: 'var(--panel-border)' }}
+      >
         <div className="flex items-baseline gap-1 tabular-nums">
-          <span className={`text-base font-bold ${count > 0 ? 'text-amber-300' : 'text-gray-600'}`}>{count}</span>
-          <span className="text-base font-bold text-amber-300/40">/ {MAX_PER_CHARACTER}</span>
+          <span
+            className="text-base font-bold"
+            style={{ color: count > 0 ? 'var(--warning-text-bright)' : 'var(--text-dim)' }}
+          >
+            {count}
+          </span>
+          <span
+            className="text-base font-bold"
+            style={{ color: count > 0 ? 'var(--warning-text-dim)' : 'var(--text-dim)' }}
+          >
+            / {MAX_PER_CHARACTER}
+          </span>
         </div>
-        <div className={`text-sm font-semibold tabular-nums whitespace-nowrap ${count > 0 ? 'text-emerald-300' : 'text-gray-700'}`}>
+        <div
+          className="text-sm font-semibold tabular-nums whitespace-nowrap"
+          style={{ color: count > 0 ? 'var(--accent-bright)' : 'var(--text-dim)' }}
+        >
           {count > 0 ? formatMeso(totalRevenue) : '-'}
         </div>
       </div>
@@ -122,17 +151,17 @@ function CharacterItem({ char, isSelected, selections, bosses, onSelect, onRemov
         if (e.target.closest('button')) return
         onSelect(char.character_name)
       }}
-      className={`group relative rounded-xl border cursor-pointer select-none ${
-        isSelected
-          ? 'border-emerald-500/40 bg-emerald-500/[0.08]'
-          : 'border-white/5 hover:border-white/15 bg-gray-950/40 hover:bg-gray-950/60'
-      }`}
+      className="group relative rounded-xl border cursor-pointer select-none"
+      style={{
+        borderColor: isSelected ? 'var(--selected-border)' : 'var(--panel-border)',
+        background: isSelected ? 'var(--selected-bg)' : 'var(--surface-3)',
+      }}
     >
       {/* 드래그 핸들 */}
       <div
         onPointerDown={(e) => { e.preventDefault(); dragControls.start(e) }}
-        className="absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center text-gray-600 hover:text-gray-400 cursor-grab active:cursor-grabbing"
-        style={{ touchAction: 'none' }}
+        className="absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center cursor-grab active:cursor-grabbing"
+        style={{ touchAction: 'none', color: 'var(--text-dim)' }}
       >
         <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
           <circle cx="3" cy="3" r="1.2" />
@@ -147,7 +176,8 @@ function CharacterItem({ char, isSelected, selections, bosses, onSelect, onRemov
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); onRemove(char) }}
-        className="absolute top-2 right-2 z-10 w-6 h-6 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition opacity-0 group-hover:opacity-100 flex items-center justify-center text-base"
+        className="absolute top-2 right-2 z-10 w-6 h-6 rounded opacity-0 group-hover:opacity-100 flex items-center justify-center text-base hover:bg-[var(--danger-bg-hover)] hover:text-[var(--danger-text)]"
+        style={{ color: 'var(--text-dim)' }}
         aria-label="삭제"
       >
         ×
@@ -222,13 +252,20 @@ export default function CharacterPanel({
   return (
     <div className="flex flex-col gap-4 min-h-0 flex-1">
       {/* 총 수익 카드 (고정) */}
-      <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 p-4 space-y-3 shrink-0">
+      <div
+        className="rounded-2xl border p-4 space-y-3 shrink-0"
+        style={{
+          borderColor: 'var(--selected-border)',
+          background: 'var(--selected-bg)',
+        }}
+      >
         <div>
-          <div className="text-xs text-emerald-200/80">총 주간 수익</div>
+          <div className="text-xs" style={{ color: 'var(--accent-bright)' }}>총 주간 수익</div>
           <div ref={totalContainerRef} className="mt-1 overflow-hidden">
             <div
               ref={totalTextRef}
-              className="font-bold text-emerald-300 leading-tight whitespace-nowrap inline-block"
+              className="font-bold leading-tight whitespace-nowrap inline-block"
+              style={{ color: 'var(--accent-bright)' }}
             >
               {totalText}
             </div>
@@ -237,25 +274,42 @@ export default function CharacterPanel({
 
         <div className="grid grid-cols-[1fr_auto] gap-x-3 items-center">
           <div className="space-y-2">
-            <div className="text-sm text-gray-400">총 결정 개수</div>
-            <div className="h-2 rounded-full bg-gray-900 overflow-hidden">
+            <div className="text-sm" style={{ color: 'var(--text-muted)' }}>총 결정 개수</div>
+            <div
+              className="h-2 rounded-full overflow-hidden"
+              style={{ background: 'var(--progress-track)' }}
+            >
               <div
-                className={`h-full transition-all ${totalCount > MAX_PER_ACCOUNT ? 'bg-amber-500' : 'bg-emerald-500'}`}
-                style={{ width: `${usagePct}%` }}
+                className="h-full transition-all"
+                style={{
+                  width: `${usagePct}%`,
+                  background: totalCount > MAX_PER_ACCOUNT ? 'var(--progress-amber)' : 'var(--progress-emerald)',
+                }}
               />
             </div>
           </div>
           <div className="flex items-baseline gap-1 tabular-nums">
-            <span className={`text-2xl font-bold leading-none ${totalCount > MAX_PER_ACCOUNT ? 'text-red-400' : 'text-amber-300'}`}>
+            <span
+              className="text-2xl font-bold leading-none"
+              style={{ color: totalCount > MAX_PER_ACCOUNT ? 'var(--danger-text)' : 'var(--warning-text-bright)' }}
+            >
               {accountUsage}
             </span>
-            <span className={`text-2xl font-bold leading-none ${totalCount > MAX_PER_ACCOUNT ? 'text-red-400/40' : 'text-amber-300/40'}`}>
+            <span
+              className="text-2xl font-bold leading-none"
+              style={{
+                color: totalCount > MAX_PER_ACCOUNT ? 'var(--danger-text)' : 'var(--warning-text-dim)',
+                opacity: totalCount > MAX_PER_ACCOUNT ? 0.4 : 1,
+              }}
+            >
               / {MAX_PER_ACCOUNT}
             </span>
           </div>
         </div>
         {totalCount > MAX_PER_ACCOUNT && (
-          <p className="text-[10px] text-amber-400">⚠ 한도 {totalCount - MAX_PER_ACCOUNT}개 초과</p>
+          <p className="text-[10px]" style={{ color: 'var(--warning-text)' }}>
+            ⚠ 한도 {totalCount - MAX_PER_ACCOUNT}개 초과
+          </p>
         )}
       </div>
 
@@ -263,7 +317,10 @@ export default function CharacterPanel({
       <div className="shrink-0">
         <form onSubmit={handleSubmit} className="flex gap-2">
           <div className="relative flex-1 min-w-0">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+            <span
+              className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+              style={{ color: 'var(--input-icon)' }}
+            >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" strokeWidth="1.5" />
                 <path d="M10 10L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -274,18 +331,30 @@ export default function CharacterPanel({
               value={name}
               onChange={(e) => { setName(e.target.value); if (error) setError('') }}
               placeholder="캐릭터 닉네임 검색"
-              className="w-full rounded-lg border-2 border-white/10 bg-gray-950 pl-10 pr-3 py-2.5 text-sm outline-none focus:border-emerald-500/60 hover:border-white/20 transition"
+              className="w-full rounded-lg border-2 pl-10 pr-3 py-2.5 text-sm outline-none transition focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
+              style={{
+                background: 'var(--input-bg)',
+                borderColor: 'var(--input-border)',
+                color: 'var(--text-strong)',
+              }}
             />
           </div>
           <button
             type="submit"
             disabled={searchMutation.isPending}
-            className="rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-5 py-2.5 text-sm font-medium transition shrink-0 shadow-lg shadow-emerald-500/20"
+            className="rounded-lg disabled:opacity-50 px-5 py-2.5 text-sm font-medium shrink-0 hover:bg-[var(--btn-primary-bg-hover)]"
+            style={{
+              background: 'var(--btn-primary-bg)',
+              color: 'var(--btn-primary-text)',
+              boxShadow: 'var(--btn-primary-shadow)',
+            }}
           >
             {searchMutation.isPending ? '...' : '추가'}
           </button>
         </form>
-        {error && <p className="text-xs text-red-400 mt-1.5">{error}</p>}
+        {error && (
+          <p className="text-xs mt-1.5" style={{ color: 'var(--danger-text)' }}>{error}</p>
+        )}
       </div>
 
       {/* 캐릭터 목록 (스크롤) */}

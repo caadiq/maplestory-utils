@@ -76,6 +76,53 @@
   --maintenance-text: #fbbf24;
 
   --dashed-border: rgba(255, 255, 255, 0.1);
+
+  --surface-2: rgba(2, 6, 23, 0.6);
+  --surface-3: rgba(17, 24, 39, 0.4);
+  --surface-nested: #0f172a;
+
+  --input-bg: #020617;
+  --input-border: rgba(255, 255, 255, 0.1);
+  --input-border-hover: rgba(255, 255, 255, 0.2);
+  --input-border-focus: rgba(16, 185, 129, 0.5);
+  --input-placeholder: #6b7280;
+  --input-icon: #6b7280;
+
+  --selected-bg: rgba(16, 185, 129, 0.08);
+  --selected-border: rgba(16, 185, 129, 0.4);
+  --option-selected-bg: rgba(16, 185, 129, 0.12);
+  --option-selected-text: #6ee7b7;
+
+  --btn-primary-bg: #059669;
+  --btn-primary-bg-hover: #10b981;
+  --btn-primary-text: #ffffff;
+  --btn-primary-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);
+
+  --danger-text: #f87171;
+  --danger-text-strong: #dc2626;
+  --danger-bg-hover: rgba(239, 68, 68, 0.1);
+  --warning-text: #fbbf24;
+  --warning-text-bright: #fcd34d;
+  --warning-text-dim: rgba(252, 211, 77, 0.4);
+
+  --progress-track: #0f172a;
+  --progress-emerald: #10b981;
+  --progress-amber: #f59e0b;
+
+  --accent-bright: #6ee7b7;
+  --accent-muted: rgba(16, 185, 129, 0.1);
+  --accent-text-on-emerald: #ecfdf5;
+
+  --tooltip-bg: #111827;
+  --tooltip-border: rgba(255, 255, 255, 0.1);
+  --tooltip-text: #e5e7eb;
+
+  --popup-bg: #111827;
+  --popup-border: rgba(255, 255, 255, 0.1);
+  --popup-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+
+  --disabled-opacity: 0.3;
+  --inactive-filter: brightness(0.4);
 }
 
 /* 테마 토큰 - light */
@@ -148,6 +195,53 @@
   --maintenance-text: #b45309;
 
   --dashed-border: rgba(0, 0, 0, 0.12);
+
+  --surface-2: #f8fafc;
+  --surface-3: #f9fafb;
+  --surface-nested: #f3f4f6;
+
+  --input-bg: #ffffff;
+  --input-border: rgba(0, 0, 0, 0.12);
+  --input-border-hover: rgba(0, 0, 0, 0.22);
+  --input-border-focus: rgba(5, 150, 105, 0.55);
+  --input-placeholder: #9ca3af;
+  --input-icon: #94a3b8;
+
+  --selected-bg: rgba(16, 185, 129, 0.08);
+  --selected-border: rgba(5, 150, 105, 0.5);
+  --option-selected-bg: rgba(16, 185, 129, 0.12);
+  --option-selected-text: #047857;
+
+  --btn-primary-bg: #059669;
+  --btn-primary-bg-hover: #047857;
+  --btn-primary-text: #ffffff;
+  --btn-primary-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+
+  --danger-text: #dc2626;
+  --danger-text-strong: #b91c1c;
+  --danger-bg-hover: rgba(220, 38, 38, 0.08);
+  --warning-text: #c2410c;
+  --warning-text-bright: #ea580c;
+  --warning-text-dim: rgba(234, 88, 12, 0.4);
+
+  --progress-track: #e5e7eb;
+  --progress-emerald: #10b981;
+  --progress-amber: #f59e0b;
+
+  --accent-bright: #047857;
+  --accent-muted: rgba(16, 185, 129, 0.1);
+  --accent-text-on-emerald: #ecfdf5;
+
+  --tooltip-bg: #111827;
+  --tooltip-border: rgba(255, 255, 255, 0.08);
+  --tooltip-text: #f3f4f6;
+
+  --popup-bg: #ffffff;
+  --popup-border: rgba(0, 0, 0, 0.1);
+  --popup-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+
+  --disabled-opacity: 0.5;
+  --inactive-filter: opacity(0.25);
 }
 
 html, body, #root {

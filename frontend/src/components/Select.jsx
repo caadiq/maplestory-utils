@@ -61,35 +61,49 @@ export default function Select({ value, onChange, options, disabled, className =
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: flipUp ? 6 : -6, scale: 0.98 }}
           transition={{ duration: 0.15 }}
-          className={`fixed z-[100] rounded-lg border border-white/10 bg-gray-900 text-white shadow-xl overflow-hidden ${
+          className={`fixed z-[100] rounded-lg border overflow-hidden ${
             flipUp ? 'origin-bottom' : 'origin-top'
           }`}
-          style={
-            flipUp
+          style={{
+            background: 'var(--popup-bg)',
+            borderColor: 'var(--popup-border)',
+            boxShadow: 'var(--popup-shadow)',
+            color: 'var(--text-strong)',
+            ...(flipUp
               ? { bottom: pos.bottomOffset + 4, left: pos.left, minWidth: pos.width }
               : { top: pos.top + 4, left: pos.left, minWidth: pos.width }
-          }
+            ),
+          }}
         >
           <div className="max-h-60 overflow-y-auto py-1">
-            {options.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => { onChange(opt.value); setOpen(false) }}
-                className={`w-full text-left px-3 py-2.5 text-sm transition flex items-center gap-2 ${
-                  opt.value === value
-                    ? 'bg-emerald-500/10 text-emerald-300'
-                    : 'hover:bg-white/5'
-                }`}
-              >
-                {opt.value === value && (
-                  <svg className="w-3 h-3 shrink-0" viewBox="0 0 12 12" fill="none">
-                    <path d="M2.5 6L5 8.5L9.5 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                )}
-                <span className={opt.value !== value ? 'pl-5' : ''}>{opt.label}</span>
-              </button>
-            ))}
+            {options.map((opt) => {
+              const isActive = opt.value === value
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => { onChange(opt.value); setOpen(false) }}
+                  className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-2"
+                  style={isActive ? {
+                    background: 'var(--option-selected-bg)',
+                    color: 'var(--option-selected-text)',
+                  } : undefined}
+                  onMouseEnter={(e) => {
+                    if (!isActive) e.currentTarget.style.background = 'var(--row-hover-bg)'
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) e.currentTarget.style.background = ''
+                  }}
+                >
+                  {isActive && (
+                    <svg className="w-3 h-3 shrink-0" viewBox="0 0 12 12" fill="none">
+                      <path d="M2.5 6L5 8.5L9.5 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                  <span className={!isActive ? 'pl-5' : ''}>{opt.label}</span>
+                </button>
+              )
+            })}
           </div>
         </motion.div>
       )}
@@ -103,14 +117,24 @@ export default function Select({ value, onChange, options, disabled, className =
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen((v) => !v)}
-        className={`w-full flex items-center justify-between gap-2 rounded-lg border bg-gray-950 px-3 py-2 text-sm transition outline-none ${
-          open ? 'border-emerald-500/50' : 'border-white/10 hover:border-white/20'
-        } ${disabled ? 'opacity-50 !cursor-default' : ''}`}
+        className={`w-full flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm outline-none ${
+          disabled ? 'opacity-50 !cursor-default' : ''
+        }`}
+        style={{
+          background: 'var(--input-bg)',
+          borderColor: open ? 'var(--input-border-focus)' : 'var(--input-border)',
+          color: 'var(--text-strong)',
+        }}
       >
-        <span className={selected ? '' : 'text-gray-500'}>
+        <span style={{ color: selected ? 'var(--text-strong)' : 'var(--input-placeholder)' }}>
           {selected ? selected.label : placeholder}
         </span>
-        <svg className={`w-3.5 h-3.5 text-gray-500 transition ${open ? 'rotate-180' : ''}`} viewBox="0 0 12 12" fill="none">
+        <svg
+          className={`w-3.5 h-3.5 transition ${open ? 'rotate-180' : ''}`}
+          style={{ color: 'var(--input-icon)' }}
+          viewBox="0 0 12 12"
+          fill="none"
+        >
           <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>

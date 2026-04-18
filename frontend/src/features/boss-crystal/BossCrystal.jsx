@@ -72,12 +72,26 @@ export default function BossCrystal() {
   return (
     <div className="h-full">
       {isLoading ? (
-        <div className="rounded-2xl border border-white/5 bg-gray-900/40 p-16 text-center">
-          <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
+        <div
+          className="rounded-2xl border p-16 text-center"
+          style={{
+            background: 'var(--panel-bg)',
+            borderColor: 'var(--panel-border)',
+            boxShadow: 'var(--panel-shadow)',
+          }}
+        >
+          <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mx-auto" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[420px_1fr] h-full min-h-0">
-          <div className="rounded-2xl border border-white/5 bg-gray-900/40 p-4 min-h-0 max-h-full self-start overflow-hidden flex flex-col">
+          <div
+            className="rounded-2xl border p-4 min-h-0 max-h-full self-start overflow-hidden flex flex-col"
+            style={{
+              background: 'var(--panel-bg)',
+              borderColor: 'var(--panel-border)',
+              boxShadow: 'var(--panel-shadow)',
+            }}
+          >
             <CharacterPanel
               characters={characters}
               selectedName={selectedChar}
