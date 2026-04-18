@@ -63,24 +63,22 @@ function CharacterCard({ char, active, onSelect, onRemove }) {
         if (e.target.closest('button')) return
         onSelect()
       }}
-      className={`group relative shrink-0 w-36 rounded-xl border cursor-pointer select-none transition ${
-        active
-          ? 'border-emerald-500/40 bg-emerald-500/[0.08]'
-          : 'border-white/5 hover:border-white/15 bg-gray-950/40 hover:bg-gray-950/60'
-      }`}
+      className="group relative shrink-0 w-36 rounded-xl border cursor-pointer select-none"
+      style={{
+        borderColor: active ? 'var(--selected-border)' : 'var(--panel-border)',
+        background: active ? 'var(--selected-bg)' : 'var(--surface-3)',
+      }}
     >
-      {/* 삭제 (우상단) */}
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); onRemove() }}
-        style={{ position: 'absolute', top: 6, right: 6, zIndex: 10 }}
-        className="w-6 h-6 rounded-md text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition flex items-center justify-center text-base leading-none"
+        style={{ position: 'absolute', top: 6, right: 6, zIndex: 10, color: 'var(--text-dim)' }}
+        className="w-6 h-6 rounded-md hover:bg-[var(--danger-bg-hover)] hover:text-[var(--danger-text)] flex items-center justify-center text-base leading-none"
         aria-label="삭제"
       >
         ×
       </button>
 
-      {/* 내용 */}
       <div className="pt-3 px-3 pb-3 flex flex-col items-center text-center">
         <div className="w-24 h-24 overflow-hidden flex items-center justify-center">
           {char.character_image ? (
@@ -92,13 +90,19 @@ function CharacterCard({ char, active, onSelect, onRemove }) {
               draggable={false}
             />
           ) : (
-            <span className="text-gray-600 text-3xl">?</span>
+            <span className="text-3xl" style={{ color: 'var(--text-dim)' }}>?</span>
           )}
         </div>
-        <div className={`mt-2 text-base font-semibold truncate w-full ${active ? 'text-emerald-200' : 'text-gray-200'}`}>
+        <div
+          className="mt-2 text-base font-semibold truncate w-full"
+          style={{ color: active ? 'var(--accent-bright)' : 'var(--text-emphasis)' }}
+        >
           {char.character_name}
         </div>
-        <div className="text-xs text-gray-500 tabular-nums mt-0.5 truncate w-full">
+        <div
+          className="text-xs tabular-nums mt-0.5 truncate w-full"
+          style={{ color: 'var(--text-dim)' }}
+        >
           Lv.{char.character_level} · {char.job_name}
         </div>
       </div>
@@ -177,14 +181,23 @@ function SymbolCard({ symbol, equipped, charId }) {
     })
   }, [equipped, isMax, remainingSymbols, daily, weeklyCount, symbol.weekly_default, extra, dailyDone])
 
+  const inputClass = "w-full h-10 rounded-md border px-3 text-base text-right tabular-nums outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)] disabled:opacity-50"
+
   return (
-    <div className={`rounded-2xl border p-5 transition ${
-      equipped
-        ? 'border-white/10 bg-gray-900/60 hover:border-white/20'
-        : 'border-white/5 bg-gray-950/40 opacity-60'
-    }`}>
+    <div
+      className="rounded-2xl border p-5"
+      style={{
+        background: 'var(--panel-bg)',
+        borderColor: 'var(--panel-border)',
+        boxShadow: 'var(--panel-shadow)',
+        opacity: equipped ? 1 : 0.6,
+      }}
+    >
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-14 h-14 rounded-lg bg-gray-950 overflow-hidden shrink-0 flex items-center justify-center">
+        <div
+          className="w-14 h-14 rounded-lg overflow-hidden shrink-0 flex items-center justify-center"
+          style={{ background: 'var(--surface-nested)' }}
+        >
           {symbol.image_url && (
             <img
               src={symbol.image_url}
@@ -195,10 +208,13 @@ function SymbolCard({ symbol, equipped, charId }) {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-base font-semibold text-gray-100 truncate">{symbol.region}</div>
-          <div className="text-sm text-gray-400 tabular-nums mt-0.5">
-            Lv.<span className="text-emerald-300 font-bold text-base">{level}</span>
-            <span className="text-gray-600"> / {symbol.max_level}</span>
+          <div className="text-base font-semibold truncate">{symbol.region}</div>
+          <div
+            className="text-sm tabular-nums mt-0.5"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Lv.<span className="font-bold text-base" style={{ color: 'var(--accent-bright)' }}>{level}</span>
+            <span style={{ color: 'var(--text-dim)' }}> / {symbol.max_level}</span>
           </div>
         </div>
         {equipped && !isMax && !effectivelyMax && (
@@ -206,11 +222,16 @@ function SymbolCard({ symbol, equipped, charId }) {
             type="button"
             onClick={() => patch({ dailyDone: !dailyDone })}
             title="오늘 일퀘 완료 여부"
-            className={`shrink-0 rounded-md h-8 px-3 text-xs font-semibold border transition disabled:opacity-40 disabled:cursor-not-allowed ${
-              dailyDone
-                ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
-                : 'bg-red-500/10 border-red-500/40 text-red-300 hover:bg-red-500/20'
-            }`}
+            className="shrink-0 rounded-md h-8 px-3 text-xs font-semibold border disabled:opacity-40 disabled:cursor-not-allowed"
+            style={dailyDone ? {
+              background: 'var(--selected-bg)',
+              borderColor: 'var(--selected-border)',
+              color: 'var(--accent-bright)',
+            } : {
+              background: 'var(--danger-bg-hover)',
+              borderColor: 'var(--icon-danger-border)',
+              color: 'var(--danger-text)',
+            }}
           >
             {dailyDone ? '금일 일퀘 완료' : '금일 일퀘 미완료'}
           </button>
@@ -221,36 +242,42 @@ function SymbolCard({ symbol, equipped, charId }) {
       <div className="mb-4">
         <div className="flex justify-between text-sm tabular-nums mb-1.5">
           {isMax ? (
-            <span className="text-gray-400">
-              성장치 <span className="text-amber-300 font-bold">MAX</span>
+            <span style={{ color: 'var(--text-muted)' }}>
+              성장치 <span className="font-bold" style={{ color: 'var(--warning-text-bright)' }}>MAX</span>
             </span>
           ) : effectivelyMax ? (
             <Tooltip text={`Lv.${symbol.max_level}까지 상승 가능`}>
-              <span className="text-gray-400">
-                성장치 {growth} <span className="text-amber-300 font-bold">(MAX)</span> / {requireGrowth}
+              <span style={{ color: 'var(--text-muted)' }}>
+                성장치 {growth} <span className="font-bold" style={{ color: 'var(--warning-text-bright)' }}>(MAX)</span> / {requireGrowth}
               </span>
             </Tooltip>
           ) : reachableLevel > level ? (
             <Tooltip text={`Lv.${reachableLevel}까지 상승 가능`}>
-              <span className="text-gray-400">
+              <span style={{ color: 'var(--text-muted)' }}>
                 성장치 {growth} / {requireGrowth}
               </span>
             </Tooltip>
           ) : (
-            <span className="text-gray-400">
+            <span style={{ color: 'var(--text-muted)' }}>
               성장치 {growth} / {requireGrowth}
             </span>
           )}
           {!isMax && !effectivelyMax && (
-            <span className="text-gray-400">
+            <span style={{ color: 'var(--text-muted)' }}>
               {requireGrowth ? Math.min(Math.floor((growth / requireGrowth) * 100), 100) : 0}%
             </span>
           )}
         </div>
-        <div className="h-2 rounded-full bg-gray-950 overflow-hidden">
+        <div
+          className="h-2 rounded-full overflow-hidden"
+          style={{ background: 'var(--progress-track)' }}
+        >
           <div
-            className={`h-full transition-all ${isMax || effectivelyMax ? 'bg-amber-400' : 'bg-emerald-500/80'}`}
-            style={{ width: isMax || effectivelyMax ? '100%' : `${Math.min((growth / requireGrowth) * 100, 100)}%` }}
+            className="h-full transition-all"
+            style={{
+              width: isMax || effectivelyMax ? '100%' : `${Math.min((growth / requireGrowth) * 100, 100)}%`,
+              background: isMax || effectivelyMax ? 'var(--progress-amber)' : 'var(--progress-emerald)',
+            }}
           />
         </div>
       </div>
@@ -261,19 +288,24 @@ function SymbolCard({ symbol, equipped, charId }) {
         style={{ gridTemplateColumns: symbol.weekly_default > 0 ? '0.7fr 1.3fr 1fr' : '1fr 1fr' }}
       >
         <div className="space-y-1">
-          <label className="block text-xs text-gray-400">일퀘 획득</label>
+          <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>일퀘 획득</label>
           <input
             type="text"
             inputMode="numeric"
             value={equipped ? String(daily) : '0'}
             onChange={(e) => patch({ daily: Number(e.target.value.replace(/[^\d]/g, '')) || 0 })}
             disabled={!interactable}
-            className="w-full h-10 rounded-md border border-white/10 bg-gray-950 px-3 text-base text-right tabular-nums outline-none focus:border-emerald-500/50 hover:border-white/20 disabled:opacity-50 transition"
+            className={inputClass}
+            style={{
+              background: 'var(--input-bg)',
+              borderColor: 'var(--input-border)',
+              color: 'var(--text-strong)',
+            }}
           />
         </div>
         {symbol.weekly_default > 0 && (
           <div className="space-y-1">
-            <label className="block text-xs text-gray-400">주간퀘 획득</label>
+            <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>주간퀘 획득</label>
             <Select
               value={weeklyCount}
               onChange={(v) => patch({ weeklyCount: v })}
@@ -286,62 +318,51 @@ function SymbolCard({ symbol, equipped, charId }) {
           </div>
         )}
         <div className="space-y-1">
-          <label className="block text-xs text-gray-400">추가 심볼</label>
+          <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>추가 심볼</label>
           <input
             type="text"
             inputMode="numeric"
             value={equipped ? String(extra) : '0'}
             onChange={(e) => patch({ extra: Number(e.target.value.replace(/[^\d]/g, '')) || 0 })}
             disabled={!interactable}
-            className="w-full h-10 rounded-md border border-white/10 bg-gray-950 px-3 text-base text-right tabular-nums outline-none focus:border-emerald-500/50 hover:border-white/20 disabled:opacity-50 transition"
+            className={inputClass}
+            style={{
+              background: 'var(--input-bg)',
+              borderColor: 'var(--input-border)',
+              color: 'var(--text-strong)',
+            }}
           />
         </div>
       </div>
 
       {/* 정보 */}
-      <div className="divide-y divide-white/5 text-base">
-        <div className="flex justify-between py-2">
-          <span className="text-gray-400">남은 심볼</span>
-          <span className="tabular-nums text-gray-200 font-medium">
-            {equipped && !isMax && !effectivelyMax ? `${remainingSymbols.toLocaleString()}개` : '-'}
-          </span>
-        </div>
-        <div className="flex justify-between py-2">
-          <span className="text-gray-400">필요 메소</span>
-          {equipped && !isMax ? (
-            <Tooltip text={formatMesoKorean(remainingMeso)}>
-              <span className="tabular-nums text-amber-300 font-medium">
-                {remainingMeso.toLocaleString()}
+      <div className="text-base">
+        {[
+          { label: '남은 심볼', value: equipped && !isMax && !effectivelyMax ? `${remainingSymbols.toLocaleString()}개` : '-', color: 'var(--text-emphasis)' },
+          { label: '필요 메소', value: equipped && !isMax ? remainingMeso.toLocaleString() : '-', color: 'var(--warning-text-bright)', tooltip: equipped && !isMax ? formatMesoKorean(remainingMeso) : null },
+          { label: '체납 메소', value: equipped && !isMax ? arrearMeso.toLocaleString() : '-', color: 'var(--danger-text)', tooltip: equipped && !isMax ? formatMesoKorean(arrearMeso) : null },
+          { label: '남은 일수', value: equipped && !isMax && !effectivelyMax && daysLeft != null ? `${daysLeft.toLocaleString()}일` : '-', color: 'var(--text-emphasis)' },
+          { label: '예상 완료일', value: equipped && !isMax && !effectivelyMax && completeDate ? formatKoreanDate(completeDate) : '-', color: equipped && !isMax && !effectivelyMax && completeDate ? 'var(--accent-bright)' : 'var(--text-dim)', strong: true },
+        ].map((row, i) => (
+          <div
+            key={row.label}
+            className="flex justify-between py-2 border-t first:border-t-0"
+            style={{ borderColor: 'var(--row-divider)' }}
+          >
+            <span style={{ color: 'var(--text-muted)' }}>{row.label}</span>
+            {row.tooltip ? (
+              <Tooltip text={row.tooltip}>
+                <span className={`tabular-nums ${row.strong ? 'font-semibold' : 'font-medium'}`} style={{ color: row.color }}>
+                  {row.value}
+                </span>
+              </Tooltip>
+            ) : (
+              <span className={`tabular-nums ${row.strong ? 'font-semibold' : 'font-medium'}`} style={{ color: row.color }}>
+                {row.value}
               </span>
-            </Tooltip>
-          ) : (
-            <span className="tabular-nums text-amber-300 font-medium">-</span>
-          )}
-        </div>
-        <div className="flex justify-between py-2">
-          <span className="text-gray-400">체납 메소</span>
-          {equipped && !isMax ? (
-            <Tooltip text={formatMesoKorean(arrearMeso)}>
-              <span className="tabular-nums text-red-400 font-medium">
-                {arrearMeso.toLocaleString()}
-              </span>
-            </Tooltip>
-          ) : (
-            <span className="tabular-nums text-red-400 font-medium">-</span>
-          )}
-        </div>
-        <div className="flex justify-between py-2">
-          <span className="text-gray-400">남은 일수</span>
-          <span className="tabular-nums text-gray-200 font-medium">
-            {equipped && !isMax && !effectivelyMax && daysLeft != null ? `${daysLeft.toLocaleString()}일` : '-'}
-          </span>
-        </div>
-        <div className="flex justify-between py-2">
-          <span className="text-gray-400">예상 완료일</span>
-          <span className={`tabular-nums font-semibold ${equipped && !isMax && !effectivelyMax && completeDate ? 'text-emerald-300' : 'text-gray-600'}`}>
-            {equipped && !isMax && !effectivelyMax && completeDate ? formatKoreanDate(completeDate) : '-'}
-          </span>
-        </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -383,7 +404,7 @@ export default function Symbol() {
 
   const tab = storedTab || tabs[0]?.key || null
   const setTab = (t) => { if (selectedCharId) setTabStore(selectedCharId, t) }
-
+  
   // 각 캐릭터 기본정보(코디 이미지) 새로고침
   const basicQueries = useQueries({
     queries: characters.map((c) => ({
@@ -526,10 +547,20 @@ export default function Symbol() {
   return (
     <div className="space-y-6 pb-10 max-w-5xl mx-auto">
       {/* 캐릭터 조회 */}
-      <div className="rounded-2xl border border-white/10 bg-gray-900/60 p-5 space-y-4">
+      <div
+        className="rounded-2xl border p-5 space-y-4"
+        style={{
+          background: 'var(--panel-bg)',
+          borderColor: 'var(--panel-border)',
+          boxShadow: 'var(--panel-shadow)',
+        }}
+      >
         <form onSubmit={handleSearch} className="flex items-center gap-2">
           <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+            <span
+              className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+              style={{ color: 'var(--input-icon)' }}
+            >
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                 <circle cx="8" cy="8" r="5" stroke="currentColor" strokeWidth="1.5" />
                 <path d="M12 12L16 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -540,18 +571,30 @@ export default function Symbol() {
               value={addName}
               onChange={(e) => { setAddName(e.target.value); if (addError) setAddError('') }}
               placeholder="캐릭터 닉네임으로 장착 심볼 불러오기"
-              className="w-full h-12 box-border rounded-lg border border-white/10 bg-gray-950 pl-10 pr-4 text-base outline-none focus:border-emerald-500/60 hover:border-white/20 transition"
+              className="w-full h-12 box-border rounded-lg border pl-10 pr-4 text-base outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
+              style={{
+                background: 'var(--input-bg)',
+                borderColor: 'var(--input-border)',
+                color: 'var(--text-strong)',
+              }}
             />
           </div>
           <button
             type="submit"
             disabled={searchMutation.isPending}
-            className="shrink-0 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-6 h-12 text-base font-semibold shadow-lg shadow-emerald-500/20 transition"
+            className="shrink-0 rounded-lg disabled:opacity-50 px-6 h-12 text-base font-semibold hover:bg-[var(--btn-primary-bg-hover)]"
+            style={{
+              background: 'var(--btn-primary-bg)',
+              color: 'var(--btn-primary-text)',
+              boxShadow: 'var(--btn-primary-shadow)',
+            }}
           >
             {searchMutation.isPending ? '...' : '조회'}
           </button>
         </form>
-        {addError && <p className="text-sm text-red-400">{addError}</p>}
+        {addError && (
+          <p className="text-sm" style={{ color: 'var(--danger-text)' }}>{addError}</p>
+        )}
 
         {/* 캐릭터 목록 */}
         {characters.length > 0 && (
@@ -571,25 +614,34 @@ export default function Symbol() {
 
       {/* 심볼 타입 탭 */}
       <div className="flex gap-2">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setTab(t.key)}
-            className={`flex-1 flex items-center justify-center gap-2.5 rounded-2xl border px-4 py-3 transition ${
-              tab === t.key
-                ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200 shadow-lg shadow-emerald-500/10'
-                : 'border-white/10 bg-gray-900/40 text-gray-400 hover:border-white/20 hover:text-gray-200'
-            }`}
-          >
-            {t.image_url ? (
-              <img src={t.image_url} alt="" className="w-8 h-8 object-contain" style={{ imageRendering: 'pixelated' }} />
-            ) : (
-              <div className="w-8 h-8 bg-gray-800 rounded" />
-            )}
-            <span className="text-base font-semibold">{t.label}</span>
-          </button>
-        ))}
+        {tabs.map((t) => {
+          const active = tab === t.key
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className="flex-1 flex items-center justify-center gap-2.5 rounded-2xl border px-4 py-3"
+              style={active ? {
+                background: 'var(--selected-bg)',
+                borderColor: 'var(--selected-border)',
+                color: 'var(--accent-bright)',
+                boxShadow: 'var(--btn-primary-shadow)',
+              } : {
+                background: 'var(--panel-bg)',
+                borderColor: 'var(--panel-border)',
+                color: 'var(--text-muted)',
+              }}
+            >
+              {t.image_url ? (
+                <img src={t.image_url} alt="" className="w-8 h-8 object-contain" style={{ imageRendering: 'pixelated' }} />
+              ) : (
+                <div className="w-8 h-8 rounded" style={{ background: 'var(--surface-nested)' }} />
+              )}
+              <span className="text-base font-semibold">{t.label}</span>
+            </button>
+          )
+        })}
       </div>
 
       {/* 심볼 카드 그리드 */}
@@ -600,27 +652,45 @@ export default function Symbol() {
       </div>
 
       {/* 전체 요약 */}
-      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-500/10 to-emerald-500/[0.02] p-6 flex items-center justify-between gap-6 flex-wrap">
+      <div
+        className="rounded-2xl border p-6 flex items-center justify-between gap-6 flex-wrap"
+        style={{
+          background: 'var(--selected-bg)',
+          borderColor: 'var(--selected-border)',
+          boxShadow: 'var(--panel-shadow)',
+        }}
+      >
         <div>
-          <div className="text-base text-gray-400">{tabInfo?.label} 전체 만렙 완료 예상일</div>
-          <div className="text-3xl font-bold text-emerald-300 tabular-nums mt-1.5">
+          <div className="text-base" style={{ color: 'var(--text-muted)' }}>
+            {tabInfo?.label} 전체 만렙 완료 예상일
+          </div>
+          <div
+            className="text-3xl font-bold tabular-nums mt-1.5"
+            style={{ color: 'var(--accent-bright)' }}
+          >
             {overallDate ? formatKoreanDate(overallDate) : '-'}
           </div>
         </div>
         <div className="flex items-center">
           <div className="text-right pr-10">
-            <div className="text-base text-gray-400">누적 체납 메소</div>
+            <div className="text-base" style={{ color: 'var(--text-muted)' }}>누적 체납 메소</div>
             <Tooltip text={formatMesoKorean(totalArrearMeso)}>
-              <div className="text-2xl font-bold text-red-400 tabular-nums mt-1 inline-block">
+              <div
+                className="text-2xl font-bold tabular-nums mt-1 inline-block"
+                style={{ color: 'var(--danger-text)' }}
+              >
                 {totalArrearMeso.toLocaleString()}
               </div>
             </Tooltip>
           </div>
-          <div className="w-px h-12 bg-white/10" />
+          <div className="w-px h-12" style={{ background: 'var(--panel-border)' }} />
           <div className="text-right pl-10">
-            <div className="text-base text-gray-400">남은 필요 메소</div>
+            <div className="text-base" style={{ color: 'var(--text-muted)' }}>남은 필요 메소</div>
             <Tooltip text={formatMesoKorean(totalRequiredMeso)}>
-              <div className="text-2xl font-bold text-amber-300 tabular-nums mt-1 inline-block">
+              <div
+                className="text-2xl font-bold tabular-nums mt-1 inline-block"
+                style={{ color: 'var(--warning-text-bright)' }}
+              >
                 {totalRequiredMeso.toLocaleString()}
               </div>
             </Tooltip>
