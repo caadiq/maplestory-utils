@@ -332,7 +332,7 @@ export default function CharacterPanel({
               value={name}
               onChange={(e) => { setName(e.target.value); if (error) setError('') }}
               placeholder="캐릭터 닉네임 검색"
-              className="w-full rounded-lg border-2 pl-10 pr-3 py-2.5 text-sm outline-none transition focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
+              className="w-full rounded-lg border-2 pl-10 pr-3 py-2.5 text-sm outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
               style={{
                 background: 'var(--input-bg)',
                 borderColor: 'var(--input-border)',

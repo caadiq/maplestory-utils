@@ -123,6 +123,23 @@
 
   --disabled-opacity: 0.3;
   --inactive-filter: brightness(0.4);
+
+  --dialog-bg-from: #111827;
+  --dialog-bg-to: #030712;
+  --dialog-border: rgba(255, 255, 255, 0.1);
+  --dialog-backdrop: rgba(0, 0, 0, 0.7);
+
+  --icon-danger-bg: rgba(239, 68, 68, 0.1);
+  --icon-danger-border: rgba(239, 68, 68, 0.3);
+  --icon-info-bg: rgba(16, 185, 129, 0.1);
+  --icon-info-border: rgba(16, 185, 129, 0.3);
+
+  --ring-danger: rgba(239, 68, 68, 0.2);
+  --ring-info: rgba(16, 185, 129, 0.2);
+
+  --btn-danger-bg: #dc2626;
+  --btn-danger-bg-hover: #ef4444;
+  --btn-danger-shadow: 0 4px 14px rgba(239, 68, 68, 0.2);
 }
 
 /* 테마 토큰 - light */
@@ -242,6 +259,23 @@
 
   --disabled-opacity: 0.5;
   --inactive-filter: opacity(0.25);
+
+  --dialog-bg-from: #ffffff;
+  --dialog-bg-to: #ffffff;
+  --dialog-border: rgba(0, 0, 0, 0.1);
+  --dialog-backdrop: rgba(15, 23, 42, 0.45);
+
+  --icon-danger-bg: rgba(220, 38, 38, 0.08);
+  --icon-danger-border: rgba(220, 38, 38, 0.3);
+  --icon-info-bg: rgba(16, 185, 129, 0.08);
+  --icon-info-border: rgba(5, 150, 105, 0.4);
+
+  --ring-danger: rgba(220, 38, 38, 0.15);
+  --ring-info: rgba(16, 185, 129, 0.18);
+
+  --btn-danger-bg: #dc2626;
+  --btn-danger-bg-hover: #b91c1c;
+  --btn-danger-shadow: 0 4px 14px rgba(220, 38, 38, 0.25);
 }
 
 html, body, #root {
