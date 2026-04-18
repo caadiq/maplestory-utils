@@ -67,7 +67,7 @@ export default function AdminHome() {
   })
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-5xl mx-auto pt-6">
       {/* 메뉴 섹션 */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
