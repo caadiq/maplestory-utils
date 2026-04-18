@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Reorder, useDragControls } from 'framer-motion'
+import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../../api/client'
 import ConfirmDialog from '../../../components/ConfirmDialog'
 import Tooltip from '../../../components/Tooltip'
@@ -359,26 +360,34 @@ export default function CharacterPanel({
 
       {/* 캐릭터 목록 (스크롤) */}
       {characters.length > 0 && (
-        <div className="flex-1 min-h-0 overflow-y-auto -mx-4 px-4">
-          <Reorder.Group
-            axis="y"
-            values={characters}
-            onReorder={onReorder}
-            className="space-y-2"
-          >
-            {characters.map((char) => (
-              <CharacterItem
-                key={char.character_name}
-                char={char}
-                isSelected={selectedName === char.character_name}
-                selections={allSelections[char.character_name] || {}}
-                bosses={bosses}
-                onSelect={onSelect}
-                onRemove={setConfirmRemove}
-              />
-            ))}
-          </Reorder.Group>
-        </div>
+        <OverlayScrollbarsComponent
+          className="flex-1 min-h-0 -mx-4"
+          options={{
+            scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 },
+          }}
+          defer
+        >
+          <div className="px-4">
+            <Reorder.Group
+              axis="y"
+              values={characters}
+              onReorder={onReorder}
+              className="space-y-2"
+            >
+              {characters.map((char) => (
+                <CharacterItem
+                  key={char.character_name}
+                  char={char}
+                  isSelected={selectedName === char.character_name}
+                  selections={allSelections[char.character_name] || {}}
+                  bosses={bosses}
+                  onSelect={onSelect}
+                  onRemove={setConfirmRemove}
+                />
+              ))}
+            </Reorder.Group>
+          </div>
+        </OverlayScrollbarsComponent>
       )}
 
       <ConfirmDialog
