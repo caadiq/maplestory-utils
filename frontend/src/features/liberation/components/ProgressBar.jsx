@@ -19,9 +19,13 @@ export default function ProgressBar({ startChapter, currentPoints, completionDat
 
   const renderSegment = ({ chapter, status, current }) => {
     const pct = (current / chapter.required) * 100
-    const bg = status === 'done' ? '#10b981' : status === 'active' ? '#fbbf24' : 'transparent'
+    const bg = status === 'done' ? 'var(--progress-emerald)' : status === 'active' ? 'var(--progress-amber)' : 'transparent'
     return (
-      <div key={`seg-${chapter.idx}`} className="flex-1 h-2 rounded bg-gray-900 overflow-hidden">
+      <div
+        key={`seg-${chapter.idx}`}
+        className="flex-1 h-2 rounded overflow-hidden"
+        style={{ background: 'var(--progress-track)' }}
+      >
         <div
           className="h-full transition-all"
           style={{ width: `${pct}%`, background: bg }}
@@ -32,7 +36,7 @@ export default function ProgressBar({ startChapter, currentPoints, completionDat
 
   const renderPortrait = ({ chapter, status }) => (
     <div key={`p-${chapter.idx}`} className="flex-1 flex flex-col items-center gap-1.5 min-w-0">
-      <div className={`w-full aspect-square rounded-lg overflow-hidden transition ${
+      <div className={`w-full aspect-square rounded-lg overflow-hidden ${
         status === 'active' ? 'shadow-lg shadow-amber-500/20' :
         status === 'pending' ? 'opacity-50' : ''
       }`}>
@@ -42,19 +46,29 @@ export default function ProgressBar({ startChapter, currentPoints, completionDat
           className={`block w-full h-full object-cover ${status === 'pending' ? 'grayscale' : ''}`}
         />
       </div>
-      <div className={`text-sm font-medium ${
-        status === 'done' ? 'text-emerald-300' :
-        status === 'active' ? 'text-amber-300' : 'text-gray-500'
-      }`}>
+      <div
+        className="text-sm font-medium"
+        style={{
+          color: status === 'done' ? 'var(--accent-bright)' :
+                 status === 'active' ? 'var(--warning-text-bright)' : 'var(--text-dim)',
+        }}
+      >
         {chapter.boss}
       </div>
     </div>
   )
 
   return (
-    <div className="max-w-3xl mx-auto rounded-2xl border border-white/10 bg-gray-900/60 p-6 space-y-5">
+    <div
+      className="max-w-3xl mx-auto rounded-2xl border p-6 space-y-5"
+      style={{
+        background: 'var(--panel-bg)',
+        borderColor: 'var(--panel-border)',
+        boxShadow: 'var(--panel-shadow)',
+      }}
+    >
       {/* 섹션 제목 */}
-      <div className="text-lg font-semibold text-emerald-300">퀘스트 진행 상황</div>
+      <div className="text-lg font-semibold" style={{ color: 'var(--accent-bright)' }}>퀘스트 진행 상황</div>
 
       {/* 1차 / 2차 라벨 + 세그먼트 바 */}
       <div className="space-y-3">
@@ -79,11 +93,17 @@ export default function ProgressBar({ startChapter, currentPoints, completionDat
       </div>
 
       {/* 예상 해방 날짜 */}
-      <div className="flex items-center justify-center gap-3 pt-4 border-t border-white/5">
-        <span className="text-lg font-semibold text-white">예상 해방 날짜</span>
-        <span className="text-gray-600">·</span>
-        <span className="text-xl font-bold tabular-nums text-amber-400">
-          {completionDate ? formatKoreanDate(completionDate) : <span className="text-gray-500 font-normal">미정</span>}
+      <div
+        className="flex items-center justify-center gap-3 pt-4 border-t"
+        style={{ borderColor: 'var(--panel-border)' }}
+      >
+        <span className="text-lg font-semibold" style={{ color: 'var(--text-strong)' }}>예상 해방 날짜</span>
+        <span style={{ color: 'var(--text-dim)' }}>·</span>
+        <span
+          className="text-xl font-bold tabular-nums"
+          style={{ color: 'var(--warning-text-bright)' }}
+        >
+          {completionDate ? formatKoreanDate(completionDate) : <span className="font-normal" style={{ color: 'var(--text-dim)' }}>미정</span>}
         </span>
       </div>
     </div>

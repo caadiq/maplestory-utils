@@ -277,48 +277,76 @@ export default function Liberation() {
         {[
           { key: 'genesis', label: '제네시스 해방', img: genesisImg.data?.url },
           { key: 'destiny', label: '데스티니 해방', img: destinyImg.data?.url },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setLiberationType(tab.key)}
-            className={`flex-1 flex items-center justify-center gap-3 rounded-2xl border px-5 py-3 transition ${
-              liberationType === tab.key
-                ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200 shadow-lg shadow-emerald-500/10'
-                : 'border-white/10 bg-gray-900/40 text-gray-400 hover:border-white/20 hover:text-gray-200'
-            }`}
-          >
-            {tab.img && <img src={tab.img} alt="" className="w-8 h-8 object-contain" />}
-            <span className="text-base font-semibold">{tab.label}</span>
-          </button>
-        ))}
+        ].map((tab) => {
+          const active = liberationType === tab.key
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setLiberationType(tab.key)}
+              className="flex-1 flex items-center justify-center gap-3 rounded-2xl border px-5 py-3"
+              style={active ? {
+                background: 'var(--selected-bg)',
+                borderColor: 'var(--selected-border)',
+                color: 'var(--accent-bright)',
+                boxShadow: 'var(--btn-primary-shadow)',
+              } : {
+                background: 'var(--panel-bg)',
+                borderColor: 'var(--panel-border)',
+                color: 'var(--text-muted)',
+              }}
+            >
+              {tab.img && <img src={tab.img} alt="" className="w-8 h-8 object-contain" />}
+              <span className="text-base font-semibold">{tab.label}</span>
+            </button>
+          )
+        })}
       </div>
 
       {liberationType === 'destiny' ? (
-        <div className="max-w-3xl mx-auto rounded-2xl border border-white/10 bg-gray-900/60 p-16 text-center space-y-3 flex flex-col items-center justify-center" style={{ minHeight: 'calc(100vh - 220px)' }}>
-          <div className="text-2xl font-bold text-gray-300">구현 예정</div>
-          <div className="text-sm text-gray-500">데스티니 해방 계산기는 준비 중입니다.</div>
+        <div
+          className="max-w-3xl mx-auto rounded-2xl border p-16 text-center space-y-3 flex flex-col items-center justify-center"
+          style={{
+            minHeight: 'calc(100vh - 220px)',
+            background: 'var(--panel-bg)',
+            borderColor: 'var(--panel-border)',
+            boxShadow: 'var(--panel-shadow)',
+          }}
+        >
+          <div className="text-2xl font-bold" style={{ color: 'var(--text-emphasis)' }}>구현 예정</div>
+          <div className="text-sm" style={{ color: 'var(--text-dim)' }}>데스티니 해방 계산기는 준비 중입니다.</div>
         </div>
       ) : (<>
       {/* 계산 모드 탭 */}
-      <div className="max-w-3xl mx-auto flex gap-1 p-1 rounded-xl border border-white/10 bg-gray-950/60">
+      <div
+        className="max-w-3xl mx-auto flex gap-1 p-1 rounded-xl border"
+        style={{
+          background: 'var(--surface-3)',
+          borderColor: 'var(--panel-border)',
+        }}
+      >
         {[
           { key: 'simple', label: '단순 계산' },
           { key: 'weekly', label: '주차별 계산' },
-        ].map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setCalcMode(t.key)}
-            className={`flex-1 h-10 rounded-lg text-sm font-semibold transition ${
-              calcMode === t.key
-                ? 'bg-emerald-500/20 text-emerald-300'
-                : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+        ].map((t) => {
+          const active = calcMode === t.key
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setCalcMode(t.key)}
+              className="flex-1 h-10 rounded-lg text-sm font-semibold"
+              style={active ? {
+                background: 'var(--selected-bg)',
+                color: 'var(--accent-bright)',
+              } : {
+                color: 'var(--text-muted)',
+              }}
+            >
+              {t.label}
+            </button>
+          )
+        })}
       </div>
 
       <ProgressBar
@@ -328,12 +356,19 @@ export default function Liberation() {
       />
 
       {/* 현재 진행 상태 입력 */}
-      <div className="max-w-3xl mx-auto rounded-2xl border border-white/10 bg-gray-900/60 p-6 space-y-4">
-        <div className="text-lg font-semibold text-emerald-300">현재 진행 상태</div>
+      <div
+        className="max-w-3xl mx-auto rounded-2xl border p-6 space-y-4"
+        style={{
+          background: 'var(--panel-bg)',
+          borderColor: 'var(--panel-border)',
+          boxShadow: 'var(--panel-shadow)',
+        }}
+      >
+        <div className="text-lg font-semibold" style={{ color: 'var(--accent-bright)' }}>현재 진행 상태</div>
 
         <div className="grid gap-3 grid-cols-3">
           <div className="space-y-1.5">
-            <label className="block text-xs text-gray-400">시작 날짜</label>
+            <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>시작 날짜</label>
             <DatePicker
               value={formatDate(state.startDate)}
               onChange={(d) => setState((prev) => ({ ...prev, startDate: dayjs(d).toISOString() }))}
@@ -341,7 +376,7 @@ export default function Liberation() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs text-gray-400">진행 중인 퀘스트</label>
+            <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>진행 중인 퀘스트</label>
             <QuestSelector
               value={state.startChapter}
               onChange={(idx) => setState((prev) => ({ ...prev, startChapter: idx }))}
@@ -349,15 +384,28 @@ export default function Liberation() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs text-gray-400">현재 흔적</label>
-            <div className="flex items-stretch rounded-lg border border-white/10 bg-gray-950 transition focus-within:border-emerald-500/50 hover:border-white/20">
+            <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>현재 흔적</label>
+            <div
+              className="flex items-stretch rounded-lg border focus-within:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
+              style={{
+                background: 'var(--input-bg)',
+                borderColor: 'var(--input-border)',
+              }}
+            >
               <PointsInput
                 value={state.currentPoints}
                 max={3000}
                 onChange={(n) => setState((prev) => ({ ...prev, currentPoints: n }))}
                 className="flex-1 min-w-0 bg-transparent px-3 h-12 text-base text-right tabular-nums outline-none"
+                style={{ color: 'var(--text-strong)' }}
               />
-              <span className="flex items-center px-3 text-base text-gray-500 border-l border-white/10 select-none tabular-nums">
+              <span
+                className="flex items-center px-3 text-base border-l select-none tabular-nums"
+                style={{
+                  borderColor: 'var(--input-border)',
+                  color: 'var(--text-dim)',
+                }}
+              >
                 / {(GENESIS_CHAPTERS[state.startChapter]?.required ?? 0).toLocaleString()}
               </span>
             </div>
@@ -381,7 +429,12 @@ export default function Liberation() {
         <button
           type="button"
           onClick={() => setResetOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/10 hover:bg-red-500/20 text-red-300 hover:text-red-200 px-5 py-2.5 text-sm font-semibold transition shadow-lg shadow-red-500/10"
+          className="inline-flex items-center gap-2 rounded-lg border px-5 py-2.5 text-sm font-semibold hover:bg-[var(--danger-bg-hover)]"
+          style={{
+            borderColor: 'var(--icon-danger-border)',
+            background: 'var(--icon-danger-bg)',
+            color: 'var(--danger-text)',
+          }}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M2 3H14M6 3V2C6 1.45 6.45 1 7 1H9C9.55 1 10 1.45 10 2V3M3 3L4 14C4 14.55 4.45 15 5 15H11C11.55 15 12 14.55 12 14L13 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
