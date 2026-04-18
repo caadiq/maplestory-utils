@@ -103,9 +103,12 @@ export default function BossSelector({ characterName, bosses, selections, onChan
                 <div className="flex-1 flex items-center gap-2 flex-nowrap min-w-0">
                   {availableDiffs.map((d) => {
                     const active = sel?.difficulty === d.key
+                    const hasVisibleBorder = d.colors.border !== d.colors.bg
+                    const borderColor = hasVisibleBorder ? d.colors.border : 'rgba(0, 0, 0, 0.55)'
                     const style = {
                       background: d.colors.bg,
-                      borderColor: d.colors.border,
+                      borderColor,
+                      borderWidth: '1.5px',
                       color: d.colors.text,
                       filter: active ? 'none' : 'var(--inactive-filter)',
                     }
@@ -120,7 +123,7 @@ export default function BossSelector({ characterName, bosses, selections, onChan
                           else onChange(boss.id, { difficulty: d.key, party: partyN })
                         }}
                         style={style}
-                        className="shrink-0 rounded-full border px-4 h-7 text-xs font-bold tracking-wider transition focus:outline-none"
+                        className="shrink-0 rounded-full border-solid px-4 h-7 text-xs font-bold tracking-wider transition focus:outline-none"
                       >
                         {LABEL_EN[d.key] || d.key.toUpperCase()}
                       </button>
