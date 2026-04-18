@@ -58,7 +58,7 @@ function dayBadge(item, cfg) {
   if (end) {
     const d = Math.ceil((end - now) / 86400000)
     if (d <= 0) return null
-    return { label: `D-${d}`, tone: 'amber' }
+    return { label: `종료 ${d}일 전`, tone: 'amber' }
   }
   if (item.ongoing_flag === 'true' || item.ongoing_flag === true) {
     return { label: '상시판매', tone: 'gray' }
@@ -223,10 +223,12 @@ function CardItem({ item, cfg }) {
   const badge = dayBadge(item, cfg)
   const start = item[cfg.dateStartKey]
   const end = item[cfg.dateEndKey]
+  const startMD = fmtMD(start || item.date)
+  const endMD = fmtMD(end || item.date)
   const dateText = (item.ongoing_flag === 'true' || item.ongoing_flag === true)
     ? '상시판매'
     : start || end
-      ? `${fmtMD(start || item.date)} ~ ${fmtMD(end || item.date)}`
+      ? (startMD === endMD ? startMD : `${startMD} ~ ${endMD}`)
       : fmtYMD(item.date)
   const badgeBg = {
     emerald: 'var(--badge-emerald-bg)',
