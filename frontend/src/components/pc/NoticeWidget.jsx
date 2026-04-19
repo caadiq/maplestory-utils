@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQueries } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { api } from '../api/client'
+import { api } from '../../api/client'
 
 const SECTIONS = {
   notice: { label: '메이플스토리 공지사항', dataKey: 'notice', pageSize: 5, kind: 'text' },

@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { api } from '../api/client'
-import { useAuthStore } from '../stores/auth'
+import { api } from '../../api/client'
+import { useAuthStore } from '../../stores/auth'
 
 /**
  * 캐릭터 입력 input 아래 뜨는 드롭다운
