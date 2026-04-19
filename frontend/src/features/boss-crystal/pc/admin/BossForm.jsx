@@ -5,32 +5,11 @@ import { api } from '../../../../api/client'
 import ConfirmDialog from '../../../../components/common/ConfirmDialog'
 import Checkbox from '../../../../components/common/Checkbox'
 import Select from '../../../../components/common/Select'
+import FormField, { formInputClass, formInputStyle } from '../../../../components/common/FormField'
 import { useAuthStore } from '../../../../stores/auth'
 import { DIFFICULTIES, formatMeso, getDifficultyImageUrl } from './constants'
 
 const PARTY_OPTIONS = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n}인` }))
-
-function Field({ label, hint, error, required, children }) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline justify-between">
-        <label className="text-sm font-medium" style={{ color: 'var(--text-emphasis)' }}>
-          {label} {required && <span style={{ color: 'var(--danger-text)' }}>*</span>}
-        </label>
-        {hint && <span className="text-xs" style={{ color: 'var(--text-dim)' }}>{hint}</span>}
-      </div>
-      {children}
-      {error && <div className="text-[11px]" style={{ color: 'var(--danger-text)' }}>{error}</div>}
-    </div>
-  )
-}
-
-const inputCls = 'w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]'
-const inputStyle = {
-  background: 'var(--input-bg)',
-  borderColor: 'var(--input-border)',
-  color: 'var(--text-strong)',
-}
 
 function emptyDifficultyState() {
   const obj = {}
@@ -197,28 +176,28 @@ export default function BossForm() {
       >
         {/* 이름 + 최대 인원 */}
         <div className="grid grid-cols-[1fr_auto] gap-3">
-          <Field label="보스 이름" required error={errors.name}>
+          <FormField label="보스 이름" required error={errors.name}>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="예: 검은 마법사"
-              className={inputCls}
-              style={inputStyle}
+              className={formInputClass}
+              style={formInputStyle}
             />
-          </Field>
-          <Field label="최대 인원">
+          </FormField>
+          <FormField label="최대 인원">
             <Select
               value={maxPartySize}
               onChange={setMaxPartySize}
               options={PARTY_OPTIONS}
               className="w-24"
             />
-          </Field>
+          </FormField>
         </div>
 
         {/* 이미지 */}
-        <Field label="보스 이미지" required={!isEdit} error={errors.image}>
+        <FormField label="보스 이미지" required={!isEdit} error={errors.image}>
           <label
             className="flex items-center gap-4 rounded-xl border-2 border-dashed p-4 cursor-pointer hover:border-[var(--selected-border)]"
             style={{
@@ -256,10 +235,10 @@ export default function BossForm() {
               className="hidden"
             />
           </label>
-        </Field>
+        </FormField>
 
         {/* 난이도 */}
-        <Field label="난이도별 결정 정보" required error={errors.difficulties} hint="활성화한 난이도만 저장됩니다">
+        <FormField label="난이도별 결정 정보" required error={errors.difficulties} hint="활성화한 난이도만 저장됩니다">
           <div className="space-y-2">
             {DIFFICULTIES.map((d) => {
               const v = difficulties[d.key]
@@ -326,7 +305,7 @@ export default function BossForm() {
               )
             })}
           </div>
-        </Field>
+        </FormField>
 
         <div className="flex items-center gap-2 pt-2">
           {isEdit && (

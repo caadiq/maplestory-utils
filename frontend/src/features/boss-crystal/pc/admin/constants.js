@@ -32,15 +32,8 @@ export function getDifficultyBadgeStyle(key) {
   }
 }
 
-export function formatMeso(n) {
-  if (!n || n < 10000) return (n || 0).toLocaleString()
-  if (n >= 100_000_000) {
-    const uk = Math.floor(n / 100_000_000)
-    const man = Math.floor((n % 100_000_000) / 10_000)
-    return man > 0 ? `${uk}억 ${man.toLocaleString()}만` : `${uk}억`
-  }
-  return `${Math.floor(n / 10_000).toLocaleString()}만`
-}
+// formatMeso는 utils/formatting 에서 재-export (모든 기능 공통)
+export { formatMeso } from '../../../../utils/formatting'
 
 // difficulty 이미지 URL (S3)
 export const DIFFICULTY_IMAGE_BASE = 'https://s3.caadiq.co.kr/maplestory/crystal/difficulty'

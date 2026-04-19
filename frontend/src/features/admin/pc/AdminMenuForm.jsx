@@ -4,28 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import ImagePicker from './components/ImagePicker'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
-
-function Field({ label, hint, error, required, children }) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline justify-between">
-        <label className="text-sm font-medium" style={{ color: 'var(--text-emphasis)' }}>
-          {label} {required && <span style={{ color: 'var(--danger-text)' }}>*</span>}
-        </label>
-        {hint && <span className="text-xs" style={{ color: 'var(--text-dim)' }}>{hint}</span>}
-      </div>
-      {children}
-      {error && <div className="text-[11px]" style={{ color: 'var(--danger-text)' }}>{error}</div>}
-    </div>
-  )
-}
-
-const inputCls = 'w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]'
-const inputStyle = {
-  background: 'var(--input-bg)',
-  borderColor: 'var(--input-border)',
-  color: 'var(--text-strong)',
-}
+import FormField, { formInputClass, formInputStyle } from '../../../components/common/FormField'
 
 export default function AdminMenuForm() {
   const navigate = useNavigate()
@@ -175,29 +154,29 @@ export default function AdminMenuForm() {
           </div>
         </div>
 
-        <Field label="제목" required error={errors.title}>
+        <FormField label="제목" required error={errors.title}>
           <input
             type="text"
             value={form.title}
             onChange={(e) => update({ title: e.target.value })}
             placeholder="예: 주간 보스 수익 계산기"
-            className={inputCls}
-            style={inputStyle}
+            className={formInputClass}
+            style={formInputStyle}
           />
-        </Field>
+        </FormField>
 
-        <Field label="설명" hint="카드에 표시되는 부가 설명">
+        <FormField label="설명" hint="카드에 표시되는 부가 설명">
           <input
             type="text"
             value={form.description}
             onChange={(e) => update({ description: e.target.value })}
             placeholder="예: 캐릭터별 보스 결정석 수익을 계산합니다"
-            className={inputCls}
-            style={inputStyle}
+            className={formInputClass}
+            style={formInputStyle}
           />
-        </Field>
+        </FormField>
 
-        <Field label="경로" required error={errors.slug}>
+        <FormField label="경로" required error={errors.slug}>
           <div
             className="flex items-stretch rounded-lg border focus-within:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
             style={{
@@ -234,9 +213,9 @@ export default function AdminMenuForm() {
               </code>
             </div>
           )}
-        </Field>
+        </FormField>
 
-        <Field label="아이콘 이미지" hint="선택사항">
+        <FormField label="아이콘 이미지" hint="선택사항">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -271,7 +250,7 @@ export default function AdminMenuForm() {
               )}
             </div>
           </div>
-        </Field>
+        </FormField>
 
         <div className="flex items-center gap-2 pt-2">
           {isEdit && (
