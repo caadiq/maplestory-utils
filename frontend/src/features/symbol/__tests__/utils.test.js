@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatKoreanDate, computeCompletion, TYPE_ORDER } from '../utils'
+import { formatKoreanDate, computeCompletion, TYPE_ORDER, eventBonusForType } from '../utils'
 
 describe('TYPE_ORDER', () => {
   it('아케인 → 어센틱 → 그랜드 어센틱 순서', () => {
@@ -76,5 +76,31 @@ describe('computeCompletion', () => {
       dailyDone: false,
     })
     expect(r.days).toBe(0)
+  })
+})
+
+describe('eventBonusForType', () => {
+  const skill = { skill_name: '메이플 스위츠', skill_level: 1, arcane_daily: 3, authentic_daily: 7 }
+
+  it('event_skill이 없으면 0', () => {
+    expect(eventBonusForType(null, '아케인')).toBe(0)
+    expect(eventBonusForType(undefined, '어센틱')).toBe(0)
+  })
+
+  it('아케인 타입은 arcane_daily 반환', () => {
+    expect(eventBonusForType(skill, '아케인')).toBe(3)
+  })
+
+  it('어센틱/그랜드 어센틱 타입은 authentic_daily 반환', () => {
+    expect(eventBonusForType(skill, '어센틱')).toBe(7)
+    expect(eventBonusForType(skill, '그랜드 어센틱')).toBe(7)
+  })
+
+  it('알 수 없는 타입은 0', () => {
+    expect(eventBonusForType(skill, '기타')).toBe(0)
+  })
+
+  it('해당 필드가 누락되어도 0으로 처리', () => {
+    expect(eventBonusForType({ skill_name: 'X', skill_level: 1 }, '아케인')).toBe(0)
   })
 })

@@ -36,3 +36,11 @@ export function computeCompletion({ remainingSymbols, daily, weeklyPerWeek, extr
 }
 
 export const TYPE_ORDER = ['아케인', '어센틱', '그랜드 어센틱']
+
+// 이벤트 스킬(보약) 보너스 중 해당 심볼 타입에 적용되는 일퀘 증가량 반환
+export function eventBonusForType(eventSkill, type) {
+  if (!eventSkill) return 0
+  if (type === '아케인') return eventSkill.arcane_daily || 0
+  if (type === '어센틱' || type === '그랜드 어센틱') return eventSkill.authentic_daily || 0
+  return 0
+}
