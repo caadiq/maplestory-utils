@@ -5,6 +5,7 @@ import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../../api/client'
 import ConfirmDialog from '../../../components/ConfirmDialog'
 import Tooltip from '../../../components/Tooltip'
+import CharacterSuggestDropdown from '../../../components/CharacterSuggestDropdown'
 import { useFitText } from '../../../hooks/useFitText'
 import { DIFFICULTIES, formatMeso, getDifficultyBadgeStyle } from '../admin/constants'
 
@@ -198,6 +199,7 @@ export default function CharacterPanel({
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [confirmRemove, setConfirmRemove] = useState(null)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
 
   const searchMutation = useMutation({
     mutationFn: (n) => api(`/api/character/search?name=${encodeURIComponent(n)}`),
@@ -331,12 +333,25 @@ export default function CharacterPanel({
               type="text"
               value={name}
               onChange={(e) => { setName(e.target.value); if (error) setError('') }}
+              onFocus={() => setDropdownOpen(true)}
+              onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
               placeholder="캐릭터 닉네임 검색"
               className="w-full rounded-lg border-2 pl-10 pr-3 py-2.5 text-sm outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
               style={{
                 background: 'var(--input-bg)',
                 borderColor: 'var(--input-border)',
                 color: 'var(--text-strong)',
+              }}
+            />
+            <CharacterSuggestDropdown
+              open={dropdownOpen}
+              filter={name}
+              excludeNames={characters.map((c) => c.character_name)}
+              onSelect={(n) => {
+                setName(n)
+                setDropdownOpen(false)
+                setError('')
+                searchMutation.mutate(n)
               }}
             />
           </div>
