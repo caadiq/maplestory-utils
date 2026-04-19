@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect } from 'react'
+import { useState, useEffect, useLayoutEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import { api } from '../../../api/client'
@@ -261,7 +261,12 @@ export default function Liberation() {
     return { start: ws, end: ws.add(6, 'day') }
   }
 
-  const completionDate = computeCompletionDate()
+  const completionDate = useMemo(
+    () => computeCompletionDate(),
+    // 의도적으로 state 전체 + calcMode 만 의존. 내부 함수는 클로저 안의 값만 읽음
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state, calcMode, alreadyDone, remaining, weeklyEarn, doneEarn, monthlyEarn, monthlyDoneThisMonth],
+  )
   const isDone = completionDate !== null
 
   const [resetOpen, setResetOpen] = useState(false)
