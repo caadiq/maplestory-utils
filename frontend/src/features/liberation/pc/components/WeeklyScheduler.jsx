@@ -1,37 +1,9 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import dayjs from 'dayjs'
-import { LIBERATION_BOSS_IMAGE_BASE, WEEKLY_BOSSES, MONTHLY_BOSSES, calcPoints } from '../../data'
+import { LIBERATION_BOSS_IMAGE_BASE, WEEKLY_BOSSES, MONTHLY_BOSSES } from '../../data'
+import { makeEmptyWeekly } from '../../store'
+import { bossEarn, calcWeekPoints as calcWeeklySum, getSchedulerWeekRange as getWeekRange } from '../../utils'
 import { BossRow } from './WeeklyDefault'
-
-function bossEarn(boss, sel) {
-  if (!sel || !sel.difficulty || sel.difficulty === 'none') return 0
-  const d = boss.difficulties.find((x) => x.key === sel.difficulty)
-  if (!d) return 0
-  return calcPoints(d.points, sel.party)
-}
-
-function calcWeeklySum(config) {
-  let sum = 0
-  WEEKLY_BOSSES.forEach((b) => { sum += bossEarn(b, config.bosses[b.key]) })
-  return sum
-}
-
-const KST = 'Asia/Seoul'
-
-// 주차별 날짜 범위 계산 (목요일 리셋, 1주차는 시작일부터 다음 목요일 전까지)
-function getWeekRange(startDateStr, weekIdx) {
-  const start = dayjs(startDateStr).tz(KST).startOf('day')
-  const dow = start.day()
-  const daysToNextThu = dow < 4 ? 4 - dow : 11 - dow
-  const nextThu = start.add(daysToNextThu, 'day')
-  if (weekIdx === 1) {
-    return { start, end: nextThu.subtract(1, 'day') }
-  }
-  const weekStart = nextThu.add((weekIdx - 2) * 7, 'day')
-  const weekEnd = weekStart.add(6, 'day')
-  return { start: weekStart, end: weekEnd }
-}
 
 function formatRange(r) {
   const fmt = (d) => `${d.month() + 1}/${d.date()}`
@@ -44,17 +16,6 @@ const DIFF_BADGE = {
   hard: { label: 'H', color: '#f87171', border: 'rgba(248,113,113,0.4)', bg: 'rgba(248,113,113,0.15)' },
   chaos: { label: 'C', color: '#c084fc', border: 'rgba(192,132,252,0.45)', bg: 'rgba(192,132,252,0.15)' },
   extreme: { label: 'X', color: '#f59e0b', border: 'rgba(245,158,11,0.5)', bg: 'rgba(245,158,11,0.2)' },
-}
-
-function makeEmptyWeek() {
-  const bosses = {}
-  WEEKLY_BOSSES.forEach((b) => {
-    bosses[b.key] = { difficulty: 'none', party: 1, done: false }
-  })
-  return {
-    bosses,
-    blackMage: { difficulty: 'none', party: 1, done: false },
-  }
 }
 
 function BossAvatar({ boss, difficulty, size = 40 }) {
@@ -141,7 +102,7 @@ function WeekEditor({ config, onChange, isCurrent, monthlyLockedByWeek }) {
 export default function WeeklyScheduler({ startDate, weeks: weeksProp, onChangeWeeks }) {
   const weeks = weeksProp && weeksProp.length > 0
     ? weeksProp
-    : [{ id: 1, config: makeEmptyWeek() }]
+    : [{ id: 1, config: makeEmptyWeekly() }]
   const setWeeks = (updater) => {
     const next = typeof updater === 'function' ? updater(weeks) : updater
     onChangeWeeks?.(next)
@@ -153,7 +114,7 @@ export default function WeeklyScheduler({ startDate, weeks: weeksProp, onChangeW
     const id = nextId()
     setWeeks((prev) => {
       const last = prev[prev.length - 1]
-      const base = last ? JSON.parse(JSON.stringify(last.config)) : makeEmptyWeek()
+      const base = last ? JSON.parse(JSON.stringify(last.config)) : makeEmptyWeekly()
       // done 상태는 복사하지 않음
       Object.keys(base.bosses).forEach((k) => { base.bosses[k].done = false })
       if (base.blackMage) base.blackMage.done = false
