@@ -3,12 +3,12 @@ import { useQuery, useQueries, useMutation } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
-import { api } from '../../api/client'
-import { useLayout } from '../../components/pc/Layout'
-import Select from '../../components/common/Select'
-import Tooltip from '../../components/common/Tooltip'
-import CharacterSuggestDropdown from '../../components/common/CharacterSuggestDropdown'
-import { useSymbolStore } from './store'
+import { api } from '../../../api/client'
+import { useLayout } from '../../../components/pc/Layout'
+import Select from '../../../components/common/Select'
+import Tooltip from '../../../components/common/Tooltip'
+import CharacterSuggestDropdown from '../../../components/common/CharacterSuggestDropdown'
+import { useSymbolStore } from '../store'
 
 dayjs.extend(utc)
 dayjs.extend(timezone)

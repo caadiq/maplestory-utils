@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { GENESIS_CHAPTERS, QUEST_BOSS_IMAGE_BASE } from '../data'
+import { GENESIS_CHAPTERS, QUEST_BOSS_IMAGE_BASE } from '../../data'
 
 /**
  * 진행 중인 퀘스트 드롭다운
