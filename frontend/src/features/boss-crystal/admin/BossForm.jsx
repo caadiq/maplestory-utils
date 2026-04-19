@@ -5,6 +5,7 @@ import { api } from '../../../api/client'
 import ConfirmDialog from '../../../components/ConfirmDialog'
 import Checkbox from '../../../components/Checkbox'
 import Select from '../../../components/Select'
+import { useAuthStore } from '../../../stores/auth'
 import { DIFFICULTIES, formatMeso, getDifficultyImageUrl } from './constants'
 
 const PARTY_OPTIONS = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n}인` }))
@@ -13,18 +14,23 @@ function Field({ label, hint, error, required, children }) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between">
-        <label className="text-sm font-medium text-gray-300">
-          {label} {required && <span className="text-red-400">*</span>}
+        <label className="text-sm font-medium" style={{ color: 'var(--text-emphasis)' }}>
+          {label} {required && <span style={{ color: 'var(--danger-text)' }}>*</span>}
         </label>
-        {hint && <span className="text-xs text-gray-500">{hint}</span>}
+        {hint && <span className="text-xs" style={{ color: 'var(--text-dim)' }}>{hint}</span>}
       </div>
       {children}
-      {error && <div className="text-[11px] text-red-400">{error}</div>}
+      {error && <div className="text-[11px]" style={{ color: 'var(--danger-text)' }}>{error}</div>}
     </div>
   )
 }
 
-const inputCls = 'w-full rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm outline-none focus:border-emerald-500/50 transition'
+const inputCls = 'w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]'
+const inputStyle = {
+  background: 'var(--input-bg)',
+  borderColor: 'var(--input-border)',
+  color: 'var(--text-strong)',
+}
 
 function emptyDifficultyState() {
   const obj = {}
@@ -134,7 +140,7 @@ export default function BossForm() {
         }))
       formData.append('difficulties', JSON.stringify(diffsPayload))
 
-      const adminKey = localStorage.getItem('maple-admin-key')
+      const adminKey = useAuthStore.getState().apiKey
       const url = isEdit
         ? `/api/admin/boss-crystal/bosses/${id}`
         : '/api/admin/boss-crystal/bosses'
@@ -174,13 +180,21 @@ export default function BossForm() {
   const displayImage = imagePreview || existingImageUrl
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
+    <div className="space-y-6 max-w-2xl mx-auto pt-6">
       <div>
-        <h2 className="text-lg font-semibold">{isEdit ? '보스 편집' : '보스 추가'}</h2>
-        <p className="text-sm text-gray-500 mt-0.5">보스 이름과 난이도별 결정 정보를 입력합니다</p>
+        <h2 className="text-lg font-medium">{isEdit ? '보스 편집' : '보스 추가'}</h2>
+        <p className="text-sm mt-0.5" style={{ color: 'var(--text-dim)' }}>보스 이름과 난이도별 결정 정보를 입력합니다</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-white/5 bg-gray-900/40 p-6">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-5 rounded-2xl border p-6"
+        style={{
+          background: 'var(--panel-bg)',
+          borderColor: 'var(--panel-border)',
+          boxShadow: 'var(--panel-shadow)',
+        }}
+      >
         {/* 이름 + 최대 인원 */}
         <div className="grid grid-cols-[1fr_auto] gap-3">
           <Field label="보스 이름" required error={errors.name}>
@@ -190,6 +204,7 @@ export default function BossForm() {
               onChange={(e) => setName(e.target.value)}
               placeholder="예: 검은 마법사"
               className={inputCls}
+              style={inputStyle}
             />
           </Field>
           <Field label="최대 인원">
@@ -205,26 +220,32 @@ export default function BossForm() {
         {/* 이미지 */}
         <Field label="보스 이미지" required={!isEdit} error={errors.image}>
           <label
-            className={`flex items-center gap-4 rounded-xl border-2 border-dashed bg-gray-950/50 p-4 transition cursor-pointer ${
-              errors.image
-                ? 'border-red-500/40'
-                : 'border-white/10 hover:border-emerald-500/40 hover:bg-emerald-500/5'
-            }`}
+            className="flex items-center gap-4 rounded-xl border-2 border-dashed p-4 cursor-pointer hover:border-[var(--selected-border)]"
+            style={{
+              background: 'var(--surface-3)',
+              borderColor: errors.image ? 'var(--icon-danger-border)' : 'var(--dashed-border)',
+            }}
           >
-            <div className="w-32 h-32 rounded-lg bg-gray-900 border border-white/5 flex items-center justify-center overflow-hidden shrink-0">
+            <div
+              className="w-32 h-32 rounded-lg border flex items-center justify-center overflow-hidden shrink-0"
+              style={{
+                background: 'var(--surface-nested)',
+                borderColor: 'var(--panel-border)',
+              }}
+            >
               {displayImage ? (
                 <img src={displayImage} alt="" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-5xl text-gray-700">+</span>
+                <span className="text-5xl" style={{ color: 'var(--text-dim)' }}>+</span>
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-gray-300">
+              <div className="text-sm font-medium" style={{ color: 'var(--text-emphasis)' }}>
                 {displayImage ? '클릭하여 이미지 변경' : '클릭하여 이미지 업로드'}
               </div>
-              <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF 등 → WebP로 자동 변환됩니다</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>PNG, JPG, GIF 등 → WebP로 자동 변환됩니다</p>
               {imageFile && (
-                <div className="text-xs text-emerald-400 mt-2 truncate">📎 {imageFile.name}</div>
+                <div className="text-xs mt-2 truncate" style={{ color: 'var(--accent-bright)' }}>📎 {imageFile.name}</div>
               )}
             </div>
             <input
@@ -246,12 +267,14 @@ export default function BossForm() {
               return (
                 <div
                   key={d.key}
-                  className={`rounded-lg border bg-gray-950/50 p-3 transition ${
-                    v.enabled ? 'border-white/10' : 'border-white/5 opacity-60'
-                  }`}
+                  className="rounded-lg border p-3"
+                  style={{
+                    background: 'var(--surface-3)',
+                    borderColor: 'var(--panel-border)',
+                    opacity: v.enabled ? 1 : 0.6,
+                  }}
                 >
                   <div className="flex items-center gap-3">
-                    {/* 체크박스 + 난이도 이미지 (이미지 클릭으로도 토글 가능) */}
                     <div
                       className="flex items-center gap-2.5 shrink-0 cursor-pointer select-none"
                       onClick={() => updateDifficulty(d.key, { enabled: !v.enabled })}
@@ -269,7 +292,6 @@ export default function BossForm() {
                       />
                     </div>
 
-                    {/* 가격 */}
                     <div className="flex-1 min-w-0">
                       <div className="relative">
                         <input
@@ -282,12 +304,18 @@ export default function BossForm() {
                           }}
                           disabled={!v.enabled}
                           placeholder="결정 가격"
-                          className={`w-full rounded-lg border bg-gray-900 pl-4 pr-28 py-2 text-sm outline-none focus:border-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition ${
-                            priceErr ? 'border-red-500/40' : 'border-white/10'
-                          }`}
+                          className="w-full rounded-lg border pl-4 pr-28 py-2 text-sm outline-none focus:border-[var(--input-border-focus)] disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{
+                            background: 'var(--input-bg)',
+                            borderColor: priceErr ? 'var(--icon-danger-border)' : 'var(--input-border)',
+                            color: 'var(--text-strong)',
+                          }}
                         />
                         {v.crystal_price && v.enabled && (
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-emerald-400/80 pointer-events-none whitespace-nowrap">
+                          <span
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-sm pointer-events-none whitespace-nowrap"
+                            style={{ color: 'var(--accent-bright)' }}
+                          >
                             {formatMeso(Number(v.crystal_price))}
                           </span>
                         )}
@@ -300,13 +328,16 @@ export default function BossForm() {
           </div>
         </Field>
 
-        {/* 버튼 */}
         <div className="flex items-center gap-2 pt-2">
           {isEdit && (
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 px-4 py-2.5 text-sm transition"
+              className="rounded-lg border px-4 py-2.5 text-sm hover:bg-[var(--danger-bg-hover)]"
+              style={{
+                borderColor: 'var(--icon-danger-border)',
+                color: 'var(--danger-text)',
+              }}
             >
               삭제
             </button>
@@ -315,14 +346,24 @@ export default function BossForm() {
           <button
             type="button"
             onClick={() => navigate('..')}
-            className="rounded-lg border border-white/10 px-5 py-2.5 text-sm hover:bg-white/5 transition"
+            className="rounded-lg border px-5 py-2.5 text-sm hover:bg-[var(--btn-bg-hover)]"
+            style={{
+              background: 'var(--btn-bg)',
+              borderColor: 'var(--btn-border)',
+              color: 'var(--text-emphasis)',
+            }}
           >
             취소
           </button>
           <button
             type="submit"
             disabled={saveMutation.isPending}
-            className="rounded-lg bg-emerald-600 hover:bg-emerald-500 px-5 py-2.5 text-sm font-medium disabled:opacity-50 transition shadow-lg shadow-emerald-500/20"
+            className="rounded-lg px-5 py-2.5 text-sm font-medium disabled:opacity-50 hover:bg-[var(--btn-primary-bg-hover)]"
+            style={{
+              background: 'var(--btn-primary-bg)',
+              color: 'var(--btn-primary-text)',
+              boxShadow: 'var(--btn-primary-shadow)',
+            }}
           >
             {saveMutation.isPending ? '저장 중...' : (isEdit ? '저장' : '추가')}
           </button>

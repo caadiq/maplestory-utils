@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import Select from '../../../components/Select'
 import ConfirmDialog from '../../../components/ConfirmDialog'
+import { useAuthStore } from '../../../stores/auth'
 
 const TYPE_OPTIONS = [
   { value: '아케인', label: '아케인' },
@@ -11,7 +12,12 @@ const TYPE_OPTIONS = [
   { value: '그랜드 어센틱', label: '그랜드 어센틱' },
 ]
 
-const inputCls = 'w-full rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm outline-none focus:border-emerald-500/50 transition'
+const inputCls = 'w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]'
+const inputStyle = {
+  background: 'var(--input-bg)',
+  borderColor: 'var(--input-border)',
+  color: 'var(--text-strong)',
+}
 
 function formatMesoKorean(n) {
   if (!n || n <= 0) return ''
@@ -38,9 +44,15 @@ function MesoInput({ value, onChange, ...rest }) {
           onChange(digits)
         }}
         className={`${inputCls} tabular-nums text-right`}
+        style={inputStyle}
         {...rest}
       />
-      <div className="text-sm text-amber-300 mt-1 text-right tabular-nums min-h-[18px]">{korean || '\u00A0'}</div>
+      <div
+        className="text-sm mt-1 text-right tabular-nums min-h-[18px]"
+        style={{ color: 'var(--warning-text-bright)' }}
+      >
+        {korean || '\u00A0'}
+      </div>
     </div>
   )
 }
@@ -49,13 +61,13 @@ function Field({ label, hint, error, required, children }) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between">
-        <label className="text-sm font-medium text-gray-300">
-          {label} {required && <span className="text-red-400">*</span>}
+        <label className="text-sm font-medium" style={{ color: 'var(--text-emphasis)' }}>
+          {label} {required && <span style={{ color: 'var(--danger-text)' }}>*</span>}
         </label>
-        {hint && <span className="text-xs text-gray-500">{hint}</span>}
+        {hint && <span className="text-xs" style={{ color: 'var(--text-dim)' }}>{hint}</span>}
       </div>
       {children}
-      {error && <div className="text-[11px] text-red-400">{error}</div>}
+      {error && <div className="text-[11px]" style={{ color: 'var(--danger-text)' }}>{error}</div>}
     </div>
   )
 }
@@ -79,7 +91,6 @@ export default function SymbolForm() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [error, setError] = useState('')
 
-  // 편집 시 데이터 로드
   const { data: symbolData } = useQuery({
     queryKey: ['admin', 'symbol', 'symbols', id],
     queryFn: () => api(`/api/admin/symbol/symbols/${id}`),
@@ -148,7 +159,7 @@ export default function SymbolForm() {
       ))
       if (imageFile) formData.append('image', imageFile)
 
-      const adminKey = localStorage.getItem('maple-admin-key')
+      const adminKey = useAuthStore.getState().apiKey
       const url = isEdit ? `/api/admin/symbol/symbols/${id}` : '/api/admin/symbol/symbols'
       const res = await fetch(url, {
         method: isEdit ? 'PATCH' : 'POST',
@@ -188,33 +199,51 @@ export default function SymbolForm() {
 
   const displayImage = imagePreview || existingImageUrl
 
+  const panelStyle = {
+    background: 'var(--panel-bg)',
+    borderColor: 'var(--panel-border)',
+    boxShadow: 'var(--panel-shadow)',
+  }
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6 pt-6">
       <div>
-        <h2 className="text-lg font-semibold">{isEdit ? '심볼 편집' : '심볼 추가'}</h2>
-        <p className="text-sm text-gray-500 mt-0.5">심볼 정보와 레벨별 필요 개수/메소를 입력합니다</p>
+        <h2 className="text-lg font-medium">{isEdit ? '심볼 편집' : '심볼 추가'}</h2>
+        <p className="text-sm mt-0.5" style={{ color: 'var(--text-dim)' }}>심볼 정보와 레벨별 필요 개수/메소를 입력합니다</p>
       </div>
 
       {/* 기본 정보 */}
-      <div className="rounded-2xl border border-white/5 bg-gray-900/40 p-6 space-y-5">
-        <div className="text-sm font-semibold text-emerald-300">기본 정보</div>
+      <div className="rounded-2xl border p-6 space-y-5" style={panelStyle}>
+        <div className="text-sm font-semibold" style={{ color: 'var(--accent-bright)' }}>기본 정보</div>
 
         <Field label="심볼 이미지" required={!isEdit}>
-          <label className="flex items-center gap-4 rounded-xl border-2 border-dashed border-white/10 hover:border-emerald-500/40 hover:bg-emerald-500/5 bg-gray-950/50 p-4 transition cursor-pointer">
-            <div className="w-32 h-32 rounded-lg bg-gray-900 border border-white/5 flex items-center justify-center overflow-hidden shrink-0">
+          <label
+            className="flex items-center gap-4 rounded-xl border-2 border-dashed p-4 cursor-pointer hover:border-[var(--selected-border)]"
+            style={{
+              background: 'var(--surface-3)',
+              borderColor: 'var(--dashed-border)',
+            }}
+          >
+            <div
+              className="w-32 h-32 rounded-lg border flex items-center justify-center overflow-hidden shrink-0"
+              style={{
+                background: 'var(--surface-nested)',
+                borderColor: 'var(--panel-border)',
+              }}
+            >
               {displayImage ? (
                 <img src={displayImage} alt="" className="w-full h-full object-contain" style={{ imageRendering: 'pixelated' }} />
               ) : (
-                <span className="text-5xl text-gray-700">+</span>
+                <span className="text-5xl" style={{ color: 'var(--text-dim)' }}>+</span>
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-gray-300">
+              <div className="text-sm font-medium" style={{ color: 'var(--text-emphasis)' }}>
                 {displayImage ? '클릭하여 이미지 변경' : '클릭하여 이미지 업로드'}
               </div>
-              <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF 등 → WebP로 자동 변환됩니다</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>PNG, JPG, GIF 등 → WebP로 자동 변환됩니다</p>
               {imageFile && (
-                <div className="text-xs text-emerald-400 mt-2 truncate">📎 {imageFile.name}</div>
+                <div className="text-xs mt-2 truncate" style={{ color: 'var(--accent-bright)' }}>📎 {imageFile.name}</div>
               )}
             </div>
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
@@ -232,6 +261,7 @@ export default function SymbolForm() {
                   value={region}
                   onChange={(e) => setRegion(e.target.value)}
                   className={inputCls}
+                  style={inputStyle}
                   placeholder="소멸의 여로"
                 />
               </Field>
@@ -244,6 +274,7 @@ export default function SymbolForm() {
                   value={maxLevel}
                   onChange={(e) => { setMaxLevel(e.target.value); adjustLevelRows(e.target.value) }}
                   className={inputCls}
+                  style={inputStyle}
                   min="2"
                 />
               </Field>
@@ -253,6 +284,7 @@ export default function SymbolForm() {
                   value={dailyDefault}
                   onChange={(e) => setDailyDefault(e.target.value)}
                   className={inputCls}
+                  style={inputStyle}
                 />
               </Field>
               <Field label="기본 주간퀘 획득량">
@@ -261,35 +293,35 @@ export default function SymbolForm() {
                   value={weeklyDefault}
                   onChange={(e) => setWeeklyDefault(e.target.value)}
                   className={inputCls}
+                  style={inputStyle}
                 />
               </Field>
             </div>
-
-          </div>
+        </div>
       </div>
 
       {/* 레벨별 설정 */}
-      <div className="rounded-2xl border border-white/5 bg-gray-900/40 p-6 space-y-4">
+      <div className="rounded-2xl border p-6 space-y-4" style={panelStyle}>
         <div className="flex items-baseline justify-between">
-          <div className="text-sm font-semibold text-emerald-300">레벨별 필요 개수 · 메소</div>
-          <div className="text-xs text-gray-500">레벨 N → N+1 업그레이드 기준 (만렙-1행)</div>
+          <div className="text-sm font-semibold" style={{ color: 'var(--accent-bright)' }}>레벨별 필요 개수 · 메소</div>
+          <div className="text-xs" style={{ color: 'var(--text-dim)' }}>레벨 N → N+1 업그레이드 기준 (만렙-1행)</div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-xs text-gray-500 uppercase border-b border-white/5">
+              <tr className="text-xs uppercase border-b" style={{ color: 'var(--text-dim)', borderColor: 'var(--panel-border)' }}>
                 <th className="py-2 px-3 text-left font-medium w-20">레벨</th>
                 <th className="py-2 px-3 text-left font-medium">필요 심볼 수</th>
                 <th className="py-2 px-3 text-left font-medium">메소</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody>
               {levels.map((l, idx) => (
-                <tr key={l.level}>
-                  <td className="py-1.5 px-3 text-gray-400 tabular-nums">
-                    Lv.<span className="text-gray-200 font-semibold">{l.level}</span>
-                    <span className="text-gray-600 mx-1">→</span>
+                <tr key={l.level} className="border-t first:border-t-0" style={{ borderColor: 'var(--row-divider)' }}>
+                  <td className="py-1.5 px-3 tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                    Lv.<span className="font-semibold" style={{ color: 'var(--text-emphasis)' }}>{l.level}</span>
+                    <span className="mx-1" style={{ color: 'var(--text-dim)' }}>→</span>
                     {l.level + 1}
                   </td>
                   <td className="py-1.5 px-3">
@@ -298,6 +330,7 @@ export default function SymbolForm() {
                       value={l.required_count}
                       onChange={(e) => updateLevel(idx, 'required_count', e.target.value)}
                       className={`${inputCls} max-w-36`}
+                      style={inputStyle}
                       placeholder="0"
                     />
                   </td>
@@ -324,7 +357,12 @@ export default function SymbolForm() {
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="rounded-lg border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-300 px-4 py-2 text-sm font-medium transition"
+              className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-[var(--danger-bg-hover)]"
+              style={{
+                borderColor: 'var(--icon-danger-border)',
+                background: 'var(--icon-danger-bg)',
+                color: 'var(--danger-text)',
+              }}
             >
               삭제
             </button>
@@ -334,7 +372,12 @@ export default function SymbolForm() {
           <button
             type="button"
             onClick={() => navigate('..')}
-            className="rounded-lg border border-white/10 hover:bg-white/5 text-gray-300 px-4 py-2 text-sm transition"
+            className="rounded-lg border px-4 py-2 text-sm hover:bg-[var(--btn-bg-hover)]"
+            style={{
+              background: 'var(--btn-bg)',
+              borderColor: 'var(--btn-border)',
+              color: 'var(--text-emphasis)',
+            }}
           >
             취소
           </button>
@@ -342,7 +385,12 @@ export default function SymbolForm() {
             type="button"
             onClick={handleSubmit}
             disabled={saveMutation.isPending}
-            className="rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-5 py-2 text-sm font-semibold shadow-lg shadow-emerald-500/20 transition"
+            className="rounded-lg px-5 py-2 text-sm font-semibold disabled:opacity-50 hover:bg-[var(--btn-primary-bg-hover)]"
+            style={{
+              background: 'var(--btn-primary-bg)',
+              color: 'var(--btn-primary-text)',
+              boxShadow: 'var(--btn-primary-shadow)',
+            }}
           >
             {saveMutation.isPending ? '저장 중...' : isEdit ? '저장' : '추가'}
           </button>
@@ -350,7 +398,14 @@ export default function SymbolForm() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-500/40 bg-red-500/10 text-red-300 text-sm px-4 py-2">
+        <div
+          className="rounded-lg border text-sm px-4 py-2"
+          style={{
+            borderColor: 'var(--icon-danger-border)',
+            background: 'var(--icon-danger-bg)',
+            color: 'var(--danger-text)',
+          }}
+        >
           {error}
         </div>
       )}
