@@ -1,23 +1,20 @@
-import { useSearchParams, Outlet, Navigate } from 'react-router-dom'
+import { Outlet, Navigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
+import { useAuthStore } from '../../stores/auth'
 
 export default function AdminLayout() {
   const queryClient = useQueryClient()
-  const [searchParams] = useSearchParams()
-
-  const keyFromUrl = searchParams.get('key')
-  const key = keyFromUrl || localStorage.getItem('maple-admin-key')
+  const apiKey = useAuthStore((s) => s.apiKey)
+  const clearApiKey = useAuthStore((s) => s.clearApiKey)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin', 'verify', key],
+    queryKey: ['admin', 'verify', apiKey],
     queryFn: async () => {
-      if (!key) throw new Error('no key')
-      await api('/api/admin/verify', { method: 'POST', body: { key } })
-      localStorage.setItem('maple-admin-key', key)
+      await api('/api/admin/verify', { method: 'POST', body: { key: apiKey } })
       return true
     },
-    enabled: !!key,
+    enabled: !!apiKey,
     retry: false,
     staleTime: Infinity,
   })
@@ -25,23 +22,20 @@ export default function AdminLayout() {
   const verified = data === true
 
   const handleLogout = () => {
-    localStorage.removeItem('maple-admin-key')
+    clearApiKey()
     queryClient.removeQueries({ queryKey: ['admin'] })
     window.location.href = '/'
   }
 
-  if (key && isLoading) {
+  if (apiKey && isLoading) {
     return (
       <div className="flex items-center justify-center pt-20">
-        <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
       </div>
     )
   }
 
-  if (!verified) {
-    if (key) localStorage.removeItem('maple-admin-key')
-    return <Navigate to="/" replace />
-  }
+  if (!verified) return <Navigate to="/" replace />
 
   return <Outlet context={{ handleLogout }} />
 }

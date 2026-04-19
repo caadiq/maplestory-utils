@@ -7,6 +7,7 @@ import { api } from '../../api/client'
 import { useLayout } from '../../components/Layout'
 import Select from '../../components/Select'
 import Tooltip from '../../components/Tooltip'
+import CharacterSuggestDropdown from '../../components/CharacterSuggestDropdown'
 import { useSymbolStore } from './store'
 
 dayjs.extend(utc)
@@ -469,6 +470,7 @@ export default function Symbol() {
 
   const [addName, setAddName] = useState('')
   const [addError, setAddError] = useState('')
+  const [dropdownOpen, setDropdownOpen] = useState(false)
 
   const symbols = allSymbols.filter((s) => s.type === tab)
   const tabInfo = tabs.find((t) => t.key === tab)
@@ -570,12 +572,25 @@ export default function Symbol() {
               type="text"
               value={addName}
               onChange={(e) => { setAddName(e.target.value); if (addError) setAddError('') }}
+              onFocus={() => setDropdownOpen(true)}
+              onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
               placeholder="캐릭터 닉네임으로 장착 심볼 불러오기"
               className="w-full h-12 box-border rounded-lg border pl-10 pr-4 text-base outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
               style={{
                 background: 'var(--input-bg)',
                 borderColor: 'var(--input-border)',
                 color: 'var(--text-strong)',
+              }}
+            />
+            <CharacterSuggestDropdown
+              open={dropdownOpen}
+              filter={addName}
+              excludeNames={characters.map((c) => c.character_name)}
+              onSelect={(n) => {
+                setAddName(n)
+                setDropdownOpen(false)
+                setAddError('')
+                searchMutation.mutate(n)
               }}
             />
           </div>

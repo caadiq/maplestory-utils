@@ -2,16 +2,37 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import { useAuthStore } from '../../stores/auth'
 
 /* ── 공용 모달 ── */
 function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }) {
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className={`w-full ${maxWidth} rounded-2xl bg-gray-900 border border-white/10 shadow-2xl max-h-[90vh] flex flex-col`} onClick={(e) => e.stopPropagation()}>
-        <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between shrink-0">
-          <h3 className="font-semibold">{title}</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition text-xl leading-none">×</button>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+      style={{ background: 'var(--dialog-backdrop)' }}
+      onClick={onClose}
+    >
+      <div
+        className={`w-full ${maxWidth} rounded-2xl border shadow-2xl max-h-[90vh] flex flex-col`}
+        style={{
+          backgroundImage: 'linear-gradient(to bottom, var(--dialog-bg-from), var(--dialog-bg-to))',
+          borderColor: 'var(--dialog-border)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="px-6 py-4 border-b flex items-center justify-between shrink-0"
+          style={{ borderColor: 'var(--panel-border)' }}
+        >
+          <h3 className="font-semibold" style={{ color: 'var(--text-strong)' }}>{title}</h3>
+          <button
+            onClick={onClose}
+            className="text-xl leading-none hover:bg-[var(--row-hover-bg)] w-7 h-7 rounded flex items-center justify-center"
+            style={{ color: 'var(--text-dim)' }}
+          >
+            ×
+          </button>
         </div>
         {children}
       </div>
@@ -21,7 +42,7 @@ function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }) {
 
 /* ── 업로드 모달 (다중 지원) ── */
 function UploadModal({ open, onClose, onUpload, uploading, existingNames }) {
-  const [items, setItems] = useState([]) // { file, name, preview, id }
+  const [items, setItems] = useState([])
   const [dragOver, setDragOver] = useState(false)
 
   useEffect(() => {
@@ -81,13 +102,18 @@ function UploadModal({ open, onClose, onUpload, uploading, existingNames }) {
               setDragOver(false)
               addFiles(e.dataTransfer.files)
             }}
-            className={`relative rounded-xl border-2 border-dashed transition cursor-pointer min-h-[120px] flex flex-col items-center justify-center ${
-              dragOver ? 'border-emerald-500 bg-emerald-500/10' : 'border-white/10 hover:border-white/20 bg-white/[0.02]'
-            }`}
+            className="relative rounded-xl border-2 border-dashed cursor-pointer min-h-[120px] flex flex-col items-center justify-center"
+            style={dragOver ? {
+              borderColor: 'var(--selected-border)',
+              background: 'var(--selected-bg)',
+            } : {
+              borderColor: 'var(--dashed-border)',
+              background: 'var(--skeleton-bg)',
+            }}
           >
             <div className="text-2xl mb-1 opacity-50">📥</div>
-            <p className="text-sm text-gray-400">클릭하거나 이미지를 끌어다 놓으세요</p>
-            <p className="text-xs text-gray-600 mt-0.5">여러 개 선택 가능</p>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>클릭하거나 이미지를 끌어다 놓으세요</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-dim)' }}>여러 개 선택 가능</p>
             <input
               type="file"
               accept="image/*"
@@ -111,14 +137,22 @@ function UploadModal({ open, onClose, onUpload, uploading, existingNames }) {
                   : null
 
                 return (
-                  <div key={item.id} className={`flex items-start gap-3 rounded-lg border bg-gray-950/50 p-2 ${
-                    errorMsg ? 'border-red-500/40' : 'border-white/5'
-                  }`}>
-                    <div className="w-12 h-12 rounded bg-gray-900 flex items-center justify-center overflow-hidden shrink-0">
+                  <div
+                    key={item.id}
+                    className="flex items-start gap-3 rounded-lg border p-2"
+                    style={{
+                      background: 'var(--surface-3)',
+                      borderColor: errorMsg ? 'var(--icon-danger-border)' : 'var(--panel-border)',
+                    }}
+                  >
+                    <div
+                      className="w-12 h-12 rounded flex items-center justify-center overflow-hidden shrink-0"
+                      style={{ background: 'var(--surface-nested)' }}
+                    >
                       {item.preview ? (
                         <img src={item.preview} alt="" className="w-full h-full object-contain" />
                       ) : (
-                        <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
                       )}
                     </div>
                     <div className="flex-1 min-w-0 space-y-0.5">
@@ -126,16 +160,22 @@ function UploadModal({ open, onClose, onUpload, uploading, existingNames }) {
                         type="text"
                         value={item.name}
                         onChange={(e) => updateName(item.id, e.target.value)}
-                        className={`w-full rounded border bg-gray-900 px-2 py-1.5 text-sm outline-none transition ${
-                          errorMsg ? 'border-red-500/40 focus:border-red-500/60' : 'border-white/10 focus:border-emerald-500/50'
-                        }`}
+                        className="w-full rounded border px-2 py-1.5 text-sm outline-none"
+                        style={{
+                          background: 'var(--input-bg)',
+                          borderColor: errorMsg ? 'var(--icon-danger-border)' : 'var(--input-border)',
+                          color: 'var(--text-strong)',
+                        }}
                       />
-                      {errorMsg && <div className="text-[11px] text-red-400 px-0.5">{errorMsg}</div>}
+                      {errorMsg && (
+                        <div className="text-[11px] px-0.5" style={{ color: 'var(--danger-text)' }}>{errorMsg}</div>
+                      )}
                     </div>
                     <button
                       type="button"
                       onClick={() => removeItem(item.id)}
-                      className="w-7 h-7 rounded text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition shrink-0"
+                      className="w-7 h-7 rounded shrink-0 hover:bg-[var(--danger-bg-hover)] hover:text-[var(--danger-text)]"
+                      style={{ color: 'var(--text-dim)' }}
                     >
                       ×
                     </button>
@@ -147,14 +187,31 @@ function UploadModal({ open, onClose, onUpload, uploading, existingNames }) {
         </div>
 
         {/* 버튼 */}
-        <div className="flex gap-2 px-6 py-4 border-t border-white/5 shrink-0">
-          <button type="button" onClick={onClose} className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-sm hover:bg-white/5 transition">
+        <div
+          className="flex gap-2 px-6 py-4 border-t shrink-0"
+          style={{ borderColor: 'var(--panel-border)' }}
+        >
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 rounded-lg border px-4 py-2 text-sm hover:bg-[var(--btn-bg-hover)]"
+            style={{
+              background: 'var(--btn-bg)',
+              borderColor: 'var(--btn-border)',
+              color: 'var(--text-emphasis)',
+            }}
+          >
             취소
           </button>
           <button
             type="submit"
             disabled={!canSubmit || uploading}
-            className="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="flex-1 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--btn-primary-bg-hover)]"
+            style={{
+              background: 'var(--btn-primary-bg)',
+              color: 'var(--btn-primary-text)',
+              boxShadow: 'var(--btn-primary-shadow)',
+            }}
           >
             {uploading ? '업로드 중...' : `${items.length > 0 ? `${items.length}개 ` : ''}업로드`}
           </button>
@@ -169,22 +226,32 @@ function ImageCard({ image, selected, selectMode, onToggle, onCopyUrl, copied })
   return (
     <div
       onClick={() => selectMode && onToggle(image.id)}
-      className={`group relative rounded-xl border overflow-hidden transition ${
-        selected
-          ? 'border-emerald-500/60 bg-emerald-500/5 ring-2 ring-emerald-500/30'
-          : 'border-white/5 bg-gray-900/40 hover:border-white/15'
-      } ${selectMode ? 'cursor-pointer' : ''}`}
+      className={`group relative rounded-xl border overflow-hidden ${selectMode ? 'cursor-pointer' : ''}`}
+      style={{
+        borderColor: selected ? 'var(--selected-border)' : 'var(--panel-border)',
+        background: selected ? 'var(--selected-bg)' : 'var(--panel-bg)',
+        boxShadow: selected ? '0 0 0 2px var(--ring-info)' : 'var(--panel-shadow)',
+      }}
     >
-      {/* 체크박스 (선택모드) */}
       {selectMode && (
-        <div className={`absolute top-2 left-2 z-10 w-5 h-5 rounded border-2 flex items-center justify-center transition ${
-          selected ? 'border-emerald-500 bg-emerald-500' : 'border-white/30 bg-gray-950/80'
-        }`}>
-          {selected && <span className="text-xs text-white">✓</span>}
+        <div
+          className="absolute top-2 left-2 z-10 w-5 h-5 rounded border-2 flex items-center justify-center"
+          style={selected ? {
+            borderColor: 'var(--accent)',
+            background: 'var(--accent)',
+          } : {
+            borderColor: 'var(--panel-border)',
+            background: 'var(--surface-3)',
+          }}
+        >
+          {selected && <span className="text-xs" style={{ color: 'var(--btn-primary-text)' }}>✓</span>}
         </div>
       )}
 
-      <div className="aspect-square bg-gradient-to-br from-gray-900 to-gray-950 flex items-center justify-center p-4 relative">
+      <div
+        className="aspect-square flex items-center justify-center p-4 relative"
+        style={{ backgroundImage: 'linear-gradient(to bottom right, var(--icon-box-from), var(--icon-box-to))' }}
+      >
         <img
           src={image.url}
           alt={image.name}
@@ -196,7 +263,12 @@ function ImageCard({ image, selected, selectMode, onToggle, onCopyUrl, copied })
           <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
             <button
               onClick={(e) => { e.stopPropagation(); onCopyUrl(image) }}
-              className="w-7 h-7 rounded-md bg-gray-950/80 backdrop-blur-sm border border-white/10 hover:bg-emerald-500/20 hover:border-emerald-500/40 text-xs flex items-center justify-center transition"
+              className="w-7 h-7 rounded-md backdrop-blur-sm border text-xs flex items-center justify-center hover:bg-[var(--selected-bg)] hover:border-[var(--selected-border)]"
+              style={{
+                background: 'var(--btn-bg)',
+                borderColor: 'var(--btn-border)',
+                color: 'var(--text-emphasis)',
+              }}
               title="URL 복사"
             >
               {copied ? '✓' : '⧉'}
@@ -205,7 +277,10 @@ function ImageCard({ image, selected, selectMode, onToggle, onCopyUrl, copied })
         )}
       </div>
 
-      <div className="px-3 py-2 border-t border-white/5">
+      <div
+        className="px-3 py-2 border-t"
+        style={{ borderColor: 'var(--panel-border)' }}
+      >
         <div className="text-sm font-medium truncate">{image.name}</div>
       </div>
     </div>
@@ -223,50 +298,61 @@ function Pagination({ page, totalPages, onChange }) {
   if (end - start + 1 < maxButtons) start = Math.max(1, end - maxButtons + 1)
   for (let i = start; i <= end; i++) pages.push(i)
 
-  const btn = "min-w-9 h-9 px-3 rounded-lg text-sm transition flex items-center justify-center"
+  const baseBtn = "min-w-9 h-9 px-3 rounded-lg text-sm flex items-center justify-center border hover:bg-[var(--btn-bg-hover)]"
+  const btnStyle = {
+    background: 'var(--btn-bg)',
+    borderColor: 'var(--btn-border)',
+    color: 'var(--text-emphasis)',
+  }
 
   return (
     <div className="flex items-center justify-center gap-1 pt-2">
       <button
         onClick={() => onChange(page - 1)}
         disabled={page === 1}
-        className={`${btn} border border-white/10 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed`}
+        className={`${baseBtn} disabled:opacity-30 disabled:cursor-not-allowed`}
+        style={btnStyle}
       >
         ‹
       </button>
 
       {start > 1 && (
         <>
-          <button onClick={() => onChange(1)} className={`${btn} border border-white/10 hover:bg-white/5`}>1</button>
-          {start > 2 && <span className="text-gray-600 px-1">…</span>}
+          <button onClick={() => onChange(1)} className={baseBtn} style={btnStyle}>1</button>
+          {start > 2 && <span className="px-1" style={{ color: 'var(--text-dim)' }}>…</span>}
         </>
       )}
 
-      {pages.map((p) => (
-        <button
-          key={p}
-          onClick={() => onChange(p)}
-          className={`${btn} ${
-            p === page
-              ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-medium'
-              : 'border border-white/10 hover:bg-white/5'
-          }`}
-        >
-          {p}
-        </button>
-      ))}
+      {pages.map((p) => {
+        const active = p === page
+        return (
+          <button
+            key={p}
+            onClick={() => onChange(p)}
+            className={`${baseBtn} ${active ? 'font-medium' : ''}`}
+            style={active ? {
+              background: 'var(--selected-bg)',
+              borderColor: 'var(--selected-border)',
+              color: 'var(--accent-bright)',
+            } : btnStyle}
+          >
+            {p}
+          </button>
+        )
+      })}
 
       {end < totalPages && (
         <>
-          {end < totalPages - 1 && <span className="text-gray-600 px-1">…</span>}
-          <button onClick={() => onChange(totalPages)} className={`${btn} border border-white/10 hover:bg-white/5`}>{totalPages}</button>
+          {end < totalPages - 1 && <span className="px-1" style={{ color: 'var(--text-dim)' }}>…</span>}
+          <button onClick={() => onChange(totalPages)} className={baseBtn} style={btnStyle}>{totalPages}</button>
         </>
       )}
 
       <button
         onClick={() => onChange(page + 1)}
         disabled={page === totalPages}
-        className={`${btn} border border-white/10 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed`}
+        className={`${baseBtn} disabled:opacity-30 disabled:cursor-not-allowed`}
+        style={btnStyle}
       >
         ›
       </button>
@@ -285,10 +371,9 @@ export default function AdminImages() {
   const [uploadOpen, setUploadOpen] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState(new Set())
-  const [confirmDelete, setConfirmDelete] = useState(null) // {ids, names}
+  const [confirmDelete, setConfirmDelete] = useState(null)
   const [copiedId, setCopiedId] = useState(null)
 
-  // 검색어 디바운싱
   useEffect(() => {
     const t = setTimeout(() => {
       setDebouncedSearch(search)
@@ -297,7 +382,6 @@ export default function AdminImages() {
     return () => clearTimeout(t)
   }, [search])
 
-  // 이미지 목록 (페이징 + 검색)
   const { data: imagesData, isLoading } = useQuery({
     queryKey: ['admin', 'images', { page, search: debouncedSearch }],
     queryFn: async () => {
@@ -314,7 +398,6 @@ export default function AdminImages() {
   const images = imagesData?.items || []
   const totalPages = imagesData?.total_pages || 1
 
-  // 전체 이름 (중복 체크용)
   const { data: allNamesArray = [] } = useQuery({
     queryKey: ['admin', 'images', 'names'],
     queryFn: () => api('/api/admin/images/names'),
@@ -325,7 +408,6 @@ export default function AdminImages() {
     queryClient.invalidateQueries({ queryKey: ['admin', 'images'] })
   }
 
-  // 업로드
   const uploadMutation = useMutation({
     mutationFn: async (items) => {
       const formData = new FormData()
@@ -333,7 +415,7 @@ export default function AdminImages() {
         formData.append('files', it.file)
         formData.append('names', it.name.trim())
       })
-      const adminKey = localStorage.getItem('maple-admin-key')
+      const adminKey = useAuthStore.getState().apiKey
       const res = await fetch('/api/admin/images', {
         method: 'POST',
         headers: { 'x-admin-key': adminKey },
@@ -382,7 +464,6 @@ export default function AdminImages() {
     })
   }
 
-  // 삭제
   const deleteMutation = useMutation({
     mutationFn: (ids) => api('/api/admin/images/delete', { method: 'POST', body: { ids } }),
     onSuccess: () => {
@@ -404,29 +485,44 @@ export default function AdminImages() {
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-lg font-semibold">이미지 관리</h2>
-          <p className="text-sm text-gray-500 mt-0.5">공용 이미지를 업로드하고 관리합니다</p>
+          <h2 className="text-lg font-medium">이미지 관리</h2>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-dim)' }}>공용 이미지를 업로드하고 관리합니다</p>
         </div>
         <div className="flex items-center gap-2">
           {selectMode ? (
             <>
-              <span className="text-sm text-gray-400">{selectedIds.size}개 선택</span>
+              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{selectedIds.size}개 선택</span>
               <button
                 onClick={selectAll}
-                className="rounded-lg border border-white/10 px-3 py-2 text-sm hover:bg-white/5 transition"
+                className="rounded-lg border px-3 py-2 text-sm hover:bg-[var(--btn-bg-hover)]"
+                style={{
+                  background: 'var(--btn-bg)',
+                  borderColor: 'var(--btn-border)',
+                  color: 'var(--text-emphasis)',
+                }}
               >
                 {selectedIds.size === images.length && images.length > 0 ? '전체 해제' : '전체 선택'}
               </button>
               <button
                 onClick={requestDelete}
                 disabled={selectedIds.size === 0}
-                className="rounded-lg bg-red-600 hover:bg-red-500 px-3 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-red-500/20"
+                className="rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--btn-danger-bg-hover)]"
+                style={{
+                  background: 'var(--btn-danger-bg)',
+                  color: 'var(--btn-primary-text)',
+                  boxShadow: 'var(--btn-danger-shadow)',
+                }}
               >
                 삭제
               </button>
               <button
                 onClick={toggleSelectMode}
-                className="rounded-lg border border-white/10 px-3 py-2 text-sm hover:bg-white/5 transition"
+                className="rounded-lg border px-3 py-2 text-sm hover:bg-[var(--btn-bg-hover)]"
+                style={{
+                  background: 'var(--btn-bg)',
+                  borderColor: 'var(--btn-border)',
+                  color: 'var(--text-emphasis)',
+                }}
               >
                 완료
               </button>
@@ -436,14 +532,23 @@ export default function AdminImages() {
               {images.length > 0 && (
                 <button
                   onClick={toggleSelectMode}
-                  className="rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 px-3 py-2 text-sm transition"
+                  className="rounded-lg border px-3 py-2 text-sm hover:bg-[var(--danger-bg-hover)]"
+                  style={{
+                    borderColor: 'var(--icon-danger-border)',
+                    color: 'var(--danger-text)',
+                  }}
                 >
                   삭제
                 </button>
               )}
               <button
                 onClick={() => setUploadOpen(true)}
-                className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-sm font-medium transition shadow-lg shadow-emerald-500/20"
+                className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium hover:bg-[var(--btn-primary-bg-hover)]"
+                style={{
+                  background: 'var(--btn-primary-bg)',
+                  color: 'var(--btn-primary-text)',
+                  boxShadow: 'var(--btn-primary-shadow)',
+                }}
               >
                 <span className="text-base leading-none">+</span>
                 이미지 업로드
@@ -461,9 +566,14 @@ export default function AdminImages() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="이미지 이름으로 검색..."
-            className="w-full rounded-lg border border-white/10 bg-gray-900/50 pl-10 pr-4 py-2.5 text-sm outline-none focus:border-emerald-500/50 transition"
+            className="w-full rounded-lg border pl-10 pr-4 py-2.5 text-sm outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
+            style={{
+              background: 'var(--input-bg)',
+              borderColor: 'var(--input-border)',
+              color: 'var(--text-strong)',
+            }}
           />
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">🔍</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--input-icon)' }}>🔍</span>
         </div>
       )}
 
@@ -471,19 +581,30 @@ export default function AdminImages() {
       {isLoading ? (
         <div className="grid gap-3 grid-cols-3 sm:grid-cols-4 lg:grid-cols-6">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="aspect-square rounded-xl bg-white/[0.02] animate-pulse" />
+            <div
+              key={i}
+              className="aspect-square rounded-xl animate-pulse"
+              style={{ background: 'var(--skeleton-bg)' }}
+            />
           ))}
         </div>
       ) : images.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-16 text-center">
+        <div
+          className="rounded-2xl border border-dashed p-16 text-center"
+          style={{
+            borderColor: 'var(--dashed-border)',
+            background: 'var(--skeleton-bg)',
+          }}
+        >
           <div className="text-5xl mb-3 opacity-30">🖼️</div>
-          <p className="text-gray-400 mb-4">
+          <p className="mb-4" style={{ color: 'var(--text-muted)' }}>
             {debouncedSearch ? '검색 결과가 없습니다' : '업로드된 이미지가 없습니다'}
           </p>
           {!debouncedSearch && (
             <button
               onClick={() => setUploadOpen(true)}
-              className="text-sm text-emerald-400 hover:text-emerald-300 transition"
+              className="text-sm hover:text-[var(--accent-hover-text)]"
+              style={{ color: 'var(--accent)' }}
             >
               첫 이미지 업로드하기 →
             </button>
