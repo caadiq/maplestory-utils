@@ -7,8 +7,10 @@ import bossCrystalRoutes from './routes/boss-crystal.js';
 import characterRoutes from './routes/character.js';
 import imageRoutes from './routes/images.js';
 import symbolRoutes from './routes/symbol.js';
+import sundayMapleRoutes from './routes/sunday-maple.js';
 import { sequelize } from './lib/db.js';
 import './models/index.js';
+import { scheduleSundayMapleCron } from './services/sundayMapleCron.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,6 +29,7 @@ app.use('/api/boss-crystal', bossCrystalRoutes);
 app.use('/api/character', characterRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/symbols', symbolRoutes);
+app.use('/api/sunday-maple', sundayMapleRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (_req, res) => {
@@ -39,6 +42,8 @@ async function start() {
     console.log('DB 연결 성공');
     await sequelize.sync();
     console.log('테이블 동기화 완료');
+
+    scheduleSundayMapleCron();
 
     app.listen(PORT, () => {
       console.log(`서버 시작: http://localhost:${PORT}`);

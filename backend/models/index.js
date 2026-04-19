@@ -1,5 +1,6 @@
 import { Image } from './Image.js';
 import { Menu } from './Menu.js';
+import { SundayMaple } from './SundayMaple.js';
 import { BossCrystalBoss } from './boss-crystal/Boss.js';
 import { BossCrystalBossDifficulty } from './boss-crystal/BossDifficulty.js';
 import { Symbol } from './symbol/Symbol.js';
@@ -24,4 +25,4 @@ Symbol.hasMany(SymbolLevel, {
 });
 SymbolLevel.belongsTo(Symbol, { foreignKey: 'symbol_id', as: 'symbol' });
 
-export { Image, Menu, BossCrystalBoss, BossCrystalBossDifficulty, Symbol, SymbolLevel };
+export { Image, Menu, SundayMaple, BossCrystalBoss, BossCrystalBossDifficulty, Symbol, SymbolLevel };
