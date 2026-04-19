@@ -1,4 +1,4 @@
-import Select from '../../../components/Select'
+import Select from '../../../components/common/Select'
 import { DIFFICULTIES, formatMeso } from '../admin/constants'
 
 const LABEL_EN = { easy: 'EASY', normal: 'NORMAL', hard: 'HARD', chaos: 'CHAOS', extreme: 'EXTREME' }

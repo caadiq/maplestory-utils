@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import ImagePicker from './components/ImagePicker'
-import ConfirmDialog from '../../components/ConfirmDialog'
+import ConfirmDialog from '../../components/common/ConfirmDialog'
 
 function Field({ label, hint, error, required, children }) {
   return (

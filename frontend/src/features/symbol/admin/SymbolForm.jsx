@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../api/client'
-import Select from '../../../components/Select'
-import ConfirmDialog from '../../../components/ConfirmDialog'
+import Select from '../../../components/common/Select'
+import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import { useAuthStore } from '../../../stores/auth'
 
 const TYPE_OPTIONS = [

@@ -1,5 +1,5 @@
-import Select from '../../../components/Select'
-import Tooltip from '../../../components/Tooltip'
+import Select from '../../../components/common/Select'
+import Tooltip from '../../../components/common/Tooltip'
 import WeeklyScheduler from './WeeklyScheduler'
 import { WEEKLY_BOSSES, MONTHLY_BOSSES, LIBERATION_BOSS_IMAGE_BASE, calcPoints } from '../data'
 
