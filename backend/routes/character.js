@@ -46,16 +46,53 @@ router.get('/search', async (req, res) => {
   }
 });
 
-// OCID로 장착 심볼 조회
+// 이벤트 스킬(보약) 효과에서 일퀘 심볼 보너스 파싱
+// Nexon API의 skill_level 필드는 이벤트 스킬에 한해 실제 레벨이 아닌 1로 고정되므로
+// skill_effect 문자열의 심볼 증가 개수를 이용해 실제 레벨을 역산한다.
+// (이벤트마다 테이블이 달라지면 아래 맵을 갱신해야 함)
+const ARCANE_SYMBOL_TO_LEVEL = { 2: 1, 4: 2, 8: 3, 12: 4, 16: 5, 20: 6 };
+const AUTHENTIC_SYMBOL_TO_LEVEL = { 2: 1, 3: 2, 4: 3, 5: 4, 7: 5, 9: 6 };
+
+function parseEventSkillBonus(skills) {
+  for (const s of skills || []) {
+    const eff = s.skill_effect || '';
+    const arcane = eff.match(/아케인리버\s*일일퀘스트[^\r\n]*?획득\s*심볼\s*(\d+)\s*개/);
+    const authentic = eff.match(/그란디스\s*일일퀘스트[^\r\n]*?획득\s*심볼\s*(\d+)\s*개/);
+    if (arcane || authentic) {
+      const arcaneDaily = arcane ? Number(arcane[1]) || 0 : 0;
+      const authenticDaily = authentic ? Number(authentic[1]) || 0 : 0;
+      const derivedLevel =
+        AUTHENTIC_SYMBOL_TO_LEVEL[authenticDaily] ||
+        ARCANE_SYMBOL_TO_LEVEL[arcaneDaily] ||
+        0;
+      return {
+        skill_name: s.skill_name,
+        skill_level: derivedLevel,
+        arcane_daily: arcaneDaily,
+        authentic_daily: authenticDaily,
+      };
+    }
+  }
+  return null;
+}
+
+// OCID로 장착 심볼 + 이벤트 스킬 보너스 조회
 router.get('/symbols', async (req, res) => {
   const { ocid } = req.query;
   if (!ocid) return res.status(400).json({ error: 'ocid가 필요합니다' });
 
   try {
-    const { data } = await axios.get(`${NEXON_API_BASE}/maplestory/v1/character/symbol-equipment`, {
-      params: { ocid },
-      headers: { 'x-nxopen-api-key': process.env.NEXON_API_KEY },
-    });
+    const [symbolRes, skillRes] = await Promise.all([
+      axios.get(`${NEXON_API_BASE}/maplestory/v1/character/symbol-equipment`, {
+        params: { ocid },
+        headers: { 'x-nxopen-api-key': process.env.NEXON_API_KEY },
+      }),
+      axios.get(`${NEXON_API_BASE}/maplestory/v1/character/skill`, {
+        params: { ocid, character_skill_grade: '0' },
+        headers: { 'x-nxopen-api-key': process.env.NEXON_API_KEY },
+      }).catch(() => ({ data: { character_skill: [] } })),
+    ]);
+    const data = symbolRes.data;
 
     const parsed = (data.symbol || []).map((s) => {
       const [prefix, region] = (s.symbol_name || '').split(' : ').map((t) => t.trim());
@@ -70,7 +107,9 @@ router.get('/symbols', async (req, res) => {
       };
     });
 
-    res.json({ ocid, character_class: data.character_class, symbols: parsed });
+    const event_skill = parseEventSkillBonus(skillRes.data?.character_skill);
+
+    res.json({ ocid, character_class: data.character_class, symbols: parsed, event_skill });
   } catch (err) {
     const code = err.response?.data?.error?.name;
     if (['OPENAPI00001', 'OPENAPI00007', 'OPENAPI00010', 'OPENAPI00011'].includes(code)) {

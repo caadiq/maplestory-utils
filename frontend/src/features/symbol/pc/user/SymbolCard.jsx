@@ -3,7 +3,7 @@ import Select from '../../../../components/common/Select'
 import Tooltip from '../../../../components/common/Tooltip'
 import { useSymbolStore } from '../../store'
 import { formatMesoKorean } from '../../../../utils/formatting'
-import { formatKoreanDate, computeCompletion } from '../../utils'
+import { formatKoreanDate, computeCompletion, eventBonusForType } from '../../utils'
 
 const INPUT_CLASS = "w-full h-10 rounded-md border px-3 text-base text-right tabular-nums outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)] disabled:opacity-50"
 const INPUT_STYLE = {
@@ -15,12 +15,19 @@ const INPUT_STYLE = {
 function SymbolCard({ symbol, equipped, charId }) {
   const progress = useSymbolStore((s) => s.progress?.[charId]?.[symbol.id])
   const updateSymbol = useSymbolStore((s) => s.updateSymbol)
+  const eventSkill = useSymbolStore((s) => s.characters.find((c) => c.id === charId)?.event_skill)
 
   const dailyDone = progress?.dailyDone ?? false
   const weeklyCount = progress?.weeklyCount ?? 3
-  const daily = progress?.daily ?? symbol.daily_default
+  const baseDefault = symbol.daily_default ?? 0
+  const eventBonus = eventBonusForType(eventSkill, symbol.type)
+  const hasDailyOverride = progress?.daily !== undefined
+  const daily = hasDailyOverride ? progress.daily : baseDefault + eventBonus
   const extra = progress?.extra ?? 0
   const patch = (p) => charId && updateSymbol(charId, symbol.id, p)
+  const dailyTooltip = !hasDailyOverride && eventBonus > 0 && eventSkill
+    ? `기본 ${baseDefault} + 보약 ${eventBonus} (${eventSkill.skill_name} Lv.${eventSkill.skill_level})`
+    : null
 
   const level = progress?.level ?? 0
   const growth = progress?.growth ?? 0
@@ -184,6 +191,7 @@ function SymbolCard({ symbol, equipped, charId }) {
             disabled={!interactable}
             className={INPUT_CLASS}
             style={INPUT_STYLE}
+            {...(dailyTooltip ? { title: dailyTooltip } : {})}
           />
         </div>
         {symbol.weekly_default > 0 && (

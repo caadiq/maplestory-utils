@@ -6,7 +6,7 @@ import Tooltip from '../../../components/common/Tooltip'
 import CharacterSuggestDropdown from '../../../components/common/CharacterSuggestDropdown'
 import { useSymbolStore } from '../store'
 import { formatMesoKorean } from '../../../utils/formatting'
-import { formatKoreanDate, computeCompletion, TYPE_ORDER } from '../utils'
+import { formatKoreanDate, computeCompletion, TYPE_ORDER, eventBonusForType } from '../utils'
 import CharacterCard from './user/CharacterCard'
 import SymbolCard from './user/SymbolCard'
 
@@ -104,6 +104,11 @@ export default function Symbol() {
         }
       }
       syncCharacterSymbols(c.id, equippedMap)
+      const nextEs = q.data.event_skill ?? null
+      const prevEs = c.event_skill ?? null
+      if (JSON.stringify(nextEs) !== JSON.stringify(prevEs)) {
+        updateCharacter(c.id, { event_skill: nextEs })
+      }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allSymbols, symbolQueries.map((q) => q.dataUpdatedAt).join(',')])
@@ -141,6 +146,7 @@ export default function Symbol() {
   const isEquipped = (symbolId) => !!progress?.[symbolId]?.equipped
 
   // 현재 탭의 누적 메소 + 최종 완료일 계산
+  const selectedChar = characters.find((c) => c.id === selectedCharId)
   const { totalRequiredMeso, totalArrearMeso, overallDate } = useMemo(() => {
     let req = 0, arr = 0, latest = null
     for (const s of symbols) {
@@ -172,9 +178,11 @@ export default function Symbol() {
         req += l.meso_cost
       }
       if (effMax) continue
+      const bonus = eventBonusForType(selectedChar?.event_skill, s.type)
+      const dailyValue = p.daily !== undefined ? p.daily : (s.daily_default ?? 0) + bonus
       const { date } = computeCompletion({
         remainingSymbols: remaining,
-        daily: p.daily ?? s.daily_default ?? 0,
+        daily: dailyValue,
         weeklyPerWeek: (p.weeklyCount ?? 3) * (s.weekly_default || 0),
         extra: p.extra || 0,
         dailyDone: !!p.dailyDone,
@@ -182,7 +190,7 @@ export default function Symbol() {
       if (date && (!latest || date > latest)) latest = date
     }
     return { totalRequiredMeso: req, totalArrearMeso: arr, overallDate: latest }
-  }, [symbols, progress])
+  }, [symbols, progress, selectedChar?.event_skill])
 
   return (
     <div className="space-y-6 pb-10 max-w-5xl mx-auto">

@@ -3,7 +3,8 @@ import { persist } from 'zustand/middleware'
 
 /**
  * 심볼 계산기 상태
- * characters: [{ id, character_name, character_level, job_name, character_image, ... }]
+ * characters: [{ id, character_name, character_level, job_name, character_image, event_skill, ... }]
+ *   - event_skill: { skill_name, skill_level, arcane_daily, authentic_daily } | null
  * selectedCharId: 현재 선택된 캐릭터 id (ocid)
  * progress: {
  *   [charId]: {
