@@ -140,7 +140,6 @@ export default function ImagePicker({ open, onClose, onSelect, currentImageId })
                         borderColor: isSelected ? 'var(--selected-border)' : 'var(--panel-border)',
                         boxShadow: isSelected ? '0 0 0 2px var(--ring-info)' : undefined,
                       }}
-                      title={image.name}
                     >
                       <div
                         className="aspect-square flex items-center justify-center p-4"
