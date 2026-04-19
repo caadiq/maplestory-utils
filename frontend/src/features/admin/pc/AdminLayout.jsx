@@ -1,7 +1,7 @@
 import { Outlet, Navigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { api } from '../../api/client'
-import { useAuthStore } from '../../stores/auth'
+import { api } from '../../../api/client'
+import { useAuthStore } from '../../../stores/auth'
 
 export default function AdminLayout() {
   const queryClient = useQueryClient()
