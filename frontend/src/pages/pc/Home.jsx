@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import NoticeWidget from '../../components/pc/NoticeWidget'
+import SundayMapleBanner from '../../components/pc/SundayMapleBanner'
 
 export default function Home() {
   const { data: menus = [], isLoading: loading } = useQuery({
@@ -11,6 +12,9 @@ export default function Home() {
 
   return (
     <div className="space-y-10 max-w-5xl mx-auto pt-6">
+      {/* 썬데이 메이플 배너 (금~일만 표시) */}
+      <SundayMapleBanner />
+
       {/* 구분선 */}
       <div className="flex items-center gap-4">
         <div
