@@ -1,3 +1,4 @@
+import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import Select from '../../../../components/common/Select'
 import { DIFFICULTIES, formatMeso } from '../admin/constants'
 
@@ -45,7 +46,7 @@ export default function BossSelector({ characterName, bosses, selections, onChan
     >
       {/* 헤더 (고정) */}
       <div
-        className="flex items-center gap-3 px-3 py-3 border-b text-base font-medium shrink-0"
+        className="flex items-center gap-3 px-5 py-3 border-b text-base font-medium shrink-0"
         style={{
           background: 'var(--surface-2)',
           borderColor: 'var(--panel-border)',
@@ -58,8 +59,15 @@ export default function BossSelector({ characterName, bosses, selections, onChan
         <div className="w-32 shrink-0 text-right">가격</div>
       </div>
       {/* 목록 (스크롤) */}
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="divide-y" style={{ '--tw-divide-opacity': 1 }}>
+      <OverlayScrollbarsComponent
+        className="flex-1 min-h-0"
+        options={{
+          scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 },
+          overflow: { x: 'hidden', y: 'scroll' },
+        }}
+        defer
+      >
+        <div className="divide-y px-2" style={{ '--tw-divide-opacity': 1 }}>
           {bosses.map((boss) => {
             const availableDiffs = DIFFICULTIES.filter((d) =>
               boss.difficulties.some((bd) => bd.difficulty === d.key)
@@ -161,7 +169,7 @@ export default function BossSelector({ characterName, bosses, selections, onChan
             )
           })}
         </div>
-      </div>
+      </OverlayScrollbarsComponent>
     </div>
   )
 }
