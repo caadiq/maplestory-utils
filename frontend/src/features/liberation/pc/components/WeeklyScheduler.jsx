@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import dayjs from 'dayjs'
-import { LIBERATION_BOSS_IMAGE_BASE, WEEKLY_BOSSES, MONTHLY_BOSSES, calcPoints } from '../data'
+import { LIBERATION_BOSS_IMAGE_BASE, WEEKLY_BOSSES, MONTHLY_BOSSES, calcPoints } from '../../data'
 import { BossRow } from './WeeklyDefault'
 
 function bossEarn(boss, sel) {

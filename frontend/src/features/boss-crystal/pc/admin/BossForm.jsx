@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api } from '../../../api/client'
-import ConfirmDialog from '../../../components/common/ConfirmDialog'
-import Checkbox from '../../../components/common/Checkbox'
-import Select from '../../../components/common/Select'
-import { useAuthStore } from '../../../stores/auth'
+import { api } from '../../../../api/client'
+import ConfirmDialog from '../../../../components/common/ConfirmDialog'
+import Checkbox from '../../../../components/common/Checkbox'
+import Select from '../../../../components/common/Select'
+import { useAuthStore } from '../../../../stores/auth'
 import { DIFFICULTIES, formatMeso, getDifficultyImageUrl } from './constants'
 
 const PARTY_OPTIONS = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n}인` }))

@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect } from 'react'
 import { useQuery, useQueries } from '@tanstack/react-query'
-import { api } from '../../api/client'
-import { useLayout } from '../../components/pc/Layout'
+import { api } from '../../../api/client'
+import { useLayout } from '../../../components/pc/Layout'
 import CharacterPanel from './user/CharacterPanel'
 import BossSelector from './user/BossSelector'
-import { useBossStore } from './store'
+import { useBossStore } from '../store'
 
 const MAX_PER_CHARACTER = 12
 

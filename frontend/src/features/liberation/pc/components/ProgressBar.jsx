@@ -1,4 +1,4 @@
-import { GENESIS_CHAPTERS, GENESIS_TOTAL, QUEST_BOSS_IMAGE_BASE } from '../data'
+import { GENESIS_CHAPTERS, GENESIS_TOTAL, QUEST_BOSS_IMAGE_BASE } from '../../data'
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토']
 function formatKoreanDate(s) {

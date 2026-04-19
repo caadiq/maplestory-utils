@@ -1,7 +1,7 @@
-import Select from '../../../components/common/Select'
-import Tooltip from '../../../components/common/Tooltip'
+import Select from '../../../../components/common/Select'
+import Tooltip from '../../../../components/common/Tooltip'
 import WeeklyScheduler from './WeeklyScheduler'
-import { WEEKLY_BOSSES, MONTHLY_BOSSES, LIBERATION_BOSS_IMAGE_BASE, calcPoints } from '../data'
+import { WEEKLY_BOSSES, MONTHLY_BOSSES, LIBERATION_BOSS_IMAGE_BASE, calcPoints } from '../../data'
 
 const PARTY_OPTIONS = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n}인` }))
 const NONE_DIFFICULTY = { key: 'none', label: '격파 불가', points: 0 }

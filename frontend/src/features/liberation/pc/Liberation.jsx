@@ -1,7 +1,7 @@
 import { useState, useEffect, useLayoutEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
-import { api } from '../../api/client'
+import { api } from '../../../api/client'
 import {
   GENESIS_CHAPTERS,
   GENESIS_TOTAL,
@@ -10,15 +10,15 @@ import {
   calcPoints,
   formatDate,
   todayKST,
-} from './data'
-import { useLiberationStore } from './store'
+} from '../data'
+import { useLiberationStore } from '../store'
 import QuestSelector from './components/QuestSelector'
 import PointsInput from './components/PointsInput'
 import ProgressBar from './components/ProgressBar'
 import WeeklyDefault from './components/WeeklyDefault'
-import DatePicker from '../../components/common/DatePicker'
-import ConfirmDialog from '../../components/common/ConfirmDialog'
-import { useLayout } from '../../components/pc/Layout'
+import DatePicker from '../../../components/common/DatePicker'
+import ConfirmDialog from '../../../components/common/ConfirmDialog'
+import { useLayout } from '../../../components/pc/Layout'
 
 function makeEmptyWeekly() {
   const bosses = {}
