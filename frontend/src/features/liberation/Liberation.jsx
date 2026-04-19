@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useLayoutEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import { api } from '../../api/client'
@@ -62,7 +62,7 @@ function calcMonthlyEarn(weekData) {
 
 export default function Liberation() {
   const { setFullscreen } = useLayout()
-  useEffect(() => {
+  useLayoutEffect(() => {
     setFullscreen(true)
     return () => setFullscreen(false)
   }, [setFullscreen])

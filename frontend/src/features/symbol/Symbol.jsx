@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useLayoutEffect, useMemo } from 'react'
 import { useQuery, useQueries, useMutation } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
@@ -371,7 +371,7 @@ function SymbolCard({ symbol, equipped, charId }) {
 
 export default function Symbol() {
   const { setFullscreen } = useLayout()
-  useEffect(() => {
+  useLayoutEffect(() => {
     setFullscreen(true)
     return () => setFullscreen(false)
   }, [setFullscreen])
