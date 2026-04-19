@@ -12,14 +12,26 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { api } from '../../../api/client'
 
-const TYPE_COLOR = {
-  '아케인': { text: 'text-violet-300', bg: 'bg-violet-500/15', border: 'border-violet-500/30' },
-  '어센틱': { text: 'text-sky-300', bg: 'bg-sky-500/15', border: 'border-sky-500/30' },
-  '그랜드 어센틱': { text: 'text-amber-300', bg: 'bg-amber-500/15', border: 'border-amber-500/30' },
+const TYPE_STYLE = {
+  '아케인': {
+    color: 'var(--symbol-arcane-text)',
+    background: 'var(--symbol-arcane-bg)',
+    borderColor: 'var(--symbol-arcane-border)',
+  },
+  '어센틱': {
+    color: 'var(--symbol-authentic-text)',
+    background: 'var(--symbol-authentic-bg)',
+    borderColor: 'var(--symbol-authentic-border)',
+  },
+  '그랜드 어센틱': {
+    color: 'var(--symbol-grand-text)',
+    background: 'var(--symbol-grand-bg)',
+    borderColor: 'var(--symbol-grand-border)',
+  },
 }
 
 function SymbolCardContent({ symbol, dragging = false }) {
-  const color = TYPE_COLOR[symbol.type] || TYPE_COLOR['아케인']
+  const badgeStyle = TYPE_STYLE[symbol.type] || TYPE_STYLE['아케인']
   return (
     <div
       className="flex items-stretch rounded-2xl border"
@@ -53,7 +65,10 @@ function SymbolCardContent({ symbol, dragging = false }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2 flex-wrap">
             <h3 className="font-medium truncate">{symbol.region}</h3>
-            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${color.text} ${color.bg} ${color.border}`}>
+            <span
+              className="text-[10px] font-medium px-1.5 py-0.5 rounded border"
+              style={badgeStyle}
+            >
               {symbol.type}
             </span>
           </div>

@@ -206,11 +206,14 @@ function HomeLinkButton() {
 }
 
 export default function Layout() {
+  const location = useLocation()
   const [fullscreen, setFullscreen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
   const isAdmin = !!useMatch('/admin/*')
   const homeTo = isAdmin ? '/admin' : '/'
   const theme = useThemeStore((s) => s.theme)
+
+  const isHome = location.pathname === '/'
 
   useEffect(() => {
     const root = document.documentElement
@@ -256,7 +259,7 @@ export default function Layout() {
         }`}>
           <Outlet />
         </main>
-        {!fullscreen && <Footer />}
+        {isHome && <Footer />}
       </div>
     </LayoutContext.Provider>
   )

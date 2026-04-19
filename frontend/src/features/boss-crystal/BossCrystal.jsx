@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useLayoutEffect } from 'react'
 import { useQuery, useQueries } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import { useLayout } from '../../components/Layout'
@@ -21,7 +21,7 @@ export default function BossCrystal() {
 
   // 풀스크린 모드 (푸터 숨김 + 내부 스크롤)
   const { setFullscreen } = useLayout()
-  useEffect(() => {
+  useLayoutEffect(() => {
     setFullscreen(true)
     return () => setFullscreen(false)
   }, [setFullscreen])

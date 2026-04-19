@@ -145,6 +145,16 @@
   --liberation-primary-bar: rgba(167, 139, 250, 0.5);
   --liberation-secondary: #fda4af;
   --liberation-secondary-bar: rgba(253, 164, 175, 0.5);
+
+  --symbol-arcane-text: #c4b5fd;
+  --symbol-arcane-bg: rgba(139, 92, 246, 0.15);
+  --symbol-arcane-border: rgba(139, 92, 246, 0.3);
+  --symbol-authentic-text: #7dd3fc;
+  --symbol-authentic-bg: rgba(14, 165, 233, 0.15);
+  --symbol-authentic-border: rgba(14, 165, 233, 0.3);
+  --symbol-grand-text: #fcd34d;
+  --symbol-grand-bg: rgba(245, 158, 11, 0.15);
+  --symbol-grand-border: rgba(245, 158, 11, 0.3);
 }
 
 /* 테마 토큰 - light */
@@ -286,6 +296,16 @@
   --liberation-primary-bar: rgba(124, 58, 237, 0.5);
   --liberation-secondary: #e11d48;
   --liberation-secondary-bar: rgba(225, 29, 72, 0.5);
+
+  --symbol-arcane-text: #6d28d9;
+  --symbol-arcane-bg: rgba(139, 92, 246, 0.12);
+  --symbol-arcane-border: rgba(109, 40, 217, 0.4);
+  --symbol-authentic-text: #0369a1;
+  --symbol-authentic-bg: rgba(14, 165, 233, 0.12);
+  --symbol-authentic-border: rgba(3, 105, 161, 0.4);
+  --symbol-grand-text: #b45309;
+  --symbol-grand-bg: rgba(245, 158, 11, 0.15);
+  --symbol-grand-border: rgba(180, 83, 9, 0.4);
 }
 
 html, body, #root {
