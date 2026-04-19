@@ -4,7 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../../api/client'
 import Select from '../../../../components/common/Select'
 import ConfirmDialog from '../../../../components/common/ConfirmDialog'
+import FormField, { formInputClass, formInputStyle } from '../../../../components/common/FormField'
 import { useAuthStore } from '../../../../stores/auth'
+import { formatMeso } from '../../../../utils/formatting'
 
 const TYPE_OPTIONS = [
   { value: '아케인', label: '아케인' },
@@ -12,27 +14,9 @@ const TYPE_OPTIONS = [
   { value: '그랜드 어센틱', label: '그랜드 어센틱' },
 ]
 
-const inputCls = 'w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]'
-const inputStyle = {
-  background: 'var(--input-bg)',
-  borderColor: 'var(--input-border)',
-  color: 'var(--text-strong)',
-}
-
-function formatMesoKorean(n) {
-  if (!n || n <= 0) return ''
-  const eok = Math.floor(n / 100_000_000)
-  const man = Math.floor((n % 100_000_000) / 10_000)
-  const parts = []
-  if (eok) parts.push(`${eok}억`)
-  if (man) parts.push(`${man.toLocaleString()}만`)
-  if (!parts.length) return `${n.toLocaleString()}`
-  return parts.join(' ')
-}
-
 function MesoInput({ value, onChange, ...rest }) {
   const display = value === '' || value == null ? '' : Number(String(value).replace(/[^\d]/g, '')).toLocaleString()
-  const korean = formatMesoKorean(Number(String(value).replace(/[^\d]/g, '')) || 0)
+  const korean = formatMeso(Number(String(value).replace(/[^\d]/g, '')) || 0)
   return (
     <div>
       <input
@@ -43,31 +27,16 @@ function MesoInput({ value, onChange, ...rest }) {
           const digits = e.target.value.replace(/[^\d]/g, '')
           onChange(digits)
         }}
-        className={`${inputCls} tabular-nums text-right`}
-        style={inputStyle}
+        className={`${formInputClass} tabular-nums text-right`}
+        style={formInputStyle}
         {...rest}
       />
       <div
         className="text-sm mt-1 text-right tabular-nums min-h-[18px]"
         style={{ color: 'var(--warning-text-bright)' }}
       >
-        {korean || '\u00A0'}
+        {korean === '0' ? '\u00A0' : korean}
       </div>
-    </div>
-  )
-}
-
-function Field({ label, hint, error, required, children }) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline justify-between">
-        <label className="text-sm font-medium" style={{ color: 'var(--text-emphasis)' }}>
-          {label} {required && <span style={{ color: 'var(--danger-text)' }}>*</span>}
-        </label>
-        {hint && <span className="text-xs" style={{ color: 'var(--text-dim)' }}>{hint}</span>}
-      </div>
-      {children}
-      {error && <div className="text-[11px]" style={{ color: 'var(--danger-text)' }}>{error}</div>}
     </div>
   )
 }
@@ -216,7 +185,7 @@ export default function SymbolForm() {
       <div className="rounded-2xl border p-6 space-y-5" style={panelStyle}>
         <div className="text-sm font-semibold" style={{ color: 'var(--accent-bright)' }}>기본 정보</div>
 
-        <Field label="심볼 이미지" required={!isEdit}>
+        <FormField label="심볼 이미지" required={!isEdit}>
           <label
             className="flex items-center gap-4 rounded-xl border-2 border-dashed p-4 cursor-pointer hover:border-[var(--selected-border)]"
             style={{
@@ -248,54 +217,54 @@ export default function SymbolForm() {
             </div>
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
           </label>
-        </Field>
+        </FormField>
 
         <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="심볼 종류" required>
+              <FormField label="심볼 종류" required>
                 <Select value={type} onChange={setType} options={TYPE_OPTIONS} />
-              </Field>
-              <Field label="지역 이름" required hint="예: 소멸의 여로">
+              </FormField>
+              <FormField label="지역 이름" required hint="예: 소멸의 여로">
                 <input
                   type="text"
                   value={region}
                   onChange={(e) => setRegion(e.target.value)}
-                  className={inputCls}
-                  style={inputStyle}
+                  className={formInputClass}
+                  style={formInputStyle}
                   placeholder="소멸의 여로"
                 />
-              </Field>
+              </FormField>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="만렙" required>
+              <FormField label="만렙" required>
                 <input
                   type="number"
                   value={maxLevel}
                   onChange={(e) => { setMaxLevel(e.target.value); adjustLevelRows(e.target.value) }}
-                  className={inputCls}
-                  style={inputStyle}
+                  className={formInputClass}
+                  style={formInputStyle}
                   min="2"
                 />
-              </Field>
-              <Field label="기본 일퀘 획득량">
+              </FormField>
+              <FormField label="기본 일퀘 획득량">
                 <input
                   type="number"
                   value={dailyDefault}
                   onChange={(e) => setDailyDefault(e.target.value)}
-                  className={inputCls}
-                  style={inputStyle}
+                  className={formInputClass}
+                  style={formInputStyle}
                 />
-              </Field>
-              <Field label="기본 주간퀘 획득량">
+              </FormField>
+              <FormField label="기본 주간퀘 획득량">
                 <input
                   type="number"
                   value={weeklyDefault}
                   onChange={(e) => setWeeklyDefault(e.target.value)}
-                  className={inputCls}
-                  style={inputStyle}
+                  className={formInputClass}
+                  style={formInputStyle}
                 />
-              </Field>
+              </FormField>
             </div>
         </div>
       </div>
@@ -329,8 +298,8 @@ export default function SymbolForm() {
                       type="number"
                       value={l.required_count}
                       onChange={(e) => updateLevel(idx, 'required_count', e.target.value)}
-                      className={`${inputCls} max-w-36`}
-                      style={inputStyle}
+                      className={`${formInputClass} max-w-36`}
+                      style={formInputStyle}
                       placeholder="0"
                     />
                   </td>
