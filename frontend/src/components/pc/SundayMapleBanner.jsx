@@ -1,63 +1,96 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
+import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../api/client'
 
 function SundayMapleDialog({ data, onClose }) {
+  // 배경 스크롤 잠금
+  useEffect(() => {
+    const prevBody = document.body.style.overflow
+    const prevHtml = document.documentElement.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prevBody
+      document.documentElement.style.overflow = prevHtml
+    }
+  }, [])
+
+  const iconBtn = "w-8 h-8 rounded-lg backdrop-blur-sm border flex items-center justify-center hover:bg-[var(--row-hover-bg)]"
+  const iconBtnStyle = {
+    background: 'var(--btn-bg)',
+    borderColor: 'var(--btn-border)',
+    color: 'var(--text-emphasis)',
+  }
+
   return (
-    <AnimatePresence>
+    <motion.div
+      key="backdrop"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+      className="fixed top-0 left-0 z-50 flex items-center justify-center p-4 backdrop-blur-md"
+      style={{
+        background: 'var(--dialog-backdrop)',
+        width: '100vw',
+        height: '100dvh',
+      }}
+      onClick={onClose}
+    >
       <motion.div
-        key="backdrop"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.18 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md"
-        style={{ background: 'var(--dialog-backdrop)' }}
-        onClick={onClose}
+        key="dialog"
+        initial={{ opacity: 0, scale: 0.94, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 4 }}
+        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full max-w-[640px] max-h-[90vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden"
+        style={{
+          background: 'var(--panel-bg)',
+          borderColor: 'var(--panel-border)',
+        }}
+        onClick={(e) => e.stopPropagation()}
       >
-        <motion.div
-          key="dialog"
-          initial={{ opacity: 0, scale: 0.94, y: 8 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: 4 }}
-          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-          className="relative w-full max-w-[420px] max-h-[90vh] overflow-y-auto rounded-2xl border shadow-2xl"
-          style={{
-            background: 'var(--panel-bg)',
-            borderColor: 'var(--panel-border)',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+          {data.event_post_url && (
+            <a
+              href={data.event_post_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={iconBtn}
+              style={iconBtnStyle}
+              aria-label="공식 공지로 이동"
+              title="공식 공지로 이동"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M10 5H5a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5M14 3h7m0 0v7m0-7L10 14"
+                  stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </a>
+          )}
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 z-10 w-8 h-8 rounded-lg backdrop-blur-sm border flex items-center justify-center text-xl leading-none hover:bg-[var(--row-hover-bg)]"
-            style={{
-              background: 'var(--btn-bg)',
-              borderColor: 'var(--btn-border)',
-              color: 'var(--text-emphasis)',
-            }}
+            className={`${iconBtn} text-xl leading-none`}
+            style={iconBtnStyle}
             aria-label="닫기"
           >
             ×
           </button>
+        </div>
+        <OverlayScrollbarsComponent
+          className="flex-1 min-h-0"
+          style={{ overscrollBehavior: 'contain' }}
+          options={{
+            scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 },
+            overflow: { x: 'hidden', y: 'scroll' },
+          }}
+          defer
+        >
           <img src={data.image_url} alt="썬데이 메이플" className="w-full block" />
-          {data.event_post_url && (
-            <div className="px-4 py-3 border-t text-center" style={{ borderColor: 'var(--panel-border)' }}>
-              <a
-                href={data.event_post_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm hover:text-[var(--accent-hover-text)]"
-                style={{ color: 'var(--accent)' }}
-              >
-                공식 공지 보기 →
-              </a>
-            </div>
-          )}
-        </motion.div>
+        </OverlayScrollbarsComponent>
       </motion.div>
-    </AnimatePresence>
+    </motion.div>
   )
 }
 
@@ -70,7 +103,6 @@ export default function SundayMapleBanner() {
     staleTime: 10 * 60 * 1000,
   })
 
-  // 이미지 관리에 업로드한 아이콘 URL (variant별)
   const iconName = data?.variant === 'special' ? '스페셜 썬데이 메이플' : '썬데이 메이플'
   const { data: iconData } = useQuery({
     queryKey: ['image', iconName],
@@ -118,7 +150,9 @@ export default function SundayMapleBanner() {
         </div>
       </button>
 
-      {open && <SundayMapleDialog data={data} onClose={() => setOpen(false)} />}
+      <AnimatePresence>
+        {open && <SundayMapleDialog data={data} onClose={() => setOpen(false)} />}
+      </AnimatePresence>
     </>
   )
 }
