@@ -1,8 +1,8 @@
 import { Suspense } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { getAdminComponent } from '../registry'
-import { api } from '../../api/client'
+import { getAdminComponent } from '../../registry'
+import { api } from '../../../api/client'
 
 export default function AdminFeaturePage() {
   const { slug } = useParams()

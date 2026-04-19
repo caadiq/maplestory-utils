@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api } from '../../api/client'
-import ConfirmDialog from '../../components/common/ConfirmDialog'
-import { useAuthStore } from '../../stores/auth'
+import { api } from '../../../api/client'
+import ConfirmDialog from '../../../components/common/ConfirmDialog'
+import { useAuthStore } from '../../../stores/auth'
 
 /* ── 공용 모달 ── */
 function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }) {
