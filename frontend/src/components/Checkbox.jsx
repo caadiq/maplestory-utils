@@ -14,11 +14,17 @@ export default function Checkbox({ checked, onChange, disabled, className = '', 
       disabled={disabled}
       tabIndex={tabIndex}
       onClick={(e) => { e.stopPropagation(); !disabled && onChange?.(!checked) }}
-      className={`${sizeCls} shrink-0 rounded-md border-2 flex items-center justify-center transition ${
-        checked
-          ? 'border-emerald-500 bg-emerald-500 text-white'
-          : 'border-white/20 bg-gray-950 hover:border-white/40'
-      } ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${className}`}
+      className={`${sizeCls} shrink-0 rounded-md border-2 flex items-center justify-center ${
+        disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
+      } ${className}`}
+      style={checked ? {
+        borderColor: 'var(--accent)',
+        background: 'var(--accent)',
+        color: 'var(--btn-primary-text)',
+      } : {
+        borderColor: 'var(--input-border)',
+        background: 'var(--input-bg)',
+      }}
     >
       {checked && (
         <svg className={iconSize} viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">

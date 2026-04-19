@@ -17,22 +17,29 @@ export default function AdminFeaturePage() {
 
   if (!Component) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 max-w-5xl mx-auto pt-6">
         {menu && (
           <div>
-            <h2 className="text-lg font-semibold">{menu.title}</h2>
-            <p className="text-sm text-gray-500 mt-0.5">{menu.description}</p>
+            <h2 className="text-lg font-medium">{menu.title}</h2>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--text-dim)' }}>{menu.description}</p>
           </div>
         )}
-        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center">
+        <div
+          className="rounded-2xl border border-dashed p-12 text-center"
+          style={{
+            borderColor: 'var(--dashed-border)',
+            background: 'var(--skeleton-bg)',
+          }}
+        >
           <div className="text-4xl mb-3 opacity-30">🛠️</div>
-          <p className="text-gray-400">이 기능에는 관리 페이지가 없습니다</p>
-          <p className="text-xs text-gray-600 mt-2 font-mono">
+          <p style={{ color: 'var(--text-muted)' }}>이 기능에는 관리 페이지가 없습니다</p>
+          <p className="text-xs mt-2 font-mono" style={{ color: 'var(--text-dim)' }}>
             features/{slug}/{slug.split('-').map((s) => s[0].toUpperCase() + s.slice(1)).join('')}Admin.jsx
           </p>
           <Link
             to={`/admin/menus/${menu?.id || ''}`}
-            className="inline-block mt-4 text-xs text-emerald-400 hover:text-emerald-300 transition"
+            className="inline-block mt-4 text-xs hover:text-[var(--accent-hover-text)]"
+            style={{ color: 'var(--accent)' }}
           >
             메뉴 정보 편집 →
           </Link>
@@ -44,7 +51,10 @@ export default function AdminFeaturePage() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center pt-20">
-        <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <div
+          className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
+          style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }}
+        />
       </div>
     }>
       <Component />

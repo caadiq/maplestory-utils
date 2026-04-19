@@ -16,13 +16,16 @@ import { DIFFICULTIES, formatMeso, getDifficultyBadgeStyle } from './constants'
 
 function BossCardContent({ boss, dragging = false }) {
   return (
-    <div className={`flex items-stretch rounded-2xl border bg-gradient-to-br from-gray-900/80 to-gray-900/40 ${
-      dragging
-        ? 'border-emerald-500/60 shadow-2xl shadow-emerald-500/30'
-        : 'border-white/5'
-    }`}>
+    <div
+      className="flex items-stretch rounded-2xl border"
+      style={{
+        backgroundImage: 'linear-gradient(to bottom right, var(--card-bg-from), var(--card-bg-to))',
+        borderColor: dragging ? 'var(--selected-border)' : 'var(--card-border)',
+        boxShadow: dragging ? '0 12px 32px rgba(16, 185, 129, 0.25)' : 'var(--card-shadow)',
+      }}
+    >
       {/* 핸들 자리 */}
-      <div className="flex items-center px-2 text-gray-700 cursor-grab active:cursor-grabbing">
+      <div className="flex items-center px-2 cursor-grab active:cursor-grabbing" style={{ color: 'var(--text-dim)' }}>
         <svg width="14" height="20" viewBox="0 0 14 20" fill="currentColor">
           <circle cx="4" cy="4" r="1.5" />
           <circle cx="10" cy="4" r="1.5" />
@@ -34,13 +37,19 @@ function BossCardContent({ boss, dragging = false }) {
       </div>
 
       <div className="flex-1 min-w-0 flex items-start gap-3 p-4 pl-2">
-        <div className="shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border border-white/5 flex items-center justify-center overflow-hidden">
+        <div
+          className="shrink-0 w-14 h-14 rounded-xl border flex items-center justify-center overflow-hidden"
+          style={{
+            backgroundImage: 'linear-gradient(to bottom right, var(--icon-box-from), var(--icon-box-to))',
+            borderColor: 'var(--icon-box-border)',
+          }}
+        >
           <img src={boss.image_url || '/default.png'} alt={boss.name} className="w-full h-full object-cover" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
-            <h3 className="font-semibold truncate">{boss.name}</h3>
-            <span className="text-xs text-gray-500 shrink-0">최대 {boss.max_party_size}인</span>
+            <h3 className="font-medium truncate">{boss.name}</h3>
+            <span className="text-xs shrink-0" style={{ color: 'var(--text-dim)' }}>최대 {boss.max_party_size}인</span>
           </div>
           <div className="flex flex-wrap gap-1 mt-2">
             {DIFFICULTIES.filter((d) => boss.difficulties?.some((bd) => bd.difficulty === d.key)).map((d) => {
@@ -80,17 +89,15 @@ function SortableBossCard({ boss }) {
       style={style}
       className={`relative ${isDragging ? 'opacity-30' : ''}`}
     >
-      {/* 드래그 핸들 (좌측) */}
       <button
         type="button"
         ref={setActivatorNodeRef}
         {...attributes}
         {...listeners}
-        className="absolute left-0 top-0 bottom-0 w-8 z-10 cursor-grab active:cursor-grabbing rounded-l-2xl hover:bg-white/5 transition touch-none"
+        className="absolute left-0 top-0 bottom-0 w-8 z-10 cursor-grab active:cursor-grabbing rounded-l-2xl hover:bg-[var(--row-hover-bg)] transition touch-none"
         aria-label="순서 변경"
       />
-      {/* 카드 본체 - Link */}
-      <Link to={`bosses/${boss.id}`} className="block group hover:[&_h3]:text-emerald-300 [&_h3]:transition">
+      <Link to={`bosses/${boss.id}`} className="block group hover:[&_h3]:text-[var(--accent-hover-text)] [&_h3]:transition">
         <BossCardContent boss={boss} />
       </Link>
     </div>
@@ -143,15 +150,20 @@ export default function BossList() {
   const activeBoss = items.find((b) => b.id === activeId)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl mx-auto pt-6">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-lg font-semibold">보스 결정 관리</h2>
-          <p className="text-sm text-gray-500 mt-0.5">보스 정보 및 난이도별 결정 가격을 관리합니다</p>
+          <h2 className="text-lg font-medium">보스 결정 관리</h2>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-dim)' }}>보스 정보 및 난이도별 결정 가격을 관리합니다</p>
         </div>
         <Link
           to="bosses/new"
-          className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-sm font-medium transition shadow-lg shadow-emerald-500/20"
+          className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium hover:bg-[var(--btn-primary-bg-hover)]"
+          style={{
+            background: 'var(--btn-primary-bg)',
+            color: 'var(--btn-primary-text)',
+            boxShadow: 'var(--btn-primary-shadow)',
+          }}
         >
           <span className="text-base leading-none">+</span>
           보스 추가
@@ -161,14 +173,24 @@ export default function BossList() {
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-32 rounded-2xl bg-white/[0.02] animate-pulse" />
+            <div key={i} className="h-32 rounded-2xl animate-pulse" style={{ background: 'var(--skeleton-bg)' }} />
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-16 text-center">
+        <div
+          className="rounded-2xl border border-dashed p-16 text-center"
+          style={{
+            borderColor: 'var(--dashed-border)',
+            background: 'var(--skeleton-bg)',
+          }}
+        >
           <div className="text-5xl mb-3 opacity-30">⚔️</div>
-          <p className="text-gray-400 mb-4">등록된 보스가 없습니다</p>
-          <Link to="bosses/new" className="text-sm text-emerald-400 hover:text-emerald-300 transition">
+          <p className="mb-4" style={{ color: 'var(--text-muted)' }}>등록된 보스가 없습니다</p>
+          <Link
+            to="bosses/new"
+            className="text-sm hover:text-[var(--accent-hover-text)]"
+            style={{ color: 'var(--accent)' }}
+          >
             첫 보스 추가하기 →
           </Link>
         </div>

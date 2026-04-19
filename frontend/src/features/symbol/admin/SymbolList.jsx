@@ -21,12 +21,15 @@ const TYPE_COLOR = {
 function SymbolCardContent({ symbol, dragging = false }) {
   const color = TYPE_COLOR[symbol.type] || TYPE_COLOR['아케인']
   return (
-    <div className={`flex items-stretch rounded-2xl border bg-gradient-to-br from-gray-900/80 to-gray-900/40 ${
-      dragging
-        ? 'border-emerald-500/60 shadow-2xl shadow-emerald-500/30'
-        : 'border-white/5'
-    }`}>
-      <div className="flex items-center px-2 text-gray-700 cursor-grab active:cursor-grabbing">
+    <div
+      className="flex items-stretch rounded-2xl border"
+      style={{
+        backgroundImage: 'linear-gradient(to bottom right, var(--card-bg-from), var(--card-bg-to))',
+        borderColor: dragging ? 'var(--selected-border)' : 'var(--card-border)',
+        boxShadow: dragging ? '0 12px 32px rgba(16, 185, 129, 0.25)' : 'var(--card-shadow)',
+      }}
+    >
+      <div className="flex items-center px-2 cursor-grab active:cursor-grabbing" style={{ color: 'var(--text-dim)' }}>
         <svg width="14" height="20" viewBox="0 0 14 20" fill="currentColor">
           <circle cx="4" cy="4" r="1.5" /><circle cx="10" cy="4" r="1.5" />
           <circle cx="4" cy="10" r="1.5" /><circle cx="10" cy="10" r="1.5" />
@@ -34,21 +37,27 @@ function SymbolCardContent({ symbol, dragging = false }) {
         </svg>
       </div>
       <div className="flex-1 min-w-0 flex items-start gap-3 p-4 pl-2">
-        <div className="shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border border-white/5 flex items-center justify-center overflow-hidden">
+        <div
+          className="shrink-0 w-14 h-14 rounded-xl border flex items-center justify-center overflow-hidden"
+          style={{
+            backgroundImage: 'linear-gradient(to bottom right, var(--icon-box-from), var(--icon-box-to))',
+            borderColor: 'var(--icon-box-border)',
+          }}
+        >
           {symbol.image_url ? (
             <img src={symbol.image_url} alt="" className="w-12 h-12 object-contain" style={{ imageRendering: 'pixelated' }} />
           ) : (
-            <span className="text-gray-700 text-2xl">?</span>
+            <span className="text-2xl" style={{ color: 'var(--text-dim)' }}>?</span>
           )}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2 flex-wrap">
-            <h3 className="font-semibold truncate">{symbol.region}</h3>
+            <h3 className="font-medium truncate">{symbol.region}</h3>
             <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${color.text} ${color.bg} ${color.border}`}>
               {symbol.type}
             </span>
           </div>
-          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500 tabular-nums">
+          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums" style={{ color: 'var(--text-dim)' }}>
             <span>만렙 {symbol.max_level}</span>
             <span>일퀘 {symbol.daily_default}</span>
             <span>주간퀘 {symbol.weekly_default}</span>
@@ -72,10 +81,10 @@ function SortableSymbolCard({ symbol }) {
         ref={setActivatorNodeRef}
         {...attributes}
         {...listeners}
-        className="absolute left-0 top-0 bottom-0 w-8 z-10 cursor-grab active:cursor-grabbing rounded-l-2xl hover:bg-white/5 transition touch-none"
+        className="absolute left-0 top-0 bottom-0 w-8 z-10 cursor-grab active:cursor-grabbing rounded-l-2xl hover:bg-[var(--row-hover-bg)] transition touch-none"
         aria-label="순서 변경"
       />
-      <Link to={`symbols/${symbol.id}`} className="block group hover:[&_h3]:text-emerald-300 [&_h3]:transition">
+      <Link to={`symbols/${symbol.id}`} className="block group hover:[&_h3]:text-[var(--accent-hover-text)] [&_h3]:transition">
         <SymbolCardContent symbol={symbol} />
       </Link>
     </div>
@@ -126,15 +135,20 @@ export default function SymbolList() {
   const activeSymbol = items.find((s) => s.id === activeId)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl mx-auto pt-6">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-lg font-semibold">심볼 관리</h2>
-          <p className="text-sm text-gray-500 mt-0.5">심볼 정보 및 레벨별 필요 개수/메소를 관리합니다</p>
+          <h2 className="text-lg font-medium">심볼 관리</h2>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-dim)' }}>심볼 정보 및 레벨별 필요 개수/메소를 관리합니다</p>
         </div>
         <Link
           to="symbols/new"
-          className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-sm font-medium transition shadow-lg shadow-emerald-500/20"
+          className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium hover:bg-[var(--btn-primary-bg-hover)]"
+          style={{
+            background: 'var(--btn-primary-bg)',
+            color: 'var(--btn-primary-text)',
+            boxShadow: 'var(--btn-primary-shadow)',
+          }}
         >
           <span className="text-base leading-none">+</span>
           심볼 추가
@@ -144,14 +158,24 @@ export default function SymbolList() {
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-24 rounded-2xl bg-white/[0.02] animate-pulse" />
+            <div key={i} className="h-24 rounded-2xl animate-pulse" style={{ background: 'var(--skeleton-bg)' }} />
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-16 text-center">
+        <div
+          className="rounded-2xl border border-dashed p-16 text-center"
+          style={{
+            borderColor: 'var(--dashed-border)',
+            background: 'var(--skeleton-bg)',
+          }}
+        >
           <div className="text-5xl mb-3 opacity-30">🔮</div>
-          <p className="text-gray-400 mb-4">등록된 심볼이 없습니다</p>
-          <Link to="symbols/new" className="text-sm text-emerald-400 hover:text-emerald-300 transition">
+          <p className="mb-4" style={{ color: 'var(--text-muted)' }}>등록된 심볼이 없습니다</p>
+          <Link
+            to="symbols/new"
+            className="text-sm hover:text-[var(--accent-hover-text)]"
+            style={{ color: 'var(--accent)' }}
+          >
             첫 심볼 추가하기 →
           </Link>
         </div>
