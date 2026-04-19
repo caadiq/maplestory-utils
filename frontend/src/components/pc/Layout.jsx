@@ -1,11 +1,11 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { Outlet, Link, useLocation, useMatch } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { api } from '../api/client'
+import { api } from '../../api/client'
 import Footer from './Footer'
-import LoginDialog from './LoginDialog'
-import { useThemeStore } from '../stores/theme'
-import { useAuthStore } from '../stores/auth'
+import LoginDialog from '../common/LoginDialog'
+import { useThemeStore } from '../../stores/theme'
+import { useAuthStore } from '../../stores/auth'
 
 const SITE_NAME = '메이플스토리 유틸리티'
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useAuthStore } from '../stores/auth'
-import { api } from '../api/client'
+import { useAuthStore } from '../../stores/auth'
+import { api } from '../../api/client'
 
 export default function LoginDialog({ open, onClose }) {
   const apiKey = useAuthStore((s) => s.apiKey)
