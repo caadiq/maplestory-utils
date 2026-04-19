@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useMemo } from 'react'
+import { memo, useState, useEffect, useLayoutEffect, useMemo } from 'react'
 import { useQuery, useQueries, useMutation } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
@@ -9,6 +9,7 @@ import Select from '../../../components/common/Select'
 import Tooltip from '../../../components/common/Tooltip'
 import CharacterSuggestDropdown from '../../../components/common/CharacterSuggestDropdown'
 import { useSymbolStore } from '../store'
+import { formatMesoKorean } from '../../../utils/formatting'
 
 dayjs.extend(utc)
 dayjs.extend(timezone)
@@ -44,20 +45,9 @@ function computeCompletion({ remainingSymbols, daily, weeklyPerWeek, extra, dail
   return { days: null, date: null }
 }
 
-function formatMesoKorean(n) {
-  const v = Number(n) || 0
-  if (v <= 0) return '0'
-  const eok = Math.floor(v / 100_000_000)
-  const man = Math.floor((v % 100_000_000) / 10_000)
-  const parts = []
-  if (eok) parts.push(`${eok.toLocaleString()}억`)
-  if (man) parts.push(`${man.toLocaleString()}만`)
-  return parts.length ? parts.join(' ') : v.toLocaleString()
-}
-
 const TYPE_ORDER = ['아케인', '어센틱', '그랜드 어센틱']
 
-function CharacterCard({ char, active, onSelect, onRemove }) {
+const CharacterCard = memo(function CharacterCard({ char, active, onSelect, onRemove }) {
   return (
     <div
       onClick={(e) => {
@@ -109,9 +99,9 @@ function CharacterCard({ char, active, onSelect, onRemove }) {
       </div>
     </div>
   )
-}
+})
 
-function SymbolCard({ symbol, equipped, charId }) {
+const SymbolCard = memo(function SymbolCard({ symbol, equipped, charId }) {
   const progress = useSymbolStore((s) => s.progress?.[charId]?.[symbol.id])
   const updateSymbol = useSymbolStore((s) => s.updateSymbol)
 
@@ -367,7 +357,7 @@ function SymbolCard({ symbol, equipped, charId }) {
       </div>
     </div>
   )
-}
+})
 
 export default function Symbol() {
   const { setFullscreen } = useLayout()
