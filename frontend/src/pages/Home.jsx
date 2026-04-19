@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
-import NoticeWidget from '../components/NoticeWidget'
+import NoticeWidget from '../components/pc/NoticeWidget'
 
 export default function Home() {
   const { data: menus = [], isLoading: loading } = useQuery({

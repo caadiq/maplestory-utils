@@ -11,7 +11,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { api } from '../../../api/client'
-import Tooltip from '../../../components/Tooltip'
+import Tooltip from '../../../components/common/Tooltip'
 import { DIFFICULTIES, formatMeso, getDifficultyBadgeStyle } from './constants'
 
 function BossCardContent({ boss, dragging = false }) {

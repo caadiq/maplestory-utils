@@ -16,9 +16,9 @@ import QuestSelector from './components/QuestSelector'
 import PointsInput from './components/PointsInput'
 import ProgressBar from './components/ProgressBar'
 import WeeklyDefault from './components/WeeklyDefault'
-import DatePicker from '../../components/DatePicker'
-import ConfirmDialog from '../../components/ConfirmDialog'
-import { useLayout } from '../../components/Layout'
+import DatePicker from '../../components/common/DatePicker'
+import ConfirmDialog from '../../components/common/ConfirmDialog'
+import { useLayout } from '../../components/pc/Layout'
 
 function makeEmptyWeekly() {
   const bosses = {}
