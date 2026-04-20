@@ -15,7 +15,7 @@ export default function Checkbox({ checked, onChange, disabled, className = '', 
       tabIndex={tabIndex}
       onClick={(e) => { e.stopPropagation(); !disabled && onChange?.(!checked) }}
       className={`${sizeCls} shrink-0 rounded-md border-2 flex items-center justify-center ${
-        disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
+        disabled ? 'opacity-40' : 'cursor-pointer'
       } ${className}`}
       style={checked ? {
         borderColor: 'var(--accent)',

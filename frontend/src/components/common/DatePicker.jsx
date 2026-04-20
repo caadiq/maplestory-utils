@@ -135,7 +135,7 @@ export default function DatePicker({ value, onChange, placeholder = '날짜 선�
                 type="button"
                 onClick={(e) => stop(e, viewMode === 'years' ? prevYearRange : prevMonth)}
                 disabled={viewMode === 'years' ? !canGoPrevYearRange : (year === minYear && month === 0)}
-                className="p-1.5 rounded hover:bg-[var(--row-hover-bg)] disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-1.5 rounded hover:bg-[var(--row-hover-bg)] disabled:opacity-30"
                 style={{ color: 'var(--text-muted)' }}
               >
                 <ChevronIcon dir="left" size={18} />

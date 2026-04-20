@@ -119,7 +119,7 @@ function SymbolCard({ symbol, equipped, charId }) {
             type="button"
             onClick={() => patch({ dailyDone: !dailyDone })}
             title="오늘 일퀘 완료 여부"
-            className="shrink-0 rounded-md h-8 px-3 text-xs font-semibold border disabled:opacity-40 disabled:cursor-not-allowed"
+            className="shrink-0 rounded-md h-8 px-3 text-xs font-semibold border disabled:opacity-40"
             style={dailyDone ? {
               background: 'var(--selected-bg)',
               borderColor: 'var(--selected-border)',

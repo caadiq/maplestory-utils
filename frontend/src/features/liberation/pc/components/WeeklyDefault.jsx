@@ -61,7 +61,7 @@ export function BossRow({ boss, sel, onChange, monthly = false, showDone = true 
           type="button"
           disabled={disabled}
           onClick={() => onChange({ done: !sel.done })}
-          className="shrink-0 w-20 rounded-md h-8 text-xs font-semibold border disabled:cursor-not-allowed"
+          className="shrink-0 w-20 rounded-md h-8 text-xs font-semibold border"
           style={disabled ? {
             borderColor: 'var(--panel-border)',
             color: 'var(--text-dim)',
