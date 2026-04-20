@@ -152,7 +152,7 @@ export default function AdminImages() {
               <button
                 onClick={requestDelete}
                 disabled={selectedIds.size === 0}
-                className="rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--btn-danger-bg-hover)]"
+                className="rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50 hover:bg-[var(--btn-danger-bg-hover)]"
                 style={{
                   background: 'var(--btn-danger-bg)',
                   color: 'var(--btn-primary-text)',

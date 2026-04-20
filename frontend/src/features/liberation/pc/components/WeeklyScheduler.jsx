@@ -250,7 +250,7 @@ export default function WeeklyScheduler({ startDate, weeks: weeksProp, onChangeW
                 onClick={() => removeWeek(w.id)}
                 disabled={weeks.length <= 1}
                 title={weeks.length <= 1 ? '최소 한 주차는 유지되어야 합니다' : '이 주차 삭제'}
-                className="shrink-0 w-8 h-8 rounded-md hover:bg-[var(--danger-bg-hover)] hover:text-[var(--danger-text)] disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed flex items-center justify-center"
+                className="shrink-0 w-8 h-8 rounded-md hover:bg-[var(--danger-bg-hover)] hover:text-[var(--danger-text)] disabled:opacity-30 disabled:hover:bg-transparent flex items-center justify-center"
                 style={{ color: 'var(--text-dim)' }}
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">

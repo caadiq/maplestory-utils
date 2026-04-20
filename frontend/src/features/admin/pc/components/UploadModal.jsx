@@ -163,7 +163,7 @@ export default function UploadModal({ open, onClose, onUpload, uploading, existi
           <button
             type="submit"
             disabled={!canSubmit || uploading}
-            className="flex-1 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--btn-primary-bg-hover)]"
+            className="flex-1 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 hover:bg-[var(--btn-primary-bg-hover)]"
             style={{
               background: 'var(--btn-primary-bg)',
               color: 'var(--btn-primary-text)',

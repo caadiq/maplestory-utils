@@ -172,7 +172,7 @@ export default function ImagePicker({ open, onClose, onSelect, currentImageId })
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="w-8 h-8 rounded border hover:bg-[var(--btn-bg-hover)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-sm"
+                  className="w-8 h-8 rounded border hover:bg-[var(--btn-bg-hover)] disabled:opacity-30 flex items-center justify-center text-sm"
                   style={{
                     background: 'var(--btn-bg)',
                     borderColor: 'var(--btn-border)',
@@ -185,7 +185,7 @@ export default function ImagePicker({ open, onClose, onSelect, currentImageId })
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="w-8 h-8 rounded border hover:bg-[var(--btn-bg-hover)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-sm"
+                  className="w-8 h-8 rounded border hover:bg-[var(--btn-bg-hover)] disabled:opacity-30 flex items-center justify-center text-sm"
                   style={{
                     background: 'var(--btn-bg)',
                     borderColor: 'var(--btn-border)',

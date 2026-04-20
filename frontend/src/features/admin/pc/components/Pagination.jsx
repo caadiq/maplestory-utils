@@ -20,7 +20,7 @@ export default function Pagination({ page, totalPages, onChange }) {
       <button
         onClick={() => onChange(page - 1)}
         disabled={page === 1}
-        className={`${baseBtn} disabled:opacity-30 disabled:cursor-not-allowed`}
+        className={`${baseBtn} disabled:opacity-30`}
         style={btnStyle}
       >
         ‹
@@ -61,7 +61,7 @@ export default function Pagination({ page, totalPages, onChange }) {
       <button
         onClick={() => onChange(page + 1)}
         disabled={page === totalPages}
-        className={`${baseBtn} disabled:opacity-30 disabled:cursor-not-allowed`}
+        className={`${baseBtn} disabled:opacity-30`}
         style={btnStyle}
       >
         ›
