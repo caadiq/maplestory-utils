@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { GENESIS_CHAPTERS, QUEST_BOSS_IMAGE_BASE } from '../../data'
 
 /**
- * 진행 중인 퀘스트 드롭다운
- * - 보스 초상화 + 이름 텍스트
+ * 진행 중인 퀘스트 드롭다운 (보스 초상화 + 이름)
+ * @param {Array}  chapters  - { idx, boss, ... }[]
+ * @param {string} imageBase - 보스 초상화 S3 base URL
  */
-export default function QuestSelector({ value, onChange }) {
+export default function QuestSelector({ chapters, imageBase, value, onChange }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -19,7 +19,7 @@ export default function QuestSelector({ value, onChange }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  const selected = GENESIS_CHAPTERS[value]
+  const selected = chapters[value]
 
   return (
     <div ref={ref} className="relative">
@@ -38,7 +38,7 @@ export default function QuestSelector({ value, onChange }) {
           style={{ background: 'var(--surface-nested)' }}
         >
           <img
-            src={`${QUEST_BOSS_IMAGE_BASE}/${selected.boss}.webp`}
+            src={`${imageBase}/${selected.boss}.webp`}
             alt=""
             className="w-full h-full object-cover"
           />
@@ -69,7 +69,7 @@ export default function QuestSelector({ value, onChange }) {
               boxShadow: 'var(--popup-shadow)',
             }}
           >
-          {GENESIS_CHAPTERS.map((chapter) => {
+          {chapters.map((chapter) => {
             const isSelected = chapter.idx === value
             return (
               <button
@@ -86,7 +86,7 @@ export default function QuestSelector({ value, onChange }) {
                   style={{ background: 'var(--surface-nested)' }}
                 >
                   <img
-                    src={`${QUEST_BOSS_IMAGE_BASE}/${chapter.boss}.webp`}
+                    src={`${imageBase}/${chapter.boss}.webp`}
                     alt=""
                     className="w-full h-full object-cover"
                   />
