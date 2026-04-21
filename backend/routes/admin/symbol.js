@@ -4,11 +4,12 @@ import { Symbol, SymbolLevel } from '../../models/index.js';
 import { convertAndUploadTo, deleteFromS3 } from '../../services/image.js';
 import { getPublicUrl } from '../../lib/s3.js';
 import { sequelize } from '../../lib/db.js';
+import { UPLOAD_FILE_SIZE_LIMIT, SYMBOL_MASTER_LEVEL } from '../../constants.js';
 
 const router = Router();
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: UPLOAD_FILE_SIZE_LIMIT },
 });
 
 const VALID_TYPES = ['아케인', '어센틱', '그랜드 어센틱'];
@@ -70,7 +71,9 @@ function validateBasic({ type, region, max_level }) {
   const r = String(region || '').trim();
   if (!r) throw new Error('지역 이름을 입력해주세요');
   const ml = Number(max_level);
-  if (!ml || ml < 2 || ml > 99) throw new Error('만렙은 2~99 사이여야 합니다');
+  if (!ml || ml < SYMBOL_MASTER_LEVEL.min || ml > SYMBOL_MASTER_LEVEL.max) {
+    throw new Error(`만렙은 ${SYMBOL_MASTER_LEVEL.min}~${SYMBOL_MASTER_LEVEL.max} 사이여야 합니다`);
+  }
   return { type, region: r, max_level: ml };
 }
 

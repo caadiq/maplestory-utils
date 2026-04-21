@@ -6,11 +6,12 @@ import { getPublicUrl } from '../lib/s3.js';
 import { sequelize } from '../lib/db.js';
 import bossCrystalRouter from './admin/boss-crystal.js';
 import symbolRouter from './admin/symbol.js';
+import { UPLOAD_FILE_SIZE_LIMIT } from '../constants.js';
 
 const router = Router();
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  limits: { fileSize: UPLOAD_FILE_SIZE_LIMIT },
 });
 
 // 관리자 인증 미들웨어
