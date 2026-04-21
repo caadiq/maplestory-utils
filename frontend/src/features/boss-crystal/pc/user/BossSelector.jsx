@@ -102,7 +102,7 @@ export default function BossSelector({ characterName, bosses, selections, onChan
                     className="shrink-0 w-11 h-11 rounded-lg overflow-hidden"
                     style={{ background: 'var(--surface-nested)' }}
                   >
-                    <img src={boss.image_url || '/default.png'} alt={boss.name} className="w-full h-full object-cover" />
+                    <img src={boss.image_url || '/default.png'} alt={boss.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   </div>
                   <span className="text-base font-medium leading-tight whitespace-nowrap overflow-hidden text-ellipsis">{boss.name}</span>
                 </div>
