@@ -3,19 +3,20 @@ import { motion } from 'framer-motion'
 
 /**
  * 자식을 각 motion.div 로 감싸 순차 페이드인.
- * 기본값은 프로미스나인 사이트와 동일 (y 30, duration 0.4, 간격 0.1s).
+ * translateY 대신 scale 을 쓰는 이유: Chrome 이 translateY 애니메이션을
+ * 레이아웃 변경(CLS)으로 카운트하는 케이스가 있어서. scale 은 compositor-only 라 CLS 0.
  *
  * @param {number} staggerDelay - 자식 간 간격 (초)
- * @param {number} yOffset - 시작 y 오프셋 (px)
+ * @param {number} scaleFrom - 시작 scale (기본 0.97)
  * @param {number} duration - 각 자식 애니메이션 지속시간 (초)
  */
 export default function StaggerGroup({
   children,
   className,
   style,
-  staggerDelay = 0.1,
-  yOffset = 30,
-  duration = 0.4,
+  staggerDelay = 0.08,
+  scaleFrom = 0.97,
+  duration = 0.35,
 }) {
   const containerVariants = {
     hidden: {},
@@ -23,10 +24,10 @@ export default function StaggerGroup({
   }
 
   const itemVariants = {
-    hidden: { opacity: 0, y: yOffset },
+    hidden: { opacity: 0, scale: scaleFrom },
     show: {
       opacity: 1,
-      y: 0,
+      scale: 1,
       transition: { duration },
     },
   }
@@ -42,7 +43,7 @@ export default function StaggerGroup({
       {Children.map(children, (child, i) => (
         child == null || child === false
           ? null
-          : <motion.div variants={itemVariants} key={i}>{child}</motion.div>
+          : <motion.div variants={itemVariants} key={i} style={{ willChange: 'transform, opacity' }}>{child}</motion.div>
       ))}
     </motion.div>
   )
