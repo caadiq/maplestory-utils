@@ -64,6 +64,9 @@ export function getSchedulerWeekRange(startDateStr, weekIdx) {
 export function computeCompletionDate({
   calcMode, state, alreadyDone, remaining,
   weeklyEarn, doneEarn, monthlyEarn, monthlyDoneThisMonth,
+  bosses = WEEKLY_BOSSES,
+  monthlyBoss = MONTHLY_BOSSES[0],
+  makeEmptyConfig = makeEmptyWeekly,
 }) {
   if (alreadyDone) return todayKST()
   if (remaining <= 0) return dayjs(state.startDate).tz(KST).startOf('day').toDate()
@@ -78,50 +81,52 @@ export function computeCompletionDate({
     const daysToNextThu = dow < 4 ? 4 - dow : 11 - dow
 
     // 1주차: 시작일 당일에 (주간 - done) 적립
-    const week1Cfg = sw[0]?.config || makeEmptyWeekly()
-    const w1Weekly = calcWeekPoints(week1Cfg)
-    const w1Done = calcDoneEarn(week1Cfg)
+    const week1Cfg = sw[0]?.config || makeEmptyConfig()
+    const w1Weekly = calcWeekPoints(week1Cfg, bosses)
+    const w1Done = calcDoneEarn(week1Cfg, bosses)
     events.push({ date: startKST, amount: Math.max(w1Weekly - w1Done, 0) })
 
     // 2주차 이후: 각 목요일에 해당 주차 설정의 주간 합 적립
     // 마지막 주차 이후로는 마지막 주차 설정 반복 적용
     let nextThu = startKST.add(daysToNextThu, 'day')
     for (let i = 1; i < 520; i++) {
-      const cfg = sw[i]?.config || sw[sw.length - 1]?.config || makeEmptyWeekly()
-      events.push({ date: nextThu, amount: calcWeekPoints(cfg) })
+      const cfg = sw[i]?.config || sw[sw.length - 1]?.config || makeEmptyConfig()
+      events.push({ date: nextThu, amount: calcWeekPoints(cfg, bosses) })
       nextThu = nextThu.add(1, 'week')
     }
 
-    // 검은 마법사: 슬롯 배정에 따라 해당 주차 첫날(or 1주차이면 시작일)에 적립
+    // 월간 보스: 슬롯 배정에 따라 해당 주차 첫날(or 1주차이면 시작일)에 적립
     const claimed = {}
-    sw.forEach((w, i) => {
-      const diff = w.config.blackMage?.difficulty
-      if (!diff || diff === 'none') return
-      const range = getSchedulerWeekRange(state.startDate, i + 1)
-      const months = [range.start.format('YYYY-MM'), range.end.format('YYYY-MM')]
-      for (const m of months) {
-        if (!(m in claimed)) {
-          claimed[m] = {
-            weekIdx: i,
-            earn: bossEarn(MONTHLY_BOSSES[0], w.config.blackMage),
-            done: !!w.config.blackMage.done,
+    if (monthlyBoss) {
+      sw.forEach((w, i) => {
+        const diff = w.config.blackMage?.difficulty
+        if (!diff || diff === 'none') return
+        const range = getSchedulerWeekRange(state.startDate, i + 1)
+        const months = [range.start.format('YYYY-MM'), range.end.format('YYYY-MM')]
+        for (const m of months) {
+          if (!(m in claimed)) {
+            claimed[m] = {
+              weekIdx: i,
+              earn: bossEarn(monthlyBoss, w.config.blackMage),
+              done: !!w.config.blackMage.done,
+            }
+            return
           }
-          return
         }
-      }
-    })
-    Object.entries(claimed).forEach(([, info]) => {
-      if (info.done) return
-      const wIdx = info.weekIdx
-      const date = wIdx === 0
-        ? startKST
-        : startKST.add(daysToNextThu + (wIdx - 1) * 7, 'day')
-      events.push({ date, amount: info.earn })
-    })
+      })
+      Object.entries(claimed).forEach(([, info]) => {
+        if (info.done) return
+        const wIdx = info.weekIdx
+        const date = wIdx === 0
+          ? startKST
+          : startKST.add(daysToNextThu + (wIdx - 1) * 7, 'day')
+        events.push({ date, amount: info.earn })
+      })
+    }
 
-    // 마지막 주차 이후로는 마지막 주차의 검은 마법사 설정을 매월 반복 적용
+    // 마지막 주차 이후로는 마지막 주차의 월간 설정을 매월 반복 적용
     const lastCfg = sw[sw.length - 1]?.config
-    const lastBmEarn = lastCfg ? bossEarn(MONTHLY_BOSSES[0], lastCfg.blackMage) : 0
+    const lastBmEarn = monthlyBoss && lastCfg ? bossEarn(monthlyBoss, lastCfg.blackMage) : 0
     if (lastBmEarn > 0) {
       const lastWeekStart = sw.length === 1
         ? startKST
@@ -166,9 +171,20 @@ export function computeCompletionDate({
 
   events.sort((a, b) => a.date.diff(b.date))
   let cumulative = 0
+  let lastEventDate = startKST
   for (const e of events) {
     cumulative += e.amount
+    lastEventDate = e.date
     if (cumulative >= remaining) return e.date.toDate()
   }
-  return null
+
+  // 10년 loop 내에 도달 못 한 경우: 정상 상태 주간 획득량으로 선형 외삽
+  // 단순 모드: weeklyEarn / 주차별 모드: 마지막 주차 설정의 주간 합
+  const steadyWeekly = calcMode === 'simple'
+    ? weeklyEarn
+    : calcWeekPoints((state.schedulerWeeks || []).slice(-1)[0]?.config || makeEmptyConfig(), bosses)
+  if (steadyWeekly <= 0) return null
+  const deficit = remaining - cumulative
+  const weeksNeeded = Math.ceil(deficit / steadyWeekly)
+  return lastEventDate.add(weeksNeeded * 7, 'day').toDate()
 }

@@ -132,6 +132,7 @@ export default function Genesis() {
         startChapter={state.startChapter}
         currentPoints={state.currentPoints}
         completionDate={isDone ? formatDate(completionDate) : null}
+        completionColor="var(--genesis-date)"
       />
 
       {/* 현재 진행 상태 입력 */}
