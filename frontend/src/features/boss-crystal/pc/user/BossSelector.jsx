@@ -1,6 +1,5 @@
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import Select from '../../../../components/common/Select'
-import StaggerGroup from '../../../../components/common/StaggerGroup'
 import { DIFFICULTIES, formatMeso } from '../admin/constants'
 
 const LABEL_EN = { easy: 'EASY', normal: 'NORMAL', hard: 'HARD', chaos: 'CHAOS', extreme: 'EXTREME' }
@@ -68,12 +67,7 @@ export default function BossSelector({ characterName, bosses, selections, onChan
         }}
         defer
       >
-        <StaggerGroup
-          className="divide-y divide-[var(--panel-border)] px-2"
-          staggerDelay={0.03}
-          yOffset={10}
-          duration={0.25}
-        >
+        <div className="divide-y px-2" style={{ '--tw-divide-opacity': 1 }}>
           {bosses.map((boss) => {
             const availableDiffs = DIFFICULTIES.filter((d) =>
               boss.difficulties.some((bd) => bd.difficulty === d.key)
@@ -94,7 +88,7 @@ export default function BossSelector({ characterName, bosses, selections, onChan
             return (
               <div
                 key={boss.id}
-                className={`flex items-center gap-3 px-3 py-3 ${
+                className={`flex items-center gap-3 px-3 py-3 border-t first:border-t-0 ${
                   disabled ? 'pointer-events-none' : ''
                 }`}
                 style={{
@@ -108,7 +102,7 @@ export default function BossSelector({ characterName, bosses, selections, onChan
                     className="shrink-0 w-11 h-11 rounded-lg overflow-hidden"
                     style={{ background: 'var(--surface-nested)' }}
                   >
-                    <img src={boss.image_url || '/default.png'} alt={boss.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                    <img src={boss.image_url || '/default.png'} alt={boss.name} className="w-full h-full object-cover" />
                   </div>
                   <span className="text-base font-medium leading-tight whitespace-nowrap overflow-hidden text-ellipsis">{boss.name}</span>
                 </div>
@@ -174,7 +168,7 @@ export default function BossSelector({ characterName, bosses, selections, onChan
               </div>
             )
           })}
-        </StaggerGroup>
+        </div>
       </OverlayScrollbarsComponent>
     </div>
   )
