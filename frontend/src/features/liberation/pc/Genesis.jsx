@@ -3,8 +3,10 @@ import dayjs from 'dayjs'
 import {
   GENESIS_CHAPTERS,
   GENESIS_TOTAL,
+  WEEKLY_BOSSES,
   MONTHLY_BOSSES,
   QUEST_BOSS_IMAGE_BASE,
+  LIBERATION_BOSS_IMAGE_BASE,
   formatDate,
 } from '../data'
 import { useLiberationStore } from '../store'
@@ -193,6 +195,9 @@ export default function Genesis() {
       </div>
 
       <WeeklyDefault
+        bosses={WEEKLY_BOSSES}
+        monthlyBosses={MONTHLY_BOSSES}
+        imageBase={LIBERATION_BOSS_IMAGE_BASE}
         weekly={state.weekly}
         onChange={(w) => setState((prev) => ({ ...prev, weekly: w }))}
         totalWeekly={headerWeekly}

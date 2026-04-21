@@ -11,17 +11,17 @@ export function bossEarn(boss, sel) {
   return calcPoints(d.points, sel.party)
 }
 
-export function calcWeekPoints(weekData) {
+export function calcWeekPoints(weekData, bosses = WEEKLY_BOSSES) {
   let points = 0
-  WEEKLY_BOSSES.forEach((b) => {
+  bosses.forEach((b) => {
     points += bossEarn(b, weekData.bosses[b.key])
   })
   return points
 }
 
-export function calcDoneEarn(weekData) {
+export function calcDoneEarn(weekData, bosses = WEEKLY_BOSSES) {
   let points = 0
-  WEEKLY_BOSSES.forEach((b) => {
+  bosses.forEach((b) => {
     const sel = weekData.bosses[b.key]
     if (sel?.done) points += bossEarn(b, sel)
   })
