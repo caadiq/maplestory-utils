@@ -48,6 +48,8 @@ function CharacterContent({ char, selections, bosses }) {
               className="w-full h-full object-contain scale-[3] origin-center select-none"
               style={{ imageRendering: 'pixelated' }}
               draggable={false}
+              loading="lazy"
+              decoding="async"
             />
           ) : (
             <span className="text-4xl" style={{ color: 'var(--text-dim)' }}>?</span>
@@ -79,7 +81,7 @@ function CharacterContent({ char, selections, bosses }) {
                           borderColor: 'var(--panel-border)',
                         }}
                       >
-                        <img src={item.boss.image_url || '/default.png'} alt="" draggable={false} className="w-full h-full object-cover select-none" />
+                        <img src={item.boss.image_url || '/default.png'} alt="" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover select-none" />
                       </div>
                       <div className="flex justify-center">
                         <div
