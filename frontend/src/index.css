@@ -319,9 +319,6 @@ html, body, #root {
   background-color: var(--bg-from);
   background-image: linear-gradient(to bottom right, var(--bg-from), var(--bg-via), var(--bg-to));
   background-attachment: fixed;
-  transition:
-    background-color 500ms cubic-bezier(0.4, 0, 0.2, 1),
-    background-image 500ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 html {
   overscroll-behavior-y: contain;

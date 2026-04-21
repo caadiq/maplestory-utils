@@ -230,9 +230,10 @@ export default function Layout() {
         style={{ color: 'var(--text-strong)' }}
       >
         <header
-          className="sticky top-0 z-20 border-b backdrop-blur-md shrink-0"
+          className="sticky top-0 z-20 border-b shrink-0"
           style={{
             borderColor: 'var(--header-border)',
+            background: 'var(--bg-from)',
           }}
         >
           <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
