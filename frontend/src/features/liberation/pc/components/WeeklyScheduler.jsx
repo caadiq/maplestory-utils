@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LIBERATION_BOSS_IMAGE_BASE, WEEKLY_BOSSES, MONTHLY_BOSSES } from '../../data'
-import { makeEmptyWeekly } from '../../store'
 import { bossEarn, calcWeekPoints as calcWeeklySum, getSchedulerWeekRange as getWeekRange } from '../../utils'
 import { BossRow } from './WeeklyDefault'
 
@@ -18,7 +16,7 @@ const DIFF_BADGE = {
   extreme: { label: 'X', color: '#f59e0b', border: 'rgba(245,158,11,0.5)', bg: 'rgba(245,158,11,0.2)' },
 }
 
-function BossAvatar({ boss, difficulty, size = 40 }) {
+function BossAvatar({ boss, imageBase, difficulty, size = 40 }) {
   const badge = DIFF_BADGE[difficulty]
   const enabled = difficulty && difficulty !== 'none'
   return (
@@ -32,7 +30,7 @@ function BossAvatar({ boss, difficulty, size = 40 }) {
           borderColor: 'var(--panel-border)',
         }}
       >
-        <img src={`${LIBERATION_BOSS_IMAGE_BASE}/${boss.image}`} alt={boss.name} className="w-full h-full object-cover" />
+        <img src={`${imageBase}/${boss.image}`} alt={boss.name} className="w-full h-full object-cover" />
       </div>
       <div
         className="text-[10px] font-bold leading-none rounded flex items-center justify-center border"
@@ -49,7 +47,7 @@ function BossAvatar({ boss, difficulty, size = 40 }) {
   )
 }
 
-function WeekEditor({ config, onChange, isCurrent, monthlyLockedByWeek }) {
+function WeekEditor({ config, onChange, isCurrent, monthlyLockedByWeek, bosses, monthlyBoss, imageBase }) {
   const updateBoss = (key, patch) => {
     onChange({ ...config, bosses: { ...config.bosses, [key]: { ...config.bosses[key], ...patch } } })
   }
@@ -61,7 +59,7 @@ function WeekEditor({ config, onChange, isCurrent, monthlyLockedByWeek }) {
 
   return (
     <div>
-      {WEEKLY_BOSSES.map((boss, i) => (
+      {bosses.map((boss, i) => (
         <div
           key={boss.key}
           className={i > 0 ? 'border-t' : ''}
@@ -71,23 +69,27 @@ function WeekEditor({ config, onChange, isCurrent, monthlyLockedByWeek }) {
             boss={boss}
             sel={config.bosses[boss.key]}
             onChange={(patch) => updateBoss(boss.key, patch)}
+            imageBase={imageBase}
             showDone={isCurrent}
           />
         </div>
       ))}
-      <div
-        className={`border-t ${blackmageLocked ? 'opacity-40 pointer-events-none' : ''}`}
-        style={{ borderColor: 'var(--row-divider)' }}
-      >
-        <BossRow
-          boss={MONTHLY_BOSSES[0]}
-          sel={blackmageLocked ? { difficulty: 'none', party: 1, done: false } : config.blackMage}
-          onChange={updateBlackMage}
-          monthly
-          showDone={isCurrent}
-        />
-      </div>
-      {blackmageLocked && (
+      {monthlyBoss && (
+        <div
+          className={`border-t ${blackmageLocked ? 'opacity-40 pointer-events-none' : ''}`}
+          style={{ borderColor: 'var(--row-divider)' }}
+        >
+          <BossRow
+            boss={monthlyBoss}
+            sel={blackmageLocked ? { difficulty: 'none', party: 1, done: false } : config.blackMage}
+            onChange={updateBlackMage}
+            imageBase={imageBase}
+            monthly
+            showDone={isCurrent}
+          />
+        </div>
+      )}
+      {monthlyBoss && blackmageLocked && (
         <div
           className="text-[11px] px-3 py-2"
           style={{ color: 'var(--warning-text)' }}
@@ -99,10 +101,18 @@ function WeekEditor({ config, onChange, isCurrent, monthlyLockedByWeek }) {
   )
 }
 
-export default function WeeklyScheduler({ startDate, weeks: weeksProp, onChangeWeeks }) {
+export default function WeeklyScheduler({
+  bosses,
+  monthlyBoss = null,
+  imageBase,
+  makeEmptyConfig,
+  startDate,
+  weeks: weeksProp,
+  onChangeWeeks,
+}) {
   const weeks = weeksProp && weeksProp.length > 0
     ? weeksProp
-    : [{ id: 1, config: makeEmptyWeekly() }]
+    : [{ id: 1, config: makeEmptyConfig() }]
   const setWeeks = (updater) => {
     const next = typeof updater === 'function' ? updater(weeks) : updater
     onChangeWeeks?.(next)
@@ -114,13 +124,13 @@ export default function WeeklyScheduler({ startDate, weeks: weeksProp, onChangeW
     const id = nextId()
     setWeeks((prev) => {
       const last = prev[prev.length - 1]
-      const base = last ? JSON.parse(JSON.stringify(last.config)) : makeEmptyWeekly()
+      const base = last ? JSON.parse(JSON.stringify(last.config)) : makeEmptyConfig()
       // done 상태는 복사하지 않음
       Object.keys(base.bosses).forEach((k) => { base.bosses[k].done = false })
       if (base.blackMage) base.blackMage.done = false
 
-      // 새 주차의 달에 이미 검은 마법사가 배정되어 있으면 복사된 검은마법사는 초기화
-      if (startDate && base.blackMage?.difficulty && base.blackMage.difficulty !== 'none') {
+      // 월간 보스가 이미 같은 달에 배정되어 있으면 새 주차의 월간은 초기화
+      if (monthlyBoss && startDate && base.blackMage?.difficulty && base.blackMage.difficulty !== 'none') {
         const newIdx = prev.length + 1
         const newMonth = getWeekRange(startDate, newIdx).start.format('YYYY-MM')
         const existsInSameMonth = prev.some((p, i) => {
@@ -146,9 +156,9 @@ export default function WeeklyScheduler({ startDate, weeks: weeksProp, onChangeW
     setWeeks((prev) => prev.map((w) => (w.id === id ? { ...w, config } : w)))
   }
 
-  // 검은 마법사 월별 슬롯 배정: 각 주차가 겹치는 달 중 하나를 선점
+  // 월간 보스 슬롯 배정: 각 주차가 겹치는 달 중 하나를 선점
   const monthlyLocks = (() => {
-    if (!startDate) return {}
+    if (!monthlyBoss || !startDate) return {}
     const claimed = {} // month -> weekNum (1-based)
     weeks.forEach((w, idx) => {
       const diff = w.config.blackMage?.difficulty
@@ -166,9 +176,7 @@ export default function WeeklyScheduler({ startDate, weeks: weeksProp, onChangeW
     weeks.forEach((w, idx) => {
       const r = getWeekRange(startDate, idx + 1)
       const months = [r.start.format('YYYY-MM'), r.end.format('YYYY-MM')]
-      // 본인이 한 달이라도 차지했으면 잠그지 않음
       if (months.some((m) => claimed[m] === idx + 1)) return
-      // 겹치는 달이 모두 다른 주차에 점유되었으면 잠금
       if (months.every((m) => m in claimed)) {
         locks[idx] = claimed[months[0]] ?? claimed[months[1]]
       }
@@ -181,8 +189,7 @@ export default function WeeklyScheduler({ startDate, weeks: weeksProp, onChangeW
       {weeks.map((w, idx) => {
         const n = idx + 1
         const isOpen = expanded === w.id
-        const isCurrent = idx === 0 // 임시: 첫 번째가 현재 주차 (실제 연결 시 날짜 기반)
-        // 검은마법사 잠금 판정은 아래 사전 계산된 monthlyLocks 사용
+        const isCurrent = idx === 0
         const monthlyLockedByWeek = monthlyLocks[idx] ?? null
         return (
           <div
@@ -218,15 +225,24 @@ export default function WeeklyScheduler({ startDate, weeks: weeksProp, onChangeW
                 )}
 
                 <div className="flex-1 flex items-center gap-2">
-                  {WEEKLY_BOSSES.map((b) => (
-                    <BossAvatar key={b.key} boss={b} difficulty={w.config.bosses[b.key]?.difficulty} size={40} />
+                  {bosses.map((b) => (
+                    <BossAvatar key={b.key} boss={b} imageBase={imageBase} difficulty={w.config.bosses[b.key]?.difficulty} size={40} />
                   ))}
-                  <BossAvatar boss={MONTHLY_BOSSES[0]} difficulty={monthlyLockedByWeek != null ? 'none' : w.config.blackMage?.difficulty} size={40} />
+                  {monthlyBoss && (
+                    <BossAvatar
+                      boss={monthlyBoss}
+                      imageBase={imageBase}
+                      difficulty={monthlyLockedByWeek != null ? 'none' : w.config.blackMage?.difficulty}
+                      size={40}
+                    />
+                  )}
                 </div>
 
                 {(() => {
-                  const weeklySum = calcWeeklySum(w.config)
-                  const monthlySum = monthlyLockedByWeek != null ? 0 : bossEarn(MONTHLY_BOSSES[0], w.config.blackMage)
+                  const weeklySum = calcWeeklySum(w.config, bosses)
+                  const monthlySum = !monthlyBoss || monthlyLockedByWeek != null
+                    ? 0
+                    : bossEarn(monthlyBoss, w.config.blackMage)
                   return (
                     <div className="text-right shrink-0 pr-1 tabular-nums leading-tight">
                       <div className="text-base font-bold" style={{ color: 'var(--accent-bright)' }}>+{weeklySum}</div>
@@ -284,6 +300,9 @@ export default function WeeklyScheduler({ startDate, weeks: weeksProp, onChangeW
                       onChange={(c) => updateWeek(w.id, c)}
                       isCurrent={isCurrent}
                       monthlyLockedByWeek={monthlyLockedByWeek}
+                      bosses={bosses}
+                      monthlyBoss={monthlyBoss}
+                      imageBase={imageBase}
                     />
                   </div>
                 </motion.div>
