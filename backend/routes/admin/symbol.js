@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { Symbol, SymbolLevel } from '../../models/index.js';
-import { convertAndUploadTo, deleteFromS3 } from '../../services/image.js';
+import { convertAndUploadTo, safeDelete } from '../../services/image.js';
 import { getPublicUrl } from '../../lib/s3.js';
 import { sequelize } from '../../lib/db.js';
 import { UPLOAD_FILE_SIZE_LIMIT, SYMBOL_MASTER_LEVEL } from '../../constants.js';
@@ -167,7 +167,7 @@ router.patch('/symbols/:id', upload.single('image'), async (req, res) => {
       imageKey = imagePath(basic.type, basic.region);
       await convertAndUploadTo(req.file.buffer, imageKey);
       if (row.image && row.image !== imageKey) {
-        try { await deleteFromS3(row.image); } catch { /* ignore */ }
+        await safeDelete(row.image);
       }
     } else if (basic.type !== row.type || basic.region !== row.region) {
       // 이름/종류 변경 시 새 경로로 rename 대체 불가 → 기존 키 유지
@@ -211,7 +211,7 @@ router.delete('/symbols/:id', async (req, res) => {
     if (!row) return res.status(404).json({ error: '심볼을 찾을 수 없습니다' });
     const key = row.image;
     await row.destroy();
-    if (key) { try { await deleteFromS3(key); } catch { /* ignore */ } }
+    if (key) await safeDelete(key);
     res.json({ success: true });
   } catch (err) {
     console.error('심볼 삭제 오류:', err.message);
