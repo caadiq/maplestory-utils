@@ -141,10 +141,10 @@
   --btn-danger-bg-hover: #ef4444;
   --btn-danger-shadow: 0 4px 14px rgba(239, 68, 68, 0.2);
 
-  --liberation-primary: #a78bfa;
-  --liberation-primary-bar: rgba(167, 139, 250, 0.5);
-  --liberation-secondary: #fda4af;
-  --liberation-secondary-bar: rgba(253, 164, 175, 0.5);
+  --liberation-primary: rgba(255, 255, 255, 0.55);
+  --liberation-primary-bar: rgba(255, 255, 255, 0.25);
+  --liberation-secondary: rgb(255, 255, 255);
+  --liberation-secondary-bar: rgba(255, 255, 255, 0.5);
 
   --symbol-arcane-text: #c4b5fd;
   --symbol-arcane-bg: rgba(139, 92, 246, 0.15);
@@ -292,10 +292,10 @@
   --btn-danger-bg-hover: #b91c1c;
   --btn-danger-shadow: 0 4px 14px rgba(220, 38, 38, 0.25);
 
-  --liberation-primary: #7c3aed;
-  --liberation-primary-bar: rgba(124, 58, 237, 0.5);
-  --liberation-secondary: #e11d48;
-  --liberation-secondary-bar: rgba(225, 29, 72, 0.5);
+  --liberation-primary: rgba(0, 0, 0, 0.55);
+  --liberation-primary-bar: rgba(0, 0, 0, 0.25);
+  --liberation-secondary: rgb(0, 0, 0);
+  --liberation-secondary-bar: rgba(0, 0, 0, 0.5);
 
   --symbol-arcane-text: #6d28d9;
   --symbol-arcane-bg: rgba(139, 92, 246, 0.12);
