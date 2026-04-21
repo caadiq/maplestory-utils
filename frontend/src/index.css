@@ -105,6 +105,8 @@
   --warning-text-bright: #fcd34d;
   --warning-text-dim: rgba(252, 211, 77, 0.4);
 
+  --destiny-date: #38bdf8;
+
   --progress-track: #0f172a;
   --progress-emerald: #10b981;
   --progress-amber: #f59e0b;
@@ -255,6 +257,8 @@
   --warning-text: #c2410c;
   --warning-text-bright: #ea580c;
   --warning-text-dim: rgba(234, 88, 12, 0.4);
+
+  --destiny-date: #0284c7;
 
   --progress-track: #e5e7eb;
   --progress-emerald: #10b981;
