@@ -69,11 +69,10 @@ export default function BossSelector({ characterName, bosses, selections, onChan
         defer
       >
         <StaggerGroup
-          className="divide-y px-2"
-          style={{ '--tw-divide-opacity': 1 }}
-          staggerDelay={0.04}
-          yOffset={20}
-          duration={0.3}
+          className="divide-y divide-[var(--panel-border)] px-2"
+          staggerDelay={0.03}
+          yOffset={10}
+          duration={0.25}
         >
           {bosses.map((boss) => {
             const availableDiffs = DIFFICULTIES.filter((d) =>
@@ -95,7 +94,7 @@ export default function BossSelector({ characterName, bosses, selections, onChan
             return (
               <div
                 key={boss.id}
-                className={`flex items-center gap-3 px-3 py-3 border-t first:border-t-0 ${
+                className={`flex items-center gap-3 px-3 py-3 ${
                   disabled ? 'pointer-events-none' : ''
                 }`}
                 style={{
@@ -109,7 +108,7 @@ export default function BossSelector({ characterName, bosses, selections, onChan
                     className="shrink-0 w-11 h-11 rounded-lg overflow-hidden"
                     style={{ background: 'var(--surface-nested)' }}
                   >
-                    <img src={boss.image_url || '/default.png'} alt={boss.name} className="w-full h-full object-cover" />
+                    <img src={boss.image_url || '/default.png'} alt={boss.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   </div>
                   <span className="text-base font-medium leading-tight whitespace-nowrap overflow-hidden text-ellipsis">{boss.name}</span>
                 </div>
