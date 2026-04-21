@@ -16,7 +16,6 @@ import PointsInput from './components/PointsInput'
 import WeeklyDefault from './components/WeeklyDefault'
 import DatePicker from '../../../components/common/DatePicker'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
-import StaggerGroup from '../../../components/common/StaggerGroup'
 
 export default function Destiny() {
   const calcMode = useLiberationStore((s) => s.destinyCalcMode)
@@ -70,7 +69,7 @@ export default function Destiny() {
   }
 
   return (
-    <StaggerGroup className="space-y-6">
+    <>
       {/* 계산 모드 탭 */}
       <div
         className="max-w-3xl mx-auto flex gap-1 p-1 rounded-xl border"
@@ -213,6 +212,6 @@ export default function Destiny() {
         confirmText="초기화"
         destructive
       />
-    </StaggerGroup>
+    </>
   )
 }

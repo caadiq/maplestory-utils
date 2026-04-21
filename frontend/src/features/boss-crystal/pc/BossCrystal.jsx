@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect } from 'react'
 import { useQuery, useQueries } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
 import { api } from '../../../api/client'
 import { useLayout } from '../../../components/pc/Layout'
 import CharacterPanel from './user/CharacterPanel'
@@ -71,13 +70,7 @@ export default function BossCrystal() {
   const isMaxReached = currentSelectedCount >= MAX_PER_CHARACTER
 
   return (
-    <motion.div
-      className="h-full"
-      initial={{ opacity: 0, scale: 0.97 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.35 }}
-      style={{ willChange: 'transform, opacity' }}
-    >
+    <div className="h-full">
       {isLoading ? (
         <div
           className="rounded-2xl border p-16 text-center"
@@ -124,6 +117,6 @@ export default function BossCrystal() {
           </div>
         </div>
       )}
-    </motion.div>
+    </div>
   )
 }
