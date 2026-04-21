@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { Image, Menu } from '../models/index.js';
-import { convertAndUpload, deleteFromS3 } from '../services/image.js';
+import { convertAndUpload, safeDelete } from '../services/image.js';
 import { getPublicUrl } from '../lib/s3.js';
 import { sequelize } from '../lib/db.js';
 import bossCrystalRouter from './admin/boss-crystal.js';
@@ -165,13 +165,7 @@ router.post('/images/delete', async (req, res) => {
   try {
     const images = await Image.findAll({ where: { id: ids } });
 
-    await Promise.all(
-      images.map((img) =>
-        deleteFromS3(img.path).catch((err) =>
-          console.warn(`S3 삭제 실패 (${img.path}):`, err.message)
-        )
-      )
-    );
+    await Promise.all(images.map((img) => safeDelete(img.path)));
     await Image.destroy({ where: { id: ids } });
 
     res.json({ success: true, deleted: images.length });

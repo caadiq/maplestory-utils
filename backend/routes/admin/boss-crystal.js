@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { BossCrystalBoss, BossCrystalBossDifficulty } from '../../models/index.js';
-import { uploadBossImage, deleteBossImage } from '../../services/boss-crystal/image.js';
+import { convertAndUploadTo, safeDelete } from '../../services/image.js';
+
+const BOSS_IMAGE_PREFIX = 'crystal/boss';
+const bossImagePath = (name) => `${BOSS_IMAGE_PREFIX}/${name}.webp`;
 import { getPublicUrl } from '../../lib/s3.js';
 import { sequelize } from '../../lib/db.js';
 import { UPLOAD_FILE_SIZE_LIMIT, PARTY_SIZE, DIFFICULTIES } from '../../constants.js';
@@ -101,7 +104,7 @@ router.post('/bosses', upload.single('image'), async (req, res) => {
     if (existing) return res.status(400).json({ error: '같은 이름의 보스가 이미 존재합니다' });
 
     // 이미지 업로드
-    const imagePath = await uploadBossImage(req.file.buffer, trimmedName);
+    const { path: imagePath } = await convertAndUploadTo(req.file.buffer, bossImagePath(trimmedName));
 
     // 마지막 정렬 순서
     const max = await BossCrystalBoss.max('sort_order') || 0;
@@ -155,15 +158,14 @@ router.patch('/bosses/:id', upload.single('image'), async (req, res) => {
     // 새 이미지 업로드 또는 이름 변경 시 이미지 재업로드
     if (req.file) {
       const oldPath = boss.image_path;
-      newImagePath = await uploadBossImage(req.file.buffer, newName);
+      const uploaded = await convertAndUploadTo(req.file.buffer, bossImagePath(newName));
+      newImagePath = uploaded.path;
       if (oldPath && oldPath !== newImagePath) {
-        await deleteBossImage(oldPath);
+        await safeDelete(oldPath);
       }
     } else if (newName !== boss.name && boss.image_path) {
-      // 이름만 변경 - 기존 이미지를 새 경로로 복사하는 대신 이름 기반 경로 업데이트
-      // 간단하게 처리: 기존 키를 새 키로 교체할 수 없으니, 이미지가 없으면 그대로, 있으면 path만 갱신
-      newImagePath = `crystal/boss/${newName}.webp`;
-      // 실제로 이름이 바뀌면 이미지를 다시 올려달라고 하는 게 안전. 현재는 path만 업데이트하고 추후 다음 업로드 시 새 경로로 저장됨
+      // 이름 변경 시 path만 갱신 (실제 파일은 다음 이미지 업로드 때 새 경로로 저장됨)
+      newImagePath = bossImagePath(newName);
     }
 
     await sequelize.transaction(async (tx) => {
@@ -196,7 +198,7 @@ router.delete('/bosses/:id', async (req, res) => {
     if (!boss) return res.status(404).json({ error: '보스를 찾을 수 없습니다' });
 
     if (boss.image_path) {
-      await deleteBossImage(boss.image_path);
+      await safeDelete(boss.image_path);
     }
     await boss.destroy();
     res.json({ success: true });

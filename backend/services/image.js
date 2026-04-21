@@ -30,6 +30,16 @@ export async function deleteFromS3(path) {
   await deleteObject(path);
 }
 
+// 삭제 실패해도 흐름을 끊지 않는 버전 (이전 이미지 정리 등에 사용)
+export async function safeDelete(path) {
+  if (!path) return;
+  try {
+    await deleteObject(path);
+  } catch (err) {
+    console.warn(`S3 삭제 실패 (${path}):`, err.message);
+  }
+}
+
 /**
  * 지정한 경로로 webp 변환 후 업로드 (덮어쓰기)
  * @param {Buffer} buffer - 원본 이미지 버퍼
