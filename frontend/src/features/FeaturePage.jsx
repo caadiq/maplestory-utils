@@ -11,11 +11,7 @@ export default function FeaturePage() {
   }
 
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center pt-20">
-        <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    }>
+    <Suspense fallback={null}>
       <Component />
     </Suspense>
   )

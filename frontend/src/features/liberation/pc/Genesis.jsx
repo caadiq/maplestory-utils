@@ -24,6 +24,7 @@ import ProgressBar from './components/ProgressBar'
 import WeeklyDefault from './components/WeeklyDefault'
 import DatePicker from '../../../components/common/DatePicker'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
+import StaggerGroup from '../../../components/common/StaggerGroup'
 
 export default function Genesis() {
   const calcMode = useLiberationStore((s) => s.genesisCalcMode)
@@ -93,7 +94,7 @@ export default function Genesis() {
   }
 
   return (
-    <>
+    <StaggerGroup className="space-y-6">
       {/* 계산 모드 탭 */}
       <div
         className="max-w-3xl mx-auto flex gap-1 p-1 rounded-xl border"
@@ -238,6 +239,6 @@ export default function Genesis() {
         confirmText="초기화"
         destructive
       />
-    </>
+    </StaggerGroup>
   )
 }

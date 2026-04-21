@@ -49,14 +49,7 @@ export default function AdminFeaturePage() {
   }
 
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center pt-20">
-        <div
-          className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
-          style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }}
-        />
-      </div>
-    }>
+    <Suspense fallback={null}>
       <Component />
     </Suspense>
   )
