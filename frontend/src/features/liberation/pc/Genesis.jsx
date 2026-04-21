@@ -155,6 +155,8 @@ export default function Genesis() {
           <div className="space-y-1.5">
             <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>진행 중인 퀘스트</label>
             <QuestSelector
+              chapters={GENESIS_CHAPTERS}
+              imageBase={QUEST_BOSS_IMAGE_BASE}
               value={state.startChapter}
               onChange={(idx) => setState((prev) => ({ ...prev, startChapter: idx }))}
             />

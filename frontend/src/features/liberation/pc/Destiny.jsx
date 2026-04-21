@@ -1,11 +1,17 @@
-import { DESTINY_CHAPTERS, DESTINY_QUEST_IMAGE_BASE } from '../data'
+import dayjs from 'dayjs'
+import { DESTINY_CHAPTERS, DESTINY_QUEST_IMAGE_BASE, formatDate } from '../data'
 import { useLiberationStore } from '../store'
 import ProgressBar from './components/ProgressBar'
+import QuestSelector from './components/QuestSelector'
+import PointsInput from './components/PointsInput'
+import DatePicker from '../../../components/common/DatePicker'
 
 export default function Destiny() {
   const calcMode = useLiberationStore((s) => s.destinyCalcMode)
   const setCalcMode = useLiberationStore((s) => s.setDestinyCalcMode)
   const state = useLiberationStore((s) => s.destinyCalcMode === 'weekly' ? s.destinyWeekly : s.destinySimple)
+  const updateSlot = useLiberationStore((s) => s.updateDestinySlot)
+  const setState = (updater) => updateSlot(updater)
 
   return (
     <>
@@ -49,6 +55,66 @@ export default function Destiny() {
         completionDate={null}
         completionColor="var(--destiny-date)"
       />
+
+      {/* 현재 진행 상태 입력 */}
+      <div
+        className="max-w-3xl mx-auto rounded-2xl border p-6 space-y-4"
+        style={{
+          background: 'var(--panel-bg)',
+          borderColor: 'var(--panel-border)',
+          boxShadow: 'var(--panel-shadow)',
+        }}
+      >
+        <div className="text-lg font-semibold" style={{ color: 'var(--accent-bright)' }}>현재 진행 상태</div>
+
+        <div className="grid gap-3 grid-cols-3">
+          <div className="space-y-1.5">
+            <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>시작 날짜</label>
+            <DatePicker
+              value={formatDate(state.startDate)}
+              onChange={(d) => setState((prev) => ({ ...prev, startDate: dayjs(d).toISOString() }))}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>진행 중인 퀘스트</label>
+            <QuestSelector
+              chapters={DESTINY_CHAPTERS}
+              imageBase={DESTINY_QUEST_IMAGE_BASE}
+              value={state.startChapter}
+              onChange={(idx) => setState((prev) => ({ ...prev, startChapter: idx }))}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>현재 결의</label>
+            <div
+              className="flex items-stretch rounded-lg border focus-within:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
+              style={{
+                background: 'var(--input-bg)',
+                borderColor: 'var(--input-border)',
+              }}
+            >
+              <PointsInput
+                value={state.currentPoints}
+                max={20000}
+                onChange={(n) => setState((prev) => ({ ...prev, currentPoints: n }))}
+                className="flex-1 min-w-0 bg-transparent px-3 h-12 text-base text-right tabular-nums outline-none"
+                style={{ color: 'var(--text-strong)' }}
+              />
+              <span
+                className="flex items-center px-3 text-base border-l select-none tabular-nums"
+                style={{
+                  borderColor: 'var(--input-border)',
+                  color: 'var(--text-dim)',
+                }}
+              >
+                / {(DESTINY_CHAPTERS[state.startChapter]?.required ?? 0).toLocaleString()}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     </>
   )
 }
