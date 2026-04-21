@@ -9,6 +9,7 @@ import { formatMesoKorean } from '../../../utils/formatting'
 import { formatKoreanDate, computeCompletion, TYPE_ORDER, eventBonusForType } from '../utils'
 import CharacterCard from './user/CharacterCard'
 import SymbolCard from './user/SymbolCard'
+import StaggerGroup from '../../../components/common/StaggerGroup'
 
 export default function Symbol() {
   const { setFullscreen } = useLayout()
@@ -193,7 +194,7 @@ export default function Symbol() {
   }, [symbols, progress, selectedChar?.event_skill])
 
   return (
-    <div className="space-y-6 pb-10 max-w-5xl mx-auto">
+    <StaggerGroup className="space-y-6 pb-10 max-w-5xl mx-auto">
       {/* 캐릭터 조회 */}
       <div
         className="rounded-2xl border p-5 space-y-4"
@@ -349,6 +350,6 @@ export default function Symbol() {
           </div>
         </div>
       </div>
-    </div>
+    </StaggerGroup>
   )
 }
