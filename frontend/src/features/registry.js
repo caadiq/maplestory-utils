@@ -69,3 +69,15 @@ export function hasAdminPage(slug) {
   const cleaned = slug.replace(/^\/+/, '').split('/')[0]
   return getAdminComponent(cleaned) !== null
 }
+
+/**
+ * chunk prefetch: 렌더 트리거 없이 동적 import 만 시작
+ * 메뉴 카드 hover 시 호출해 네비게이션 직후 Suspense 깜빡임을 제거.
+ */
+export function prefetchUserComponent(slug) {
+  if (!slug) return
+  const cleaned = slug.replace(/^\/+/, '').split('/')[0]
+  const pascal = slugToPascal(cleaned)
+  const loader = pages[`./${cleaned}/pc/${pascal}.jsx`]
+  if (loader) loader()
+}

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import NoticeWidget from '../../components/pc/NoticeWidget'
 import SundayMapleBanner from '../../components/pc/SundayMapleBanner'
+import { prefetchUserComponent } from '../../features/registry'
 
 export default function Home() {
   const { data: menus = [], isLoading: loading } = useQuery({
@@ -64,6 +65,8 @@ export default function Home() {
               <Link
                 key={menu.id}
                 to={menu.url}
+                onMouseEnter={() => prefetchUserComponent(menu.url)}
+                onFocus={() => prefetchUserComponent(menu.url)}
                 className="relative rounded-2xl border p-6 transition-transform duration-300 hover:scale-[1.02] border-[var(--card-border)]"
                 style={{
                   backgroundImage: 'linear-gradient(to bottom right, var(--card-bg-from), var(--card-bg-to))',
