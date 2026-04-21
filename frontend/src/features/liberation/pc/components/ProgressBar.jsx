@@ -1,5 +1,3 @@
-import { GENESIS_CHAPTERS, GENESIS_TOTAL, QUEST_BOSS_IMAGE_BASE } from '../../data'
-
 const DOW = ['일', '월', '화', '수', '목', '금', '토']
 function formatKoreanDate(s) {
   const [y, m, d] = s.split('-')
@@ -7,8 +5,15 @@ function formatKoreanDate(s) {
   return `${y}년 ${m}월 ${d}일 (${dow})`
 }
 
-export default function ProgressBar({ startChapter, currentPoints, completionDate }) {
-  const chapterStates = GENESIS_CHAPTERS.map((c) => {
+export default function ProgressBar({
+  chapters,
+  imageBase,
+  startChapter,
+  currentPoints,
+  completionDate,
+  completionColor = 'var(--warning-text-bright)',
+}) {
+  const chapterStates = chapters.map((c) => {
     if (c.idx < startChapter) return { chapter: c, status: 'done', current: c.required }
     if (c.idx === startChapter) {
       const filled = Math.min(currentPoints, c.required)
@@ -41,7 +46,7 @@ export default function ProgressBar({ startChapter, currentPoints, completionDat
         status === 'pending' ? 'opacity-50' : ''
       }`}>
         <img
-          src={`${QUEST_BOSS_IMAGE_BASE}/${chapter.boss}.webp`}
+          src={`${imageBase}/${chapter.boss}.webp`}
           alt={chapter.boss}
           className={`block w-full h-full object-cover ${status === 'pending' ? 'grayscale' : ''}`}
         />
@@ -101,7 +106,7 @@ export default function ProgressBar({ startChapter, currentPoints, completionDat
         <span style={{ color: 'var(--text-dim)' }}>·</span>
         <span
           className="text-xl font-bold tabular-nums"
-          style={{ color: 'var(--warning-text-bright)' }}
+          style={{ color: completionColor }}
         >
           {completionDate ? formatKoreanDate(completionDate) : <span className="font-normal" style={{ color: 'var(--text-dim)' }}>미정</span>}
         </span>

@@ -24,28 +24,55 @@ function makeInitialSlot() {
   }
 }
 
+function makeInitialDestinySlot() {
+  return {
+    startChapter: 0,
+    currentPoints: 0,
+    startDate: dayjs(todayKST()).toISOString(),
+  }
+}
+
 /**
  * 해방 계산기 상태
- * calcMode: 'simple' | 'weekly'
- * simple / weekly: 각 모드 독립 슬롯
+ * calcMode: 'simple' | 'weekly'  (제네시스/데스티니가 공유)
+ * simple / weekly: 제네시스 모드별 독립 슬롯
+ * destinySimple / destinyWeekly: 데스티니 모드별 독립 슬롯
  */
 export const useLiberationStore = create(persist(
   (set) => ({
-    calcMode: 'simple',
+    liberationType: 'genesis', // 'genesis' | 'destiny'
+    genesisCalcMode: 'simple',
+    destinyCalcMode: 'simple',
     simple: makeInitialSlot(),
     weekly: makeInitialSlot(),
+    destinySimple: makeInitialDestinySlot(),
+    destinyWeekly: makeInitialDestinySlot(),
 
-    setCalcMode: (mode) => set({ calcMode: mode }),
+    setLiberationType: (type) => set({ liberationType: type }),
+    setGenesisCalcMode: (mode) => set({ genesisCalcMode: mode }),
+    setDestinyCalcMode: (mode) => set({ destinyCalcMode: mode }),
 
     updateSlot: (patch) => set((s) => ({
-      [s.calcMode]: typeof patch === 'function'
-        ? patch(s[s.calcMode])
-        : { ...s[s.calcMode], ...patch },
+      [s.genesisCalcMode]: typeof patch === 'function'
+        ? patch(s[s.genesisCalcMode])
+        : { ...s[s.genesisCalcMode], ...patch },
     })),
 
-    resetSlot: () => set((s) => ({ [s.calcMode]: makeInitialSlot() })),
+    resetSlot: () => set((s) => ({ [s.genesisCalcMode]: makeInitialSlot() })),
+
+    updateDestinySlot: (patch) => set((s) => {
+      const key = s.destinyCalcMode === 'weekly' ? 'destinyWeekly' : 'destinySimple'
+      return {
+        [key]: typeof patch === 'function' ? patch(s[key]) : { ...s[key], ...patch },
+      }
+    }),
+
+    resetDestinySlot: () => set((s) => {
+      const key = s.destinyCalcMode === 'weekly' ? 'destinyWeekly' : 'destinySimple'
+      return { [key]: makeInitialDestinySlot() }
+    }),
   }),
   { name: 'maple-liberation' },
 ))
 
-export { makeEmptyWeekly, makeInitialSlot }
+export { makeEmptyWeekly, makeInitialSlot, makeInitialDestinySlot }
