@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import dayjs from 'dayjs'
-import { WEEKLY_BOSSES, MONTHLY_BOSSES, todayKST } from './data'
+import { WEEKLY_BOSSES, MONTHLY_BOSSES, DESTINY_BOSSES, todayKST } from './data'
 
 function makeEmptyWeekly() {
   const bosses = {}
@@ -12,6 +12,14 @@ function makeEmptyWeekly() {
     bosses,
     blackMage: { difficulty: 'none', party: 1, done: false },
   }
+}
+
+function makeEmptyDestinyWeekly() {
+  const bosses = {}
+  DESTINY_BOSSES.forEach((b) => {
+    bosses[b.key] = { difficulty: 'none', party: 1, done: false }
+  })
+  return { bosses }
 }
 
 function makeInitialSlot() {
@@ -29,6 +37,7 @@ function makeInitialDestinySlot() {
     startChapter: 0,
     currentPoints: 0,
     startDate: dayjs(todayKST()).toISOString(),
+    weekly: makeEmptyDestinyWeekly(),
   }
 }
 
@@ -72,7 +81,20 @@ export const useLiberationStore = create(persist(
       return { [key]: makeInitialDestinySlot() }
     }),
   }),
-  { name: 'maple-liberation' },
+  {
+    name: 'maple-liberation',
+    version: 1,
+    migrate: (persisted) => {
+      if (!persisted) return persisted
+      // v0→v1: 데스티니 슬롯에 weekly 필드가 없으면 빈 값으로 채움
+      const fill = (slot) => slot ? { ...slot, weekly: slot.weekly || makeEmptyDestinyWeekly() } : slot
+      return {
+        ...persisted,
+        destinySimple: fill(persisted.destinySimple),
+        destinyWeekly: fill(persisted.destinyWeekly),
+      }
+    },
+  },
 ))
 
-export { makeEmptyWeekly, makeInitialSlot, makeInitialDestinySlot }
+export { makeEmptyWeekly, makeEmptyDestinyWeekly, makeInitialSlot, makeInitialDestinySlot }

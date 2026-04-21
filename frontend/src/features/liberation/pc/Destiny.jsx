@@ -1,9 +1,17 @@
 import dayjs from 'dayjs'
-import { DESTINY_CHAPTERS, DESTINY_QUEST_IMAGE_BASE, formatDate } from '../data'
+import {
+  DESTINY_CHAPTERS,
+  DESTINY_QUEST_IMAGE_BASE,
+  DESTINY_BOSSES,
+  DESTINY_BOSS_IMAGE_BASE,
+  formatDate,
+} from '../data'
 import { useLiberationStore } from '../store'
+import { calcWeekPoints } from '../utils'
 import ProgressBar from './components/ProgressBar'
 import QuestSelector from './components/QuestSelector'
 import PointsInput from './components/PointsInput'
+import WeeklyDefault from './components/WeeklyDefault'
 import DatePicker from '../../../components/common/DatePicker'
 
 export default function Destiny() {
@@ -12,6 +20,8 @@ export default function Destiny() {
   const state = useLiberationStore((s) => s.destinyCalcMode === 'weekly' ? s.destinyWeekly : s.destinySimple)
   const updateSlot = useLiberationStore((s) => s.updateDestinySlot)
   const setState = (updater) => updateSlot(updater)
+
+  const weeklyEarn = calcWeekPoints(state.weekly, DESTINY_BOSSES)
 
   return (
     <>
@@ -115,6 +125,31 @@ export default function Destiny() {
           </div>
         </div>
       </div>
+
+      {calcMode === 'simple' ? (
+        <WeeklyDefault
+          bosses={DESTINY_BOSSES}
+          imageBase={DESTINY_BOSS_IMAGE_BASE}
+          weekly={state.weekly}
+          onChange={(w) => setState((prev) => ({ ...prev, weekly: w }))}
+          totalWeekly={weeklyEarn}
+          remaining={0}
+          mode="simple"
+          hasScheduler={false}
+        />
+      ) : (
+        <div
+          className="max-w-3xl mx-auto rounded-2xl border p-16 text-center"
+          style={{
+            background: 'var(--panel-bg)',
+            borderColor: 'var(--panel-border)',
+            boxShadow: 'var(--panel-shadow)',
+          }}
+        >
+          <div className="text-xl font-bold" style={{ color: 'var(--text-emphasis)' }}>주차별 계산 준비 중</div>
+          <div className="text-sm mt-2" style={{ color: 'var(--text-dim)' }}>단순 계산 탭을 이용해주세요.</div>
+        </div>
+      )}
     </>
   )
 }

@@ -1,7 +1,7 @@
 import Select from '../../../../components/common/Select'
 import Tooltip from '../../../../components/common/Tooltip'
 import WeeklyScheduler from './WeeklyScheduler'
-import { WEEKLY_BOSSES, MONTHLY_BOSSES, LIBERATION_BOSS_IMAGE_BASE, calcPoints } from '../../data'
+import { calcPoints } from '../../data'
 
 const PARTY_OPTIONS = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n}인` }))
 const NONE_DIFFICULTY = { key: 'none', label: '격파 불가', points: 0 }
@@ -16,7 +16,7 @@ function diffLabel(d, party) {
   )
 }
 
-export function BossRow({ boss, sel, onChange, monthly = false, showDone = true }) {
+export function BossRow({ boss, sel, onChange, imageBase, monthly = false, showDone = true }) {
   const disabled = sel.difficulty === 'none'
   const difficultyOptions = [NONE_DIFFICULTY, ...boss.difficulties]
     .map((d) => ({ value: d.key, label: diffLabel(d, sel.party) }))
@@ -24,7 +24,7 @@ export function BossRow({ boss, sel, onChange, monthly = false, showDone = true 
   return (
     <div className="flex items-center gap-3 rounded-lg px-3 h-16">
       <Tooltip text={boss.name}>
-        <img src={`${LIBERATION_BOSS_IMAGE_BASE}/${boss.image}`} alt="" className="w-10 h-10 rounded-md object-cover shrink-0" />
+        <img src={`${imageBase}/${boss.image}`} alt="" className="w-10 h-10 rounded-md object-cover shrink-0" />
       </Tooltip>
       <span className="text-base font-semibold flex-1 truncate">
         {boss.name}
@@ -81,7 +81,22 @@ export function BossRow({ boss, sel, onChange, monthly = false, showDone = true 
   )
 }
 
-export default function WeeklyDefault({ weekly, onChange, totalWeekly, totalMonthly, remaining, mode = 'simple', startDate, weeks, onChangeWeeks }) {
+export default function WeeklyDefault({
+  bosses,
+  monthlyBosses = [],
+  imageBase,
+  weekly,
+  onChange,
+  totalWeekly,
+  totalMonthly = 0,
+  remaining,
+  mode = 'simple',
+  startDate,
+  weeks,
+  onChangeWeeks,
+  hasScheduler = true,
+  label = '주간 보스 설정',
+}) {
   const updateBoss = (key, patch) => {
     onChange({ ...weekly, bosses: { ...weekly.bosses, [key]: { ...weekly.bosses[key], ...patch } } })
   }
@@ -99,13 +114,17 @@ export default function WeeklyDefault({ weekly, onChange, totalWeekly, totalMont
       }}
     >
       <div className="flex items-center justify-between">
-        <div className="text-lg font-semibold" style={{ color: 'var(--accent-bright)' }}>주간 보스 설정</div>
+        <div className="text-lg font-semibold" style={{ color: 'var(--accent-bright)' }}>{label}</div>
         <div className="text-sm tabular-nums">
           {mode === 'weekly' ? (
             <>
               <span className="font-semibold" style={{ color: 'var(--accent-bright)' }}>{totalWeekly}</span>
-              <span className="mx-1" style={{ color: 'var(--text-dim)' }}>+</span>
-              <span className="font-semibold" style={{ color: 'var(--warning-text-bright)' }}>{totalMonthly}</span>
+              {monthlyBosses.length > 0 && (
+                <>
+                  <span className="mx-1" style={{ color: 'var(--text-dim)' }}>+</span>
+                  <span className="font-semibold" style={{ color: 'var(--warning-text-bright)' }}>{totalMonthly}</span>
+                </>
+              )}
               <span className="mx-1" style={{ color: 'var(--text-dim)' }}>/</span>
               <span className="font-semibold" style={{ color: 'var(--text-emphasis)' }}>{(remaining ?? 0).toLocaleString()}</span>
             </>
@@ -115,9 +134,9 @@ export default function WeeklyDefault({ weekly, onChange, totalWeekly, totalMont
         </div>
       </div>
 
-      {mode === 'simple' ? (
+      {mode === 'simple' || !hasScheduler ? (
         <div>
-          {WEEKLY_BOSSES.map((boss, i) => (
+          {bosses.map((boss, i) => (
             <div
               key={boss.key}
               className={i > 0 ? 'border-t' : ''}
@@ -127,10 +146,11 @@ export default function WeeklyDefault({ weekly, onChange, totalWeekly, totalMont
                 boss={boss}
                 sel={weekly.bosses[boss.key]}
                 onChange={(patch) => updateBoss(boss.key, patch)}
+                imageBase={imageBase}
               />
             </div>
           ))}
-          {MONTHLY_BOSSES.map((boss) => (
+          {monthlyBosses.map((boss) => (
             <div
               key={boss.key}
               className="border-t"
@@ -140,6 +160,7 @@ export default function WeeklyDefault({ weekly, onChange, totalWeekly, totalMont
                 boss={boss}
                 sel={weekly.blackMage}
                 onChange={updateBlackMage}
+                imageBase={imageBase}
                 monthly
               />
             </div>
