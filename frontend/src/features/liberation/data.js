@@ -14,7 +14,6 @@ export const GENESIS_CHAPTERS = [
 
 // 퀘스트 이미지 경로 (제네시스)
 export const QUEST_BOSS_IMAGE_BASE = 'https://s3.caadiq.co.kr/maplestory/liberation/genesis/quest'
-export const QUEST_BTBOSS_IMAGE_BASE = 'https://s3.caadiq.co.kr/maplestory/liberation/genesis/quest/btboss'
 // 주간/월간 보스 초상화 (해방용)
 export const LIBERATION_BOSS_IMAGE_BASE = 'https://s3.caadiq.co.kr/maplestory/liberation/genesis/boss'
 
@@ -94,22 +93,22 @@ export const DIFFICULTY_IMAGE_BASE = 'https://s3.caadiq.co.kr/maplestory/crystal
 // phase 1: 선택받은 세렌 / 감시자 칼로스 / 카링
 // phase 2: 최초의 대적자 / 림보 / 발드릭스
 export const DESTINY_CHAPTERS = [
-  { idx: 0, phase: 1, boss: '선택받은 세렌', image: '선택받은 세렌.webp',
+  { idx: 0, phase: 1, boss: '선택받은 세렌',
     quest_name: '결전, 선택받은 세렌', boss_label: '하드 세렌',
     penalty: '최종 데미지 80% 감소', required: 2000 },
-  { idx: 1, phase: 1, boss: '감시자 칼로스', image: '감시자 칼로스.webp',
+  { idx: 1, phase: 1, boss: '감시자 칼로스',
     quest_name: '결전, 감시자 칼로스', boss_label: '카오스 칼로스',
     penalty: '데스 카운트 3으로 감소', required: 2500 },
-  { idx: 2, phase: 1, boss: '카링', image: '카링.webp',
+  { idx: 2, phase: 1, boss: '카링',
     quest_name: '결전, 사도 카링', boss_label: '하드 카링',
     penalty: '최종 데미지 20% 증가', required: 3000 },
-  { idx: 3, phase: 2, boss: '최초의 대적자', image: '최초의 대적자.webp',
+  { idx: 3, phase: 2, boss: '최초의 대적자',
     quest_name: '결전, 최초의 대적자', boss_label: '하드 대적자',
     penalty: '최종 데미지 20% 감소 / 피격 시 질서의 힘 감소량 50% 증가', required: 10000 },
-  { idx: 4, phase: 2, boss: '림보', image: '림보.webp',
+  { idx: 4, phase: 2, boss: '림보',
     quest_name: '결전, 사도 림보', boss_label: '하드 림보',
     penalty: '침식 수치 800으로 시작', required: 12500 },
-  { idx: 5, phase: 2, boss: '발드릭스', image: '발드릭스.webp',
+  { idx: 5, phase: 2, boss: '발드릭스',
     quest_name: '결전, 사도 발드릭스', boss_label: '하드 발드릭스',
     penalty: '피격 시 받는 데미지 30% 증가', required: 15000 },
 ]
