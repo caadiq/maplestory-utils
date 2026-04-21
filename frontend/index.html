@@ -6,8 +6,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/gh/fonts-archive/Maplestory/Maplestory.css" rel="stylesheet" />
+    <!-- MapleStory 폰트: font-display: optional 로 override. 첫 방문시 폰트가 100ms 내에
+         도착하지 않으면 fallback 유지, 이후 캐시되면 적용됨. 레이아웃 이동 제거 목적. -->
+    <style>
+      @font-face {
+        font-family: 'Maplestory';
+        font-weight: 300;
+        font-style: normal;
+        font-display: optional;
+        src: url('https://cdn.jsdelivr.net/gh/fonts-archive/Maplestory/Maplestory-Light.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Maplestory';
+        font-weight: 700;
+        font-style: normal;
+        font-display: optional;
+        src: url('https://cdn.jsdelivr.net/gh/fonts-archive/Maplestory/Maplestory-Bold.woff2') format('woff2');
+      }
+    </style>
     <script type="text/javascript" src="https://openapi.nexon.com/js/analytics.js?app_id=274844" async></script>
     <script>
       (function () {
