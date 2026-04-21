@@ -38,6 +38,7 @@ function makeInitialDestinySlot() {
     currentPoints: 0,
     startDate: dayjs(todayKST()).toISOString(),
     weekly: makeEmptyDestinyWeekly(),
+    schedulerWeeks: [{ id: 1, config: makeEmptyDestinyWeekly() }],
   }
 }
 
@@ -83,11 +84,18 @@ export const useLiberationStore = create(persist(
   }),
   {
     name: 'maple-liberation',
-    version: 1,
+    version: 2,
     migrate: (persisted) => {
       if (!persisted) return persisted
-      // v0→v1: 데스티니 슬롯에 weekly 필드가 없으면 빈 값으로 채움
-      const fill = (slot) => slot ? { ...slot, weekly: slot.weekly || makeEmptyDestinyWeekly() } : slot
+      // 데스티니 슬롯에 weekly/schedulerWeeks 필드가 없으면 빈 값으로 채움
+      const fill = (slot) => {
+        if (!slot) return slot
+        return {
+          ...slot,
+          weekly: slot.weekly || makeEmptyDestinyWeekly(),
+          schedulerWeeks: slot.schedulerWeeks || [{ id: 1, config: makeEmptyDestinyWeekly() }],
+        }
+      }
       return {
         ...persisted,
         destinySimple: fill(persisted.destinySimple),

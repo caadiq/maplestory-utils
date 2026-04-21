@@ -6,7 +6,7 @@ import {
   DESTINY_BOSS_IMAGE_BASE,
   formatDate,
 } from '../data'
-import { useLiberationStore } from '../store'
+import { useLiberationStore, makeEmptyDestinyWeekly } from '../store'
 import { calcWeekPoints } from '../utils'
 import ProgressBar from './components/ProgressBar'
 import QuestSelector from './components/QuestSelector'
@@ -22,6 +22,9 @@ export default function Destiny() {
   const setState = (updater) => updateSlot(updater)
 
   const weeklyEarn = calcWeekPoints(state.weekly, DESTINY_BOSSES)
+  const headerWeekly = calcMode === 'weekly'
+    ? (state.schedulerWeeks || []).reduce((s, w) => s + calcWeekPoints(w.config, DESTINY_BOSSES), 0)
+    : weeklyEarn
 
   return (
     <>
@@ -34,8 +37,8 @@ export default function Destiny() {
         }}
       >
         {[
-          { key: 'simple', label: '단순 계산' },
-          { key: 'weekly', label: '주차별 계산' },
+          { key: 'simple', label: '일반' },
+          { key: 'weekly', label: '주차별' },
         ].map((t) => {
           const active = calcMode === t.key
           return (
@@ -126,30 +129,19 @@ export default function Destiny() {
         </div>
       </div>
 
-      {calcMode === 'simple' ? (
-        <WeeklyDefault
-          bosses={DESTINY_BOSSES}
-          imageBase={DESTINY_BOSS_IMAGE_BASE}
-          weekly={state.weekly}
-          onChange={(w) => setState((prev) => ({ ...prev, weekly: w }))}
-          totalWeekly={weeklyEarn}
-          remaining={0}
-          mode="simple"
-          hasScheduler={false}
-        />
-      ) : (
-        <div
-          className="max-w-3xl mx-auto rounded-2xl border p-16 text-center"
-          style={{
-            background: 'var(--panel-bg)',
-            borderColor: 'var(--panel-border)',
-            boxShadow: 'var(--panel-shadow)',
-          }}
-        >
-          <div className="text-xl font-bold" style={{ color: 'var(--text-emphasis)' }}>주차별 계산 준비 중</div>
-          <div className="text-sm mt-2" style={{ color: 'var(--text-dim)' }}>단순 계산 탭을 이용해주세요.</div>
-        </div>
-      )}
+      <WeeklyDefault
+        bosses={DESTINY_BOSSES}
+        imageBase={DESTINY_BOSS_IMAGE_BASE}
+        makeEmptyConfig={makeEmptyDestinyWeekly}
+        weekly={state.weekly}
+        onChange={(w) => setState((prev) => ({ ...prev, weekly: w }))}
+        totalWeekly={headerWeekly}
+        remaining={0}
+        mode={calcMode}
+        startDate={state.startDate}
+        weeks={state.schedulerWeeks}
+        onChangeWeeks={(w) => setState((prev) => ({ ...prev, schedulerWeeks: w }))}
+      />
     </>
   )
 }

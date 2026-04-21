@@ -9,7 +9,7 @@ import {
   LIBERATION_BOSS_IMAGE_BASE,
   formatDate,
 } from '../data'
-import { useLiberationStore } from '../store'
+import { useLiberationStore, makeEmptyWeekly } from '../store'
 import {
   bossEarn,
   calcWeekPoints,
@@ -103,8 +103,8 @@ export default function Genesis() {
         }}
       >
         {[
-          { key: 'simple', label: '단순 계산' },
-          { key: 'weekly', label: '주차별 계산' },
+          { key: 'simple', label: '일반' },
+          { key: 'weekly', label: '주차별' },
         ].map((t) => {
           const active = calcMode === t.key
           return (
@@ -198,6 +198,7 @@ export default function Genesis() {
         bosses={WEEKLY_BOSSES}
         monthlyBosses={MONTHLY_BOSSES}
         imageBase={LIBERATION_BOSS_IMAGE_BASE}
+        makeEmptyConfig={makeEmptyWeekly}
         weekly={state.weekly}
         onChange={(w) => setState((prev) => ({ ...prev, weekly: w }))}
         totalWeekly={headerWeekly}
@@ -232,7 +233,7 @@ export default function Genesis() {
         onClose={() => setResetOpen(false)}
         onConfirm={doReset}
         title="전체 초기화"
-        description={`${calcMode === 'simple' ? '단순 계산' : '주차별 계산'} 모드의 입력을 모두 초기화하시겠습니까?\n\n시작 날짜, 현재 진행 상태, 주간 보스 설정이 모두 초기값으로 되돌아갑니다.\n다른 모드의 값은 유지됩니다.`}
+        description={`${calcMode === 'simple' ? '일반' : '주차별'} 모드의 입력을 모두 초기화하시겠습니까?\n\n시작 날짜, 현재 진행 상태, 주간 보스 설정이 모두 초기값으로 되돌아갑니다.\n다른 모드의 값은 유지됩니다.`}
         confirmText="초기화"
         destructive
       />

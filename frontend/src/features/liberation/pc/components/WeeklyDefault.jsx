@@ -61,6 +61,7 @@ export function BossRow({ boss, sel, onChange, imageBase, monthly = false, showD
           type="button"
           disabled={disabled}
           onClick={() => onChange({ done: !sel.done })}
+          title="이번 주 해당 난이도를 이미 클리어했는지 여부"
           className="shrink-0 w-20 rounded-md h-8 text-xs font-semibold border"
           style={disabled ? {
             borderColor: 'var(--panel-border)',
@@ -85,6 +86,7 @@ export default function WeeklyDefault({
   bosses,
   monthlyBosses = [],
   imageBase,
+  makeEmptyConfig,
   weekly,
   onChange,
   totalWeekly,
@@ -168,6 +170,10 @@ export default function WeeklyDefault({
         </div>
       ) : (
         <WeeklyScheduler
+          bosses={bosses}
+          monthlyBoss={monthlyBosses[0] ?? null}
+          imageBase={imageBase}
+          makeEmptyConfig={makeEmptyConfig}
           startDate={startDate}
           weeks={weeks}
           onChangeWeeks={onChangeWeeks}
