@@ -4,11 +4,12 @@ import { BossCrystalBoss, BossCrystalBossDifficulty } from '../../models/index.j
 import { uploadBossImage, deleteBossImage } from '../../services/boss-crystal/image.js';
 import { getPublicUrl } from '../../lib/s3.js';
 import { sequelize } from '../../lib/db.js';
+import { UPLOAD_FILE_SIZE_LIMIT, PARTY_SIZE, DIFFICULTIES } from '../../constants.js';
 
 const router = Router();
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: UPLOAD_FILE_SIZE_LIMIT },
 });
 
 function serialize(boss) {
@@ -39,9 +40,8 @@ function parseDifficulties(raw) {
   if (!Array.isArray(arr) || arr.length === 0) {
     throw new Error('하나 이상의 난이도가 필요합니다');
   }
-  const valid = ['easy', 'normal', 'hard', 'chaos', 'extreme'];
   return arr.map((d) => {
-    if (!valid.includes(d.difficulty)) throw new Error(`잘못된 난이도: ${d.difficulty}`);
+    if (!DIFFICULTIES.includes(d.difficulty)) throw new Error(`잘못된 난이도: ${d.difficulty}`);
     const price = Number(d.crystal_price);
     if (isNaN(price) || price <= 0) throw new Error(`잘못된 가격: ${d.difficulty}`);
     return { difficulty: d.difficulty, crystal_price: price };
@@ -50,7 +50,9 @@ function parseDifficulties(raw) {
 
 function parseMaxParty(raw) {
   const n = Number(raw);
-  if (isNaN(n) || n < 1 || n > 6) throw new Error('인원수는 1~6이어야 합니다');
+  if (isNaN(n) || n < PARTY_SIZE.min || n > PARTY_SIZE.max) {
+    throw new Error(`인원수는 ${PARTY_SIZE.min}~${PARTY_SIZE.max}이어야 합니다`);
+  }
   return n;
 }
 
