@@ -73,10 +73,10 @@ export default function BossCrystal() {
   return (
     <motion.div
       className="h-full"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-      style={{ willChange: 'opacity' }}
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.03 }}
+      style={{ willChange: 'transform, opacity' }}
     >
       {isLoading ? (
         <div
