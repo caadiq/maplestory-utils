@@ -1,26 +1,36 @@
 import { Children } from 'react'
 import { motion } from 'framer-motion'
 
-const containerVariants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.07 } },
-}
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
-  },
-}
-
 /**
  * 자식을 각 motion.div 로 감싸 순차 페이드인.
- * 레이아웃에 영향 주지 않도록 wrapper div 는 flex/grid 특성이 없어야 하는 자리에서만 사용.
- * space-y-* 같은 Tailwind 유틸은 그대로 className 에 넘겨 유지.
+ * 기본값은 프로미스나인 사이트와 동일 (y 30, duration 0.4, 간격 0.1s).
+ *
+ * @param {number} staggerDelay - 자식 간 간격 (초)
+ * @param {number} yOffset - 시작 y 오프셋 (px)
+ * @param {number} duration - 각 자식 애니메이션 지속시간 (초)
  */
-export default function StaggerGroup({ children, className, style }) {
+export default function StaggerGroup({
+  children,
+  className,
+  style,
+  staggerDelay = 0.1,
+  yOffset = 30,
+  duration = 0.4,
+}) {
+  const containerVariants = {
+    hidden: {},
+    show: { transition: { staggerChildren: staggerDelay } },
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: yOffset },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { duration },
+    },
+  }
+
   return (
     <motion.div
       className={className}

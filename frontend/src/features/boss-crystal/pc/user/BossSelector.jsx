@@ -1,5 +1,6 @@
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import Select from '../../../../components/common/Select'
+import StaggerGroup from '../../../../components/common/StaggerGroup'
 import { DIFFICULTIES, formatMeso } from '../admin/constants'
 
 const LABEL_EN = { easy: 'EASY', normal: 'NORMAL', hard: 'HARD', chaos: 'CHAOS', extreme: 'EXTREME' }
@@ -67,7 +68,13 @@ export default function BossSelector({ characterName, bosses, selections, onChan
         }}
         defer
       >
-        <div className="divide-y px-2" style={{ '--tw-divide-opacity': 1 }}>
+        <StaggerGroup
+          className="divide-y px-2"
+          style={{ '--tw-divide-opacity': 1 }}
+          staggerDelay={0.04}
+          yOffset={20}
+          duration={0.3}
+        >
           {bosses.map((boss) => {
             const availableDiffs = DIFFICULTIES.filter((d) =>
               boss.difficulties.some((bd) => bd.difficulty === d.key)
@@ -168,7 +175,7 @@ export default function BossSelector({ characterName, bosses, selections, onChan
               </div>
             )
           })}
-        </div>
+        </StaggerGroup>
       </OverlayScrollbarsComponent>
     </div>
   )
