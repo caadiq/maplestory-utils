@@ -17,42 +17,62 @@ const DELAY_DEFAULT = 200
  */
 export default function GlobalTooltip() {
   const [state, setState] = useState({ open: false, text: '', placement: 'top', coords: null })
-  const triggerRef = useRef(null)
+  const triggerRef = useRef(null)       // 툴팁이 실제로 떠있는 타겟
+  const pendingRef = useRef(null)       // delay 중이라 title 을 벗긴 타겟 (아직 툴팁 안 뜸)
   const tooltipRef = useRef(null)
   const timerRef = useRef(null)
   const titleMap = useRef(new WeakMap())
 
   useEffect(() => {
-    function restoreTitle() {
-      const el = triggerRef.current
+    function stripTitle(el) {
+      const t = el.getAttribute('title')
+      if (t && !titleMap.current.has(el)) {
+        titleMap.current.set(el, t)
+        el.removeAttribute('title')
+      }
+    }
+
+    function restoreTitle(el) {
       if (el && titleMap.current.has(el)) {
-        const prev = titleMap.current.get(el)
-        el.setAttribute('title', prev)
+        el.setAttribute('title', titleMap.current.get(el))
         titleMap.current.delete(el)
       }
     }
 
     function hide() {
       clearTimeout(timerRef.current)
-      restoreTitle()
+      restoreTitle(pendingRef.current)
+      restoreTitle(triggerRef.current)
+      pendingRef.current = null
       triggerRef.current = null
       setState((s) => (s.open ? { ...s, open: false } : s))
     }
 
     function showFor(target) {
+      // 이미 같은 타겟이 처리중이면 무시
+      if (triggerRef.current === target || pendingRef.current === target) return
+
+      // 다른 pending 이 있다면 먼저 정리
+      if (pendingRef.current) {
+        clearTimeout(timerRef.current)
+        restoreTitle(pendingRef.current)
+        pendingRef.current = null
+      }
+
       const nativeTitle = target.getAttribute('title')
       const dataTooltip = target.getAttribute('data-tooltip')
       const text = nativeTitle || dataTooltip
       if (!text) return
-      if (nativeTitle && !titleMap.current.has(target)) {
-        titleMap.current.set(target, nativeTitle)
-        target.removeAttribute('title')
-      }
+
+      if (nativeTitle) stripTitle(target)
+      pendingRef.current = target
+
       const placement = target.getAttribute('data-tooltip-placement') || 'top'
       const delay = Number(target.getAttribute('data-tooltip-delay')) || DELAY_DEFAULT
       clearTimeout(timerRef.current)
       timerRef.current = setTimeout(() => {
         triggerRef.current = target
+        pendingRef.current = null
         setState({ open: true, text, placement, coords: null })
       }, delay)
     }
@@ -60,19 +80,22 @@ export default function GlobalTooltip() {
     function handleOver(e) {
       const target = e.target.closest?.('[title], [data-tooltip]')
       if (!target) return
-      if (triggerRef.current === target) return
-      // 다른 타겟으로 이동 시 기존 정리
+      if (triggerRef.current === target || pendingRef.current === target) return
+
+      // 다른 trigger 가 떠있으면 먼저 정리
       if (triggerRef.current && triggerRef.current !== target) {
-        restoreTitle()
+        restoreTitle(triggerRef.current)
         triggerRef.current = null
+        setState((s) => (s.open ? { ...s, open: false } : s))
       }
       showFor(target)
     }
 
     function handleOut(e) {
-      if (!triggerRef.current) return
+      const active = triggerRef.current || pendingRef.current
+      if (!active) return
       const rt = e.relatedTarget
-      if (rt && triggerRef.current.contains(rt)) return
+      if (rt && active.contains(rt)) return
       hide()
     }
 
@@ -98,7 +121,8 @@ export default function GlobalTooltip() {
       window.removeEventListener('scroll', hide, true)
       window.removeEventListener('resize', hide)
       clearTimeout(timerRef.current)
-      restoreTitle()
+      restoreTitle(pendingRef.current)
+      restoreTitle(triggerRef.current)
     }
   }, [])
 
