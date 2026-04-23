@@ -145,7 +145,7 @@ function SymbolCard({ symbol, equipped, charId }) {
           ) : effectivelyMax ? (
             <Tooltip text={`Lv.${symbol.max_level}까지 상승 가능`}>
               <span style={{ color: 'var(--text-muted)' }}>
-                성장치 {growth} <span className="font-bold" style={{ color: 'var(--warning-text-bright)' }}>(MAX)</span> / {requireGrowth}
+                성장치 {growth} <span className="font-bold" style={{ color: 'var(--progress-amber)' }}>(MAX)</span> / {requireGrowth}
               </span>
             </Tooltip>
           ) : reachableLevel > level ? (
