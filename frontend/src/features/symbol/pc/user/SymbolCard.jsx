@@ -170,7 +170,7 @@ function SymbolCard({ symbol, equipped, charId }) {
             className="h-full transition-all"
             style={{
               width: isMax || effectivelyMax ? '100%' : `${Math.min((growth / requireGrowth) * 100, 100)}%`,
-              background: isMax || effectivelyMax ? 'var(--progress-amber)' : 'var(--progress-emerald)',
+              background: isMax ? 'var(--progress-red)' : effectivelyMax ? 'var(--progress-amber)' : 'var(--progress-emerald)',
             }}
           />
         </div>
