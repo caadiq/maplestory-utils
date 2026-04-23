@@ -140,7 +140,7 @@ function SymbolCard({ symbol, equipped, charId }) {
         <div className="flex justify-between text-sm tabular-nums mb-1.5">
           {isMax ? (
             <span style={{ color: 'var(--text-muted)' }}>
-              성장치 <span className="font-bold" style={{ color: 'var(--warning-text-bright)' }}>MAX</span>
+              성장치 <span className="font-bold" style={{ color: 'var(--progress-red)' }}>MAX</span>
             </span>
           ) : effectivelyMax ? (
             <Tooltip text={`Lv.${symbol.max_level}까지 상승 가능`}>
