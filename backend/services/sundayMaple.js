@@ -25,22 +25,24 @@ export function detectVariant(title) {
 
 /**
  * 금요일 기준의 이번 주차 시작일 (YYYY-MM-DD, KST) 반환
- * 금/토/일 → 직전 금요일
- * 월/화/수/목 → 이전 주 금요일
+ * 목 → 다음 날 금요일 (금요일 공휴일로 목요일 선공개되는 경우 대응)
+ * 금/토/일 → 이번 주 금요일
+ * 월/화/수 → 지난 주 금요일
  */
 export function currentWeekFriday(now = dayjs().tz(KST)) {
-  const dow = now.day(); // 0=일 ... 5=금 6=토
-  // 금요일 기준 diff: 금(5)이면 0, 토(6)이면 -1, 일(0)이면 -2, 월(1)이면 -3 ...
-  const diff = dow >= 5 ? dow - 5 : dow + 2;
+  const dow = now.day(); // 0=일 ... 4=목 5=금 6=토
+  // 목요일은 내일이 금요일이므로 -1
+  const diff = dow === 4 ? -1 : (dow >= 5 ? dow - 5 : dow + 2);
   return now.startOf('day').subtract(diff, 'day').format('YYYY-MM-DD');
 }
 
 /**
- * 금~일요일인지
+ * 썬데이 메이플 표시 가능한 요일대 (목~일)
+ * 목요일은 금요일 공휴일 케이스 대응용. 해당 주차 row 가 없으면 어차피 available: false.
  */
 export function isInSundayWindow(now = dayjs().tz(KST)) {
   const dow = now.day();
-  return dow === 5 || dow === 6 || dow === 0;
+  return dow === 4 || dow === 5 || dow === 6 || dow === 0;
 }
 
 /**

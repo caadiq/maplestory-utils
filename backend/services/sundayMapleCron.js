@@ -27,9 +27,9 @@ async function runPolling() {
 }
 
 /**
- * 매주 금요일 09:00 KST 실행
+ * 매주 목/금 09:00 KST 실행 (금요일이 공휴일이면 목요일에 게시되는 경우 대응)
  */
 export function scheduleSundayMapleCron() {
-  cron.schedule('0 9 * * 5', runPolling, { timezone: 'Asia/Seoul' });
-  console.log('[sunday-maple cron] 매주 금요일 09:00 KST 스케줄 등록');
+  cron.schedule('0 9 * * 4,5', runPolling, { timezone: 'Asia/Seoul' });
+  console.log('[sunday-maple cron] 매주 목/금 09:00 KST 스케줄 등록');
 }
