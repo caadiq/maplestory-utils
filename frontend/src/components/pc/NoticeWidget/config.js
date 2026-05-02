@@ -1,6 +1,6 @@
 export const SECTIONS = {
-  notice: { label: '메이플스토리 공지사항', dataKey: 'notice', pageSize: 5, kind: 'text' },
-  update: { label: '메이플스토리 업데이트', dataKey: 'update_notice', pageSize: 5, kind: 'text' },
+  notice: { label: '공지사항', dataKey: 'notice', pageSize: 5, kind: 'text' },
+  update: { label: '업데이트', dataKey: 'update_notice', pageSize: 5, kind: 'text' },
   event: {
     label: '진행 중인 이벤트',
     dataKey: 'event_notice',
