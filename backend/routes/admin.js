@@ -6,6 +6,7 @@ import { getPublicUrl } from '../lib/s3.js';
 import { sequelize } from '../lib/db.js';
 import bossCrystalRouter from './admin/boss-crystal.js';
 import symbolRouter from './admin/symbol.js';
+import genesisPassRouter from './admin/genesis-pass.js';
 import { UPLOAD_FILE_SIZE_LIMIT } from '../constants.js';
 
 const router = Router();
@@ -38,6 +39,7 @@ router.use(requireAdmin);
 // 기능별 sub-router
 router.use('/boss-crystal', bossCrystalRouter);
 router.use('/symbol', symbolRouter);
+router.use('/genesis-pass', genesisPassRouter);
 
 /* ── 이미지 관리 ── */
 

@@ -8,6 +8,7 @@ import characterRoutes from './routes/character.js';
 import imageRoutes from './routes/images.js';
 import symbolRoutes from './routes/symbol.js';
 import sundayMapleRoutes from './routes/sunday-maple.js';
+import genesisPassRoutes from './routes/genesis-pass.js';
 import { sequelize } from './lib/db.js';
 import './models/index.js';
 import { scheduleSundayMapleCron } from './services/sundayMapleCron.js';
@@ -30,6 +31,7 @@ app.use('/api/character', characterRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/symbols', symbolRoutes);
 app.use('/api/sunday-maple', sundayMapleRoutes);
+app.use('/api/genesis-pass', genesisPassRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (_req, res) => {

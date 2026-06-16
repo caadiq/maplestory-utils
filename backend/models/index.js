@@ -5,9 +5,13 @@ import { BossCrystalBoss } from './boss-crystal/Boss.js';
 import { BossCrystalBossDifficulty } from './boss-crystal/BossDifficulty.js';
 import { Symbol } from './symbol/Symbol.js';
 import { SymbolLevel } from './symbol/SymbolLevel.js';
+import { GenesisPass } from './genesis-pass/GenesisPass.js';
 
 // Menu <-> Image
 Menu.belongsTo(Image, { foreignKey: 'image_id', as: 'image', onDelete: 'SET NULL' });
+
+// GenesisPass <-> Image
+GenesisPass.belongsTo(Image, { foreignKey: 'image_id', as: 'image', onDelete: 'SET NULL' });
 
 // BossCrystal Boss <-> Difficulty
 BossCrystalBoss.hasMany(BossCrystalBossDifficulty, {
@@ -25,4 +29,4 @@ Symbol.hasMany(SymbolLevel, {
 });
 SymbolLevel.belongsTo(Symbol, { foreignKey: 'symbol_id', as: 'symbol' });
 
-export { Image, Menu, SundayMaple, BossCrystalBoss, BossCrystalBossDifficulty, Symbol, SymbolLevel };
+export { Image, Menu, SundayMaple, BossCrystalBoss, BossCrystalBossDifficulty, Symbol, SymbolLevel, GenesisPass };

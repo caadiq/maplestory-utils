@@ -225,3 +225,50 @@ describe('computeCompletionDate (주차별 계산)', () => {
     expect(r).toBeInstanceOf(Date)
   })
 })
+
+describe('computeCompletionDate (제네시스 패스 배수)', () => {
+  const base = {
+    calcMode: 'simple',
+    alreadyDone: false,
+    monthlyDoneThisMonth: false,
+    state: { startDate: '2026-04-19T00:00:00+09:00' }, // 일요일
+    remaining: 300,
+    weeklyEarn: 100,
+    doneEarn: 0,
+    monthlyEarn: 0,
+  }
+
+  it('패스 적용 시 포인트가 배수로 적립되어 더 빨리 완료', () => {
+    // 패스 없음: day0 100 → 매주 100 → 300 도달까지 시작일 이후 몇 주 소요
+    const noPass = computeCompletionDate(base)
+    // 패스 3배(충분히 긴 기간): day0 100×3=300 → 시작일 당일 도달
+    const withPass = computeCompletionDate({
+      ...base,
+      pass: { multiplier: 3, startDate: '2026-04-01', endDate: '2026-12-31' },
+    })
+    expect(dayjs(withPass).tz('Asia/Seoul').format('YYYY-MM-DD')).toBe('2026-04-19')
+    expect(dayjs(noPass).isAfter(dayjs(withPass))).toBe(true)
+  })
+
+  it('패스 기간 밖(이미 지난 시즌)이면 배수 미적용', () => {
+    const expired = computeCompletionDate({
+      ...base,
+      pass: { multiplier: 3, startDate: '2020-01-01', endDate: '2020-12-31' },
+    })
+    const noPass = computeCompletionDate(base)
+    expect(dayjs(expired).isSame(dayjs(noPass))).toBe(true)
+  })
+
+  it('월간 보스 포인트에도 배수 적용', () => {
+    // 주간 0, 월간 600, remaining 1800. 패스 없으면 3회(3개월) 필요
+    // 패스 3배면 day0 검마 600×3=1800 → 시작일 당일 도달
+    const withPass = computeCompletionDate({
+      ...base,
+      remaining: 1800,
+      weeklyEarn: 0,
+      monthlyEarn: 600,
+      pass: { multiplier: 3, startDate: '2026-04-01', endDate: '2026-12-31' },
+    })
+    expect(dayjs(withPass).tz('Asia/Seoul').format('YYYY-MM-DD')).toBe('2026-04-19')
+  })
+})

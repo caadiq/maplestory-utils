@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
+import { api } from '../../../api/client'
 import {
   GENESIS_CHAPTERS,
   GENESIS_TOTAL,
@@ -32,6 +34,17 @@ export default function Genesis() {
   const updateSlot = useLiberationStore((s) => s.updateSlot)
   const resetSlot = useLiberationStore((s) => s.resetSlot)
   const setState = (updater) => updateSlot(updater)
+
+  // 제네시스 패스: 운영자 설정(시즌/배수/기간)은 서버에서, 보유 여부 토글은 로컬에서
+  const passOn = useLiberationStore((s) => s.genesisPassOn)
+  const setPassOn = useLiberationStore((s) => s.setGenesisPassOn)
+  const { data: passCfg } = useQuery({
+    queryKey: ['genesis-pass'],
+    queryFn: () => api('/api/genesis-pass').catch(() => null),
+    staleTime: 5 * 60 * 1000,
+  })
+  const passActive = !!passCfg?.active
+  const passApplied = passActive && passOn
 
   // 포인트 이월: 현재 퀘스트 required를 초과하면 자동으로 다음 퀘스트로 넘어감
   const priorConsumed = GENESIS_CHAPTERS
@@ -81,8 +94,12 @@ export default function Genesis() {
     () => computeCompletionDate({
       calcMode, state, alreadyDone, remaining,
       weeklyEarn, doneEarn, monthlyEarn, monthlyDoneThisMonth,
+      pass: passApplied
+        ? { multiplier: passCfg.multiplier, startDate: passCfg.start_date, endDate: passCfg.end_date }
+        : null,
     }),
-    [calcMode, state, alreadyDone, remaining, weeklyEarn, doneEarn, monthlyEarn, monthlyDoneThisMonth],
+    [calcMode, state, alreadyDone, remaining, weeklyEarn, doneEarn, monthlyEarn, monthlyDoneThisMonth,
+      passApplied, passCfg?.multiplier, passCfg?.start_date, passCfg?.end_date],
   )
   const isDone = completionDate !== null
 
@@ -194,6 +211,77 @@ export default function Genesis() {
           </div>
         </div>
       </div>
+
+      {/* 제네시스 패스 — 시즌 진행 중일 때만 노출. 켜면 포인트 배수가 계산에 반영됨 */}
+      {passActive && (
+        <button
+          type="button"
+          onClick={() => setPassOn(!passOn)}
+          className="max-w-3xl mx-auto w-full rounded-2xl border p-5 flex items-center gap-4 text-left transition-shadow"
+          style={passOn ? {
+            background: 'var(--panel-bg)',
+            borderColor: 'rgba(252,211,77,0.5)',
+            boxShadow: '0 0 0 1px rgba(252,211,77,0.25), 0 8px 28px rgba(252,211,77,0.10)',
+          } : {
+            background: 'var(--panel-bg)',
+            borderColor: 'var(--panel-border)',
+            boxShadow: 'var(--panel-shadow)',
+          }}
+        >
+          <div
+            className="shrink-0 w-[88px] h-[88px] rounded-xl border flex items-center justify-center overflow-hidden"
+            style={{
+              borderColor: 'rgba(252,211,77,0.18)',
+              background: 'radial-gradient(circle at 50% 45%, rgba(252,211,77,0.12), rgba(2,6,23,0.6))',
+            }}
+          >
+            {passCfg.image?.url ? (
+              <img
+                src={passCfg.image.url}
+                alt="제네시스 패스"
+                className="w-[76px] h-auto"
+                style={{ imageRendering: 'pixelated' }}
+              />
+            ) : (
+              <span className="text-xs text-center leading-tight" style={{ color: 'var(--text-dim)' }}>제네시스<br />패스</span>
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-3">
+              <div
+                className="font-semibold flex items-center gap-1.5"
+                style={{ color: passOn ? 'var(--text-strong)' : 'var(--text-muted)' }}
+              >
+                제네시스 패스 적용
+                <span className="text-sm font-extrabold" style={{ color: 'var(--genesis-date)' }}>×{passCfg.multiplier}</span>
+              </div>
+              <span
+                className="relative shrink-0 rounded-full transition-colors"
+                style={{ width: 46, height: 26, background: passOn ? 'var(--genesis-date)' : '#374151' }}
+              >
+                <span
+                  className="absolute top-[3px] rounded-full bg-white transition-all"
+                  style={{ width: 20, height: 20, left: passOn ? 23 : 3 }}
+                />
+              </span>
+            </div>
+            <div className="text-[12.5px] mt-1" style={{ color: 'var(--text-muted)' }}>
+              패스 보유 시 보스 처치 포인트가 {passCfg.multiplier}배로 적립됩니다.
+            </div>
+            <div className="mt-2.5">
+              <span
+                className="inline-flex items-center rounded-full px-2.5 py-1 text-[11.5px] font-bold"
+                style={passOn
+                  ? { background: 'var(--genesis-date)', color: '#0f172a' }
+                  : { background: 'rgba(255,255,255,0.07)', color: 'var(--text-dim)' }}
+              >
+                {passCfg.start_date?.replace(/-/g, '.')} ~ {passCfg.end_date?.replace(/-/g, '.')}
+              </span>
+            </div>
+          </div>
+        </button>
+      )}
 
       <WeeklyDefault
         bosses={WEEKLY_BOSSES}

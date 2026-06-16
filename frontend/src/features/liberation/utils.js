@@ -59,6 +59,7 @@ export function getSchedulerWeekRange(startDateStr, weekIdx) {
  * @param {number}  params.doneEarn
  * @param {number}  params.monthlyEarn
  * @param {boolean} params.monthlyDoneThisMonth
+ * @param {?object} params.pass - 제네시스 패스 적용 시 { multiplier, startDate, endDate }. 미적용이면 null
  * @returns {Date|null}
  */
 export function computeCompletionDate({
@@ -67,6 +68,7 @@ export function computeCompletionDate({
   bosses = WEEKLY_BOSSES,
   monthlyBoss = MONTHLY_BOSSES[0],
   makeEmptyConfig = makeEmptyWeekly,
+  pass = null,
 }) {
   if (alreadyDone) return todayKST()
   if (remaining <= 0) return dayjs(state.startDate).tz(KST).startOf('day').toDate()
@@ -169,11 +171,23 @@ export function computeCompletionDate({
     }
   }
 
+  // 제네시스 패스: 적용 기간 안에 떨어지는 이벤트는 포인트에 배수 적용
+  let passMult = 1
+  let passStartMs = -Infinity
+  let passEndMs = -Infinity
+  if (pass && pass.multiplier > 1) {
+    passMult = pass.multiplier
+    passStartMs = pass.startDate ? dayjs(pass.startDate).tz(KST).startOf('day').valueOf() : -Infinity
+    passEndMs = pass.endDate ? dayjs(pass.endDate).tz(KST).endOf('day').valueOf() : Infinity
+  }
+
   events.sort((a, b) => a.date.diff(b.date))
   let cumulative = 0
   let lastEventDate = startKST
   for (const e of events) {
-    cumulative += e.amount
+    const ms = e.date.valueOf()
+    const amount = ms >= passStartMs && ms <= passEndMs ? e.amount * passMult : e.amount
+    cumulative += amount
     lastEventDate = e.date
     if (cumulative >= remaining) return e.date.toDate()
   }
