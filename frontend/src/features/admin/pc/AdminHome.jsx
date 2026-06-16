@@ -153,6 +153,34 @@ export default function AdminHome() {
               <div style={{ color: 'var(--text-dim)' }}>→</div>
             </div>
           </Link>
+
+          <Link
+            to="/admin/genesis-pass"
+            className="group relative rounded-2xl border p-5 transition-transform duration-300 hover:scale-[1.02] border-[var(--card-border)]"
+            style={{
+              backgroundImage: 'linear-gradient(to bottom right, var(--card-bg-from), var(--card-bg-to))',
+              boxShadow: 'var(--card-shadow)',
+            }}
+          >
+            <div className="relative flex items-start gap-4">
+              <div
+                className="shrink-0 w-12 h-12 rounded-xl border flex items-center justify-center text-2xl border-[var(--icon-box-border)]"
+                style={{ backgroundImage: 'linear-gradient(to bottom right, var(--icon-box-from), var(--icon-box-to))' }}
+              >
+                🎫
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium">제네시스 패스</h3>
+                <p
+                  className="text-sm mt-1 leading-relaxed"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  해방 계산기 패스 배수·기간 설정
+                </p>
+              </div>
+              <div style={{ color: 'var(--text-dim)' }}>→</div>
+            </div>
+          </Link>
         </div>
       </section>
 

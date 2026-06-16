@@ -53,6 +53,7 @@ export const useLiberationStore = create(persist(
     liberationType: 'genesis', // 'genesis' | 'destiny'
     genesisCalcMode: 'simple',
     destinyCalcMode: 'simple',
+    genesisPassOn: false, // 사용자가 제네시스 패스 보유 시 직접 켜는 토글 (제네시스 전용)
     simple: makeInitialSlot(),
     weekly: makeInitialSlot(),
     destinySimple: makeInitialDestinySlot(),
@@ -61,6 +62,7 @@ export const useLiberationStore = create(persist(
     setLiberationType: (type) => set({ liberationType: type }),
     setGenesisCalcMode: (mode) => set({ genesisCalcMode: mode }),
     setDestinyCalcMode: (mode) => set({ destinyCalcMode: mode }),
+    setGenesisPassOn: (on) => set({ genesisPassOn: on }),
 
     updateSlot: (patch) => set((s) => ({
       [s.genesisCalcMode]: typeof patch === 'function'
