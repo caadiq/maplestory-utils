@@ -19,6 +19,7 @@ import {
   calcMonthlyEarn,
   getSchedulerWeekRange,
   computeCompletionDate,
+  makePassMultiplier,
 } from '../utils'
 import QuestSelector from './components/QuestSelector'
 import PointsInput from './components/PointsInput'
@@ -45,6 +46,13 @@ export default function Genesis() {
   })
   const passActive = !!passCfg?.active
   const passApplied = passActive && passOn
+  // 완료일 계산과 총합 표시가 동일한 배수 규칙을 공유 (적용 기간 안의 적립만 배수)
+  const passForCalc = passApplied
+    ? { multiplier: passCfg.multiplier, startDate: passCfg.start_date, endDate: passCfg.end_date }
+    : null
+  const passMultAt = makePassMultiplier(passForCalc)
+  // 단순 모드 총합은 '주당 적립 rate'라 날짜가 없음 → passActive(오늘이 기간 내)면 곧 배수 적용
+  const passNowMult = passApplied ? passCfg.multiplier : 1
 
   // 포인트 이월: 현재 퀘스트 required를 초과하면 자동으로 다음 퀘스트로 넘어감
   const priorConsumed = GENESIS_CHAPTERS
@@ -67,11 +75,15 @@ export default function Genesis() {
   const monthlyDoneThisMonth = !!state.weekly.blackMage?.done
 
   // 주차별 모드 헤더 합산 (검은 마법사는 월별 슬롯 1회만 카운트)
+  // 패스 적용 시: 주차/월의 적립일이 패스 기간 안이면 배수 반영 (완료일 계산과 동일 규칙)
   const headerWeekly = calcMode === 'weekly'
-    ? (state.schedulerWeeks || []).reduce((s, w) => s + calcWeekPoints(w.config), 0)
-    : weeklyEarn
+    ? (state.schedulerWeeks || []).reduce((s, w, i) => {
+        const ms = getSchedulerWeekRange(state.startDate, i + 1).start.valueOf()
+        return s + calcWeekPoints(w.config) * passMultAt(ms)
+      }, 0)
+    : weeklyEarn * passNowMult
   const headerMonthly = (() => {
-    if (calcMode !== 'weekly') return monthlyEarn
+    if (calcMode !== 'weekly') return monthlyEarn * passNowMult
     const sw = state.schedulerWeeks || []
     if (!state.startDate) return 0
     const claimed = {}
@@ -82,7 +94,7 @@ export default function Genesis() {
       const months = [r.start.format('YYYY-MM'), r.end.format('YYYY-MM')]
       for (const m of months) {
         if (!(m in claimed)) {
-          claimed[m] = bossEarn(MONTHLY_BOSSES[0], w.config.blackMage)
+          claimed[m] = bossEarn(MONTHLY_BOSSES[0], w.config.blackMage) * passMultAt(r.start.valueOf())
           return
         }
       }
@@ -297,6 +309,8 @@ export default function Genesis() {
         startDate={state.startDate}
         weeks={state.schedulerWeeks}
         onChangeWeeks={(w) => setState((prev) => ({ ...prev, schedulerWeeks: w }))}
+        pass={passForCalc}
+        passNowMult={passNowMult}
       />
 
       <div className="max-w-3xl mx-auto flex justify-end">
