@@ -48,6 +48,20 @@ export function getSchedulerWeekRange(startDateStr, weekIdx) {
 }
 
 /**
+ * 제네시스 패스 배수 함수 생성. 적용 기간(start~end) 안에 떨어지는 타임스탬프엔 배수를,
+ * 기간 밖이거나 패스 미적용이면 1을 반환한다. 완료일 시뮬레이션과 총합 표시가 같은 규칙을 쓰도록 공유.
+ * @param {?object} pass { multiplier, startDate, endDate }
+ * @returns {(ms:number)=>number}
+ */
+export function makePassMultiplier(pass) {
+  if (!pass || !(pass.multiplier > 1)) return () => 1
+  const startMs = pass.startDate ? dayjs(pass.startDate).tz(KST).startOf('day').valueOf() : -Infinity
+  const endMs = pass.endDate ? dayjs(pass.endDate).tz(KST).endOf('day').valueOf() : Infinity
+  const mult = pass.multiplier
+  return (ms) => (ms >= startMs && ms <= endMs ? mult : 1)
+}
+
+/**
  * 해방일 계산: 시작일부터 포인트 이벤트를 시뮬레이션하여 remaining 도달 시점 반환
  *
  * @param {object} params
@@ -172,22 +186,13 @@ export function computeCompletionDate({
   }
 
   // 제네시스 패스: 적용 기간 안에 떨어지는 이벤트는 포인트에 배수 적용
-  let passMult = 1
-  let passStartMs = -Infinity
-  let passEndMs = -Infinity
-  if (pass && pass.multiplier > 1) {
-    passMult = pass.multiplier
-    passStartMs = pass.startDate ? dayjs(pass.startDate).tz(KST).startOf('day').valueOf() : -Infinity
-    passEndMs = pass.endDate ? dayjs(pass.endDate).tz(KST).endOf('day').valueOf() : Infinity
-  }
+  const passMultAt = makePassMultiplier(pass)
 
   events.sort((a, b) => a.date.diff(b.date))
   let cumulative = 0
   let lastEventDate = startKST
   for (const e of events) {
-    const ms = e.date.valueOf()
-    const amount = ms >= passStartMs && ms <= passEndMs ? e.amount * passMult : e.amount
-    cumulative += amount
+    cumulative += e.amount * passMultAt(e.date.valueOf())
     lastEventDate = e.date
     if (cumulative >= remaining) return e.date.toDate()
   }
@@ -201,4 +206,38 @@ export function computeCompletionDate({
   const deficit = remaining - cumulative
   const weeksNeeded = Math.ceil(deficit / steadyWeekly)
   return lastEventDate.add(weeksNeeded * 7, 'day').toDate()
+}
+
+/**
+ * 주차별 스케줄러의 주차별 적립/누적 분해 (총합 패널 표시용).
+ * 월간 보스는 각 달에 한 주차만 선점(겹치는 주차 중 먼저). 패스 기간 안 주차는 배수 적용.
+ * 합산 헤더(headerWeekly/headerMonthly)·스케줄러 요약과 동일 규칙을 따른다.
+ * @returns {{n:number, weekly:number, monthly:number, cumulative:number}[]}
+ */
+export function computeSchedulerBreakdown(weeks, startDate, bosses = WEEKLY_BOSSES, monthlyBoss = MONTHLY_BOSSES[0], pass = null) {
+  const passMultAt = makePassMultiplier(pass)
+  const claimedWeeks = new Set() // 월간 보스를 실제로 적립하는 주차 인덱스(0-based)
+  if (monthlyBoss && startDate) {
+    const claimedMonths = {}
+    weeks.forEach((w, idx) => {
+      const diff = w.config.blackMage?.difficulty
+      if (!diff || diff === 'none') return
+      const r = getSchedulerWeekRange(startDate, idx + 1)
+      const months = [r.start.format('YYYY-MM'), r.end.format('YYYY-MM')]
+      for (const m of months) {
+        if (!(m in claimedMonths)) { claimedMonths[m] = idx; claimedWeeks.add(idx); return }
+      }
+    })
+  }
+  let cumulative = 0
+  return weeks.map((w, idx) => {
+    const n = idx + 1
+    const mult = startDate ? passMultAt(getSchedulerWeekRange(startDate, n).start.valueOf()) : 1
+    const weekly = calcWeekPoints(w.config, bosses) * mult
+    const monthly = monthlyBoss && claimedWeeks.has(idx)
+      ? bossEarn(monthlyBoss, w.config.blackMage) * mult
+      : 0
+    cumulative += weekly + monthly
+    return { n, weekly, monthly, cumulative }
+  })
 }

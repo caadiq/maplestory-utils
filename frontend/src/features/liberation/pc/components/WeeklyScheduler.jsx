@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { bossEarn, calcWeekPoints as calcWeeklySum, getSchedulerWeekRange as getWeekRange } from '../../utils'
+import { bossEarn, calcWeekPoints as calcWeeklySum, getSchedulerWeekRange as getWeekRange, makePassMultiplier } from '../../utils'
 import { BossRow } from './WeeklyDefault'
 
 function formatRange(r) {
@@ -47,7 +47,7 @@ function BossAvatar({ boss, imageBase, difficulty, size = 40 }) {
   )
 }
 
-function WeekEditor({ config, onChange, isCurrent, monthlyLockedByWeek, bosses, monthlyBoss, imageBase }) {
+function WeekEditor({ config, onChange, isCurrent, monthlyLockedByWeek, bosses, monthlyBoss, imageBase, passMult = 1 }) {
   const updateBoss = (key, patch) => {
     onChange({ ...config, bosses: { ...config.bosses, [key]: { ...config.bosses[key], ...patch } } })
   }
@@ -71,6 +71,7 @@ function WeekEditor({ config, onChange, isCurrent, monthlyLockedByWeek, bosses, 
             onChange={(patch) => updateBoss(boss.key, patch)}
             imageBase={imageBase}
             showDone={isCurrent}
+            passMult={passMult}
           />
         </div>
       ))}
@@ -86,6 +87,7 @@ function WeekEditor({ config, onChange, isCurrent, monthlyLockedByWeek, bosses, 
             imageBase={imageBase}
             monthly
             showDone={isCurrent}
+            passMult={passMult}
           />
         </div>
       )}
@@ -109,7 +111,10 @@ export default function WeeklyScheduler({
   startDate,
   weeks: weeksProp,
   onChangeWeeks,
+  pass = null,
 }) {
+  // 패스 적용 시: 각 주차 적립일이 패스 기간 안이면 배수 반영 (총합/완료일 계산과 동일 규칙)
+  const passMultAt = makePassMultiplier(pass)
   const weeks = weeksProp && weeksProp.length > 0
     ? weeksProp
     : [{ id: 1, config: makeEmptyConfig() }]
@@ -191,6 +196,8 @@ export default function WeeklyScheduler({
         const isOpen = expanded === w.id
         const isCurrent = idx === 0
         const monthlyLockedByWeek = monthlyLocks[idx] ?? null
+        // 이 주차 적립일이 패스 기간 안이면 배수 (요약 포인트 + 펼친 난이도 드롭다운에 공통 적용)
+        const weekMult = startDate ? passMultAt(getWeekRange(startDate, n).start.valueOf()) : 1
         return (
           <div
             key={w.id}
@@ -239,10 +246,10 @@ export default function WeeklyScheduler({
                 </div>
 
                 {(() => {
-                  const weeklySum = calcWeeklySum(w.config, bosses)
+                  const weeklySum = calcWeeklySum(w.config, bosses) * weekMult
                   const monthlySum = !monthlyBoss || monthlyLockedByWeek != null
                     ? 0
-                    : bossEarn(monthlyBoss, w.config.blackMage)
+                    : bossEarn(monthlyBoss, w.config.blackMage) * weekMult
                   return (
                     <div className="text-right shrink-0 pr-1 tabular-nums leading-tight">
                       <div className="text-base font-bold" style={{ color: 'var(--accent-bright)' }}>+{weeklySum}</div>
@@ -303,6 +310,7 @@ export default function WeeklyScheduler({
                       bosses={bosses}
                       monthlyBoss={monthlyBoss}
                       imageBase={imageBase}
+                      passMult={weekMult}
                     />
                   </div>
                 </motion.div>
