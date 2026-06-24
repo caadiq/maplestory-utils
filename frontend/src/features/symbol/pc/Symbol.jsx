@@ -59,8 +59,14 @@ export default function Symbol() {
     })), [characters]),
   })
   useEffect(() => {
-    characters.forEach((c, idx) => {
-      const d = basicQueries[idx]?.data
+    // 인덱스가 아닌 character_name으로 매칭 (캐릭터 추가/삭제 시 순서 어긋남 방지)
+    const byName = {}
+    for (const q of basicQueries) {
+      const d = q?.data
+      if (d?.character_name) byName[d.character_name] = d
+    }
+    characters.forEach((c) => {
+      const d = byName[c.character_name]
       if (!d) return
       if (d.character_image !== c.character_image || d.character_level !== c.character_level || d.job_name !== c.job_name) {
         updateCharacter(c.id, {
@@ -90,11 +96,17 @@ export default function Symbol() {
     if (!allSymbols.length || !characters.length) return
     const lookup = {}
     for (const s of allSymbols) lookup[`${s.type}|${s.region}`] = s
-    characters.forEach((c, idx) => {
-      const q = symbolQueries[idx]
-      if (!q?.data?.symbols) return
+    // 인덱스가 아닌 응답의 ocid로 매칭 (캐릭터 추가/삭제 시 순서 어긋남 방지)
+    const byOcid = {}
+    for (const q of symbolQueries) {
+      const d = q?.data
+      if (d?.ocid) byOcid[d.ocid] = d
+    }
+    characters.forEach((c) => {
+      const d = byOcid[c.id]
+      if (!d?.symbols) return
       const equippedMap = {}
-      for (const es of q.data.symbols) {
+      for (const es of d.symbols) {
         const match = lookup[`${es.type}|${es.region}`]
         if (!match) continue
         equippedMap[match.id] = {
@@ -104,7 +116,7 @@ export default function Symbol() {
         }
       }
       syncCharacterSymbols(c.id, equippedMap)
-      const nextEs = q.data.event_skill ?? null
+      const nextEs = d.event_skill ?? null
       const prevEs = c.event_skill ?? null
       if (JSON.stringify(nextEs) !== JSON.stringify(prevEs)) {
         updateCharacter(c.id, { event_skill: nextEs })
