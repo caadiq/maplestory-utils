@@ -116,7 +116,6 @@ router.post('/symbols', upload.single('image'), async (req, res) => {
 
     if (!req.file) throw new Error('심볼 이미지를 업로드해주세요');
     const key = imagePath(basic.type, basic.region);
-    await convertAndUploadTo(req.file.buffer, key);
 
     const maxOrder = (await Symbol.max('sort_order')) || 0;
     const created = await Symbol.create({
@@ -135,6 +134,10 @@ router.post('/symbols', upload.single('image'), async (req, res) => {
         { transaction: t }
       );
     }
+
+    // DB 작업 성공 후 업로드 — type+region 충돌 시 기존 이미지를 덮어쓰지 않고,
+    // 업로드 실패 시 트랜잭션 롤백으로 고아 객체도 남기지 않음
+    await convertAndUploadTo(req.file.buffer, key);
 
     await t.commit();
     const full = await Symbol.findByPk(created.id, { include: [{ model: SymbolLevel, as: 'levels' }] });

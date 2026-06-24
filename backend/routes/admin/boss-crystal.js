@@ -103,8 +103,7 @@ router.post('/bosses', upload.single('image'), async (req, res) => {
     const existing = await BossCrystalBoss.findOne({ where: { name: trimmedName } });
     if (existing) return res.status(400).json({ error: '같은 이름의 보스가 이미 존재합니다' });
 
-    // 이미지 업로드
-    const { path: imagePath } = await convertAndUploadTo(req.file.buffer, bossImagePath(trimmedName));
+    const imagePath = bossImagePath(trimmedName);
 
     // 마지막 정렬 순서
     const max = await BossCrystalBoss.max('sort_order') || 0;
@@ -121,6 +120,9 @@ router.post('/bosses', upload.single('image'), async (req, res) => {
         difficulties.map((d) => ({ ...d, boss_id: created.id })),
         { transaction: tx }
       );
+
+      // DB 작업 성공 후 업로드 — 실패 시 트랜잭션 롤백으로 고아 객체 방지
+      await convertAndUploadTo(req.file.buffer, imagePath);
 
       return created;
     });
