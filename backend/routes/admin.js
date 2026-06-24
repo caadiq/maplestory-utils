@@ -139,7 +139,14 @@ router.post('/images', upload.array('files', 50), async (req, res) => {
 
     try {
       const { path, width, height, size } = await convertAndUpload(file.buffer);
-      const image = await Image.create({ name, path, width, height, size });
+      let image;
+      try {
+        image = await Image.create({ name, path, width, height, size });
+      } catch (dbErr) {
+        // DB 저장 실패(동시 요청 unique 충돌 등) 시 방금 업로드한 S3 객체 정리
+        await safeDelete(path);
+        throw dbErr;
+      }
       results.push({
         id: image.id,
         name: image.name,
