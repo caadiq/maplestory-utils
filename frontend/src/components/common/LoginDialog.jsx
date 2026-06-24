@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../../stores/auth'
 import { api } from '../../api/client'
 
 export default function LoginDialog({ open, onClose }) {
+  const queryClient = useQueryClient()
   const apiKey = useAuthStore((s) => s.apiKey)
   const setApiKey = useAuthStore((s) => s.setApiKey)
   const clearApiKey = useAuthStore((s) => s.clearApiKey)
@@ -31,6 +33,7 @@ export default function LoginDialog({ open, onClose }) {
     try {
       await api('/api/character/list', { headers: { 'x-user-api-key': key } })
       setApiKey(key)
+      queryClient.invalidateQueries({ queryKey: ['admin'] }) // 키 변경 시 관리자 검증 재실행
       onClose()
     } catch (err) {
       setError(err.message || '키 검증 실패')
@@ -41,6 +44,7 @@ export default function LoginDialog({ open, onClose }) {
 
   const handleLogout = () => {
     clearApiKey()
+    queryClient.removeQueries({ queryKey: ['admin'] })
     setInput('')
     onClose()
   }
@@ -118,7 +122,7 @@ export default function LoginDialog({ open, onClose }) {
                 <p className="text-xs" style={{ color: 'var(--danger-text)' }}>{error}</p>
               )}
               <p className="text-xs leading-relaxed" style={{ color: 'var(--text-dim)' }}>
-                키는 브라우저에만 저장되며 서버로 전송되지 않습니다.
+                키는 이 브라우저에 저장되며, 캐릭터 조회·인증을 위해 서버를 거쳐 NEXON API로 전송됩니다.
               </p>
             </div>
             <div

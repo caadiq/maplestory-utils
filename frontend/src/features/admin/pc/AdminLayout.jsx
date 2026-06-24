@@ -9,9 +9,11 @@ export default function AdminLayout() {
   const clearApiKey = useAuthStore((s) => s.clearApiKey)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin', 'verify', apiKey],
+    queryKey: ['admin', 'verify'],
     queryFn: async () => {
-      await api('/api/admin/verify', { method: 'POST', body: { key: apiKey } })
+      // client.js가 /api/admin 요청에 x-admin-key 헤더를 자동 첨부
+      // (키 평문을 queryKey/body에 노출하지 않음). 키 변경 시 LoginDialog가 invalidate.
+      await api('/api/admin/verify', { method: 'POST' })
       return true
     },
     enabled: !!apiKey,
