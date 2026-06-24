@@ -7,6 +7,8 @@ import { computeSchedulerBreakdown } from '../../utils'
 
 const PARTY_OPTIONS = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n}인` }))
 const NONE_DIFFICULTY = { key: 'none', label: '격파 불가', points: 0 }
+// persist된 구버전 데이터에 신규 보스 key가 없을 때의 기본 선택값 (렌더 크래시 방지)
+const DEFAULT_SEL = { difficulty: 'none', party: 1, done: false }
 
 function diffLabel(d, party, mult = 1) {
   if (d.key === 'none') return <span style={{ color: 'var(--text-dim)' }}>격파 불가</span>
@@ -18,7 +20,7 @@ function diffLabel(d, party, mult = 1) {
   )
 }
 
-export function BossRow({ boss, sel, onChange, imageBase, monthly = false, showDone = true, passMult = 1 }) {
+export function BossRow({ boss, sel = DEFAULT_SEL, onChange, imageBase, monthly = false, showDone = true, passMult = 1 }) {
   const disabled = sel.difficulty === 'none'
   const difficultyOptions = [NONE_DIFFICULTY, ...boss.difficulties]
     .map((d) => ({ value: d.key, label: diffLabel(d, sel.party, passMult) }))
@@ -104,10 +106,11 @@ export default function WeeklyDefault({
   passNowMult = 1,
 }) {
   const updateBoss = (key, patch) => {
-    onChange({ ...weekly, bosses: { ...weekly.bosses, [key]: { ...weekly.bosses[key], ...patch } } })
+    const cur = weekly.bosses?.[key] ?? DEFAULT_SEL
+    onChange({ ...weekly, bosses: { ...weekly.bosses, [key]: { ...cur, ...patch } } })
   }
   const updateBlackMage = (patch) => {
-    onChange({ ...weekly, blackMage: { ...weekly.blackMage, ...patch } })
+    onChange({ ...weekly, blackMage: { ...(weekly.blackMage ?? DEFAULT_SEL), ...patch } })
   }
 
   // 총합 hover 패널용 주차별 분해 (주차별 모드 + 월간 보스 있을 때만)
@@ -202,7 +205,7 @@ export default function WeeklyDefault({
             >
               <BossRow
                 boss={boss}
-                sel={weekly.bosses[boss.key]}
+                sel={weekly.bosses?.[boss.key]}
                 onChange={(patch) => updateBoss(boss.key, patch)}
                 imageBase={imageBase}
                 passMult={passNowMult}
