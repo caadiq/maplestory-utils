@@ -26,10 +26,6 @@ export async function convertAndUpload(buffer) {
   };
 }
 
-export async function deleteFromS3(path) {
-  await deleteObject(path);
-}
-
 // 삭제 실패해도 흐름을 끊지 않는 버전 (이전 이미지 정리 등에 사용)
 export async function safeDelete(path) {
   if (!path) return;

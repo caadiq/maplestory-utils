@@ -352,7 +352,7 @@ export default function BossForm() {
       <ConfirmDialog
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
-        onConfirm={() => deleteMutation.mutate()}
+        onConfirm={() => { setConfirmDelete(false); deleteMutation.mutate() }}
         title="보스 삭제"
         description={`"${name}" 보스를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`}
         confirmText="삭제"
