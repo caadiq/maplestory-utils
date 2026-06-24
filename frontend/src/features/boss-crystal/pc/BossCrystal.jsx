@@ -44,8 +44,14 @@ export default function BossCrystal() {
   })
 
   useEffect(() => {
-    characters.forEach((c, i) => {
-      const d = charRefreshQueries[i]?.data
+    // 인덱스가 아닌 character_name으로 매칭 (캐릭터 추가/삭제 시 순서 어긋남 방지)
+    const byName = {}
+    for (const q of charRefreshQueries) {
+      const d = q?.data
+      if (d?.character_name) byName[d.character_name] = d
+    }
+    characters.forEach((c) => {
+      const d = byName[c.character_name]
       if (!d) return
       if (d.character_image !== c.character_image || d.character_level !== c.character_level || d.job_name !== c.job_name) {
         updateCharacter(c.character_name, {
