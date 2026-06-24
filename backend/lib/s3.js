@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, CopyObjectCommand } from '@aws-sdk/client-s3';
 
 export const s3 = new S3Client({
   endpoint: process.env.S3_ENDPOINT,
@@ -26,6 +26,16 @@ export async function deleteObject(key) {
   await s3.send(new DeleteObjectCommand({
     Bucket: S3_BUCKET,
     Key: key,
+  }));
+}
+
+export async function copyObject(srcKey, destKey) {
+  // CopySource는 `bucket/key` 형식이며, 한글·특수문자 키는 세그먼트별 URL 인코딩 필요
+  const copySource = `${S3_BUCKET}/${srcKey}`.split('/').map(encodeURIComponent).join('/');
+  await s3.send(new CopyObjectCommand({
+    Bucket: S3_BUCKET,
+    CopySource: copySource,
+    Key: destKey,
   }));
 }
 

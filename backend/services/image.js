@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 import crypto from 'crypto';
-import { uploadObject, deleteObject } from '../lib/s3.js';
+import { uploadObject, deleteObject, copyObject } from '../lib/s3.js';
 
 /**
  * 이미지를 webp로 변환하고 RustFS에 업로드
@@ -37,6 +37,26 @@ export async function safeDelete(path) {
     await deleteObject(path);
   } catch (err) {
     console.warn(`S3 삭제 실패 (${path}):`, err.message);
+  }
+}
+
+/**
+ * S3 객체를 새 경로로 이동(copy 후 원본 삭제).
+ * 성공 시 true, 실패 시 false 반환 — 실패해도 흐름을 끊지 않으며
+ * 호출부는 기존 경로를 그대로 유지해 이미지 깨짐을 방지한다.
+ * @param {string} srcPath - 원본 S3 키
+ * @param {string} destPath - 대상 S3 키
+ * @returns {Promise<boolean>}
+ */
+export async function safeRename(srcPath, destPath) {
+  if (!srcPath || !destPath || srcPath === destPath) return false;
+  try {
+    await copyObject(srcPath, destPath);
+    await safeDelete(srcPath);
+    return true;
+  } catch (err) {
+    console.warn(`S3 이동 실패 (${srcPath} → ${destPath}):`, err.message);
+    return false;
   }
 }
 

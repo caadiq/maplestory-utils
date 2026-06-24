@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { BossCrystalBoss, BossCrystalBossDifficulty } from '../../models/index.js';
-import { convertAndUploadTo, safeDelete } from '../../services/image.js';
+import { convertAndUploadTo, safeDelete, safeRename } from '../../services/image.js';
 
 const BOSS_IMAGE_PREFIX = 'crystal/boss';
 const bossImagePath = (name) => `${BOSS_IMAGE_PREFIX}/${name}.webp`;
@@ -164,8 +164,12 @@ router.patch('/bosses/:id', upload.single('image'), async (req, res) => {
         await safeDelete(oldPath);
       }
     } else if (newName !== boss.name && boss.image_path) {
-      // 이름 변경 시 path만 갱신 (실제 파일은 다음 이미지 업로드 때 새 경로로 저장됨)
-      newImagePath = bossImagePath(newName);
+      // 이름 변경 시 기존 S3 객체를 새 경로로 이동. 이동 성공 시에만 path 갱신,
+      // 실패하면 기존 경로를 유지해 이미지 깨짐을 방지한다.
+      const targetPath = bossImagePath(newName);
+      if (await safeRename(boss.image_path, targetPath)) {
+        newImagePath = targetPath;
+      }
     }
 
     await sequelize.transaction(async (tx) => {
