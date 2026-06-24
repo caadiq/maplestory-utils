@@ -72,6 +72,9 @@ function SymbolCard({ symbol, equipped, charId }) {
   const effectivelyMax = equipped && !isMax && reachableLevel >= symbol.max_level
   const interactable = equipped && !isMax && !effectivelyMax
 
+  // 추가 심볼(extra)을 반영한 실제 남은 심볼 수 (예상 완료일과 일관되게 표시)
+  const remainingAfterExtra = Math.max(remainingSymbols - extra, 0)
+
   const { days: daysLeft, date: completeDate } = useMemo(() => {
     if (!equipped || isMax) return { days: null, date: null }
     return computeCompletion({
@@ -225,7 +228,7 @@ function SymbolCard({ symbol, equipped, charId }) {
       {/* 정보 */}
       <div className="text-base">
         {[
-          { label: '남은 심볼', value: equipped && !isMax && !effectivelyMax ? `${remainingSymbols.toLocaleString()}개` : '-', color: 'var(--text-emphasis)' },
+          { label: '남은 심볼', value: equipped && !isMax && !effectivelyMax ? `${remainingAfterExtra.toLocaleString()}개` : '-', color: 'var(--text-emphasis)' },
           { label: '필요 메소', value: equipped && !isMax ? remainingMeso.toLocaleString() : '-', color: 'var(--warning-text-bright)', tooltip: equipped && !isMax ? formatMesoKorean(remainingMeso) : null },
           { label: '체납 메소', value: equipped && !isMax ? arrearMeso.toLocaleString() : '-', color: 'var(--danger-text)', tooltip: equipped && !isMax ? formatMesoKorean(arrearMeso) : null },
           { label: '남은 일수', value: equipped && !isMax && !effectivelyMax && daysLeft != null ? `${daysLeft.toLocaleString()}일` : '-', color: 'var(--text-emphasis)' },
