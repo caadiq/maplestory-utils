@@ -117,8 +117,6 @@ export default function BossCrystal() {
               selections={currentSelections}
               onChange={handleBossChange}
               maxReached={isMaxReached}
-              selectedCount={currentSelectedCount}
-              maxPerCharacter={MAX_PER_CHARACTER}
             />
           </div>
         </div>

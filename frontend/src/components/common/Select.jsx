@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 /**
  * 커스텀 드롭다운 셀렉트 (포털로 렌더링 → 부모 overflow:hidden에도 잘림 없음)
  */
-export default function Select({ value, onChange, options, disabled, className = '', placeholder = '선택', align = 'left' }) {
+export default function Select({ value, onChange, options, disabled, className = '', placeholder = '선택' }) {
   const [open, setOpen] = useState(false)
   const [flipUp, setFlipUp] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0, width: 0 })

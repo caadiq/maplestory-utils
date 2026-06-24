@@ -17,7 +17,7 @@ export default function ProgressBar({
     if (c.idx < startChapter) return { chapter: c, status: 'done', current: c.required }
     if (c.idx === startChapter) {
       const filled = Math.min(currentPoints, c.required)
-      return { chapter: c, status: filled > 0 ? 'active' : 'active', current: filled }
+      return { chapter: c, status: 'active', current: filled }
     }
     return { chapter: c, status: 'pending', current: 0 }
   })

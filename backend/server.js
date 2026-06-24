@@ -38,6 +38,15 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+// 전역 에러 핸들러 (multer 파일 크기 초과 등 미처리 예외가 스택 트레이스로 노출되는 것 방지)
+app.use((err, _req, res, _next) => {
+  if (err?.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ error: '파일 크기가 너무 큽니다' });
+  }
+  console.error('처리되지 않은 오류:', err?.message || err);
+  res.status(500).json({ error: '서버 오류가 발생했습니다' });
+});
+
 async function start() {
   try {
     await sequelize.authenticate();

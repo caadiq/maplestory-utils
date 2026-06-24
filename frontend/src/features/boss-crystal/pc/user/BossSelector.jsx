@@ -4,7 +4,7 @@ import { DIFFICULTIES, formatMeso } from '../admin/constants'
 
 const LABEL_EN = { easy: 'EASY', normal: 'NORMAL', hard: 'HARD', chaos: 'CHAOS', extreme: 'EXTREME' }
 
-export default function BossSelector({ characterName, bosses, selections, onChange, maxReached, selectedCount, maxPerCharacter }) {
+export default function BossSelector({ characterName, bosses, selections, onChange, maxReached }) {
   if (!characterName) {
     return (
       <div
