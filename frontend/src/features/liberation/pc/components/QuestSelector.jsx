@@ -19,7 +19,8 @@ export default function QuestSelector({ chapters, imageBase, value, onChange }) 
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  const selected = chapters[value]
+  // persist된 startChapter가 데이터 챕터 수보다 클 때 undefined → 크래시 방지
+  const selected = chapters[value] ?? chapters[0]
 
   return (
     <div ref={ref} className="relative">
@@ -38,13 +39,13 @@ export default function QuestSelector({ chapters, imageBase, value, onChange }) 
           style={{ background: 'var(--surface-nested)' }}
         >
           <img
-            src={`${imageBase}/${selected.boss}.webp`}
+            src={`${imageBase}/${selected?.boss}.webp`}
             alt=""
             className="w-full h-full object-cover"
           />
         </div>
         <span className="flex-1 text-left text-sm font-medium">
-          {selected.boss}
+          {selected?.boss}
         </span>
         <svg
           width="14" height="14" viewBox="0 0 12 12" fill="none"
