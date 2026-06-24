@@ -5,7 +5,6 @@ import { api } from '../../../../api/client'
 import Select from '../../../../components/common/Select'
 import ConfirmDialog from '../../../../components/common/ConfirmDialog'
 import FormField, { formInputClass, formInputStyle } from '../../../../components/common/FormField'
-import { useAuthStore } from '../../../../stores/auth'
 import { formatMeso } from '../../../../utils/formatting'
 
 const TYPE_OPTIONS = [
@@ -128,11 +127,10 @@ export default function SymbolForm() {
       ))
       if (imageFile) formData.append('image', imageFile)
 
-      const adminKey = useAuthStore.getState().apiKey
       const url = isEdit ? `/api/admin/symbol/symbols/${id}` : '/api/admin/symbol/symbols'
       const res = await fetch(url, {
         method: isEdit ? 'PATCH' : 'POST',
-        headers: { 'x-admin-key': adminKey },
+        credentials: 'include',
         body: formData,
       })
       const json = await res.json()

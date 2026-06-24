@@ -5,7 +5,7 @@ import { api } from '../../api/client'
 import Footer from './Footer'
 import LoginDialog from '../common/LoginDialog'
 import { useThemeStore } from '../../stores/theme'
-import { useAuthStore } from '../../stores/auth'
+import { useAuth } from '../../hooks/useAuth'
 
 const SITE_NAME = '메이플스토리 유틸리티'
 
@@ -122,8 +122,8 @@ function ThemeToggle() {
 }
 
 function LoginButton({ onClick }) {
-  const apiKey = useAuthStore((s) => s.apiKey)
-  const loggedIn = !!apiKey
+  const { user } = useAuth()
+  const loggedIn = !!user
 
   return (
     <button
@@ -147,20 +147,10 @@ function LoginButton({ onClick }) {
 }
 
 function AdminLinkButton() {
-  const apiKey = useAuthStore((s) => s.apiKey)
+  const { user } = useAuth()
   const isAdminRoute = !!useMatch('/admin/*')
-  const { data } = useQuery({
-    queryKey: ['admin', 'verify', apiKey],
-    queryFn: async () => {
-      await api('/api/admin/verify', { method: 'POST', body: { key: apiKey } })
-      return true
-    },
-    enabled: !!apiKey,
-    retry: false,
-    staleTime: Infinity,
-  })
 
-  if (data !== true || isAdminRoute) return null
+  if (!user?.is_admin || isAdminRoute) return null
 
   return (
     <Link

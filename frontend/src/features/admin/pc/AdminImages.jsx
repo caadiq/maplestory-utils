@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
-import { useAuthStore } from '../../../stores/auth'
 import ImageCard from './components/ImageCard'
 import Pagination from './components/Pagination'
 import UploadModal from './components/UploadModal'
@@ -66,10 +65,9 @@ export default function AdminImages() {
         formData.append('files', it.file)
         formData.append('names', it.name.trim())
       })
-      const adminKey = useAuthStore.getState().apiKey
       const res = await fetch('/api/admin/images', {
         method: 'POST',
-        headers: { 'x-admin-key': adminKey },
+        credentials: 'include',
         body: formData,
       })
       const result = await res.json()

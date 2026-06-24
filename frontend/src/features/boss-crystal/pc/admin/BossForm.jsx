@@ -6,7 +6,6 @@ import ConfirmDialog from '../../../../components/common/ConfirmDialog'
 import Checkbox from '../../../../components/common/Checkbox'
 import Select from '../../../../components/common/Select'
 import FormField, { formInputClass, formInputStyle } from '../../../../components/common/FormField'
-import { useAuthStore } from '../../../../stores/auth'
 import { DIFFICULTIES, formatMeso, getDifficultyImageUrl } from './constants'
 
 const PARTY_OPTIONS = [1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: `${n}인` }))
@@ -119,13 +118,12 @@ export default function BossForm() {
         }))
       formData.append('difficulties', JSON.stringify(diffsPayload))
 
-      const adminKey = useAuthStore.getState().apiKey
       const url = isEdit
         ? `/api/admin/boss-crystal/bosses/${id}`
         : '/api/admin/boss-crystal/bosses'
       const res = await fetch(url, {
         method: isEdit ? 'PATCH' : 'POST',
-        headers: { 'x-admin-key': adminKey },
+        credentials: 'include',
         body: formData,
       })
       const json = await res.json()

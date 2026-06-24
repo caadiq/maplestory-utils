@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import multer from 'multer';
-import crypto from 'crypto';
 import { Op } from 'sequelize';
 import { Image, Menu } from '../models/index.js';
 import { convertAndUpload, safeDelete } from '../services/image.js';
 import { getPublicUrl } from '../lib/s3.js';
 import { sequelize } from '../lib/db.js';
+import { requireAdmin } from '../middleware/session.js';
 import bossCrystalRouter from './admin/boss-crystal.js';
 import symbolRouter from './admin/symbol.js';
 import genesisPassRouter from './admin/genesis-pass.js';
@@ -17,30 +17,7 @@ const upload = multer({
   limits: { fileSize: UPLOAD_FILE_SIZE_LIMIT },
 });
 
-// 관리자 키 상수 시간 비교 (단순 === 비교의 타이밍 공격 노출 방지)
-function isValidAdminKey(input) {
-  const a = Buffer.from(input || '', 'utf8');
-  const b = Buffer.from(process.env.NEXON_API_KEY || '', 'utf8');
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
-
-// 관리자 인증 미들웨어
-function requireAdmin(req, res, next) {
-  if (!isValidAdminKey(req.headers['x-admin-key'])) {
-    return res.status(403).json({ error: '접근 권한이 없습니다' });
-  }
-  next();
-}
-
-// 키 검증 (인증 불필요, 헤더 방식으로 통일 — 키를 body로 받지 않음)
-router.post('/verify', (req, res) => {
-  if (isValidAdminKey(req.headers['x-admin-key'])) {
-    return res.json({ verified: true });
-  }
-  res.status(403).json({ error: '유효하지 않은 키입니다' });
-});
-
-// 이하 모든 라우트는 인증 필요
+// 이하 모든 라우트는 세션 기반 관리자 인증 필요 (req.user.is_admin)
 router.use(requireAdmin);
 
 // 기능별 sub-router

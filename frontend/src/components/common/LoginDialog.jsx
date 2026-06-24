@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQueryClient } from '@tanstack/react-query'
-import { useAuthStore } from '../../stores/auth'
 import { api } from '../../api/client'
+import { useAuth } from '../../hooks/useAuth'
 
 export default function LoginDialog({ open, onClose }) {
   const queryClient = useQueryClient()
-  const apiKey = useAuthStore((s) => s.apiKey)
-  const setApiKey = useAuthStore((s) => s.setApiKey)
-  const clearApiKey = useAuthStore((s) => s.clearApiKey)
+  const { user } = useAuth()
 
   const [input, setInput] = useState('')
   const [error, setError] = useState('')
@@ -16,11 +14,11 @@ export default function LoginDialog({ open, onClose }) {
 
   useEffect(() => {
     if (open) {
-      setInput(apiKey || '')
+      setInput('')
       setError('')
       setBusy(false)
     }
-  }, [open, apiKey])
+  }, [open])
 
   const handleSave = async () => {
     const key = input.trim()
@@ -31,19 +29,19 @@ export default function LoginDialog({ open, onClose }) {
     setError('')
     setBusy(true)
     try {
-      await api('/api/character/list', { headers: { 'x-user-api-key': key } })
-      setApiKey(key)
-      queryClient.invalidateQueries({ queryKey: ['admin'] }) // 키 변경 시 관리자 검증 재실행
+      const { user: loggedIn } = await api('/api/auth/login', { method: 'POST', body: { nexonKey: key } })
+      queryClient.setQueryData(['auth', 'me'], loggedIn)
       onClose()
     } catch (err) {
-      setError(err.message || '키 검증 실패')
+      setError(err.message || '로그인 실패')
     } finally {
       setBusy(false)
     }
   }
 
-  const handleLogout = () => {
-    clearApiKey()
+  const handleLogout = async () => {
+    try { await api('/api/auth/logout', { method: 'POST' }) } catch { /* 무시 */ }
+    queryClient.setQueryData(['auth', 'me'], null)
     queryClient.removeQueries({ queryKey: ['admin'] })
     setInput('')
     onClose()
@@ -122,14 +120,14 @@ export default function LoginDialog({ open, onClose }) {
                 <p className="text-xs" style={{ color: 'var(--danger-text)' }}>{error}</p>
               )}
               <p className="text-xs leading-relaxed" style={{ color: 'var(--text-dim)' }}>
-                키는 이 브라우저에 저장되며, 캐릭터 조회·인증을 위해 서버를 거쳐 NEXON API로 전송됩니다.
+                키는 저장되지 않으며, 로그인 시 NEXON 서버 인증에만 사용됩니다.
               </p>
             </div>
             <div
               className="flex gap-2 px-7 py-4 border-t"
               style={{ borderColor: 'var(--panel-border)' }}
             >
-              {apiKey ? (
+              {user ? (
                 <button
                   onClick={handleLogout}
                   className="flex-1 rounded-lg border px-4 h-11 text-sm font-medium hover:bg-[var(--danger-bg-hover)] hover:text-[var(--danger-text)]"
@@ -163,7 +161,7 @@ export default function LoginDialog({ open, onClose }) {
                   boxShadow: 'var(--btn-primary-shadow)',
                 }}
               >
-                {busy ? '확인 중...' : apiKey ? '업데이트' : '저장'}
+                {busy ? '로그인 중...' : user ? '다시 로그인' : '로그인'}
               </button>
             </div>
           </motion.div>
