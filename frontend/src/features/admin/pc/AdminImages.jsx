@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
@@ -27,6 +27,11 @@ export default function AdminImages() {
     }, 300)
     return () => clearTimeout(t)
   }, [search])
+
+  // 페이지 전환 시 선택 초기화 (다른 페이지 선택분이 삭제에서 누락되는 것 방지)
+  useEffect(() => {
+    setSelectedIds(new Set())
+  }, [page])
 
   const { data: imagesData, isLoading } = useQuery({
     queryKey: ['admin', 'images', { page, search: debouncedSearch }],
@@ -121,10 +126,14 @@ export default function AdminImages() {
     onError: (err) => alert(err.message),
   })
 
+  const copyTimer = useRef(null)
+  useEffect(() => () => { if (copyTimer.current) clearTimeout(copyTimer.current) }, [])
+
   const copyUrl = (image) => {
     navigator.clipboard.writeText(image.url)
     setCopiedId(image.id)
-    setTimeout(() => setCopiedId(null), 1500)
+    if (copyTimer.current) clearTimeout(copyTimer.current)
+    copyTimer.current = setTimeout(() => setCopiedId(null), 1500)
   }
 
   return (

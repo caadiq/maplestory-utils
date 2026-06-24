@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import FormField, { formInputClass, formInputStyle } from '../../../components/common/FormField'
@@ -16,6 +16,8 @@ export default function GenesisPassAdmin() {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  const savedTimer = useRef(null)
+  useEffect(() => () => { if (savedTimer.current) clearTimeout(savedTimer.current) }, [])
 
   const { data } = useQuery({
     queryKey: ['admin', 'genesis-pass'],
@@ -45,7 +47,8 @@ export default function GenesisPassAdmin() {
       queryClient.invalidateQueries({ queryKey: ['admin', 'genesis-pass'] })
       queryClient.invalidateQueries({ queryKey: ['genesis-pass'] })
       setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      if (savedTimer.current) clearTimeout(savedTimer.current)
+      savedTimer.current = setTimeout(() => setSaved(false), 2000)
     },
     onError: (err) => setError(err.message),
   })
