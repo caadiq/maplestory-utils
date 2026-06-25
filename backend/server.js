@@ -10,6 +10,7 @@ import symbolRoutes from './routes/symbol.js';
 import sundayMapleRoutes from './routes/sunday-maple.js';
 import genesisPassRoutes from './routes/genesis-pass.js';
 import authRoutes from './routes/auth.js';
+import meRoutes from './routes/me.js';
 import { sequelize } from './lib/db.js';
 import './models/index.js';
 import { attachUser } from './middleware/session.js';
@@ -28,6 +29,7 @@ app.use(express.json());
 app.use(attachUser); // 쿠키 sid → req.user (게스트는 그냥 통과)
 
 app.use('/api/auth', authRoutes);
+app.use('/api/me', meRoutes);
 app.use('/api/menus', menuRoutes);
 app.use('/api/notices', noticeRoutes);
 app.use('/api/boss-crystal', bossCrystalRoutes);
