@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import crypto from 'crypto';
 import axios from 'axios';
-import { User, Session } from '../models/index.js';
+import { User, Session, UserCharacter } from '../models/index.js';
+import { sequelize } from '../lib/db.js';
+import { extractAccountCharacters } from '../services/character.js';
 import { parseCookies, buildSessionCookie, sessionExpiry } from '../middleware/session.js';
 
 const router = Router();
@@ -23,13 +25,9 @@ router.post('/login', async (req, res) => {
       headers: { 'x-nxopen-api-key': nexonKey },
     });
 
-    // 모든 캐릭터 중 최고 레벨을 계정 대표로
-    let rep = null;
-    for (const acc of data.account_list || []) {
-      for (const c of acc.character_list || []) {
-        if (!rep || (c.character_level || 0) > (rep.character_level || 0)) rep = c;
-      }
-    }
+    // 계정 캐릭터 추출 후 최고 레벨을 계정 대표로
+    const accountChars = extractAccountCharacters(data);
+    const rep = accountChars[0];
     if (!rep?.ocid) return res.status(404).json({ error: '계정에서 캐릭터를 찾을 수 없습니다' });
 
     const [user] = await User.findOrCreate({
@@ -39,6 +37,26 @@ router.post('/login', async (req, res) => {
     if (user.nickname !== rep.character_name) {
       user.nickname = rep.character_name;
       await user.save();
+    }
+
+    // 계정 캐릭터 캐시 동기화 (자동완성용 — 실패해도 로그인은 진행)
+    try {
+      await sequelize.transaction(async (tx) => {
+        await UserCharacter.destroy({ where: { user_id: user.id }, transaction: tx });
+        await UserCharacter.bulkCreate(
+          accountChars.map((c) => ({
+            user_id: user.id,
+            ocid: c.ocid,
+            character_name: c.character_name,
+            world_name: c.world_name,
+            job_name: c.job_name,
+            character_level: c.character_level,
+          })),
+          { transaction: tx },
+        );
+      });
+    } catch (e) {
+      console.error('캐릭터 캐시 동기화 실패:', e.message);
     }
 
     const sid = crypto.randomBytes(32).toString('hex');
