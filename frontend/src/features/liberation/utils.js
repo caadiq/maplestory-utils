@@ -161,15 +161,20 @@ export function computeCompletionDate({
     // 단순 계산 모드: 매주 동일 설정
     if (weeklyEarn === 0 && monthlyEarn === 0) return null
 
-    // 시작일 당일: (주간 - 완료된 주간) + (이번 달 월간, 아직 안 잡았을 때)
+    // 시작일이 과거면 오늘부터 시뮬레이션. (시작일~오늘 사이 이미 지난 주간/월간 보스가
+    // 미래 획득으로 중복 적립되어 완료일이 실제보다 빨라지는 것을 방지)
+    const todayK = dayjs().tz(KST).startOf('day')
+    const simStart = startKST.isAfter(todayK) ? startKST : todayK
+
+    // 기준일 당일: (주간 - 완료된 주간) + (이번 달 월간, 아직 안 잡았을 때)
     const day0Weekly = Math.max(weeklyEarn - doneEarn, 0)
     const day0Monthly = monthlyEarn > 0 && !monthlyDoneThisMonth ? monthlyEarn : 0
-    events.push({ date: startKST, amount: day0Weekly + day0Monthly })
+    events.push({ date: simStart, amount: day0Weekly + day0Monthly })
 
     // 다음 목요일부터 매주 주간 적립
-    const dow = startKST.day()
+    const dow = simStart.day()
     const daysToNextThu = dow < 4 ? 4 - dow : 11 - dow
-    let nextThu = startKST.add(daysToNextThu, 'day')
+    let nextThu = simStart.add(daysToNextThu, 'day')
     for (let i = 0; i < 520; i++) {
       events.push({ date: nextThu, amount: weeklyEarn })
       nextThu = nextThu.add(1, 'week')
@@ -177,7 +182,7 @@ export function computeCompletionDate({
 
     // 다음 달 1일부터 매월 월간 적립
     if (monthlyEarn > 0) {
-      let nextMonth = startKST.add(1, 'month').startOf('month')
+      let nextMonth = simStart.add(1, 'month').startOf('month')
       for (let i = 0; i < 120; i++) {
         events.push({ date: nextMonth, amount: monthlyEarn })
         nextMonth = nextMonth.add(1, 'month')
