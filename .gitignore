@@ -19,3 +19,6 @@ Thumbs.db
 dist/
 build/
 .env
+
+# 작업용 문서 (커밋 제외)
+docs/
