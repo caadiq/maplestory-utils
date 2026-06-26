@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 
 /**
  * 심볼 계산기 상태
@@ -18,13 +17,14 @@ import { persist } from 'zustand/middleware'
  *     }
  *   }
  * }
+ *
+ * 저장은 useFeatureSync 훅이 담당 (게스트=localStorage / 로그인=서버).
  */
-export const useSymbolStore = create(persist(
+export const symbolInitialState = { characters: [], selectedCharId: null, progress: {}, selectedTabs: {} }
+
+export const useSymbolStore = create(
   (set, get) => ({
-    characters: [],
-    selectedCharId: null,
-    progress: {},
-    selectedTabs: {},    // { [charId]: '아케인' | '어센틱' | '그랜드 어센틱' }
+    ...symbolInitialState, // selectedTabs: { [charId]: '아케인' | '어센틱' | '그랜드 어센틱' }
 
     setTab: (charId, tabKey) => set((s) => ({
       selectedTabs: { ...s.selectedTabs, [charId]: tabKey },
@@ -106,5 +106,4 @@ export const useSymbolStore = create(persist(
       return { progress: { ...s.progress, [charId]: charProg } }
     }),
   }),
-  { name: 'maple-symbol' },
-))
+)
