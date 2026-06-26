@@ -15,6 +15,7 @@ import { sequelize } from './lib/db.js';
 import './models/index.js';
 import { attachUser } from './middleware/session.js';
 import { scheduleSundayMapleCron } from './services/sundayMapleCron.js';
+import { scheduleSessionCleanup } from './services/sessionCleanup.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -61,6 +62,7 @@ async function start() {
     console.log('테이블 동기화 완료');
 
     scheduleSundayMapleCron();
+    scheduleSessionCleanup();
 
     app.listen(PORT, () => {
       console.log(`서버 시작: http://localhost:${PORT}`);
