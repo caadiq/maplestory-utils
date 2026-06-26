@@ -4,15 +4,13 @@ import { Symbol, SymbolLevel } from '../../models/index.js';
 import { convertAndUploadTo, safeDelete } from '../../services/image.js';
 import { getPublicUrl } from '../../lib/s3.js';
 import { sequelize } from '../../lib/db.js';
-import { UPLOAD_FILE_SIZE_LIMIT, SYMBOL_MASTER_LEVEL } from '../../constants.js';
+import { UPLOAD_FILE_SIZE_LIMIT, SYMBOL_MASTER_LEVEL, SYMBOL_TYPES } from '../../constants.js';
 
 const router = Router();
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: UPLOAD_FILE_SIZE_LIMIT },
 });
-
-const VALID_TYPES = ['아케인', '어센틱', '그랜드 어센틱'];
 
 function imagePath(type, region) {
   return `symbol/${type}심볼(${region}).webp`;
@@ -67,7 +65,7 @@ function parseLevels(raw, maxLevel) {
 }
 
 function validateBasic({ type, region, max_level }) {
-  if (!VALID_TYPES.includes(type)) throw new Error('잘못된 심볼 종류입니다');
+  if (!SYMBOL_TYPES.includes(type)) throw new Error('잘못된 심볼 종류입니다');
   const r = String(region || '').trim();
   if (!r) throw new Error('지역 이름을 입력해주세요');
   const ml = Number(max_level);

@@ -1,10 +1,11 @@
 import { DataTypes } from 'sequelize';
 import { sequelize } from '../../lib/db.js';
+import { SYMBOL_TYPES } from '../../constants.js';
 
 export const Symbol = sequelize.define('Symbol', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
   type: {
-    type: DataTypes.ENUM('아케인', '어센틱', '그랜드 어센틱'),
+    type: DataTypes.ENUM(...SYMBOL_TYPES),
     allowNull: false,
   },
   region: { type: DataTypes.STRING(32), allowNull: false },
