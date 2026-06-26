@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useMemo } from 'react'
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useQuery, useQueries, useMutation } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import { useLayout } from '../../../components/pc/Layout'
@@ -128,6 +128,7 @@ export default function Symbol() {
   const [addName, setAddName] = useState('')
   const [addError, setAddError] = useState('')
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const addAnchorRef = useRef(null)
 
   const symbols = allSymbols.filter((s) => s.type === tab)
   const tabInfo = tabs.find((t) => t.key === tab)
@@ -216,7 +217,7 @@ export default function Symbol() {
         }}
       >
         <form onSubmit={handleSearch} className="flex items-center gap-2">
-          <div className="relative flex-1">
+          <div ref={addAnchorRef} className="relative flex-1">
             <span
               className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
               style={{ color: 'var(--input-icon)' }}
@@ -243,6 +244,7 @@ export default function Symbol() {
             <CharacterSuggestDropdown
               open={dropdownOpen}
               filter={addName}
+              anchorRef={addAnchorRef}
               excludeNames={characters.map((c) => c.character_name)}
               onSelect={(n) => {
                 setAddName(n)

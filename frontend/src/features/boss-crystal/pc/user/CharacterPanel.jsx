@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Reorder, useDragControls } from 'framer-motion'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
@@ -202,6 +202,7 @@ export default function CharacterPanel({
   const [error, setError] = useState('')
   const [confirmRemove, setConfirmRemove] = useState(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const addAnchorRef = useRef(null)
 
   const searchMutation = useMutation({
     mutationFn: (n) => api(`/api/character/search?name=${encodeURIComponent(n)}`),
@@ -321,7 +322,7 @@ export default function CharacterPanel({
       {/* 캐릭터 추가 (고정) */}
       <div className="shrink-0">
         <form onSubmit={handleSubmit} className="flex gap-2">
-          <div className="relative flex-1 min-w-0">
+          <div ref={addAnchorRef} className="relative flex-1 min-w-0">
             <span
               className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
               style={{ color: 'var(--input-icon)' }}
@@ -348,6 +349,7 @@ export default function CharacterPanel({
             <CharacterSuggestDropdown
               open={dropdownOpen}
               filter={name}
+              anchorRef={addAnchorRef}
               excludeNames={characters.map((c) => c.character_name)}
               onSelect={(n) => {
                 setName(n)
