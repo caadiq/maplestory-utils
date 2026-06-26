@@ -25,14 +25,16 @@ function debounce(fn, ms) {
  *   로그아웃하면 게스트 로컬 값으로 돌아온다.
  * - 첫 로그인 시 계정이 비어 있으면 게스트 로컬 데이터를 1회 이관한다.
  *
- * @param {string} feature - 'boss-crystal' | 'symbol' | 'liberation'
- * @param {object} store   - zustand store (getState/setState/subscribe)
- * @param {object} initial - 데이터 필드 초기값
+ * @param {string} feature  - 'boss-crystal' | 'symbol' | 'liberation'
+ * @param {object} store    - zustand store (getState/setState/subscribe)
+ * @param {object|function} initial - 데이터 필드 초기값 (함수면 매번 호출 — 동적 초기값용)
+ * @param {function} [migrate] - 로드한 payload 구조 보강 함수 (선택)
  */
-export function useFeatureSync({ feature, store, initial }) {
+export function useFeatureSync({ feature, store, initial, migrate }) {
   const { user, isLoading } = useAuth()
   const localKey = `maple-${feature}`
   const hydrating = useRef(true)
+  const resolveInitial = () => (typeof initial === 'function' ? initial() : initial)
 
   // 로드: user 전환 시 소스에서 store 채우기
   useEffect(() => {
@@ -42,7 +44,11 @@ export function useFeatureSync({ feature, store, initial }) {
 
     const apply = (data) => {
       if (cancelled) return
-      store.setState({ ...initial, ...(data || {}) })
+      // 초기값과 머지한 뒤 migrate (migrate가 빈/부분 데이터에서 슬롯을 undefined로
+      // 만들어 초기값을 덮는 것을 방지)
+      let merged = { ...resolveInitial(), ...(data || {}) }
+      if (migrate) merged = migrate(merged) || merged
+      store.setState(merged)
       setTimeout(() => { if (!cancelled) hydrating.current = false }, 0)
     }
     const readGuest = () => {

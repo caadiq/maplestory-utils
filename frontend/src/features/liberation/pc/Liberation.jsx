@@ -2,11 +2,19 @@ import { useLayoutEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import { useLayout } from '../../../components/pc/Layout'
-import { useLiberationStore } from '../store'
+import { useLiberationStore, liberationInitial, migrateLiberationState } from '../store'
+import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import Genesis from './Genesis'
 import Destiny from './Destiny'
 
 export default function Liberation() {
+  useFeatureSync({
+    feature: 'liberation',
+    store: useLiberationStore,
+    initial: liberationInitial,
+    migrate: migrateLiberationState,
+  })
+
   const { setFullscreen } = useLayout()
   useLayoutEffect(() => {
     setFullscreen(true)

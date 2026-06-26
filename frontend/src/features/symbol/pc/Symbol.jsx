@@ -4,13 +4,16 @@ import { api } from '../../../api/client'
 import { useLayout } from '../../../components/pc/Layout'
 import Tooltip from '../../../components/common/Tooltip'
 import CharacterSuggestDropdown from '../../../components/common/CharacterSuggestDropdown'
-import { useSymbolStore } from '../store'
+import { useSymbolStore, symbolInitialState } from '../store'
 import { formatMesoKorean } from '../../../utils/formatting'
 import { formatKoreanDate, computeCompletion, TYPE_ORDER, eventBonusForType } from '../utils'
+import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import CharacterCard from './user/CharacterCard'
 import SymbolCard from './user/SymbolCard'
 
 export default function Symbol() {
+  useFeatureSync({ feature: 'symbol', store: useSymbolStore, initial: symbolInitialState })
+
   const { setFullscreen } = useLayout()
   useLayoutEffect(() => {
     setFullscreen(true)
