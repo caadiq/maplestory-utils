@@ -4,11 +4,14 @@ import { api } from '../../../api/client'
 import { useLayout } from '../../../components/pc/Layout'
 import CharacterPanel from './user/CharacterPanel'
 import BossSelector from './user/BossSelector'
-import { useBossStore } from '../store'
+import { useBossStore, bossInitialState } from '../store'
+import { useFeatureSync } from '../../../hooks/useFeatureSync'
 
 const MAX_PER_CHARACTER = 12
 
 export default function BossCrystal() {
+  useFeatureSync({ feature: 'boss-crystal', store: useBossStore, initial: bossInitialState })
+
   const characters = useBossStore((s) => s.characters)
   const selectedChar = useBossStore((s) => s.selectedChar)
   const selections = useBossStore((s) => s.selections)
