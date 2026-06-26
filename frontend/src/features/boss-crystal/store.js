@@ -1,17 +1,18 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 
 /**
  * 보스 수익 계산기 상태
  * characters: [{ character_name, character_image, character_level, job_name, ... }]
  * selectedChar: 선택된 캐릭터 닉네임
  * selections: { [character_name]: { [bossId]: { difficulty, party } } }
+ *
+ * 저장은 useFeatureSync 훅이 담당 (게스트=localStorage / 로그인=서버).
  */
-export const useBossStore = create(persist(
+export const bossInitialState = { characters: [], selectedChar: null, selections: {} }
+
+export const useBossStore = create(
   (set) => ({
-    characters: [],
-    selectedChar: null,
-    selections: {},
+    ...bossInitialState,
 
     setCharacters: (next) => set((s) => ({
       characters: typeof next === 'function' ? next(s.characters) : next,
@@ -51,5 +52,4 @@ export const useBossStore = create(persist(
       return { selections: { ...s.selections, [charName]: charSel } }
     }),
   }),
-  { name: 'maple-boss-crystal' },
-))
+)
