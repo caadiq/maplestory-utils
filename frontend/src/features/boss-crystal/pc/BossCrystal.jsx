@@ -6,8 +6,7 @@ import CharacterPanel from './user/CharacterPanel'
 import BossSelector from './user/BossSelector'
 import { useBossStore, bossInitialState } from '../store'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
-
-const MAX_PER_CHARACTER = 12
+import { MAX_PER_CHARACTER } from '../logic'
 
 export default function BossCrystal() {
   useFeatureSync({ feature: 'boss-crystal', store: useBossStore, initial: bossInitialState })
