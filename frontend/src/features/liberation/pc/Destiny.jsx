@@ -10,6 +10,7 @@ import {
 } from '../data'
 import { useLiberationStore, makeEmptyDestinyWeekly } from '../store'
 import { calcWeekPoints, calcDoneEarn, computeCompletionDate } from '../utils'
+import { liberationProgress } from '../logic'
 import ProgressBar from './components/ProgressBar'
 import QuestSelector from './components/QuestSelector'
 import PointsInput from './components/PointsInput'
@@ -26,20 +27,7 @@ export default function Destiny() {
   const setState = (updater) => updateSlot(updater)
 
   // 포인트 이월: 현재 퀘스트 required 를 초과하면 다음 퀘스트로 넘어감
-  const priorConsumed = DESTINY_CHAPTERS
-    .slice(0, state.startChapter)
-    .reduce((s, c) => s + c.required, 0)
-  let cascadeIdx = state.startChapter
-  let cascadeRemain = state.currentPoints
-  let cascadeConsumed = 0
-  while (cascadeIdx < DESTINY_CHAPTERS.length && cascadeRemain >= DESTINY_CHAPTERS[cascadeIdx].required) {
-    cascadeConsumed += DESTINY_CHAPTERS[cascadeIdx].required
-    cascadeRemain -= DESTINY_CHAPTERS[cascadeIdx].required
-    cascadeIdx++
-  }
-  const initialAccumulated = priorConsumed + cascadeConsumed + cascadeRemain
-  const alreadyDone = initialAccumulated >= DESTINY_TOTAL
-  const remaining = Math.max(DESTINY_TOTAL - initialAccumulated, 0)
+  const { alreadyDone, remaining } = liberationProgress(DESTINY_CHAPTERS, DESTINY_TOTAL, state.startChapter, state.currentPoints)
 
   const weeklyEarn = calcWeekPoints(state.weekly, DESTINY_BOSSES)
   const doneEarn = calcDoneEarn(state.weekly, DESTINY_BOSSES)
