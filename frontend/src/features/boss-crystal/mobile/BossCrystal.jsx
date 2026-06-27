@@ -96,7 +96,7 @@ export default function BossCrystal() {
       </div>
 
       {/* 캐릭터 추가 */}
-      <form onSubmit={handleAdd} className="flex gap-2">
+      <form onSubmit={handleAdd} className="flex gap-2" style={{ marginBottom: 0 }}>
         <div ref={addAnchorRef} className="relative flex-1 min-w-0">
           <input
             type="text"
@@ -129,10 +129,10 @@ export default function BossCrystal() {
 
       {/* 캐릭터 칩 (가로 스크롤) — 스크롤 시 헤더 아래 고정 */}
       {characters.length > 0 && (
-        <div className="sticky top-14 z-10 -mx-4 -mt-2 border-b" style={{ background: 'var(--bg-from)', borderColor: 'var(--header-border)' }}>
+        <div className="sticky top-14 z-10 -mx-4 border-b" style={{ background: 'var(--bg-from)', borderColor: 'var(--header-border)' }}>
           <OverlayScrollbarsComponent
-            className="px-4 pt-1.5 pb-1"
-            options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'scroll', y: 'hidden' } }}
+            className="px-4 pt-2.5 pb-0"
+            options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark os-thin', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'scroll', y: 'hidden' } }}
             defer
           >
             <div className="flex gap-2.5 pb-2.5">
