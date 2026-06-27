@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { Outlet, Link, useMatch } from 'react-router-dom'
+import { Outlet, Link, useMatch, useLocation } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '../../api/client'
 import LoginDialog from '../common/LoginDialog'
 import { useThemeStore } from '../../stores/theme'
 import { useAuth } from '../../hooks/useAuth'
@@ -20,6 +22,15 @@ export default function MobileLayout() {
   const toggleTheme = useThemeStore((s) => s.toggleTheme)
   const isLight = theme === 'light'
   const { user } = useAuth()
+
+  // 현재 페이지 메뉴 제목 (뒤로가기 옆 타이틀용)
+  const location = useLocation()
+  const { data: menus = [] } = useQuery({
+    queryKey: ['menus'],
+    queryFn: () => api('/api/menus').catch(() => []),
+  })
+  const slug = location.pathname.replace(/^\/+/, '').split('/')[0]
+  const currentTitle = menus.find((m) => (m.url || '').replace(/^\/+/, '').split('/')[0] === slug)?.title || '홈'
 
   useEffect(() => {
     const root = document.documentElement
@@ -46,7 +57,7 @@ export default function MobileLayout() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                   <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                홈
+                {currentTitle}
               </Link>
             )}
 
