@@ -1,8 +1,7 @@
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import Select from '../../../../components/common/Select'
 import { DIFFICULTIES, formatMeso } from '../admin/constants'
-
-const LABEL_EN = { easy: 'EASY', normal: 'NORMAL', hard: 'HARD', chaos: 'CHAOS', extreme: 'EXTREME' }
+import { LABEL_EN } from '../../logic'
 
 export default function BossSelector({ characterName, bosses, selections, onChange, maxReached }) {
   if (!characterName) {

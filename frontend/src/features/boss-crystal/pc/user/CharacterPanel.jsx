@@ -8,9 +8,7 @@ import Tooltip from '../../../../components/common/Tooltip'
 import CharacterSuggestDropdown from '../../../../components/common/CharacterSuggestDropdown'
 import { useFitText } from '../../../../hooks/useFitText'
 import { DIFFICULTIES, formatMeso, getDifficultyBadgeStyle } from '../admin/constants'
-
-const MAX_PER_CHARACTER = 12
-const MAX_PER_ACCOUNT = 90
+import { MAX_PER_CHARACTER, MAX_PER_ACCOUNT, charRevenue } from '../../logic'
 
 function CharacterContent({ char, selections, bosses }) {
   const bossIndex = new Map(bosses.map((b, i) => [b.id, i]))
@@ -226,23 +224,7 @@ export default function CharacterPanel({
   }
 
   // 총합 계산
-  const charResults = characters.map((char) => {
-    const charSel = allSelections[char.character_name] || {}
-    const items = Object.entries(charSel)
-      .filter(([, sel]) => sel)
-      .map(([bossId, sel]) => {
-        const boss = bosses.find((b) => b.id === Number(bossId))
-        if (!boss) return null
-        const bd = boss.difficulties.find((d) => d.difficulty === sel.difficulty)
-        if (!bd) return null
-        return Math.floor(bd.crystal_price / sel.party)
-      })
-      .filter(Boolean)
-      .sort((a, b) => b - a)
-      .slice(0, MAX_PER_CHARACTER)
-
-    return { count: items.length, revenue: items.reduce((s, v) => s + v, 0) }
-  })
+  const charResults = characters.map((char) => charRevenue(char.character_name, allSelections, bosses))
 
   const totalCount = charResults.reduce((s, r) => s + r.count, 0)
   const totalRevenue = charResults.reduce((s, r) => s + r.revenue, 0)

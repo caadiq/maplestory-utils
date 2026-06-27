@@ -7,28 +7,7 @@ import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import CharacterSuggestDropdown from '../../../components/common/CharacterSuggestDropdown'
 import Select from '../../../components/common/Select'
 import { DIFFICULTIES, formatMeso } from '../pc/admin/constants'
-
-const MAX_PER_CHARACTER = 12
-const MAX_PER_ACCOUNT = 90
-const LABEL_EN = { easy: 'EASY', normal: 'NORMAL', hard: 'HARD', chaos: 'CHAOS', extreme: 'EXTREME' }
-
-// 캐릭터별 주간 수익 (상위 12개 보스 합산)
-function charRevenue(charName, selections, bosses) {
-  const charSel = selections[charName] || {}
-  const items = Object.entries(charSel)
-    .filter(([, s]) => s)
-    .map(([bossId, s]) => {
-      const boss = bosses.find((b) => b.id === Number(bossId))
-      if (!boss) return null
-      const bd = boss.difficulties.find((d) => d.difficulty === s.difficulty)
-      if (!bd) return null
-      return Math.floor(bd.crystal_price / s.party)
-    })
-    .filter((v) => v != null)
-    .sort((a, b) => b - a)
-    .slice(0, MAX_PER_CHARACTER)
-  return { count: items.length, revenue: items.reduce((s, v) => s + v, 0) }
-}
+import { MAX_PER_CHARACTER, MAX_PER_ACCOUNT, LABEL_EN, charRevenue } from '../logic'
 
 export default function BossCrystal() {
   useFeatureSync({ feature: 'boss-crystal', store: useBossStore, initial: bossInitialState })
@@ -173,7 +152,7 @@ export default function BossCrystal() {
                 <div className="flex items-center gap-3">
                   <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 flex items-center justify-center" style={{ background: 'var(--surface-nested)' }}>
                     {c.character_image
-                      ? <img src={c.character_image} alt="" className="w-full h-full object-contain scale-[3] origin-center select-none" style={{ imageRendering: 'pixelated' }} draggable={false} loading="lazy" decoding="async" />
+                      ? <img src={c.character_image} alt="" className="w-full h-full object-contain scale-[2.1] origin-center select-none" style={{ imageRendering: 'pixelated' }} draggable={false} loading="lazy" decoding="async" />
                       : <span className="text-2xl" style={{ color: 'var(--text-dim)' }}>?</span>}
                   </div>
                   <div className="min-w-0">
