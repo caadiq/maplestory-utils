@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api/client'
+import MobileSundayBanner from '../../components/mobile/SundayBanner'
+import MobileNoticeWidget from '../../components/mobile/NoticeWidget'
 
 export default function MobileHome() {
   const { data: menus = [], isLoading } = useQuery({
@@ -9,7 +11,10 @@ export default function MobileHome() {
   })
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* 썬데이 메이플 배너 (금~일만) */}
+      <MobileSundayBanner />
+
       <div className="flex items-center gap-3">
         <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>Utilities</span>
         <div className="h-px flex-1" style={{ backgroundImage: 'linear-gradient(to right, var(--divider-line), transparent)' }} />
@@ -55,6 +60,13 @@ export default function MobileHome() {
           ))}
         </div>
       )}
+
+      {/* 메이플 공지 */}
+      <div className="flex items-center gap-3 pt-2">
+        <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>Notices</span>
+        <div className="h-px flex-1" style={{ backgroundImage: 'linear-gradient(to right, var(--divider-line), transparent)' }} />
+      </div>
+      <MobileNoticeWidget />
     </div>
   )
 }
