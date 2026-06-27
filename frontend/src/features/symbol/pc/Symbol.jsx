@@ -6,7 +6,8 @@ import Tooltip from '../../../components/common/Tooltip'
 import CharacterSuggestDropdown from '../../../components/common/CharacterSuggestDropdown'
 import { useSymbolStore, symbolInitialState } from '../store'
 import { formatMesoKorean } from '../../../utils/formatting'
-import { formatKoreanDate, computeCompletion, TYPE_ORDER, eventBonusForType } from '../utils'
+import { formatKoreanDate, TYPE_ORDER } from '../utils'
+import { symbolMetrics } from '../logic'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import CharacterCard from './user/CharacterCard'
 import SymbolCard from './user/SymbolCard'
@@ -167,43 +168,11 @@ export default function Symbol() {
     let req = 0, arr = 0, latest = null
     for (const s of symbols) {
       const p = progress?.[s.id]
-      if (!p?.equipped) continue
-      if (p.level >= s.max_level) continue
-      let lv = p.level, g = p.growth || 0
-      while (lv < s.max_level) {
-        const r = s.levels?.find((l) => l.level === lv)?.required_count
-        if (!r || g < r) break
-        g -= r; lv += 1
-      }
-      const effMax = lv >= s.max_level
-
-      let arrLv = p.level, arrG = p.growth || 0
-      while (arrLv < s.max_level) {
-        const lv2 = s.levels?.find((x) => x.level === arrLv)
-        if (!lv2 || arrG < lv2.required_count) break
-        arr += lv2.meso_cost
-        arrG -= lv2.required_count
-        arrLv += 1
-      }
-      let remaining = 0
-      let gg = p.growth || 0
-      for (const l of s.levels || []) {
-        if (l.level < p.level) continue
-        remaining += Math.max(l.required_count - gg, 0)
-        gg = Math.max(gg - l.required_count, 0)
-        req += l.meso_cost
-      }
-      if (effMax) continue
-      const bonus = eventBonusForType(selectedChar?.event_skill, s.type)
-      const dailyValue = p.daily !== undefined ? p.daily : (s.daily_default ?? 0) + bonus
-      const { date } = computeCompletion({
-        remainingSymbols: remaining,
-        daily: dailyValue,
-        weeklyPerWeek: (p.weeklyCount ?? 3) * (s.weekly_default || 0),
-        extra: p.extra || 0,
-        dailyDone: !!p.dailyDone,
-      })
-      if (date && (!latest || date > latest)) latest = date
+      const m = symbolMetrics({ symbol: s, progress: p, equipped: !!p?.equipped, eventSkill: selectedChar?.event_skill })
+      if (!m.equipped || m.isMax) continue
+      req += m.remainingMeso
+      arr += m.arrearMeso
+      if (!m.effectivelyMax && m.completeDate && (!latest || m.completeDate > latest)) latest = m.completeDate
     }
     return { totalRequiredMeso: req, totalArrearMeso: arr, overallDate: latest }
   }, [symbols, progress, selectedChar?.event_skill])

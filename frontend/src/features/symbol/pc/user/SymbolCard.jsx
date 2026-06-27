@@ -3,7 +3,8 @@ import Select from '../../../../components/common/Select'
 import Tooltip from '../../../../components/common/Tooltip'
 import { useSymbolStore } from '../../store'
 import { formatMesoKorean } from '../../../../utils/formatting'
-import { formatKoreanDate, computeCompletion, eventBonusForType } from '../../utils'
+import { formatKoreanDate } from '../../utils'
+import { symbolMetrics } from '../../logic'
 
 const INPUT_CLASS = "w-full h-10 rounded-md border px-3 text-base text-right tabular-nums outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)] disabled:opacity-50"
 const INPUT_STYLE = {
@@ -17,74 +18,21 @@ function SymbolCard({ symbol, equipped, charId }) {
   const updateSymbol = useSymbolStore((s) => s.updateSymbol)
   const eventSkill = useSymbolStore((s) => s.characters.find((c) => c.id === charId)?.event_skill)
 
-  const dailyDone = progress?.dailyDone ?? false
-  const weeklyCount = progress?.weeklyCount ?? 3
-  const baseDefault = symbol.daily_default ?? 0
-  const eventBonus = eventBonusForType(eventSkill, symbol.type)
-  const hasDailyOverride = progress?.daily !== undefined
-  const daily = hasDailyOverride ? progress.daily : baseDefault + eventBonus
-  const extra = progress?.extra ?? 0
+  const metrics = useMemo(
+    () => symbolMetrics({ symbol, progress, equipped, eventSkill }),
+    [symbol, progress, equipped, eventSkill],
+  )
+  const {
+    dailyDone, weeklyCount, baseDefault, eventBonus, hasDailyOverride, daily, extra,
+    level, growth, requireGrowth, isMax,
+    remainingMeso, arrearMeso, reachableLevel, effectivelyMax, interactable,
+    remainingAfterExtra, daysLeft, completeDate,
+  } = metrics
+
   const patch = (p) => charId && updateSymbol(charId, symbol.id, p)
   const dailyTooltip = !hasDailyOverride && eventBonus > 0 && eventSkill
     ? `기본 ${baseDefault} + 보약 ${eventBonus} (${eventSkill.skill_name} Lv.${eventSkill.skill_level})`
     : null
-
-  const level = progress?.level ?? 0
-  const growth = progress?.growth ?? 0
-  const requireGrowth = symbol.levels?.find((l) => l.level === level)?.required_count || 0
-  const isMax = equipped && level >= symbol.max_level
-
-  const { remainingSymbols, remainingMeso, arrearMeso } = useMemo(() => {
-    if (!equipped || !symbol.levels?.length) return { remainingSymbols: 0, remainingMeso: 0, arrearMeso: 0 }
-    let sym = 0, meso = 0, arr = 0
-    let arrLv = level, arrG = growth
-    while (arrLv < symbol.max_level) {
-      const req = symbol.levels.find((l) => l.level === arrLv)?.required_count
-      const cost = symbol.levels.find((l) => l.level === arrLv)?.meso_cost
-      if (req == null || cost == null || arrG < req) break
-      arr += cost
-      arrG -= req
-      arrLv += 1
-    }
-    let g = growth
-    for (const l of symbol.levels) {
-      if (l.level < level) continue
-      sym += Math.max(l.required_count - g, 0)
-      g = Math.max(g - l.required_count, 0)
-      meso += l.meso_cost
-    }
-    return { remainingSymbols: sym, remainingMeso: meso, arrearMeso: arr }
-  }, [equipped, level, growth, symbol.levels, symbol.max_level])
-
-  const reachableLevel = useMemo(() => {
-    if (!equipped || isMax) return level
-    let lv = level
-    let g = growth
-    while (lv < symbol.max_level) {
-      const req = symbol.levels?.find((l) => l.level === lv)?.required_count
-      if (!req || g < req) break
-      g -= req
-      lv += 1
-    }
-    return lv
-  }, [equipped, isMax, level, growth, symbol.levels, symbol.max_level])
-
-  const effectivelyMax = equipped && !isMax && reachableLevel >= symbol.max_level
-  const interactable = equipped && !isMax && !effectivelyMax
-
-  // 추가 심볼(extra)을 반영한 실제 남은 심볼 수 (예상 완료일과 일관되게 표시)
-  const remainingAfterExtra = Math.max(remainingSymbols - extra, 0)
-
-  const { days: daysLeft, date: completeDate } = useMemo(() => {
-    if (!equipped || isMax) return { days: null, date: null }
-    return computeCompletion({
-      remainingSymbols,
-      daily,
-      weeklyPerWeek: (weeklyCount || 0) * (symbol.weekly_default || 0),
-      extra,
-      dailyDone,
-    })
-  }, [equipped, isMax, remainingSymbols, daily, weeklyCount, symbol.weekly_default, extra, dailyDone])
 
   return (
     <div
