@@ -21,6 +21,7 @@ import {
   computeCompletionDate,
   makePassMultiplier,
 } from '../utils'
+import { liberationProgress } from '../logic'
 import QuestSelector from './components/QuestSelector'
 import PointsInput from './components/PointsInput'
 import ProgressBar from './components/ProgressBar'
@@ -55,21 +56,8 @@ export default function Genesis() {
   const passNowMult = passApplied ? passCfg.multiplier : 1
 
   // 포인트 이월: 현재 퀘스트 required를 초과하면 자동으로 다음 퀘스트로 넘어감
-  const priorConsumed = GENESIS_CHAPTERS
-    .slice(0, state.startChapter)
-    .reduce((s, c) => s + c.required, 0)
-  let cascadeIdx = state.startChapter
-  let cascadeRemain = state.currentPoints
-  let cascadeConsumed = 0
-  while (cascadeIdx < GENESIS_CHAPTERS.length && cascadeRemain >= GENESIS_CHAPTERS[cascadeIdx].required) {
-    cascadeConsumed += GENESIS_CHAPTERS[cascadeIdx].required
-    cascadeRemain -= GENESIS_CHAPTERS[cascadeIdx].required
-    cascadeIdx++
-  }
-  const initialAccumulated = priorConsumed + cascadeConsumed + cascadeRemain
-  const alreadyDone = initialAccumulated >= GENESIS_TOTAL
+  const { alreadyDone, remaining } = liberationProgress(GENESIS_CHAPTERS, GENESIS_TOTAL, state.startChapter, state.currentPoints)
   const weeklyEarn = calcWeekPoints(state.weekly)
-  const remaining = Math.max(GENESIS_TOTAL - initialAccumulated, 0)
   const doneEarn = calcDoneEarn(state.weekly)
   const monthlyEarn = calcMonthlyEarn(state.weekly)
   const monthlyDoneThisMonth = !!state.weekly.blackMage?.done
