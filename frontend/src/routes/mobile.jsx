@@ -1,26 +1,18 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import MobileLayout from '../components/mobile/Layout'
+import MobileHome from '../pages/mobile/Home'
+import MobileFeaturePage from '../features/MobileFeaturePage'
 
-/**
- * 모바일 라우트 (placeholder)
- * 추후 MobileLayout, 기능별 모바일 페이지 등록 예정
- */
 export default function MobileRoutes() {
   return (
     <Routes>
-      <Route
-        path="*"
-        element={
-          <div
-            className="min-h-screen flex items-center justify-center p-6 text-center"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            <div>
-              <div className="text-4xl mb-3 opacity-50">📱</div>
-              <p className="text-sm">모바일 버전은 준비 중입니다</p>
-            </div>
-          </div>
-        }
-      />
+      <Route element={<MobileLayout />}>
+        <Route index element={<MobileHome />} />
+        {/* 관리자는 PC 전용 — 모바일에서 접근 시 홈으로 */}
+        <Route path="/admin/*" element={<Navigate to="/" replace />} />
+        {/* 동적 기능 페이지 */}
+        <Route path="/:slug/*" element={<MobileFeaturePage />} />
+      </Route>
     </Routes>
   )
 }
