@@ -8,9 +8,9 @@ import App from './App.jsx'
 
 // body 전체에 오버레이 스크롤바 적용 (화면을 밀지 않음)
 OverlayScrollbars(
-  { target: document.body, cancel: { nativeScrollbarsOverlaid: true } },
+  { target: document.body },
   {
-    scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 },
+    scrollbars: { theme: 'os-theme-maple os-theme-dark os-thin', autoHide: 'leave', autoHideDelay: 800 },
   }
 )
 
