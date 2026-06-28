@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { useQuery, useQueries } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import { useLayout } from '../../../components/pc/Layout'
 import CharacterPanel from './user/CharacterPanel'
 import BossSelector from './user/BossSelector'
+import BossPriceTableModal from './user/BossPriceTableModal'
 import { useBossStore, bossInitialState } from '../store'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import { MAX_PER_CHARACTER } from '../logic'
@@ -20,6 +21,8 @@ export default function BossCrystal() {
   const reorderCharacters = useBossStore((s) => s.reorderCharacters)
   const setBossSelection = useBossStore((s) => s.setBossSelection)
   const updateCharacter = useBossStore((s) => s.updateCharacter)
+
+  const [priceOpen, setPriceOpen] = useState(false)
 
   // 풀스크린 모드 (푸터 숨김 + 내부 스크롤)
   const { setFullscreen } = useLayout()
@@ -119,10 +122,13 @@ export default function BossCrystal() {
               selections={currentSelections}
               onChange={handleBossChange}
               maxReached={isMaxReached}
+              onOpenPriceTable={() => setPriceOpen(true)}
             />
           </div>
         </div>
       )}
+
+      <BossPriceTableModal open={priceOpen} onClose={() => setPriceOpen(false)} bosses={bosses} />
     </div>
   )
 }
