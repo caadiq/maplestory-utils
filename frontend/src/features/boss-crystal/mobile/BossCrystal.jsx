@@ -8,6 +8,7 @@ import CharacterSuggestDropdown from '../../../components/common/CharacterSugges
 import Select from '../../../components/common/Select'
 import { DIFFICULTIES, formatMeso } from '../pc/admin/constants'
 import { MAX_PER_CHARACTER, MAX_PER_ACCOUNT, LABEL_EN, charRevenue } from '../logic'
+import BossPriceModal from './BossPriceModal'
 
 export default function BossCrystal() {
   useFeatureSync({ feature: 'boss-crystal', store: useBossStore, initial: bossInitialState })
@@ -28,6 +29,7 @@ export default function BossCrystal() {
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [priceOpen, setPriceOpen] = useState(false)
   const addAnchorRef = useRef(null)
 
   const searchMutation = useMutation({
@@ -192,7 +194,18 @@ export default function BossCrystal() {
       ) : (
         <div className="space-y-2">
           <div className="flex items-center justify-between px-1">
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>보스 선택</span>
+            <button
+              type="button"
+              onClick={() => setPriceOpen(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-medium hover:text-[var(--accent-bright)]"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+                <path d="M1.5 6H14.5M6 6V13.5" stroke="currentColor" strokeWidth="1.3" />
+              </svg>
+              전체 가격표
+            </button>
             <span className="text-xs tabular-nums" style={{ color: maxReached ? 'var(--danger-text)' : 'var(--text-dim)' }}>
               {currentCount} / {MAX_PER_CHARACTER}
             </span>
@@ -267,6 +280,8 @@ export default function BossCrystal() {
           })}
         </div>
       )}
+
+      <BossPriceModal open={priceOpen} onClose={() => setPriceOpen(false)} bosses={bosses} />
     </div>
   )
 }
