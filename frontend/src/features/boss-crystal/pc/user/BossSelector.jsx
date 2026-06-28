@@ -3,7 +3,7 @@ import Select from '../../../../components/common/Select'
 import { DIFFICULTIES, formatMeso } from '../admin/constants'
 import { LABEL_EN } from '../../logic'
 
-export default function BossSelector({ characterName, bosses, selections, onChange, maxReached }) {
+export default function BossSelector({ characterName, bosses, selections, onChange, maxReached, onOpenPriceTable }) {
   if (!characterName) {
     return (
       <div
@@ -55,7 +55,20 @@ export default function BossSelector({ characterName, bosses, selections, onChan
         <div className="w-52 shrink-0">보스</div>
         <div className="flex-1">난이도</div>
         <div className="w-20 shrink-0 text-center">파티원 수</div>
-        <div className="w-32 shrink-0 text-right">가격</div>
+        <div className="w-32 shrink-0 flex justify-end">
+          <button
+            type="button"
+            onClick={onOpenPriceTable}
+            title="보스·난이도별 전체 결정석 가격표 보기"
+            className="inline-flex items-center gap-1.5 hover:text-[var(--accent-bright)] transition"
+          >
+            가격
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+              <path d="M1.5 6H14.5M6 6V13.5" stroke="currentColor" strokeWidth="1.3" />
+            </svg>
+          </button>
+        </div>
       </div>
       {/* 목록 (스크롤) */}
       <OverlayScrollbarsComponent
