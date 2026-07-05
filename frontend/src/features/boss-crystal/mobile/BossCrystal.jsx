@@ -133,11 +133,11 @@ export default function BossCrystal() {
       {characters.length > 0 && (
         <div className="sticky top-14 z-10 -mx-4 border-b" style={{ background: 'var(--bg-from)', borderColor: 'var(--header-border)' }}>
           <OverlayScrollbarsComponent
-            className="px-4 pt-2.5 pb-0"
+            className="pt-2.5 pb-0"
             options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark os-thin', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'scroll', y: 'hidden' } }}
             defer
           >
-            <div className="flex gap-2.5 pb-2.5">
+            <div className="flex w-max gap-2.5 px-4 pb-2.5">
           {characters.map((c) => {
             const active = c.character_name === selectedChar
             const r = charRevenue(c.character_name, selections, bosses)
