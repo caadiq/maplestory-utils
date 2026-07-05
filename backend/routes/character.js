@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Op } from 'sequelize';
 import { Image } from '../models/index.js';
 import { getPublicUrl } from '../lib/s3.js';
+import { attachWorldIcons } from '../services/character.js';
 
 const router = Router();
 const NEXON_API_BASE = 'https://open.api.nexon.com';
@@ -25,14 +26,15 @@ router.get('/search', async (req, res) => {
       headers: { 'x-nxopen-api-key': process.env.NEXON_API_KEY },
     });
 
-    res.json({
+    const [character] = await attachWorldIcons([{
       ocid: idData.ocid,
       character_name: basic.character_name,
       world_name: basic.world_name,
       job_name: basic.character_class,
       character_level: basic.character_level,
       character_image: basic.character_image,
-    });
+    }]);
+    res.json(character);
   } catch (err) {
     const code = err.response?.data?.error?.name;
     if (['OPENAPI00001', 'OPENAPI00007', 'OPENAPI00010', 'OPENAPI00011'].includes(code)) {

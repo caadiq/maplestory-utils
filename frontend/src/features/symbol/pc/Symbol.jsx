@@ -1,5 +1,6 @@
 import { useState, useLayoutEffect, useMemo, useRef } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../../api/client'
 import { useLayout } from '../../../components/pc/Layout'
 import Tooltip from '../../../components/common/Tooltip'
@@ -169,17 +170,23 @@ export default function Symbol() {
 
         {/* 캐릭터 목록 */}
         {characters.length > 0 && (
-          <div className="flex items-start gap-3 overflow-x-auto pt-1">
-            {characters.map((c) => (
-              <CharacterCard
-                key={c.id}
-                char={c}
-                active={c.id === selectedCharId}
-                onSelect={() => selectCharacter(c.id)}
-                onRemove={() => removeCharacter(c.id)}
-              />
-            ))}
-          </div>
+          <OverlayScrollbarsComponent
+            className="-mb-4"
+            options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'scroll', y: 'hidden' } }}
+            defer
+          >
+            <div className="flex items-start gap-3 pt-1 pb-4">
+              {characters.map((c) => (
+                <CharacterCard
+                  key={c.id}
+                  char={c}
+                  active={c.id === selectedCharId}
+                  onSelect={() => selectCharacter(c.id)}
+                  onRemove={() => removeCharacter(c.id)}
+                />
+              ))}
+            </div>
+          </OverlayScrollbarsComponent>
         )}
       </div>
 

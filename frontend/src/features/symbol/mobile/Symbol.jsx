@@ -145,7 +145,12 @@ export default function Symbol() {
                           : <span className="text-xl" style={{ color: 'var(--text-dim)' }}>?</span>}
                       </div>
                       <div className="min-w-0">
-                        <div className="text-sm font-semibold truncate max-w-[8rem]" style={{ color: active ? 'var(--accent-bright)' : 'var(--text-strong)' }}>{c.character_name}</div>
+                        <div className="flex items-center gap-1 min-w-0">
+                          {c.world_icon && (
+                            <img src={c.world_icon} alt="" className="w-4 h-4 shrink-0 object-contain" style={{ imageRendering: 'pixelated' }} />
+                          )}
+                          <div className="text-sm font-semibold truncate max-w-[8rem]" style={{ color: active ? 'var(--accent-bright)' : 'var(--text-strong)' }}>{c.character_name}</div>
+                        </div>
                         <div className="text-[11px] truncate max-w-[8rem]" style={{ color: 'var(--text-dim)' }}>Lv.{c.character_level} · {c.job_name}</div>
                       </div>
                     </div>

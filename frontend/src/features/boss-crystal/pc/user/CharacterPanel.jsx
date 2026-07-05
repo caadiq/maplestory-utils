@@ -56,6 +56,15 @@ function CharacterContent({ char, selections, bosses }) {
 
         <div className="flex-1 min-w-0 space-y-2">
           <div className="flex items-baseline gap-2 min-w-0">
+            {char.world_icon && (
+              <img
+                src={char.world_icon}
+                alt=""
+                title={char.world_name}
+                className="w-5 h-5 shrink-0 object-contain self-center"
+                style={{ imageRendering: 'pixelated' }}
+              />
+            )}
             <span className="text-base font-semibold truncate">{char.character_name}</span>
             <span className="text-xs truncate" style={{ color: 'var(--text-dim)' }}>
               Lv.{char.character_level} · {char.job_name}

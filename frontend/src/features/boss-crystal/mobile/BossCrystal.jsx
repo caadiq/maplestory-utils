@@ -158,7 +158,12 @@ export default function BossCrystal() {
                       : <span className="text-2xl" style={{ color: 'var(--text-dim)' }}>?</span>}
                   </div>
                   <div className="min-w-0">
-                    <div className="text-base font-semibold truncate max-w-[9rem]" style={{ color: active ? 'var(--accent-bright)' : 'var(--text-strong)' }}>{c.character_name}</div>
+                    <div className="flex items-center gap-1 min-w-0">
+                      {c.world_icon && (
+                        <img src={c.world_icon} alt="" className="w-5 h-5 shrink-0 object-contain" style={{ imageRendering: 'pixelated' }} />
+                      )}
+                      <div className="text-base font-semibold truncate max-w-[9rem]" style={{ color: active ? 'var(--accent-bright)' : 'var(--text-strong)' }}>{c.character_name}</div>
+                    </div>
                     <div className="text-xs truncate max-w-[9rem] mt-0.5" style={{ color: 'var(--text-dim)' }}>Lv.{c.character_level} · {c.job_name}</div>
                     <div className="text-sm tabular-nums mt-1" style={{ color: r.count > 0 ? 'var(--accent-bright)' : 'var(--text-dim)' }}>
                       {r.count > 0 ? `${formatMeso(r.revenue)} · ${r.count}개` : '미선택'}
