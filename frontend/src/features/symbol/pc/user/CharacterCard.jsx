@@ -1,9 +1,23 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
+import { Reorder, useDragControls } from 'framer-motion'
 
 function CharacterCard({ char, active, onSelect, onRemove }) {
+  const [dragged, setDragged] = useState(false)
+  const dragControls = useDragControls()
+
   return (
-    <div
+    <Reorder.Item
+      as="div"
+      value={char}
+      dragListener={false}
+      dragControls={dragControls}
+      onDragStart={() => setDragged(true)}
+      onDragEnd={() => {
+        // 다음 click 이벤트 후에 reset
+        setTimeout(() => setDragged(false), 0)
+      }}
       onClick={(e) => {
+        if (dragged) return
         if (e.target.closest('button')) return
         onSelect()
       }}
@@ -13,6 +27,22 @@ function CharacterCard({ char, active, onSelect, onRemove }) {
         background: active ? 'var(--selected-bg)' : 'var(--surface-3)',
       }}
     >
+      {/* 드래그 핸들 */}
+      <div
+        onPointerDown={(e) => { e.preventDefault(); dragControls.start(e) }}
+        style={{ position: 'absolute', top: 6, left: 6, zIndex: 10, touchAction: 'none', color: 'var(--text-dim)' }}
+        className="w-6 h-6 flex items-center justify-center cursor-grab active:cursor-grabbing"
+      >
+        <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
+          <circle cx="3" cy="3" r="1.2" />
+          <circle cx="9" cy="3" r="1.2" />
+          <circle cx="3" cy="8" r="1.2" />
+          <circle cx="9" cy="8" r="1.2" />
+          <circle cx="3" cy="13" r="1.2" />
+          <circle cx="9" cy="13" r="1.2" />
+        </svg>
+      </div>
+
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); onRemove() }}
@@ -61,7 +91,7 @@ function CharacterCard({ char, active, onSelect, onRemove }) {
           Lv.{char.character_level} · {char.job_name}
         </div>
       </div>
-    </div>
+    </Reorder.Item>
   )
 }
 
