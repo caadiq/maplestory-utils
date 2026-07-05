@@ -34,12 +34,13 @@ export function useSymbolCharacterSync(allSymbols) {
     characters.forEach((c) => {
       const d = byName[c.character_name]
       if (!d) return
-      if (d.character_image !== c.character_image || d.character_level !== c.character_level || d.job_name !== c.job_name) {
+      if (d.character_image !== c.character_image || d.character_level !== c.character_level || d.job_name !== c.job_name || d.world_icon !== c.world_icon) {
         updateCharacter(c.id, {
           character_image: d.character_image,
           character_level: d.character_level,
           job_name: d.job_name,
           world_name: d.world_name,
+          world_icon: d.world_icon,
         })
       }
     })

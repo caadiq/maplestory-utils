@@ -37,11 +37,22 @@ function CharacterCard({ char, active, onSelect, onRemove }) {
             <span className="text-3xl" style={{ color: 'var(--text-dim)' }}>?</span>
           )}
         </div>
-        <div
-          className="mt-2 text-base font-semibold truncate w-full"
-          style={{ color: active ? 'var(--accent-bright)' : 'var(--text-emphasis)' }}
-        >
-          {char.character_name}
+        <div className="mt-2 flex items-center justify-center gap-1 w-full min-w-0">
+          {char.world_icon && (
+            <img
+              src={char.world_icon}
+              alt=""
+              title={char.world_name}
+              className="w-5 h-5 shrink-0 object-contain"
+              style={{ imageRendering: 'pixelated' }}
+            />
+          )}
+          <span
+            className="text-base font-semibold truncate"
+            style={{ color: active ? 'var(--accent-bright)' : 'var(--text-emphasis)' }}
+          >
+            {char.character_name}
+          </span>
         </div>
         <div
           className="text-xs tabular-nums mt-0.5 truncate w-full"
