@@ -1,5 +1,6 @@
 import { useState, useLayoutEffect, useMemo, useRef } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { Reorder } from 'framer-motion'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../../api/client'
 import { useLayout } from '../../../components/pc/Layout'
@@ -45,6 +46,7 @@ export default function Symbol() {
   const addCharacter = useSymbolStore((s) => s.addCharacter)
   const removeCharacter = useSymbolStore((s) => s.removeCharacter)
   const selectCharacter = useSymbolStore((s) => s.selectCharacter)
+  const setCharacters = useSymbolStore((s) => s.setCharacters)
   const storedTab = useSymbolStore((s) => s.selectedTabs?.[selectedCharId])
   const setTabStore = useSymbolStore((s) => s.setTab)
 
@@ -175,7 +177,13 @@ export default function Symbol() {
             options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'scroll', y: 'hidden' } }}
             defer
           >
-            <div className="flex items-start gap-3 pt-1 pb-4">
+            <Reorder.Group
+              as="div"
+              axis="x"
+              values={characters}
+              onReorder={setCharacters}
+              className="flex items-start gap-3 pt-1 pb-4"
+            >
               {characters.map((c) => (
                 <CharacterCard
                   key={c.id}
@@ -185,7 +193,7 @@ export default function Symbol() {
                   onRemove={() => removeCharacter(c.id)}
                 />
               ))}
-            </div>
+            </Reorder.Group>
           </OverlayScrollbarsComponent>
         )}
       </div>
