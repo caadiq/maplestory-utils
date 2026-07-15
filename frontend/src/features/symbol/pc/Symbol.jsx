@@ -14,6 +14,7 @@ import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import { useSymbolCharacterSync } from '../useSymbolCharacterSync'
 import CharacterCard from './user/CharacterCard'
 import SymbolCard from './user/SymbolCard'
+import SymbolLevelTableModal from './user/SymbolLevelTableModal'
 
 export default function Symbol() {
   useFeatureSync({ feature: 'symbol', store: useSymbolStore, initial: symbolInitialState })
@@ -59,6 +60,7 @@ export default function Symbol() {
   const [addName, setAddName] = useState('')
   const [addError, setAddError] = useState('')
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [levelTableOpen, setLevelTableOpen] = useState(false)
   const addAnchorRef = useRef(null)
 
   const symbols = allSymbols.filter((s) => s.type === tab)
@@ -199,7 +201,22 @@ export default function Symbol() {
       </div>
 
       {/* 심볼 타입 탭 */}
-      <div className="flex gap-2">
+      <div className="space-y-2">
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setLevelTableOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-[var(--row-hover-bg)]"
+            style={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)', color: 'var(--text-muted)' }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+              <path d="M1.5 6H14.5M6 6V13.5" stroke="currentColor" strokeWidth="1.3" />
+            </svg>
+            레벨별 비용표
+          </button>
+        </div>
+        <div className="flex gap-2">
         {tabs.map((t) => {
           const active = tab === t.key
           return (
@@ -228,6 +245,7 @@ export default function Symbol() {
             </button>
           )
         })}
+        </div>
       </div>
 
       {/* 심볼 카드 그리드 */}
@@ -274,6 +292,8 @@ export default function Symbol() {
           </div>
         </div>
       </div>
+
+      <SymbolLevelTableModal open={levelTableOpen} onClose={() => setLevelTableOpen(false)} allSymbols={allSymbols} />
     </div>
   )
 }
