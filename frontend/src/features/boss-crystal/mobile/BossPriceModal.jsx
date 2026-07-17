@@ -53,7 +53,7 @@ export default function BossPriceModal({ open, onClose, bosses }) {
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] space-y-3">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] space-y-3">
               {bosses.map((boss) => {
                 const diffs = DIFFICULTIES.filter((d) => boss.difficulties.some((bd) => bd.difficulty === d.key))
                 return (
