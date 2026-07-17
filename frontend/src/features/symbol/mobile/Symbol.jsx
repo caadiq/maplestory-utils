@@ -10,6 +10,7 @@ import { formatKoreanDate, TYPE_ORDER } from '../utils'
 import { formatMesoKorean } from '../../../utils/formatting'
 import CharacterSuggestDropdown from '../../../components/common/CharacterSuggestDropdown'
 import SymbolCard from '../pc/user/SymbolCard'
+import SymbolLevelSheet from './SymbolLevelSheet'
 
 export default function Symbol() {
   useFeatureSync({ feature: 'symbol', store: useSymbolStore, initial: symbolInitialState })
@@ -41,6 +42,7 @@ export default function Symbol() {
   const [addName, setAddName] = useState('')
   const [addError, setAddError] = useState('')
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [levelSheetOpen, setLevelSheetOpen] = useState(false)
   const addAnchorRef = useRef(null)
 
   const searchMutation = useMutation({
@@ -200,6 +202,22 @@ export default function Symbol() {
         </div>
       ) : (
         <>
+          {/* 레벨별 비용표 버튼 */}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setLevelSheetOpen(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-medium hover:text-[var(--accent-bright)]"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+                <path d="M1.5 6H14.5M6 6V13.5" stroke="currentColor" strokeWidth="1.3" />
+              </svg>
+              레벨별 비용표
+            </button>
+          </div>
+
           {/* 심볼 카드 리스트 */}
           <div className="space-y-3">
             {symbols.map((s) => (
@@ -230,6 +248,8 @@ export default function Symbol() {
           </div>
         </>
       )}
+
+      <SymbolLevelSheet open={levelSheetOpen} onClose={() => setLevelSheetOpen(false)} allSymbols={allSymbols} />
     </div>
   )
 }
