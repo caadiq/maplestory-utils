@@ -76,14 +76,14 @@ export default function Symbol() {
     let req = 0, arr = 0, latest = null
     for (const s of symbols) {
       const p = progress?.[s.id]
-      const m = symbolMetrics({ symbol: s, progress: p, equipped: !!p?.equipped, eventSkill: selectedChar?.event_skill })
+      const m = symbolMetrics({ symbol: s, progress: p, equipped: !!p?.equipped, eventSkill: selectedChar?.event_skill, artifact: selectedChar?.artifact })
       if (!m.equipped || m.isMax) continue
       req += m.remainingMeso
       arr += m.arrearMeso
       if (!m.effectivelyMax && m.completeDate && (!latest || m.completeDate > latest)) latest = m.completeDate
     }
     return { totalRequiredMeso: req, totalArrearMeso: arr, overallDate: latest }
-  }, [symbols, progress, selectedChar?.event_skill])
+  }, [symbols, progress, selectedChar?.event_skill, selectedChar?.artifact])
 
   return (
     <div className="space-y-4">

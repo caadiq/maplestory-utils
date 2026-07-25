@@ -55,8 +55,30 @@ router.get('/search', async (req, res) => {
 const ARCANE_SYMBOL_TO_LEVEL = { 2: 1, 4: 2, 8: 3, 12: 4, 16: 5, 20: 6 };
 const AUTHENTIC_SYMBOL_TO_LEVEL = { 2: 1, 3: 2, 4: 3, 5: 4, 7: 5, 9: 6 };
 
+// 에테리온 아티팩트: '아티팩트의 힘' 스킬 효과에서 일퀘 심볼 증가량 합산.
+// 게임 화면엔 %로 표시되지만 스킬 효과 텍스트엔 환산된 고정 개수로 오며,
+// 코어별 줄이 모두 나열되므로(미활성 코어는 0개) 전부 더하면 된다.
+const ARTIFACT_SKILL_NAME = '아티팩트의 힘';
+
+function parseArtifactBonus(skills) {
+  const s = (skills || []).find((x) => x.skill_name === ARTIFACT_SKILL_NAME);
+  if (!s) return null;
+  const eff = s.skill_effect || '';
+  let arcane = 0;
+  let authentic = 0;
+  for (const m of eff.matchAll(/아케인리버\s*일일퀘스트[^\r\n]*?획득\s*심볼\s*(\d+)\s*개/g)) {
+    arcane += Number(m[1]) || 0;
+  }
+  for (const m of eff.matchAll(/그란디스\s*일일퀘스트[^\r\n]*?획득\s*심볼\s*(\d+)\s*개/g)) {
+    authentic += Number(m[1]) || 0;
+  }
+  if (!arcane && !authentic) return null;
+  return { arcane_daily: arcane, authentic_daily: authentic };
+}
+
 function parseEventSkillBonus(skills) {
   for (const s of skills || []) {
+    if (s.skill_name === ARTIFACT_SKILL_NAME) continue; // 아티팩트는 별도 파싱
     const eff = s.skill_effect || '';
     const arcane = eff.match(/아케인리버\s*일일퀘스트[^\r\n]*?획득\s*심볼\s*(\d+)\s*개/);
     const authentic = eff.match(/그란디스\s*일일퀘스트[^\r\n]*?획득\s*심볼\s*(\d+)\s*개/);
@@ -84,7 +106,7 @@ router.get('/symbols', async (req, res) => {
   if (!ocid) return res.status(400).json({ error: 'ocid가 필요합니다' });
 
   try {
-    const [symbolRes, skillRes] = await Promise.all([
+    const [symbolRes, skillRes, schedRes] = await Promise.all([
       axios.get(`${NEXON_API_BASE}/maplestory/v1/character/symbol-equipment`, {
         params: { ocid },
         headers: { 'x-nxopen-api-key': process.env.NEXON_API_KEY },
@@ -93,6 +115,11 @@ router.get('/symbols', async (req, res) => {
         params: { ocid, character_skill_grade: '0' },
         headers: { 'x-nxopen-api-key': process.env.NEXON_API_KEY },
       }).catch(() => ({ data: { character_skill: [] } })),
+      // 스케줄러: API 키 소유 계정의 캐릭터만 조회 가능 → 실패하면 null (일퀘 자동 체크 생략)
+      axios.get(`${NEXON_API_BASE}/maplestory/v1/scheduler/character-state`, {
+        params: { ocid },
+        headers: { 'x-nxopen-api-key': process.env.NEXON_API_KEY },
+      }).catch(() => null),
     ]);
     const data = symbolRes.data;
 
@@ -110,8 +137,16 @@ router.get('/symbols', async (req, res) => {
     });
 
     const event_skill = parseEventSkillBonus(skillRes.data?.character_skill);
+    const artifact = parseArtifactBonus(skillRes.data?.character_skill);
 
-    res.json({ ocid, character_class: data.character_class, symbols: parsed, event_skill });
+    // 스케줄러 일일 퀘스트 상태 (quest_state "2"=완료). 조회 불가 시 null
+    const daily_quests = schedRes?.data?.daily_contents
+      ? schedRes.data.daily_contents
+          .filter((c) => c.type === 'quest')
+          .map((c) => ({ name: c.content_name, state: c.quest_state }))
+      : null;
+
+    res.json({ ocid, character_class: data.character_class, symbols: parsed, event_skill, artifact, daily_quests });
   } catch (err) {
     const code = err.response?.data?.error?.name;
     if (['OPENAPI00001', 'OPENAPI00007', 'OPENAPI00010', 'OPENAPI00011'].includes(code)) {

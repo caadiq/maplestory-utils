@@ -7,14 +7,16 @@ import { computeCompletion, eventBonusForType } from './utils'
  * @param {object} [p.progress] 해당 캐릭터의 이 심볼 진행도 (level, growth, daily, weeklyCount, extra, dailyDone, equipped)
  * @param {boolean} p.equipped 장착 여부
  * @param {object} [p.eventSkill] 캐릭터 이벤트 스킬(보약) 정보
+ * @param {object} [p.artifact]  에테리온 아티팩트 일퀘 보너스 ({ arcane_daily, authentic_daily })
  */
-export function symbolMetrics({ symbol, progress, equipped, eventSkill }) {
+export function symbolMetrics({ symbol, progress, equipped, eventSkill, artifact }) {
   const dailyDone = progress?.dailyDone ?? false
   const weeklyCount = progress?.weeklyCount ?? 3
   const baseDefault = symbol.daily_default ?? 0
   const eventBonus = eventBonusForType(eventSkill, symbol.type)
+  const artifactBonus = eventBonusForType(artifact, symbol.type)
   const hasDailyOverride = progress?.daily !== undefined
-  const daily = hasDailyOverride ? progress.daily : baseDefault + eventBonus
+  const daily = hasDailyOverride ? progress.daily : baseDefault + eventBonus + artifactBonus
   const extra = progress?.extra ?? 0
   const level = progress?.level ?? 0
   const growth = progress?.growth ?? 0
@@ -72,7 +74,7 @@ export function symbolMetrics({ symbol, progress, equipped, eventSkill }) {
   }
 
   return {
-    equipped, dailyDone, weeklyCount, baseDefault, eventBonus, hasDailyOverride, daily, extra,
+    equipped, dailyDone, weeklyCount, baseDefault, eventBonus, artifactBonus, hasDailyOverride, daily, extra,
     level, growth, requireGrowth, isMax,
     remainingSymbols, remainingMeso, arrearMeso, reachableLevel, effectivelyMax, interactable,
     remainingAfterExtra, daysLeft, completeDate,
