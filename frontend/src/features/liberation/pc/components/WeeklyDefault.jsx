@@ -26,7 +26,10 @@ export function BossRow({ boss, sel = DEFAULT_SEL, onChange, imageBase, monthly 
     .map((d) => ({ value: d.key, label: diffLabel(d, sel.party, passMult) }))
 
   return (
-    <div className="flex items-center gap-3 rounded-lg px-3 h-16">
+    <div
+      className="flex items-center gap-3 rounded-[10px] px-3.5 h-16"
+      style={{ background: '#f6f9fb', boxShadow: 'inset 0 0 0 1px #e3eaf0' }}
+    >
       <Tooltip text={boss.name}>
         <img src={`${imageBase}/${boss.image}`} alt="" className="w-10 h-10 rounded-md object-cover shrink-0" />
       </Tooltip>
@@ -66,17 +69,21 @@ export function BossRow({ boss, sel = DEFAULT_SEL, onChange, imageBase, monthly 
           disabled={disabled}
           onClick={() => onChange({ done: !sel.done })}
           title="이번 주 해당 난이도를 이미 클리어했는지 여부"
-          className="shrink-0 w-20 rounded-md h-8 text-xs font-semibold border"
+          className="shrink-0 w-20 rounded-full h-8 text-xs font-semibold"
           style={disabled ? {
-            borderColor: 'var(--panel-border)',
+            background: '#eef2f6',
             color: 'var(--text-dim)',
+            boxShadow: 'inset 0 0 0 1px #dbe3ea',
           } : sel.done ? {
-            background: 'var(--selected-bg)',
-            borderColor: 'var(--selected-border)',
-            color: 'var(--accent-bright)',
+            background: 'linear-gradient(180deg, var(--mpl-lime-from), var(--mpl-lime-to))',
+            color: '#ffffff',
+            textShadow: '0 1px 1px rgba(44,55,69,.25)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.45), 0 2px 5px rgba(31,44,61,.15)',
           } : {
-            borderColor: 'var(--btn-border)',
-            color: 'var(--text-dim)',
+            background: 'linear-gradient(180deg, #aeb9c6, #93a1b0)',
+            color: '#ffffff',
+            textShadow: '0 1px 1px rgba(44,55,69,.25)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.35), 0 2px 5px rgba(31,44,61,.12)',
           }}
         >
           {sel.done ? '완료' : '미완료'}
@@ -121,15 +128,11 @@ export default function WeeklyDefault({
 
   return (
     <div
-      className="max-w-3xl mx-auto rounded-2xl border p-6 space-y-4"
-      style={{
-        background: 'var(--panel-bg)',
-        borderColor: 'var(--panel-border)',
-        boxShadow: 'var(--panel-shadow)',
-      }}
+      className="max-w-3xl mx-auto rounded-xl p-5 space-y-3"
+      style={{ background: '#ffffff', boxShadow: 'inset 0 0 0 1px #dbe3ea' }}
     >
       <div className="flex items-center justify-between">
-        <div className="text-lg font-semibold" style={{ color: 'var(--accent-bright)' }}>{label}</div>
+        <div className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>{label}</div>
         <div className="text-sm tabular-nums">
           {mode === 'weekly' ? (
             <>
@@ -196,13 +199,9 @@ export default function WeeklyDefault({
       </div>
 
       {mode === 'simple' || !hasScheduler ? (
-        <div>
-          {bosses.map((boss, i) => (
-            <div
-              key={boss.key}
-              className={i > 0 ? 'border-t' : ''}
-              style={i > 0 ? { borderColor: 'var(--row-divider)' } : undefined}
-            >
+        <div className="space-y-1.5">
+          {bosses.map((boss) => (
+            <div key={boss.key}>
               <BossRow
                 boss={boss}
                 sel={weekly.bosses?.[boss.key]}
@@ -213,11 +212,7 @@ export default function WeeklyDefault({
             </div>
           ))}
           {monthlyBosses.map((boss) => (
-            <div
-              key={boss.key}
-              className="border-t"
-              style={{ borderColor: 'var(--row-divider)' }}
-            >
+            <div key={boss.key}>
               <BossRow
                 boss={boss}
                 sel={weekly.blackMage}

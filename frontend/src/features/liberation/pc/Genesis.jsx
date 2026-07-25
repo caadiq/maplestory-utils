@@ -111,36 +111,50 @@ export default function Genesis() {
 
   return (
     <>
-      {/* 계산 모드 탭 */}
-      <div
-        className="max-w-3xl mx-auto flex gap-1 p-1 rounded-xl border"
-        style={{
-          background: 'var(--surface-3)',
-          borderColor: 'var(--panel-border)',
-        }}
-      >
-        {[
-          { key: 'simple', label: '일반' },
-          { key: 'weekly', label: '주차별' },
-        ].map((t) => {
-          const active = calcMode === t.key
-          return (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setCalcMode(t.key)}
-              className="flex-1 h-10 rounded-lg text-sm font-semibold"
-              style={active ? {
-                background: 'var(--selected-bg)',
-                color: 'var(--accent-bright)',
-              } : {
-                color: 'var(--text-muted)',
-              }}
-            >
-              {t.label}
-            </button>
-          )
-        })}
+      {/* 계산 모드 탭 + 전체 초기화 */}
+      <div className="max-w-3xl mx-auto flex items-center justify-between">
+        <div
+          className="flex gap-1 p-1 rounded-full"
+          style={{ background: '#ffffff', boxShadow: 'inset 0 0 0 1px #d4dde5' }}
+        >
+          {[
+            { key: 'simple', label: '일반' },
+            { key: 'weekly', label: '주차별' },
+          ].map((t) => {
+            const active = calcMode === t.key
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setCalcMode(t.key)}
+                className="px-8 h-9 rounded-full text-sm font-bold transition"
+                style={active ? {
+                  background: 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))',
+                  color: '#ffffff',
+                  textShadow: '0 1px 2px rgba(31,80,110,.4)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,.5)',
+                } : {
+                  color: 'var(--text-muted)',
+                }}
+              >
+                {t.label}
+              </button>
+            )
+          })}
+        </div>
+        <button
+          type="button"
+          onClick={() => setResetOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-semibold hover:brightness-105"
+          style={{
+            background: 'linear-gradient(180deg, var(--mpl-red-from), var(--mpl-red-to))',
+            color: '#ffffff',
+            textShadow: '0 1px 1px rgba(44,55,69,.25)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.4), 0 2px 5px rgba(31,44,61,.25)',
+          }}
+        >
+          🗑 전체 초기화
+        </button>
       </div>
 
       <ProgressBar
@@ -149,19 +163,14 @@ export default function Genesis() {
         startChapter={state.startChapter}
         currentPoints={state.currentPoints}
         completionDate={isDone ? formatDate(completionDate) : null}
-        completionColor="var(--genesis-date)"
       />
 
       {/* 현재 진행 상태 입력 */}
       <div
-        className="max-w-3xl mx-auto rounded-2xl border p-6 space-y-4"
-        style={{
-          background: 'var(--panel-bg)',
-          borderColor: 'var(--panel-border)',
-          boxShadow: 'var(--panel-shadow)',
-        }}
+        className="max-w-3xl mx-auto rounded-xl p-5 space-y-4"
+        style={{ background: '#ffffff', boxShadow: 'inset 0 0 0 1px #dbe3ea' }}
       >
-        <div className="text-lg font-semibold" style={{ color: 'var(--accent-bright)' }}>현재 진행 상태</div>
+        <div className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>현재 진행 상태</div>
 
         <div className="grid gap-3 grid-cols-3">
           <div className="space-y-1.5">
@@ -219,9 +228,9 @@ export default function Genesis() {
           onClick={() => setPassOn(!passOn)}
           className="max-w-3xl mx-auto w-full rounded-2xl border p-5 flex items-center gap-4 text-left transition-shadow"
           style={passOn ? {
-            background: 'var(--panel-bg)',
-            borderColor: 'rgba(252,211,77,0.5)',
-            boxShadow: '0 0 0 1px rgba(252,211,77,0.25), 0 8px 28px rgba(252,211,77,0.10)',
+            background: 'linear-gradient(120deg, #fdf3dd, #f7e3ba)',
+            borderColor: '#e3b878',
+            boxShadow: '0 0 0 1px rgba(227,184,120,.35), 0 8px 28px rgba(227,184,120,.18)',
           } : {
             background: 'var(--panel-bg)',
             borderColor: 'var(--panel-border)',
@@ -231,8 +240,8 @@ export default function Genesis() {
           <div
             className="shrink-0 w-[88px] h-[88px] rounded-xl border flex items-center justify-center overflow-hidden"
             style={{
-              borderColor: 'rgba(252,211,77,0.18)',
-              background: 'radial-gradient(circle at 50% 45%, rgba(252,211,77,0.12), rgba(2,6,23,0.6))',
+              borderColor: '#e3b878',
+              background: 'linear-gradient(180deg, #f7dcab, #eec584)',
             }}
           >
             {passCfg.image?.url ? (
@@ -273,8 +282,8 @@ export default function Genesis() {
               <span
                 className="inline-flex items-center rounded-full px-2.5 py-1 text-[11.5px] font-bold"
                 style={passOn
-                  ? { background: 'var(--genesis-date)', color: '#0f172a' }
-                  : { background: 'rgba(255,255,255,0.07)', color: 'var(--text-dim)' }}
+                  ? { background: 'linear-gradient(180deg, #f7dcab, #eec584)', color: '#8a5f14' }
+                  : { background: 'rgba(31,44,61,0.08)', color: 'var(--text-dim)' }}
               >
                 {passCfg.start_date?.replace(/-/g, '.')} ~ {passCfg.end_date?.replace(/-/g, '.')}
               </span>
@@ -301,23 +310,6 @@ export default function Genesis() {
         passNowMult={passNowMult}
       />
 
-      <div className="max-w-3xl mx-auto flex justify-end">
-        <button
-          type="button"
-          onClick={() => setResetOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg border px-5 py-2.5 text-sm font-semibold hover:bg-[var(--danger-bg-hover)]"
-          style={{
-            borderColor: 'var(--icon-danger-border)',
-            background: 'var(--icon-danger-bg)',
-            color: 'var(--danger-text)',
-          }}
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M2 3H14M6 3V2C6 1.45 6.45 1 7 1H9C9.55 1 10 1.45 10 2V3M3 3L4 14C4 14.55 4.45 15 5 15H11C11.55 15 12 14.55 12 14L13 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          전체 초기화
-        </button>
-      </div>
 
       <ConfirmDialog
         open={resetOpen}
