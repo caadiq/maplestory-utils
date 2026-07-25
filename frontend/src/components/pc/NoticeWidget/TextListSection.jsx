@@ -18,10 +18,10 @@ function TextListSection({ cfg, items, isMaintenance, isLoading }) {
       }}
     >
       <div
-        className="px-4 py-3 border-b"
-        style={{ borderColor: 'var(--panel-border)' }}
+        className="px-4 py-2.5"
+        style={{ background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))' }}
       >
-        <h3 className="text-sm font-bold" style={{ color: 'var(--text-emphasis)' }}>
+        <h3 className="text-sm font-bold" style={{ color: '#ffffff', textShadow: '0 1px 1px rgba(44,55,69,.3)' }}>
           {cfg.label}
         </h3>
       </div>
