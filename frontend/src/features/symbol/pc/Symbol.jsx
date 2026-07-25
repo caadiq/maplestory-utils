@@ -4,6 +4,7 @@ import { Reorder } from 'framer-motion'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../../api/client'
 import { useLayout } from '../../../components/pc/Layout'
+import MapleWindow, { MapleWindowTab } from '../../../components/pc/MapleWindow'
 import Tooltip from '../../../components/common/Tooltip'
 import CharacterSuggestDropdown from '../../../components/common/CharacterSuggestDropdown'
 import { useSymbolStore, symbolInitialState } from '../store'
@@ -107,16 +108,33 @@ export default function Symbol() {
   }, [symbols, progress, selectedChar?.event_skill, selectedChar?.artifact])
 
   return (
-    <div className="space-y-6 pb-10 max-w-5xl mx-auto">
-      {/* 캐릭터 조회 */}
-      <div
-        className="rounded-2xl border p-5 space-y-4"
-        style={{
-          background: 'var(--panel-bg)',
-          borderColor: 'var(--panel-border)',
-          boxShadow: 'var(--panel-shadow)',
-        }}
+    <div className="pb-10 max-w-6xl mx-auto">
+      <MapleWindow
+        title="SYMBOL CALCULATOR"
+        titleRight={(
+          <button
+            type="button"
+            onClick={() => setLevelTableOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold hover:brightness-105"
+            style={{
+              background: 'linear-gradient(180deg, var(--mpl-purple-from), var(--mpl-purple-to))',
+              color: '#ffffff',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.4), 0 2px 5px rgba(31,44,61,.25)',
+            }}
+          >
+            ⊞ 레벨별 비용표
+          </button>
+        )}
+        tabs={tabs.map((t) => (
+          <MapleWindowTab key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>
+            {t.image_url && (
+              <img src={t.image_url} alt="" className="w-5 h-5 object-contain" style={{ imageRendering: 'pixelated' }} />
+            )}
+            {t.label}
+          </MapleWindowTab>
+        ))}
       >
+        <div className="space-y-4">
         <form onSubmit={handleSearch} className="flex items-center gap-2">
           <div ref={addAnchorRef} className="relative flex-1">
             <span
@@ -135,7 +153,7 @@ export default function Symbol() {
               onFocus={() => setDropdownOpen(true)}
               onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
               placeholder="캐릭터 닉네임으로 장착 심볼 불러오기"
-              className="w-full h-12 box-border rounded-lg border pl-10 pr-4 text-base outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
+              className="w-full h-12 box-border rounded-full border pl-10 pr-5 text-base outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
               style={{
                 background: 'var(--input-bg)',
                 borderColor: 'var(--input-border)',
@@ -158,11 +176,11 @@ export default function Symbol() {
           <button
             type="submit"
             disabled={searchMutation.isPending}
-            className="shrink-0 rounded-lg disabled:opacity-50 px-6 h-12 text-base font-semibold hover:bg-[var(--btn-primary-bg-hover)]"
+            className="shrink-0 rounded-full disabled:opacity-50 px-6 h-12 text-base font-bold hover:brightness-105"
             style={{
-              background: 'var(--btn-primary-bg)',
-              color: 'var(--btn-primary-text)',
-              boxShadow: 'var(--btn-primary-shadow)',
+              background: 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))',
+              color: '#ffffff',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.5), 0 2px 5px rgba(31,44,61,.2)',
             }}
           >
             {searchMutation.isPending ? '...' : '조회'}
@@ -175,7 +193,7 @@ export default function Symbol() {
         {/* 캐릭터 목록 */}
         {characters.length > 0 && (
           <OverlayScrollbarsComponent
-            className="-mb-4"
+            className=""
             options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'scroll', y: 'hidden' } }}
             defer
           >
@@ -198,55 +216,6 @@ export default function Symbol() {
             </Reorder.Group>
           </OverlayScrollbarsComponent>
         )}
-      </div>
-
-      {/* 심볼 타입 탭 */}
-      <div className="space-y-2">
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => setLevelTableOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-[var(--row-hover-bg)]"
-            style={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)', color: 'var(--text-muted)' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
-              <path d="M1.5 6H14.5M6 6V13.5" stroke="currentColor" strokeWidth="1.3" />
-            </svg>
-            레벨별 비용표
-          </button>
-        </div>
-        <div className="flex gap-2">
-        {tabs.map((t) => {
-          const active = tab === t.key
-          return (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setTab(t.key)}
-              className="flex-1 flex items-center justify-center gap-2.5 rounded-2xl border px-4 py-3"
-              style={active ? {
-                background: 'var(--selected-bg)',
-                borderColor: 'var(--selected-border)',
-                color: 'var(--accent-bright)',
-                boxShadow: 'var(--btn-primary-shadow)',
-              } : {
-                background: 'var(--panel-bg)',
-                borderColor: 'var(--panel-border)',
-                color: 'var(--text-muted)',
-              }}
-            >
-              {t.image_url ? (
-                <img src={t.image_url} alt="" className="w-8 h-8 object-contain" style={{ imageRendering: 'pixelated' }} />
-              ) : (
-                <div className="w-8 h-8 rounded" style={{ background: 'var(--surface-nested)' }} />
-              )}
-              <span className="text-base font-semibold">{t.label}</span>
-            </button>
-          )
-        })}
-        </div>
-      </div>
 
       {/* 심볼 카드 그리드 */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -255,43 +224,45 @@ export default function Symbol() {
         ))}
       </div>
 
-      {/* 전체 요약 */}
+      {/* 전체 요약 (게임 심볼 패널 톤의 보라 그라데이션 바) */}
       <div
-        className="rounded-2xl border p-6 flex items-center justify-between gap-6 flex-wrap"
+        className="rounded-xl px-6 py-4 flex items-center justify-between gap-6 flex-wrap"
         style={{
-          background: 'var(--selected-bg)',
-          borderColor: 'var(--selected-border)',
-          boxShadow: 'var(--panel-shadow)',
+          background: 'linear-gradient(180deg, #8f9fe0, #7583cf)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,.35), 0 4px 12px rgba(117,131,207,.35)',
+          color: '#ffffff',
         }}
       >
         <div>
-          <div className="text-base" style={{ color: 'var(--text-muted)' }}>
+          <div className="text-sm" style={{ color: 'rgba(255,255,255,.85)' }}>
             {tabInfo?.label} 전체 만렙 완료 예상일
           </div>
-          <div className="text-3xl font-bold tabular-nums mt-1.5" style={{ color: 'var(--accent-bright)' }}>
+          <div className="text-2xl font-bold tabular-nums mt-1">
             {overallDate ? formatKoreanDate(overallDate) : '-'}
           </div>
         </div>
-        <div className="flex items-center">
-          <div className="text-right pr-10">
-            <div className="text-base" style={{ color: 'var(--text-muted)' }}>누적 체납 메소</div>
+        <div className="flex items-center text-right">
+          <div className="pr-8">
+            <div className="text-sm" style={{ color: 'rgba(255,255,255,.85)' }}>누적 체납 메소</div>
             <Tooltip text={formatMesoKorean(totalArrearMeso)}>
-              <div className="text-2xl font-bold tabular-nums mt-1 inline-block" style={{ color: 'var(--danger-text)' }}>
+              <div className="text-xl font-bold tabular-nums mt-1 inline-block" style={{ color: '#ffc9c0' }}>
                 {totalArrearMeso.toLocaleString()}
               </div>
             </Tooltip>
           </div>
-          <div className="w-px h-12" style={{ background: 'var(--panel-border)' }} />
-          <div className="text-right pl-10">
-            <div className="text-base" style={{ color: 'var(--text-muted)' }}>남은 필요 메소</div>
+          <div className="w-px h-11" style={{ background: 'rgba(255,255,255,.35)' }} />
+          <div className="pl-8">
+            <div className="text-sm" style={{ color: 'rgba(255,255,255,.85)' }}>남은 필요 메소</div>
             <Tooltip text={formatMesoKorean(totalRequiredMeso)}>
-              <div className="text-2xl font-bold tabular-nums mt-1 inline-block" style={{ color: 'var(--warning-text-bright)' }}>
+              <div className="text-xl font-bold tabular-nums mt-1 inline-block" style={{ color: '#ffe27a' }}>
                 {totalRequiredMeso.toLocaleString()}
               </div>
             </Tooltip>
           </div>
         </div>
       </div>
+        </div>
+      </MapleWindow>
 
       <SymbolLevelTableModal open={levelTableOpen} onClose={() => setLevelTableOpen(false)} allSymbols={allSymbols} />
     </div>

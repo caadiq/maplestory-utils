@@ -21,10 +21,12 @@ function CharacterCard({ char, active, onSelect, onRemove }) {
         if (e.target.closest('button')) return
         onSelect()
       }}
-      className="group relative shrink-0 w-36 rounded-xl border cursor-pointer select-none"
+      className="group relative shrink-0 w-36 rounded-xl cursor-pointer select-none"
       style={{
-        borderColor: active ? 'var(--selected-border)' : 'var(--panel-border)',
-        background: active ? 'var(--selected-bg)' : 'var(--surface-3)',
+        background: '#ffffff',
+        boxShadow: active
+          ? 'inset 0 0 0 2.5px var(--selected-border), 0 3px 10px rgba(134,201,62,.25)'
+          : 'inset 0 0 0 1px #d4dde5',
       }}
     >
       {/* 드래그 핸들 */}

@@ -51,14 +51,19 @@ function SymbolCard({ symbol, equipped, charId }) {
     >
       <div className="flex items-center gap-3 mb-4">
         <div
-          className="w-14 h-14 rounded-lg overflow-hidden shrink-0 flex items-center justify-center"
-          style={{ background: 'var(--surface-nested)' }}
+          className="w-14 h-14 rounded-xl overflow-hidden shrink-0 flex items-center justify-center"
+          style={{
+            background: equipped
+              ? 'linear-gradient(180deg, #8f9fe0, #7583cf)'
+              : 'var(--surface-nested)',
+            boxShadow: equipped ? 'inset 0 1px 0 rgba(255,255,255,.4)' : 'none',
+          }}
         >
           {symbol.image_url && (
             <img
               src={symbol.image_url}
               alt={symbol.region}
-              className={`w-12 h-12 object-contain ${!equipped ? 'grayscale opacity-50' : ''}`}
+              className={`${symbol.type === '아케인' ? 'w-9 h-9' : 'w-11 h-11'} object-contain ${!equipped ? 'grayscale opacity-50' : ''}`}
               style={{ imageRendering: 'pixelated' }}
             />
           )}
@@ -75,15 +80,17 @@ function SymbolCard({ symbol, equipped, charId }) {
             type="button"
             onClick={() => patch({ dailyDone: !dailyDone })}
             title="금일 일일 퀘스트 완료 여부"
-            className="shrink-0 rounded-md h-8 px-3 text-xs font-semibold border"
+            className="shrink-0 rounded-full h-8 px-3.5 text-xs font-semibold"
             style={dailyDone ? {
-              background: 'var(--selected-bg)',
-              borderColor: 'var(--selected-border)',
-              color: 'var(--accent-bright)',
+              background: 'linear-gradient(180deg, var(--mpl-lime-from), var(--mpl-lime-to))',
+              color: '#ffffff',
+              textShadow: '0 1px 1px rgba(44,55,69,.25)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.45), 0 2px 5px rgba(31,44,61,.15)',
             } : {
-              background: 'var(--danger-bg-hover)',
-              borderColor: 'var(--icon-danger-border)',
-              color: 'var(--danger-text)',
+              background: 'linear-gradient(180deg, #aeb9c6, #93a1b0)',
+              color: '#ffffff',
+              textShadow: '0 1px 1px rgba(44,55,69,.25)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.35), 0 2px 5px rgba(31,44,61,.12)',
             }}
           >
             {dailyDone ? '금일 일퀘 완료' : '금일 일퀘 미완료'}
@@ -126,7 +133,11 @@ function SymbolCard({ symbol, equipped, charId }) {
             className="h-full transition-all"
             style={{
               width: isMax || effectivelyMax ? '100%' : `${Math.min((growth / requireGrowth) * 100, 100)}%`,
-              background: isMax ? 'var(--progress-red)' : effectivelyMax ? 'var(--progress-amber)' : 'var(--progress-emerald)',
+              background: isMax
+                ? 'linear-gradient(180deg, #ffd76e, #f0a828)'
+                : effectivelyMax
+                  ? 'var(--progress-amber)'
+                  : 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))',
             }}
           />
         </div>
