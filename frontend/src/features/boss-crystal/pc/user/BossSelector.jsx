@@ -97,8 +97,8 @@ export default function BossSelector({ characterName, bosses, selections, onChan
                   disabled ? 'pointer-events-none' : ''
                 }`}
                 style={{
-                  background: '#ffffff',
-                  boxShadow: 'inset 0 0 0 1px #e3eaf0',
+                  background: 'var(--mpl-card)',
+                  boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)',
                   opacity: disabled ? 'var(--disabled-opacity)' : 1,
                 }}
               >

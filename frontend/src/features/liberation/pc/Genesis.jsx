@@ -115,7 +115,7 @@ export default function Genesis() {
       <div className="max-w-3xl mx-auto flex items-center justify-between">
         <div
           className="flex gap-1 p-1 rounded-full"
-          style={{ background: '#ffffff', boxShadow: 'inset 0 0 0 1px #d4dde5' }}
+          style={{ background: 'var(--mpl-card)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}
         >
           {[
             { key: 'simple', label: '일반' },
@@ -168,7 +168,7 @@ export default function Genesis() {
       {/* 현재 진행 상태 입력 */}
       <div
         className="max-w-3xl mx-auto rounded-xl p-5 space-y-4"
-        style={{ background: '#ffffff', boxShadow: 'inset 0 0 0 1px #dbe3ea' }}
+        style={{ background: 'var(--mpl-card)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}
       >
         <div className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>현재 진행 상태</div>
 

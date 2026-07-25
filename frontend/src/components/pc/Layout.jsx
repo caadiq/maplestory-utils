@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import Footer from './Footer'
 import LoginDialog from '../common/LoginDialog'
+import { useThemeStore } from '../../stores/theme'
 import { useAuth } from '../../hooks/useAuth'
 
 const SITE_NAME = '메이플스토리 유틸리티'
@@ -79,6 +80,33 @@ const PILL_SLATE = {
   color: '#ffffff',
 }
 
+function ThemeToggle() {
+  const theme = useThemeStore((s) => s.theme)
+  const toggleTheme = useThemeStore((s) => s.toggleTheme)
+  const isLight = theme === 'light'
+
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-label={isLight ? '다크 모드로 전환' : '라이트 모드로 전환'}
+      title={isLight ? '다크 모드' : '라이트 모드'}
+      className="inline-flex items-center justify-center rounded-full w-8 h-8 hover:brightness-110"
+      style={PILL_SLATE}
+    >
+      {isLight ? (
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M7.455 2.004a.75.75 0 01.26.77 7 7 0 009.958 7.967.75.75 0 011.067.853A8.5 8.5 0 116.647 1.921a.75.75 0 01.808.083z" clipRule="evenodd" />
+        </svg>
+      ) : (
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM18 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0118 10zM5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 015 10zM15.657 4.343a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0zM6.464 13.536a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 01-1.061-1.06l1.06-1.061a.75.75 0 011.061 0zM15.657 15.657a.75.75 0 01-1.06 0l-1.061-1.06a.75.75 0 011.06-1.061l1.061 1.06a.75.75 0 010 1.061zM6.464 6.464a.75.75 0 01-1.06 0L4.343 5.404a.75.75 0 011.06-1.06l1.061 1.06a.75.75 0 010 1.06zM10 6a4 4 0 100 8 4 4 0 000-8z" clipRule="evenodd" />
+        </svg>
+      )}
+    </button>
+  )
+}
+
 function LoginButton({ onClick }) {
   const { user } = useAuth()
   const loggedIn = !!user
@@ -147,8 +175,15 @@ export default function Layout() {
   const [loginOpen, setLoginOpen] = useState(false)
   const isAdmin = !!useMatch('/admin/*')
   const homeTo = isAdmin ? '/admin' : '/'
+  const theme = useThemeStore((s) => s.theme)
 
   const isHome = location.pathname === '/'
+
+  useEffect(() => {
+    const root = document.documentElement
+    if (theme === 'dark') root.setAttribute('data-theme', 'dark')
+    else root.removeAttribute('data-theme')
+  }, [theme])
 
   return (
     <LayoutContext.Provider value={{ fullscreen, setFullscreen }}>
@@ -183,6 +218,7 @@ export default function Layout() {
               <LoginButton onClick={() => setLoginOpen(true)} />
               <AdminLinkButton />
               <HomeLinkButton />
+              <ThemeToggle />
             </div>
           </div>
         </header>
