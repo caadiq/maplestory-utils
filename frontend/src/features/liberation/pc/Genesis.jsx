@@ -224,7 +224,7 @@ export default function Genesis() {
       {/* 제네시스 패스 — 시즌 진행 중일 때만 노출. 켜면 포인트 배수가 계산에 반영됨 */}
       {passActive && (
         <button
-          type="button"
+                    type="button"
           onClick={() => setPassOn(!passOn)}
           className="w-full rounded-2xl border p-5 flex items-center gap-4 text-left transition-shadow"
           style={passOn ? {

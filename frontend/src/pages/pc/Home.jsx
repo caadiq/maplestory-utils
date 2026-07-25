@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
-import { fadeUp, stagger } from '../../components/common/motion'
+import PageLoader from '../../components/common/PageLoader'
 import { api } from '../../api/client'
 import NoticeWidget from '../../components/pc/NoticeWidget'
 import SundayMapleBanner from '../../components/pc/SundayMapleBanner'
@@ -13,20 +12,17 @@ export default function Home() {
     queryFn: () => api('/api/menus').catch(() => []),
   })
 
+  if (loading) return <PageLoader />
+
   return (
-    <motion.div
-      className="space-y-10 max-w-5xl mx-auto pt-6"
-      variants={stagger}
-      initial="hidden"
-      animate="show"
-    >
+    <div className="mpl-page-enter space-y-10 max-w-5xl mx-auto pt-6">
       {/* 썬데이 메이플 배너 (금~일만 표시) */}
-      <motion.div variants={fadeUp}>
+      <div className="">
         <SundayMapleBanner />
-      </motion.div>
+      </div>
 
       {/* 구분선 */}
-      <motion.div variants={fadeUp} className="flex items-center gap-4">
+      <div className="flex items-center gap-4">
         <div
           className="h-px flex-1"
           style={{ backgroundImage: 'linear-gradient(to right, transparent, var(--divider-line), transparent)' }}
@@ -41,10 +37,10 @@ export default function Home() {
           className="h-px flex-1"
           style={{ backgroundImage: 'linear-gradient(to right, transparent, var(--divider-line), transparent)' }}
         />
-      </motion.div>
+      </div>
 
       {/* 메뉴 그리드 */}
-      <motion.section variants={fadeUp}>
+      <section className="">
         {loading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -103,10 +99,10 @@ export default function Home() {
             ))}
           </div>
         )}
-      </motion.section>
+      </section>
 
       {/* 구분선 */}
-      <motion.div variants={fadeUp} className="flex items-center gap-4">
+      <div className="flex items-center gap-4">
         <div
           className="h-px flex-1"
           style={{ backgroundImage: 'linear-gradient(to right, transparent, var(--divider-line), transparent)' }}
@@ -121,12 +117,12 @@ export default function Home() {
           className="h-px flex-1"
           style={{ backgroundImage: 'linear-gradient(to right, transparent, var(--divider-line), transparent)' }}
         />
-      </motion.div>
+      </div>
 
       {/* 메이플 공지 */}
-      <motion.div variants={fadeUp}>
+      <div className="">
         <NoticeWidget />
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   )
 }
