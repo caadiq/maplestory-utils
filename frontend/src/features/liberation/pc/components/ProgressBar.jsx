@@ -12,6 +12,8 @@ export default function ProgressBar({
   currentPoints,
   completionDate,
   completionColor = 'var(--warning-text-bright)',
+  // 데스티니: 1차 해방(무기 전승) 날짜를 따로 표시 { done: bool, date: 'YYYY-MM-DD'|null }
+  primaryCompletion = null,
 }) {
   const chapterStates = chapters.map((c) => {
     if (c.idx < startChapter) return { chapter: c, status: 'done', current: c.required }
@@ -98,19 +100,43 @@ export default function ProgressBar({
       </div>
 
       {/* 예상 해방 날짜 */}
-      <div
-        className="flex items-center justify-center gap-3 pt-4 border-t"
-        style={{ borderColor: 'var(--panel-border)' }}
-      >
-        <span className="text-lg font-semibold" style={{ color: 'var(--text-strong)' }}>예상 해방 날짜</span>
-        <span style={{ color: 'var(--text-dim)' }}>·</span>
-        <span
-          className="text-xl font-bold tabular-nums"
-          style={{ color: completionColor }}
+      {primaryCompletion ? (
+        <div
+          className="grid grid-cols-2 pt-4 border-t"
+          style={{ borderColor: 'var(--panel-border)' }}
         >
-          {completionDate ? formatKoreanDate(completionDate) : <span className="font-normal" style={{ color: 'var(--text-dim)' }}>미정</span>}
-        </span>
-      </div>
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-base font-semibold" style={{ color: 'var(--liberation-primary)' }}>1차 해방</span>
+            <span className="text-xl font-bold tabular-nums" style={{ color: completionColor }}>
+              {primaryCompletion.done
+                ? <span style={{ color: 'var(--accent-bright)' }}>해방 완료</span>
+                : primaryCompletion.date
+                  ? formatKoreanDate(primaryCompletion.date)
+                  : <span className="font-normal" style={{ color: 'var(--text-dim)' }}>미정</span>}
+            </span>
+          </div>
+          <div className="flex flex-col items-center gap-1 border-l" style={{ borderColor: 'var(--panel-border)' }}>
+            <span className="text-base font-semibold" style={{ color: 'var(--liberation-secondary)' }}>2차 해방</span>
+            <span className="text-xl font-bold tabular-nums" style={{ color: completionColor }}>
+              {completionDate ? formatKoreanDate(completionDate) : <span className="font-normal" style={{ color: 'var(--text-dim)' }}>미정</span>}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div
+          className="flex items-center justify-center gap-3 pt-4 border-t"
+          style={{ borderColor: 'var(--panel-border)' }}
+        >
+          <span className="text-lg font-semibold" style={{ color: 'var(--text-strong)' }}>예상 해방 날짜</span>
+          <span style={{ color: 'var(--text-dim)' }}>·</span>
+          <span
+            className="text-xl font-bold tabular-nums"
+            style={{ color: completionColor }}
+          >
+            {completionDate ? formatKoreanDate(completionDate) : <span className="font-normal" style={{ color: 'var(--text-dim)' }}>미정</span>}
+          </span>
+        </div>
+      )}
     </div>
   )
 }

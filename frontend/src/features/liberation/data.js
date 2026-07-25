@@ -114,6 +114,8 @@ export const DESTINY_CHAPTERS = [
 ]
 
 export const DESTINY_TOTAL = DESTINY_CHAPTERS.reduce((s, c) => s + c.required, 0) // 45,000
+// 1차 해방(제네시스 무기 → 데스티니 무기 전승)까지 필요한 결의. 2차는 추가 강화
+export const DESTINY_PRIMARY_TOTAL = DESTINY_CHAPTERS.filter((c) => c.phase === 1).reduce((s, c) => s + c.required, 0) // 7,500
 
 // 데스티니 포인트 획득 보스 (대적자의 결의 / 1인격파 기준)
 export const DESTINY_BOSSES = [
