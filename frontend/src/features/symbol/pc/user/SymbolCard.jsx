@@ -17,21 +17,26 @@ function SymbolCard({ symbol, equipped, charId }) {
   const progress = useSymbolStore((s) => s.progress?.[charId]?.[symbol.id])
   const updateSymbol = useSymbolStore((s) => s.updateSymbol)
   const eventSkill = useSymbolStore((s) => s.characters.find((c) => c.id === charId)?.event_skill)
+  const artifact = useSymbolStore((s) => s.characters.find((c) => c.id === charId)?.artifact)
 
   const metrics = useMemo(
-    () => symbolMetrics({ symbol, progress, equipped, eventSkill }),
-    [symbol, progress, equipped, eventSkill],
+    () => symbolMetrics({ symbol, progress, equipped, eventSkill, artifact }),
+    [symbol, progress, equipped, eventSkill, artifact],
   )
   const {
-    dailyDone, weeklyCount, baseDefault, eventBonus, hasDailyOverride, daily, extra,
+    dailyDone, weeklyCount, baseDefault, eventBonus, artifactBonus, hasDailyOverride, daily, extra,
     level, growth, requireGrowth, isMax,
     remainingMeso, arrearMeso, reachableLevel, effectivelyMax, interactable,
     remainingAfterExtra, daysLeft, completeDate,
   } = metrics
 
   const patch = (p) => charId && updateSymbol(charId, symbol.id, p)
-  const dailyTooltip = !hasDailyOverride && eventBonus > 0 && eventSkill
-    ? `기본 ${baseDefault} + 보약 ${eventBonus} (${eventSkill.skill_name} Lv.${eventSkill.skill_level})`
+  const dailyTooltip = !hasDailyOverride && (eventBonus > 0 || artifactBonus > 0)
+    ? [
+        `기본 ${baseDefault}`,
+        eventBonus > 0 && eventSkill ? `보약 ${eventBonus} (${eventSkill.skill_name} Lv.${eventSkill.skill_level})` : null,
+        artifactBonus > 0 ? `아티팩트 ${artifactBonus}` : null,
+      ].filter(Boolean).join(' + ')
     : null
 
   return (

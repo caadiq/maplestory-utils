@@ -4,6 +4,7 @@ import { create } from 'zustand'
  * 심볼 계산기 상태
  * characters: [{ id, character_name, character_level, job_name, character_image, event_skill, ... }]
  *   - event_skill: { skill_name, skill_level, arcane_daily, authentic_daily } | null
+ *   - artifact: { arcane_daily, authentic_daily } | null (에테리온 아티팩트 일퀘 보너스)
  * selectedCharId: 현재 선택된 캐릭터 id (ocid)
  * progress: {
  *   [charId]: {

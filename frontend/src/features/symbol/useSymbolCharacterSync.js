@@ -12,6 +12,7 @@ export function useSymbolCharacterSync(allSymbols) {
   const characters = useSymbolStore((s) => s.characters)
   const updateCharacter = useSymbolStore((s) => s.updateCharacter)
   const syncCharacterSymbols = useSymbolStore((s) => s.syncCharacterSymbols)
+  const updateSymbol = useSymbolStore((s) => s.updateSymbol)
 
   // 각 캐릭터 기본정보 새로고침
   const basicQueries = useQueries({
@@ -83,8 +84,25 @@ export function useSymbolCharacterSync(allSymbols) {
       syncCharacterSymbols(c.id, equippedMap)
       const nextEs = d.event_skill ?? null
       const prevEs = c.event_skill ?? null
-      if (JSON.stringify(nextEs) !== JSON.stringify(prevEs)) {
-        updateCharacter(c.id, { event_skill: nextEs })
+      const nextArt = d.artifact ?? null
+      const prevArt = c.artifact ?? null
+      if (JSON.stringify(nextEs) !== JSON.stringify(prevEs) || JSON.stringify(nextArt) !== JSON.stringify(prevArt)) {
+        updateCharacter(c.id, { event_skill: nextEs, artifact: nextArt })
+      }
+
+      // 스케줄러 일퀘 상태로 '금일 일퀘 완료' 자동 체크 (자기 계정 캐릭터만 daily_quests가 옴)
+      // 퀘스트명에 심볼 지역명이 포함되는 패턴으로 매칭 (예: "세르니움 조사" → 세르니움)
+      if (Array.isArray(d.daily_quests)) {
+        const progressNow = useSymbolStore.getState().progress?.[c.id] || {}
+        for (const s of allSymbols) {
+          if (!equippedMap[s.id]) continue // 장착한 심볼만
+          const quest = d.daily_quests.find((q) => q.name?.includes(s.region))
+          if (!quest) continue
+          const done = quest.state === '2'
+          if ((progressNow[s.id]?.dailyDone ?? false) !== done) {
+            updateSymbol(c.id, s.id, { dailyDone: done })
+          }
+        }
       }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
