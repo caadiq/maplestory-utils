@@ -29,7 +29,7 @@ export default function ProgressBar({
   return (
     <div
       className="max-w-3xl mx-auto rounded-xl p-5 space-y-4"
-      style={{ background: '#ffffff', boxShadow: 'inset 0 0 0 1px #dbe3ea' }}
+      style={{ background: 'var(--mpl-card)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}
     >
       {/* 섹션 제목 */}
       <div className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>퀘스트 진행 상황</div>
@@ -38,11 +38,11 @@ export default function ProgressBar({
       <div className="flex items-center gap-2">
         <div className="flex flex-col items-center gap-1.5" style={{ flex: phase1Count }}>
           <span className="text-sm font-bold" style={{ color: 'var(--mpl-slate-to)' }}>1차 해방</span>
-          <div style={{ width: '100%', height: 3, background: '#b6c3cf', borderRadius: 999 }} />
+          <div style={{ width: '100%', height: 3, background: 'var(--mpl-card-line)', borderRadius: 999 }} />
         </div>
         <div className="flex flex-col items-center gap-1.5" style={{ flex: chapters.length - phase1Count }}>
           <span className="text-sm font-bold" style={{ color: 'var(--mpl-slate-to)' }}>2차 해방</span>
-          <div style={{ width: '100%', height: 3, background: '#b6c3cf', borderRadius: 999 }} />
+          <div style={{ width: '100%', height: 3, background: 'var(--mpl-card-line)', borderRadius: 999 }} />
         </div>
       </div>
 
@@ -73,7 +73,7 @@ export default function ProgressBar({
               </div>
               <div
                 className="h-[7px] rounded-full overflow-hidden mt-1.5"
-                style={{ background: '#e3eaf0' }}
+                style={{ background: 'var(--progress-track)' }}
               >
                 <div
                   className="h-full rounded-full transition-all"

@@ -37,7 +37,7 @@ export default function MapleWindow({ title, titleRight, tabs, children, classNa
       <div className="p-3 flex-1 min-h-0 flex flex-col">
         <div
           className={`rounded-[10px] p-3.5 flex-1 min-h-0 ${bodyClassName}`}
-          style={{ background: '#eef2f6', boxShadow: 'inset 0 0 0 1px #dbe3ea' }}
+          style={{ background: 'var(--mpl-panel)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}
         >
           {children}
         </div>

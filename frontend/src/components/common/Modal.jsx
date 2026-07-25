@@ -41,7 +41,7 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className={`w-full ${maxWidth} rounded-xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col`}
             style={{
-              background: '#ffffff',
+              background: 'var(--mpl-card)',
               border: '1px solid rgba(31, 44, 61, 0.4)',
             }}
             onClick={(e) => e.stopPropagation()}

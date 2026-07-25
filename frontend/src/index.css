@@ -181,6 +181,97 @@
   --mpl-tan-to: #a8905c;
   --mpl-red-from: #f07a6a;
   --mpl-red-to: #d9534a;
+
+  /* 표면 (라이트) — 다크 테마에서 재정의됨 */
+  --mpl-panel: #eef2f6;
+  --mpl-card: #ffffff;
+  --mpl-card-line: #dbe3ea;
+  --mpl-row: #f6f9fb;
+}
+
+/* ── 다크 테마 (게임창 다크 — 짙은 남색 기반) ── */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-from: #101823;
+  --bg-via: #101823;
+  --bg-to: #101823;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.18);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
+
+  --text-strong: #eef3f8;
+  --text-emphasis: #dbe4ec;
+  --text-muted: #9db0c2;
+  --text-dim: #64788c;
+
+  --card-bg-from: rgba(31, 43, 58, 0.92);
+  --card-bg-to: rgba(31, 43, 58, 0.82);
+  --card-border: rgba(255, 255, 255, 0.07);
+  --card-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+
+  --icon-box-from: #223040;
+  --icon-box-to: #1a2532;
+  --icon-box-border: #324356;
+
+  --divider-line: #3d5065;
+  --skeleton-bg: rgba(255, 255, 255, 0.04);
+  --empty-bg: rgba(31, 43, 58, 0.6);
+  --empty-border: #324356;
+
+  --panel-bg: #1f2b3a;
+  --panel-border: #324356;
+  --panel-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+
+  --row-divider: #2c3b4c;
+  --row-hover-bg: #263447;
+
+  --btn-bg: #263447;
+  --btn-bg-hover: #2e3f53;
+  --btn-border: #3a4d61;
+  --btn-border-hover: #4a5f75;
+
+  --dot-inactive: #3a4d61;
+  --dot-inactive-hover: #4a5f75;
+
+  --thumb-bg: #16202c;
+  --thumb-placeholder: #3a4d61;
+
+  --dashed-border: #3d5065;
+
+  --surface-2: #16202c;
+  --surface-3: #1b2634;
+  --surface-nested: #141d28;
+
+  --input-bg: #16202c;
+  --input-border: #3a4d61;
+  --input-border-hover: #4a5f75;
+  --input-placeholder: #56697c;
+  --input-icon: #64788c;
+
+  --selected-bg: rgba(134, 201, 62, 0.12);
+
+  --danger-text: #ef8078;
+  --warning-text: #eda23c;
+  --warning-text-bright: #f0b45a;
+
+  --progress-track: #2c3b4c;
+
+  --popup-bg: #1f2b3a;
+  --popup-border: #324356;
+  --popup-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+
+  --dialog-bg-from: #1f2b3a;
+  --dialog-bg-to: #182230;
+  --dialog-border: #324356;
+  --dialog-backdrop: rgba(4, 8, 14, 0.65);
+
+  --inactive-filter: saturate(0.4) opacity(0.45) brightness(0.9);
+
+  /* 게임창 표면 (다크) */
+  --mpl-win-body: #1b2634;
+  --mpl-panel: #141d28;
+  --mpl-card: #1f2b3a;
+  --mpl-card-line: #324356;
+  --mpl-row: #182330;
 }
 
 

@@ -28,7 +28,7 @@ export function BossRow({ boss, sel = DEFAULT_SEL, onChange, imageBase, monthly 
   return (
     <div
       className="flex items-center gap-3 rounded-[10px] px-3.5 h-16"
-      style={{ background: '#f6f9fb', boxShadow: 'inset 0 0 0 1px #e3eaf0' }}
+      style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}
     >
       <Tooltip text={boss.name}>
         <img src={`${imageBase}/${boss.image}`} alt="" className="w-10 h-10 rounded-md object-cover shrink-0" />
@@ -71,9 +71,9 @@ export function BossRow({ boss, sel = DEFAULT_SEL, onChange, imageBase, monthly 
           title="이번 주 해당 난이도를 이미 클리어했는지 여부"
           className="shrink-0 w-20 rounded-full h-8 text-xs font-semibold"
           style={disabled ? {
-            background: '#eef2f6',
+            background: 'var(--mpl-panel)',
             color: 'var(--text-dim)',
-            boxShadow: 'inset 0 0 0 1px #dbe3ea',
+            boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)',
           } : sel.done ? {
             background: 'linear-gradient(180deg, var(--mpl-lime-from), var(--mpl-lime-to))',
             color: '#ffffff',
@@ -129,7 +129,7 @@ export default function WeeklyDefault({
   return (
     <div
       className="max-w-3xl mx-auto rounded-xl p-5 space-y-3"
-      style={{ background: '#ffffff', boxShadow: 'inset 0 0 0 1px #dbe3ea' }}
+      style={{ background: 'var(--mpl-card)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}
     >
       <div className="flex items-center justify-between">
         <div className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>{label}</div>

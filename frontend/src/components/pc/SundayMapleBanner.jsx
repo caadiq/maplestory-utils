@@ -128,7 +128,7 @@ export default function SundayMapleBanner() {
       >
         <div
           className="shrink-0 w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden"
-          style={{ background: '#ffffff', boxShadow: 'inset 0 0 0 1px #e3c48f' }}
+          style={{ background: 'var(--mpl-card)', boxShadow: 'inset 0 0 0 1px #e3c48f' }}
         >
           {iconData?.url ? (
             <img src={iconData.url} alt={label} className="w-full h-full object-contain" />

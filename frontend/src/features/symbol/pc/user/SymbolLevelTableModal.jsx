@@ -42,7 +42,7 @@ export default function SymbolLevelTableModal({ open, onClose, allSymbols }) {
     <Modal open={open} onClose={onClose} title="레벨별 강화 비용표" maxWidth="max-w-5xl">
       {/* 타입 세그먼트 */}
       <div className="px-5 pt-4 shrink-0">
-        <div className="flex gap-1 p-1 rounded-full" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px #d4dde5' }}>
+        <div className="flex gap-1 p-1 rounded-full" style={{ background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}>
           {types.map((t) => {
             const active = t === type
             const icon = byType[t]?.[0]?.image_url

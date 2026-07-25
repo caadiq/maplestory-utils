@@ -23,10 +23,10 @@ function CharacterCard({ char, active, onSelect, onRemove }) {
       }}
       className="group relative shrink-0 w-36 rounded-xl cursor-pointer select-none"
       style={{
-        background: '#ffffff',
+        background: 'var(--mpl-card)',
         boxShadow: active
           ? 'inset 0 0 0 2.5px var(--selected-border), 0 3px 10px rgba(134,201,62,.25)'
-          : 'inset 0 0 0 1px #d4dde5',
+          : 'inset 0 0 0 1px var(--mpl-card-line)',
       }}
     >
       {/* 드래그 핸들 */}

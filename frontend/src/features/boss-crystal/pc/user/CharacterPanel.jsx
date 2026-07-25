@@ -164,10 +164,10 @@ function CharacterItem({ char, isSelected, selections, bosses, onSelect, onRemov
       }}
       className="group relative rounded-xl cursor-pointer select-none"
       style={{
-        background: '#ffffff',
+        background: 'var(--mpl-card)',
         boxShadow: isSelected
           ? 'inset 0 0 0 2.5px var(--selected-border), 0 3px 10px rgba(134,201,62,.25)'
-          : 'inset 0 0 0 1px #d4dde5',
+          : 'inset 0 0 0 1px var(--mpl-card-line)',
       }}
     >
       {/* 드래그 핸들 */}
@@ -254,7 +254,7 @@ export default function CharacterPanel({
       <div className="shrink-0 space-y-2.5">
         <div
           className="flex items-center gap-2.5 rounded-full pl-4 pr-5 py-2.5"
-          style={{ background: '#ffffff', boxShadow: 'inset 0 0 0 1px #d4dde5' }}
+          style={{ background: 'var(--mpl-card)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}
         >
           <span
             className="w-[22px] h-[22px] rounded-full shrink-0"
@@ -276,10 +276,10 @@ export default function CharacterPanel({
         </div>
 
         <div className="flex items-center justify-between px-1">
-          <span className="text-[11px] font-bold" style={{ color: '#7d8ea0', letterSpacing: '1px' }}>CRYSTAL</span>
+          <span className="text-[11px] font-bold" style={{ color: 'var(--text-dim)', letterSpacing: '1px' }}>CRYSTAL</span>
           <span
             className="rounded-full px-3.5 py-0.5 text-sm font-bold tabular-nums"
-            style={{ background: '#ffffff', boxShadow: 'inset 0 0 0 1px #d4dde5' }}
+            style={{ background: 'var(--mpl-card)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}
           >
             <span style={{ color: totalCount > MAX_PER_ACCOUNT ? 'var(--danger-text)' : 'var(--accent-bright)' }}>
               {accountUsage}
@@ -289,7 +289,7 @@ export default function CharacterPanel({
         </div>
         <div
           className="h-2.5 rounded-full overflow-hidden"
-          style={{ background: '#dbe3ea', boxShadow: 'inset 0 1px 2px rgba(44,55,69,.12)' }}
+          style={{ background: 'var(--progress-track)', boxShadow: 'inset 0 1px 2px rgba(44,55,69,.12)' }}
         >
           <div
             className="h-full rounded-full transition-all"
