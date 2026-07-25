@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../api/client'
@@ -149,9 +150,12 @@ export default function SundayMapleBanner() {
         </div>
       </button>
 
-      <AnimatePresence>
-        {open && <SundayMapleDialog data={data} onClose={() => setOpen(false)} />}
-      </AnimatePresence>
+      {createPortal(
+        <AnimatePresence>
+          {open && <SundayMapleDialog data={data} onClose={() => setOpen(false)} />}
+        </AnimatePresence>,
+        document.body,
+      )}
     </>
   )
 }

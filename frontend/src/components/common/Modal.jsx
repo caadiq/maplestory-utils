@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 
 /**
@@ -20,7 +21,8 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
     }
   }, [open])
 
-  return (
+  // body로 포털 — 페이지 페이드 애니메이션의 stacking context에 갇혀 헤더 아래로 깔리는 것 방지
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -70,6 +72,7 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   )
 }
