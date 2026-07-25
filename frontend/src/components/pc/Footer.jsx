@@ -35,8 +35,17 @@ export default function Footer() {
               .
             </p>
           </div>
-          <div className="sm:text-right">
+          <div className="sm:text-right space-y-1">
             <p>© {new Date().getFullYear()} caadiq</p>
+            <p>
+              <a
+                href="mailto:caadiq@gmail.com"
+                className="transition hover:brightness-125"
+                style={{ color: 'var(--mpl-sky-from)' }}
+              >
+                caadiq@gmail.com
+              </a>
+            </p>
           </div>
         </div>
       </div>
