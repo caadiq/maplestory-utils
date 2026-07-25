@@ -35,21 +35,14 @@ export default function BossSelector({ characterName, bosses, selections, onChan
   }
 
   return (
-    <div
-      className="rounded-xl border overflow-hidden flex flex-col h-full"
-      style={{
-        background: 'var(--panel-bg)',
-        borderColor: 'var(--panel-border)',
-        boxShadow: 'var(--panel-shadow)',
-      }}
-    >
-      {/* 헤더 (고정) */}
+    <div className="flex flex-col h-full min-h-0">
+      {/* 헤더 (청회색 필 바, 고정) */}
       <div
-        className="flex items-center gap-3 px-5 py-3 border-b text-base font-medium shrink-0"
+        className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold shrink-0"
         style={{
-          background: 'var(--surface-2)',
-          borderColor: 'var(--panel-border)',
-          color: 'var(--text-emphasis)',
+          background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))',
+          color: '#ffffff',
+          textShadow: '0 1px 1px rgba(44,55,69,.3)',
         }}
       >
         <div className="w-52 shrink-0">보스</div>
@@ -60,7 +53,7 @@ export default function BossSelector({ characterName, bosses, selections, onChan
             type="button"
             onClick={onOpenPriceTable}
             title="보스·난이도별 전체 결정석 가격표 보기"
-            className="inline-flex items-center gap-1.5 hover:text-[var(--accent-bright)] transition"
+            className="inline-flex items-center gap-1.5 hover:brightness-90 transition"
           >
             가격
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -72,14 +65,14 @@ export default function BossSelector({ characterName, bosses, selections, onChan
       </div>
       {/* 목록 (스크롤) */}
       <OverlayScrollbarsComponent
-        className="flex-1 min-h-0"
+        className="flex-1 min-h-0 -mr-3"
         options={{
           scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 },
           overflow: { x: 'hidden', y: 'scroll' },
         }}
         defer
       >
-        <div className="divide-y px-2" style={{ '--tw-divide-opacity': 1 }}>
+        <div className="space-y-1.5 pr-3">
           {bosses.map((boss) => {
             const availableDiffs = DIFFICULTIES.filter((d) =>
               boss.difficulties.some((bd) => bd.difficulty === d.key)
@@ -100,11 +93,12 @@ export default function BossSelector({ characterName, bosses, selections, onChan
             return (
               <div
                 key={boss.id}
-                className={`flex items-center gap-3 px-3 py-3 border-t first:border-t-0 ${
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-[10px] ${
                   disabled ? 'pointer-events-none' : ''
                 }`}
                 style={{
-                  borderColor: 'var(--panel-border)',
+                  background: '#ffffff',
+                  boxShadow: 'inset 0 0 0 1px #e3eaf0',
                   opacity: disabled ? 'var(--disabled-opacity)' : 1,
                 }}
               >
@@ -172,7 +166,7 @@ export default function BossSelector({ characterName, bosses, selections, onChan
 
                 {/* 수익 */}
                 <div
-                  className="w-32 shrink-0 text-right text-sm font-medium tabular-nums"
+                  className="w-32 shrink-0 text-right text-sm font-bold tabular-nums"
                   style={{ color: sel ? 'var(--accent-bright)' : 'var(--text-dim)' }}
                 >
                   {sel ? formatMeso(revenue) : '-'}
