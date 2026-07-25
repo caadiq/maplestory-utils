@@ -120,16 +120,15 @@ export default function SundayMapleBanner() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full rounded-2xl border p-4 flex items-center gap-4 transition-transform duration-300 hover:scale-[1.01]"
+        className="w-full rounded-2xl p-4 flex items-center gap-4 transition-transform duration-300 hover:scale-[1.01]"
         style={{
-          background: 'var(--selected-bg)',
-          borderColor: 'var(--selected-border)',
-          boxShadow: 'var(--panel-shadow)',
+          background: 'linear-gradient(120deg, #fff3dd, #ffe7c2)',
+          boxShadow: 'inset 0 0 0 2px #f5b04a, 0 6px 18px rgba(240, 152, 40, .25)',
         }}
       >
         <div
           className="shrink-0 w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden"
-          style={{ background: 'var(--panel-bg)' }}
+          style={{ background: '#ffffff', boxShadow: 'inset 0 0 0 1px #f0d3a4' }}
         >
           {iconData?.url ? (
             <img src={iconData.url} alt={label} className="w-full h-full object-contain" />
@@ -138,14 +137,14 @@ export default function SundayMapleBanner() {
           )}
         </div>
         <div className="flex-1 min-w-0 text-left">
-          <div className="font-semibold text-base" style={{ color: 'var(--accent-bright)' }}>
+          <div className="font-semibold text-base" style={{ color: '#c26a08' }}>
             이번 주 {label}
           </div>
-          <div className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+          <div className="text-sm mt-0.5" style={{ color: '#a8853f' }}>
             일요일에 받을 수 있는 혜택을 확인하세요
           </div>
         </div>
-        <div className="shrink-0 text-sm font-medium" style={{ color: 'var(--accent-bright)' }}>
+        <div className="shrink-0 text-sm font-bold" style={{ color: '#c26a08' }}>
           보기 →
         </div>
       </button>

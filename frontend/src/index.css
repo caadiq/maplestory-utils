@@ -7,314 +7,182 @@
 }
 
 /* 테마 토큰 - dark (default) */
+/* ── 메이플 인게임 UI 팔레트 (단일 테마) ──
+   기준: 최신 기본 창 UI — 남색 타이틀바 + 청회색 창 + 하늘/보라/연두 액센트 */
 :root {
-  color-scheme: dark;
-  --bg-from: #030712;
-  --bg-via: #030712;
-  --bg-to: #0f172a;
-  --scrollbar-thumb: rgba(255, 255, 255, 0.12);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.22);
-  --scrollbar-track: transparent;
-
-  --header-bg: rgba(3, 7, 18, 0.8);
-  --header-border: rgba(255, 255, 255, 0.05);
-
-  --text-strong: #ffffff;
-  --text-emphasis: #e5e7eb;
-  --text-muted: #9ca3af;
-  --text-dim: #6b7280;
-  --text-slash: rgba(255, 255, 255, 0.2);
-
-  --toggle-bg: rgba(17, 24, 39, 0.6);
-  --toggle-border: rgba(255, 255, 255, 0.1);
-  --toggle-thumb-from: #e5e7eb;
-  --toggle-thumb-to: #9ca3af;
-  --toggle-thumb-icon: #0f172a;
-
-  --card-bg-from: rgba(17, 24, 39, 0.8);
-  --card-bg-to: rgba(17, 24, 39, 0.4);
-  --card-border: rgba(255, 255, 255, 0.05);
-  --card-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
-
-  --icon-box-from: #1f2937;
-  --icon-box-to: #111827;
-  --icon-box-border: rgba(255, 255, 255, 0.05);
-
-  --divider-line: rgba(255, 255, 255, 0.1);
-  --skeleton-bg: rgba(255, 255, 255, 0.02);
-
-  --empty-bg: rgba(17, 24, 39, 0.4);
-  --empty-border: rgba(255, 255, 255, 0.05);
-
-  --accent: #10b981;
-  --accent-hover-text: #6ee7b7;
-  --accent-glow: rgba(16, 185, 129, 0.1);
-
-  --panel-bg: rgba(17, 24, 39, 0.5);
-  --panel-border: rgba(255, 255, 255, 0.05);
-  --panel-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
-
-  --row-divider: rgba(255, 255, 255, 0.04);
-  --row-hover-bg: rgba(255, 255, 255, 0.03);
-
-  --btn-bg: rgba(17, 24, 39, 0.6);
-  --btn-bg-hover: #1f2937;
-  --btn-border: rgba(255, 255, 255, 0.1);
-  --btn-border-hover: rgba(255, 255, 255, 0.2);
-
-  --dot-inactive: #4b5563;
-  --dot-inactive-hover: #6b7280;
-
-  --thumb-bg: #030712;
-  --thumb-placeholder: #374151;
-
-  --badge-emerald-bg: #059669;
-  --badge-amber-bg: #d97706;
-  --badge-gray-bg: #374151;
-  --badge-text: #ffffff;
-
-  --maintenance-text: #fbbf24;
-
-  --dashed-border: rgba(255, 255, 255, 0.1);
-
-  --surface-2: rgba(2, 6, 23, 0.6);
-  --surface-3: rgba(17, 24, 39, 0.4);
-  --surface-nested: #0f172a;
-
-  --input-bg: #020617;
-  --input-border: rgba(255, 255, 255, 0.1);
-  --input-border-hover: rgba(255, 255, 255, 0.2);
-  --input-border-focus: rgba(16, 185, 129, 0.5);
-  --input-placeholder: #6b7280;
-  --input-icon: #6b7280;
-
-  --selected-bg: rgba(16, 185, 129, 0.08);
-  --selected-border: rgba(16, 185, 129, 0.4);
-  --option-selected-bg: rgba(16, 185, 129, 0.12);
-  --option-selected-text: #6ee7b7;
-
-  --btn-primary-bg: #059669;
-  --btn-primary-bg-hover: #10b981;
-  --btn-primary-text: #ffffff;
-  --btn-primary-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);
-
-  --danger-text: #f87171;
-  --danger-text-strong: #dc2626;
-  --danger-bg-hover: rgba(239, 68, 68, 0.1);
-  --warning-text: #fbbf24;
-  --warning-text-bright: #fcd34d;
-  --warning-text-dim: rgba(252, 211, 77, 0.4);
-
-  --genesis-date: #fcd34d;
-  --destiny-date: #38bdf8;
-
-  --progress-track: #0f172a;
-  --progress-emerald: #10b981;
-  --progress-amber: #f59e0b;
-  --progress-red: #ef4444;
-
-  --accent-bright: #6ee7b7;
-  --accent-muted: rgba(16, 185, 129, 0.1);
-  --accent-text-on-emerald: #ecfdf5;
-
-  --tooltip-bg: #111827;
-  --tooltip-border: rgba(255, 255, 255, 0.1);
-  --tooltip-text: #e5e7eb;
-
-  --popup-bg: #111827;
-  --popup-border: rgba(255, 255, 255, 0.1);
-  --popup-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-
-  --disabled-opacity: 0.3;
-  --inactive-filter: brightness(0.4);
-
-  --dialog-bg-from: #111827;
-  --dialog-bg-to: #030712;
-  --dialog-border: rgba(255, 255, 255, 0.1);
-  --dialog-backdrop: rgba(0, 0, 0, 0.7);
-
-  --icon-danger-bg: rgba(239, 68, 68, 0.1);
-  --icon-danger-border: rgba(239, 68, 68, 0.3);
-  --icon-info-bg: rgba(16, 185, 129, 0.1);
-  --icon-info-border: rgba(16, 185, 129, 0.3);
-
-  --ring-danger: rgba(239, 68, 68, 0.2);
-  --ring-info: rgba(16, 185, 129, 0.2);
-
-  --btn-danger-bg: #dc2626;
-  --btn-danger-bg-hover: #ef4444;
-  --btn-danger-shadow: 0 4px 14px rgba(239, 68, 68, 0.2);
-
-  --liberation-primary: rgba(255, 255, 255, 0.55);
-  --liberation-primary-bar: rgba(255, 255, 255, 0.25);
-  --liberation-secondary: rgb(255, 255, 255);
-  --liberation-secondary-bar: rgba(255, 255, 255, 0.5);
-
-  --symbol-arcane-text: #c4b5fd;
-  --symbol-arcane-bg: rgba(139, 92, 246, 0.15);
-  --symbol-arcane-border: rgba(139, 92, 246, 0.3);
-  --symbol-authentic-text: #7dd3fc;
-  --symbol-authentic-bg: rgba(14, 165, 233, 0.15);
-  --symbol-authentic-border: rgba(14, 165, 233, 0.3);
-  --symbol-grand-text: #fcd34d;
-  --symbol-grand-bg: rgba(245, 158, 11, 0.15);
-  --symbol-grand-border: rgba(245, 158, 11, 0.3);
-}
-
-/* 테마 토큰 - light */
-[data-theme="light"] {
   color-scheme: light;
-  --bg-from: #ffffff;
-  --bg-via: #ffffff;
-  --bg-to: #ffffff;
-  --scrollbar-thumb: #a0a0a0;
-  --scrollbar-thumb-hover: #707070;
+  --bg-from: #7db8dc;
+  --bg-via: #9fcbe6;
+  --bg-to: #cfe9e2;
+  --scrollbar-thumb: rgba(31, 44, 61, 0.3);
+  --scrollbar-thumb-hover: rgba(31, 44, 61, 0.45);
   --scrollbar-track: transparent;
 
-  --header-bg: rgba(255, 255, 255, 0.8);
-  --header-border: rgba(0, 0, 0, 0.08);
+  --header-bg: #22303f;
+  --header-border: rgba(31, 44, 61, 0.45);
 
-  --text-strong: #0f172a;
-  --text-emphasis: #1f2937;
-  --text-muted: #475569;
-  --text-dim: #64748b;
-  --text-slash: rgba(0, 0, 0, 0.2);
+  --text-strong: #1f2c3d;
+  --text-emphasis: #2c3745;
+  --text-muted: #5a6a7a;
+  --text-dim: #8b99a8;
+  --text-slash: rgba(255, 255, 255, 0.35);
 
-  --toggle-bg: rgba(241, 245, 249, 0.9);
-  --toggle-border: rgba(0, 0, 0, 0.08);
-  --toggle-thumb-from: #fde68a;
-  --toggle-thumb-to: #f59e0b;
-  --toggle-thumb-icon: #78350f;
+  --toggle-bg: rgba(255, 255, 255, 0.12);
+  --toggle-border: rgba(255, 255, 255, 0.25);
+  --toggle-thumb-from: #5ecdf5;
+  --toggle-thumb-to: #3aaee0;
+  --toggle-thumb-icon: #ffffff;
 
-  --card-bg-from: #ffffff;
-  --card-bg-to: #ffffff;
-  --card-border: rgba(0, 0, 0, 0.06);
-  --card-shadow: 0 2px 8px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --card-bg-from: rgba(255, 255, 255, 0.92);
+  --card-bg-to: rgba(255, 255, 255, 0.82);
+  --card-border: rgba(255, 255, 255, 0.65);
+  --card-shadow: 0 6px 20px rgba(31, 44, 61, 0.15);
 
-  --icon-box-from: #f3f4f6;
-  --icon-box-to: #e5e7eb;
-  --icon-box-border: rgba(0, 0, 0, 0.06);
+  --icon-box-from: #eef6fb;
+  --icon-box-to: #dceaf4;
+  --icon-box-border: #c9d6e0;
 
-  --divider-line: rgba(0, 0, 0, 0.1);
-  --skeleton-bg: rgba(0, 0, 0, 0.05);
+  --divider-line: #8fa8bc;
+  --skeleton-bg: rgba(255, 255, 255, 0.5);
 
-  --empty-bg: rgba(249, 250, 251, 0.9);
-  --empty-border: rgba(0, 0, 0, 0.06);
+  --empty-bg: rgba(255, 255, 255, 0.6);
+  --empty-border: #d4dde5;
 
-  --accent: #059669;
-  --accent-hover-text: #047857;
-  --accent-glow: rgba(16, 185, 129, 0.12);
+  --accent: #3aaee0;
+  --accent-hover-text: #2f9fd8;
+  --accent-glow: rgba(58, 174, 224, 0.15);
 
   --panel-bg: #ffffff;
-  --panel-border: rgba(0, 0, 0, 0.06);
-  --panel-shadow: 0 2px 8px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --panel-border: #dbe3ea;
+  --panel-shadow: 0 6px 20px rgba(31, 44, 61, 0.12);
 
-  --row-divider: rgba(0, 0, 0, 0.06);
-  --row-hover-bg: rgba(0, 0, 0, 0.03);
+  --row-divider: #edf2f6;
+  --row-hover-bg: #f2f7fa;
 
   --btn-bg: #ffffff;
-  --btn-bg-hover: #f3f4f6;
-  --btn-border: rgba(0, 0, 0, 0.08);
-  --btn-border-hover: rgba(0, 0, 0, 0.15);
+  --btn-bg-hover: #f2f7fa;
+  --btn-border: #c2cdd8;
+  --btn-border-hover: #9db4c6;
 
-  --dot-inactive: #cbd5e1;
-  --dot-inactive-hover: #94a3b8;
+  --dot-inactive: #c9d6e0;
+  --dot-inactive-hover: #9db4c6;
 
-  --thumb-bg: #f3f4f6;
-  --thumb-placeholder: #cbd5e1;
+  --thumb-bg: #e8eff5;
+  --thumb-placeholder: #b5c4d1;
 
-  --badge-emerald-bg: #059669;
-  --badge-amber-bg: #d97706;
-  --badge-gray-bg: #475569;
+  --badge-emerald-bg: #7db93a;
+  --badge-amber-bg: #f0a828;
+  --badge-gray-bg: #8b99a8;
   --badge-text: #ffffff;
 
-  --maintenance-text: #b45309;
+  --maintenance-text: #e08700;
 
-  --dashed-border: rgba(0, 0, 0, 0.12);
+  --dashed-border: #b5c4d1;
 
-  --surface-2: #f8fafc;
-  --surface-3: #f9fafb;
-  --surface-nested: #f3f4f6;
+  --surface-2: #e8eef4;
+  --surface-3: #eef2f6;
+  --surface-nested: #e3ecf3;
 
   --input-bg: #ffffff;
-  --input-border: rgba(0, 0, 0, 0.12);
-  --input-border-hover: rgba(0, 0, 0, 0.22);
-  --input-border-focus: rgba(5, 150, 105, 0.55);
-  --input-placeholder: #9ca3af;
-  --input-icon: #94a3b8;
+  --input-border: #c2cdd8;
+  --input-border-hover: #9db4c6;
+  --input-border-focus: rgba(58, 174, 224, 0.75);
+  --input-placeholder: #a5b3c1;
+  --input-icon: #8b99a8;
 
-  --selected-bg: rgba(16, 185, 129, 0.08);
-  --selected-border: rgba(5, 150, 105, 0.5);
-  --option-selected-bg: rgba(16, 185, 129, 0.12);
-  --option-selected-text: #047857;
+  --selected-bg: #f2fae8;
+  --selected-border: #86c93e;
+  --option-selected-bg: rgba(94, 205, 245, 0.16);
+  --option-selected-text: #2278ab;
 
-  --btn-primary-bg: #059669;
-  --btn-primary-bg-hover: #047857;
+  --btn-primary-bg: #3aaee0;
+  --btn-primary-bg-hover: #5ecdf5;
   --btn-primary-text: #ffffff;
-  --btn-primary-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+  --btn-primary-shadow: 0 4px 14px rgba(58, 174, 224, 0.35);
 
-  --danger-text: #dc2626;
-  --danger-text-strong: #b91c1c;
-  --danger-bg-hover: rgba(220, 38, 38, 0.08);
-  --warning-text: #c2410c;
-  --warning-text-bright: #ea580c;
-  --warning-text-dim: rgba(234, 88, 12, 0.4);
+  --danger-text: #d9534a;
+  --danger-text-strong: #c23b32;
+  --danger-bg-hover: rgba(217, 83, 74, 0.1);
+  --warning-text: #e08700;
+  --warning-text-bright: #e8a20c;
+  --warning-text-dim: rgba(232, 162, 12, 0.45);
 
-  --genesis-date: #f59e0b;
-  --destiny-date: #0ea5e9;
+  --genesis-date: #e8a20c;
+  --destiny-date: #2f9fd8;
 
-  --progress-track: #e5e7eb;
-  --progress-emerald: #10b981;
-  --progress-amber: #f59e0b;
-  --progress-red: #ef4444;
+  --progress-track: #dbe3ea;
+  --progress-emerald: #7db93a;
+  --progress-amber: #f0a828;
+  --progress-red: #e05a4a;
 
-  --accent-bright: #047857;
-  --accent-muted: rgba(16, 185, 129, 0.1);
-  --accent-text-on-emerald: #ecfdf5;
+  --accent-bright: #2f9fd8;
+  --accent-muted: rgba(58, 174, 224, 0.12);
+  --accent-text-on-emerald: #ffffff;
 
-  --tooltip-bg: #111827;
-  --tooltip-border: rgba(255, 255, 255, 0.08);
-  --tooltip-text: #f3f4f6;
+  --tooltip-bg: #22303f;
+  --tooltip-border: rgba(255, 255, 255, 0.12);
+  --tooltip-text: #e5ecf2;
 
   --popup-bg: #ffffff;
-  --popup-border: rgba(0, 0, 0, 0.1);
-  --popup-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+  --popup-border: #d4dde5;
+  --popup-shadow: 0 10px 30px rgba(31, 44, 61, 0.25);
 
-  --disabled-opacity: 0.5;
-  --inactive-filter: opacity(0.25);
+  --disabled-opacity: 0.4;
+  --inactive-filter: saturate(0.45) opacity(0.5);
 
   --dialog-bg-from: #ffffff;
-  --dialog-bg-to: #ffffff;
-  --dialog-border: rgba(0, 0, 0, 0.1);
-  --dialog-backdrop: rgba(15, 23, 42, 0.45);
+  --dialog-bg-to: #f2f6fa;
+  --dialog-border: #c9d6e0;
+  --dialog-backdrop: rgba(31, 44, 61, 0.5);
 
-  --icon-danger-bg: rgba(220, 38, 38, 0.08);
-  --icon-danger-border: rgba(220, 38, 38, 0.3);
-  --icon-info-bg: rgba(16, 185, 129, 0.08);
-  --icon-info-border: rgba(5, 150, 105, 0.4);
+  --icon-danger-bg: rgba(217, 83, 74, 0.1);
+  --icon-danger-border: rgba(217, 83, 74, 0.35);
+  --icon-info-bg: rgba(58, 174, 224, 0.12);
+  --icon-info-border: rgba(58, 174, 224, 0.35);
 
-  --ring-danger: rgba(220, 38, 38, 0.15);
-  --ring-info: rgba(16, 185, 129, 0.18);
+  --ring-danger: rgba(217, 83, 74, 0.25);
+  --ring-info: rgba(58, 174, 224, 0.25);
 
-  --btn-danger-bg: #dc2626;
-  --btn-danger-bg-hover: #b91c1c;
-  --btn-danger-shadow: 0 4px 14px rgba(220, 38, 38, 0.25);
+  --btn-danger-bg: #d9534a;
+  --btn-danger-bg-hover: #e0685f;
+  --btn-danger-shadow: 0 4px 14px rgba(217, 83, 74, 0.3);
 
-  --liberation-primary: rgba(0, 0, 0, 0.55);
-  --liberation-primary-bar: rgba(0, 0, 0, 0.25);
-  --liberation-secondary: rgb(0, 0, 0);
-  --liberation-secondary-bar: rgba(0, 0, 0, 0.5);
+  --liberation-primary: #2f9fd8;
+  --liberation-primary-bar: #9ed9f5;
+  --liberation-secondary: #9247c9;
+  --liberation-secondary-bar: #d9b8ef;
 
-  --symbol-arcane-text: #6d28d9;
+  --symbol-arcane-text: #7c5cd6;
   --symbol-arcane-bg: rgba(139, 92, 246, 0.12);
-  --symbol-arcane-border: rgba(109, 40, 217, 0.4);
-  --symbol-authentic-text: #0369a1;
-  --symbol-authentic-bg: rgba(14, 165, 233, 0.12);
-  --symbol-authentic-border: rgba(3, 105, 161, 0.4);
-  --symbol-grand-text: #b45309;
-  --symbol-grand-bg: rgba(245, 158, 11, 0.15);
-  --symbol-grand-border: rgba(180, 83, 9, 0.4);
+  --symbol-arcane-border: rgba(139, 92, 246, 0.35);
+  --symbol-authentic-text: #2278ab;
+  --symbol-authentic-bg: rgba(58, 174, 224, 0.12);
+  --symbol-authentic-border: rgba(58, 174, 224, 0.35);
+  --symbol-grand-text: #c07a08;
+  --symbol-grand-bg: rgba(240, 168, 40, 0.14);
+  --symbol-grand-border: rgba(240, 168, 40, 0.4);
+
+  /* ── 게임 UI 전용 (창 프레임·필 버튼 그라데이션) ── */
+  --mpl-navy-from: #2e3f53;
+  --mpl-navy-to: #22303f;
+  --mpl-title-yellow: #ffe437;
+  --mpl-win-body: #c6d0da;
+  --mpl-slate-from: #5a7188;
+  --mpl-slate-to: #46596e;
+  --mpl-sky-from: #5ecdf5;
+  --mpl-sky-to: #3aaee0;
+  --mpl-lime-from: #9fd45e;
+  --mpl-lime-to: #7db93a;
+  --mpl-purple-from: #b76ee6;
+  --mpl-purple-to: #9247c9;
+  --mpl-blue-from: #4f8fe0;
+  --mpl-blue-to: #2f6ecc;
+  --mpl-tan-from: #c3ae7e;
+  --mpl-tan-to: #a8905c;
+  --mpl-red-from: #f07a6a;
+  --mpl-red-to: #d9534a;
 }
+
 
 html, body, #root {
   min-height: 100%;
@@ -328,9 +196,9 @@ html {
 
 /* OverlayScrollbars body 오버레이 테마 */
 .os-theme-maple.os-theme-dark {
-  --os-handle-bg: rgba(255, 255, 255, 0.25);
-  --os-handle-bg-hover: rgba(255, 255, 255, 0.4);
-  --os-handle-bg-active: rgba(255, 255, 255, 0.5);
+  --os-handle-bg: rgba(31, 44, 61, 0.35);
+  --os-handle-bg-hover: rgba(31, 44, 61, 0.5);
+  --os-handle-bg-active: rgba(31, 44, 61, 0.6);
   --os-size: 12px;
   --os-padding-perpendicular: 2px;
   --os-padding-axis: 2px;
@@ -339,13 +207,6 @@ html {
 /* 얇은 스크롤바 (모바일 캐릭터 칩 가로 스크롤 등) */
 .os-thin {
   --os-size: 7px !important;
-}
-
-/* 라이트 테마에서는 어두운 handle */
-[data-theme="light"] .os-theme-maple.os-theme-dark {
-  --os-handle-bg: #a0a0a0;
-  --os-handle-bg-hover: #707070;
-  --os-handle-bg-active: #505050;
 }
 
 html {
