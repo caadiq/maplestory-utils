@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useState } from 'react'
 import { useQuery, useQueries } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import { useLayout } from '../../../components/pc/Layout'
+import MapleWindow from '../../../components/pc/MapleWindow'
 import CharacterPanel from './user/CharacterPanel'
 import BossSelector from './user/BossSelector'
 import BossPriceTableModal from './user/BossPriceTableModal'
@@ -95,14 +96,11 @@ export default function BossCrystal() {
           <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mx-auto" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[420px_1fr] h-full min-h-0">
-          <div
-            className="rounded-2xl border p-4 min-h-0 max-h-full self-start overflow-hidden flex flex-col"
-            style={{
-              background: 'var(--panel-bg)',
-              borderColor: 'var(--panel-border)',
-              boxShadow: 'var(--panel-shadow)',
-            }}
+        <div className="grid gap-5 lg:grid-cols-[440px_minmax(940px,1fr)] h-full min-h-0">
+          <MapleWindow
+            title="WEEKLY PROFIT"
+            className="min-h-0 max-h-full self-start"
+            bodyClassName="flex flex-col overflow-hidden"
           >
             <CharacterPanel
               characters={characters}
@@ -114,9 +112,13 @@ export default function BossCrystal() {
               onRemove={removeCharacter}
               onReorder={reorderCharacters}
             />
-          </div>
+          </MapleWindow>
 
-          <div className="min-h-0">
+          <MapleWindow
+            title="BOSS SELECT"
+            className="min-h-0 h-full"
+            bodyClassName="flex flex-col overflow-hidden"
+          >
             <BossSelector
               characterName={selectedChar}
               bosses={bosses}
@@ -125,7 +127,7 @@ export default function BossCrystal() {
               maxReached={isMaxReached}
               onOpenPriceTable={() => setPriceOpen(true)}
             />
-          </div>
+          </MapleWindow>
         </div>
       )}
 

@@ -1,9 +1,9 @@
 import { motion, AnimatePresence } from 'framer-motion'
 
 /**
- * 관리자 페이지에서 쓰는 일반 모달 래퍼
+ * 관리자 페이지에서 쓰는 일반 모달 래퍼 (게임창 스타일)
  * - 열기/닫기 애니메이션 포함
- * - 뒷배경 클릭으로는 닫히지 않음 (× 버튼만)
+ * - 뒷배경 클릭 또는 × 버튼으로 닫힘
  */
 export default function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }) {
   return (
@@ -17,6 +17,7 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
           transition={{ duration: 0.18 }}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
           style={{ background: 'var(--dialog-backdrop)' }}
+          onClick={onClose}
         >
           <motion.div
             key="dialog"
@@ -24,21 +25,28 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 4 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className={`w-full ${maxWidth} rounded-2xl border shadow-2xl max-h-[90vh] flex flex-col`}
+            className={`w-full ${maxWidth} rounded-xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col`}
             style={{
-              backgroundImage: 'linear-gradient(to bottom, var(--dialog-bg-from), var(--dialog-bg-to))',
-              borderColor: 'var(--dialog-border)',
+              background: '#ffffff',
+              border: '1px solid rgba(31, 44, 61, 0.4)',
             }}
+            onClick={(e) => e.stopPropagation()}
           >
+            {/* 게임창 타이틀바 */}
             <div
-              className="px-6 py-4 border-b flex items-center justify-between shrink-0"
-              style={{ borderColor: 'var(--panel-border)' }}
+              className="px-5 py-3 flex items-center justify-between shrink-0"
+              style={{ background: 'linear-gradient(180deg, var(--mpl-navy-from), var(--mpl-navy-to))' }}
             >
-              <h3 className="font-semibold" style={{ color: 'var(--text-strong)' }}>{title}</h3>
+              <h3
+                className="font-bold text-sm"
+                style={{ color: 'var(--mpl-title-yellow)', letterSpacing: '1px', textShadow: '1px 1px 0 rgba(31,44,61,.6)' }}
+              >
+                {title}
+              </h3>
               <button
                 onClick={onClose}
-                className="text-xl leading-none hover:bg-[var(--row-hover-bg)] w-7 h-7 rounded flex items-center justify-center"
-                style={{ color: 'var(--text-dim)' }}
+                className="text-xl leading-none w-7 h-7 rounded flex items-center justify-center hover:brightness-150"
+                style={{ color: '#8b99a8' }}
                 aria-label="닫기"
               >
                 ×
