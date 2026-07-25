@@ -1,9 +1,25 @@
 services:
+  # 프로덕션 (vite build + serve 정적 서빙) — maple.caadiq.co.kr
+  # 배포: docker compose up -d --build frontend
   frontend:
     build: ./frontend
     container_name: maplestory-frontend
     labels:
       - "com.centurylinklabs.watchtower.enable=false"
+    networks:
+      - caddy
+    restart: unless-stopped
+
+  # 개발 (Vite watch — 수정 즉시 반영) — dev.maple.caadiq.co.kr
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: maplestory-frontend-dev
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    volumes:
+      - ./frontend:/app
     networks:
       - caddy
     restart: unless-stopped

@@ -1,0 +1,4 @@
+# 개발 모드 (Vite watch — 소스 볼륨 마운트로 수정 즉시 반영)
+FROM node:22-alpine
+WORKDIR /app
+CMD ["sh", "-c", "npm install --include=dev --legacy-peer-deps && npm run dev -- --host 0.0.0.0"]
