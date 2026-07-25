@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from './useAuth'
 import { api } from '../api/client'
 
@@ -32,6 +32,7 @@ function debounce(fn, ms) {
  */
 export function useFeatureSync({ feature, store, initial, migrate }) {
   const { user, isLoading } = useAuth()
+  const [hydrated, setHydrated] = useState(false)
   const localKey = `maple-${feature}`
   const hydrating = useRef(true)
   const resolveInitial = () => (typeof initial === 'function' ? initial() : initial)
@@ -49,6 +50,7 @@ export function useFeatureSync({ feature, store, initial, migrate }) {
       let merged = { ...resolveInitial(), ...(data || {}) }
       if (migrate) merged = migrate(merged) || merged
       store.setState(merged)
+      setHydrated(true)
       setTimeout(() => { if (!cancelled) hydrating.current = false }, 0)
     }
     const readGuest = () => {
@@ -90,4 +92,7 @@ export function useFeatureSync({ feature, store, initial, migrate }) {
     const unsub = store.subscribe((s) => save(s))
     return () => { unsub(); save.flush() }
   }, [user, isLoading]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 첫 데이터 로드(hydrate) 완료 여부 — 진입 애니메이션 시작 시점 제어용
+  return { hydrated }
 }

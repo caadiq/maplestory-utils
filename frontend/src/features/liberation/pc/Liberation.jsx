@@ -3,13 +3,14 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import { useLayout } from '../../../components/pc/Layout'
 import MapleWindow, { MapleWindowTab } from '../../../components/pc/MapleWindow'
+import PageLoader from '../../../components/common/PageLoader'
 import { useLiberationStore, liberationInitial, migrateLiberationState } from '../store'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import Genesis from './Genesis'
 import Destiny from './Destiny'
 
 export default function Liberation() {
-  useFeatureSync({
+  const { hydrated } = useFeatureSync({
     feature: 'liberation',
     store: useLiberationStore,
     initial: liberationInitial,
@@ -21,6 +22,7 @@ export default function Liberation() {
     setFullscreen(true)
     return () => setFullscreen(false)
   }, [setFullscreen])
+
 
   const liberationType = useLiberationStore((s) => s.liberationType)
   const setLiberationType = useLiberationStore((s) => s.setLiberationType)
@@ -54,9 +56,11 @@ export default function Liberation() {
           </MapleWindowTab>
         ))}
       >
-        <div className="space-y-4">
+        {!hydrated ? <PageLoader /> : (
+        <div key={liberationType} className="mpl-page-enter space-y-4">
           {liberationType === 'genesis' ? <Genesis /> : <Destiny />}
         </div>
+        )}
       </MapleWindow>
     </div>
   )

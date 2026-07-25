@@ -326,6 +326,13 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
+/* 페이지 진입 페이드 — opacity만 애니메이션 (transform은 fixed 다이얼로그 기준점을 틀어지게 하므로 금지) */
+@keyframes mpl-page-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.mpl-page-enter { animation: mpl-page-fade 0.4s ease-out both; }
+
 /* 툴팁 애니메이션 */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(2px); }

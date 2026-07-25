@@ -13,12 +13,13 @@ import { formatKoreanDate, TYPE_ORDER } from '../utils'
 import { symbolMetrics } from '../logic'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import { useSymbolCharacterSync } from '../useSymbolCharacterSync'
+import PageLoader from '../../../components/common/PageLoader'
 import CharacterCard from './user/CharacterCard'
 import SymbolCard from './user/SymbolCard'
 import SymbolLevelTableModal from './user/SymbolLevelTableModal'
 
 export default function Symbol() {
-  useFeatureSync({ feature: 'symbol', store: useSymbolStore, initial: symbolInitialState })
+  const { hydrated } = useFeatureSync({ feature: 'symbol', store: useSymbolStore, initial: symbolInitialState })
 
   const { setFullscreen } = useLayout()
   useLayoutEffect(() => {
@@ -27,11 +28,12 @@ export default function Symbol() {
   }, [setFullscreen])
 
   // 심볼 목록 (DB에서 로드)
-  const { data: allSymbols = [] } = useQuery({
+  const { data: allSymbols = [], isLoading: symbolsLoading } = useQuery({
     queryKey: ['symbol', 'symbols'],
     queryFn: () => api('/api/symbols').catch(() => []),
     staleTime: 5 * 60 * 1000,
   })
+
 
   const tabs = useMemo(() => {
     const groups = {}
@@ -134,7 +136,9 @@ export default function Symbol() {
           </MapleWindowTab>
         ))}
       >
-        <div className="space-y-4">
+        {symbolsLoading || !hydrated ? <PageLoader /> : (
+        <div className="mpl-page-enter space-y-4">
+        <div className="">
         <form onSubmit={handleSearch} className="flex items-center gap-2">
           <div ref={addAnchorRef} className="relative flex-1">
             <span
@@ -189,9 +193,11 @@ export default function Symbol() {
         {addError && (
           <p className="text-sm" style={{ color: 'var(--danger-text)' }}>{addError}</p>
         )}
+        </div>
 
         {/* 캐릭터 목록 */}
         {characters.length > 0 && (
+          <div className="">
           <OverlayScrollbarsComponent
             className=""
             options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'scroll', y: 'hidden' } }}
@@ -215,6 +221,7 @@ export default function Symbol() {
               ))}
             </Reorder.Group>
           </OverlayScrollbarsComponent>
+          </div>
         )}
 
       {/* 심볼 카드 그리드 */}
@@ -262,6 +269,7 @@ export default function Symbol() {
         </div>
       </div>
         </div>
+        )}
       </MapleWindow>
 
       <SymbolLevelTableModal open={levelTableOpen} onClose={() => setLevelTableOpen(false)} allSymbols={allSymbols} />
