@@ -11,9 +11,9 @@
    기준: 최신 기본 창 UI — 남색 타이틀바 + 청회색 창 + 하늘/보라/연두 액센트 */
 :root {
   color-scheme: light;
-  --bg-from: #7db8dc;
-  --bg-via: #9fcbe6;
-  --bg-to: #cfe9e2;
+  --bg-from: #ffffff;
+  --bg-via: #ffffff;
+  --bg-to: #ffffff;
   --scrollbar-thumb: rgba(31, 44, 61, 0.3);
   --scrollbar-thumb-hover: rgba(31, 44, 61, 0.45);
   --scrollbar-track: transparent;
