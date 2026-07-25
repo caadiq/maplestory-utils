@@ -158,9 +158,6 @@ export default function Layout() {
         }`}
         style={{ color: 'var(--text-strong)' }}
       >
-        {/* 배경 장식 (은은한 빛망울) */}
-        <div className="pointer-events-none fixed -top-24 left-[15%] w-[420px] h-[420px] rounded-full" style={{ background: 'rgba(255,255,255,.25)', filter: 'blur(80px)' }} />
-        <div className="pointer-events-none fixed -bottom-20 right-[10%] w-[380px] h-[380px] rounded-full" style={{ background: 'rgba(160,220,190,.3)', filter: 'blur(90px)' }} />
 
         <header
           className="sticky top-0 z-20 shrink-0"
