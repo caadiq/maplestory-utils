@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { Outlet, Link, useLocation, useMatch } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import Footer from './Footer'
@@ -226,7 +227,16 @@ export default function Layout() {
         <main className={`flex-1 mx-auto w-full max-w-[1400px] ${
           fullscreen ? 'min-h-0 px-6 py-4' : 'px-6 pt-4 pb-10'
         }`}>
-          <Outlet />
+          {/* 페이지 전환 — fromis_9 에디토리얼 모션 (절제된 페이드업) */}
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            className="h-full min-h-0"
+          >
+            <Outlet />
+          </motion.div>
         </main>
         {isHome && <Footer />}
       </div>

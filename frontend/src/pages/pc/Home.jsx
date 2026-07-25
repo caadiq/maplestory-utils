@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { motion } from 'framer-motion'
+import { fadeUp, stagger } from '../../components/common/motion'
 import { api } from '../../api/client'
 import NoticeWidget from '../../components/pc/NoticeWidget'
 import SundayMapleBanner from '../../components/pc/SundayMapleBanner'
@@ -12,12 +14,19 @@ export default function Home() {
   })
 
   return (
-    <div className="space-y-10 max-w-5xl mx-auto pt-6">
+    <motion.div
+      className="space-y-10 max-w-5xl mx-auto pt-6"
+      variants={stagger}
+      initial="hidden"
+      animate="show"
+    >
       {/* 썬데이 메이플 배너 (금~일만 표시) */}
-      <SundayMapleBanner />
+      <motion.div variants={fadeUp}>
+        <SundayMapleBanner />
+      </motion.div>
 
       {/* 구분선 */}
-      <div className="flex items-center gap-4">
+      <motion.div variants={fadeUp} className="flex items-center gap-4">
         <div
           className="h-px flex-1"
           style={{ backgroundImage: 'linear-gradient(to right, transparent, var(--divider-line), transparent)' }}
@@ -32,10 +41,10 @@ export default function Home() {
           className="h-px flex-1"
           style={{ backgroundImage: 'linear-gradient(to right, transparent, var(--divider-line), transparent)' }}
         />
-      </div>
+      </motion.div>
 
       {/* 메뉴 그리드 */}
-      <section>
+      <motion.section variants={fadeUp}>
         {loading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -94,10 +103,10 @@ export default function Home() {
             ))}
           </div>
         )}
-      </section>
+      </motion.section>
 
       {/* 구분선 */}
-      <div className="flex items-center gap-4">
+      <motion.div variants={fadeUp} className="flex items-center gap-4">
         <div
           className="h-px flex-1"
           style={{ backgroundImage: 'linear-gradient(to right, transparent, var(--divider-line), transparent)' }}
@@ -112,10 +121,12 @@ export default function Home() {
           className="h-px flex-1"
           style={{ backgroundImage: 'linear-gradient(to right, transparent, var(--divider-line), transparent)' }}
         />
-      </div>
+      </motion.div>
 
       {/* 메이플 공지 */}
-      <NoticeWidget />
-    </div>
+      <motion.div variants={fadeUp}>
+        <NoticeWidget />
+      </motion.div>
+    </motion.div>
   )
 }
