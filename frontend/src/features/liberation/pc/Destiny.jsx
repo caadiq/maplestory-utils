@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import {
   DESTINY_CHAPTERS,
   DESTINY_TOTAL,
+  DESTINY_PRIMARY_TOTAL,
   DESTINY_QUEST_IMAGE_BASE,
   DESTINY_BOSSES,
   DESTINY_BOSS_IMAGE_BASE,
@@ -49,6 +50,21 @@ export default function Destiny() {
     [calcMode, state, alreadyDone, remaining, weeklyEarn, doneEarn],
   )
   const isDone = completionDate !== null
+
+  // 1차 해방(무기 전승): phase 1 챕터까지만 따로 계산
+  const primary = liberationProgress(DESTINY_CHAPTERS, DESTINY_PRIMARY_TOTAL, state.startChapter, state.currentPoints)
+  const primaryDate = useMemo(
+    () => primary.alreadyDone ? null : computeCompletionDate({
+      calcMode, state, alreadyDone: false, remaining: primary.remaining,
+      weeklyEarn, doneEarn,
+      monthlyEarn: 0,
+      monthlyDoneThisMonth: false,
+      bosses: DESTINY_BOSSES,
+      monthlyBoss: null,
+      makeEmptyConfig: makeEmptyDestinyWeekly,
+    }),
+    [calcMode, state, primary.alreadyDone, primary.remaining, weeklyEarn, doneEarn],
+  )
 
   const [resetOpen, setResetOpen] = useState(false)
   const doReset = () => {
@@ -97,6 +113,7 @@ export default function Destiny() {
         currentPoints={state.currentPoints}
         completionDate={isDone ? formatDate(completionDate) : null}
         completionColor="var(--destiny-date)"
+        primaryCompletion={{ done: primary.alreadyDone, date: primaryDate ? formatDate(primaryDate) : null }}
       />
 
       {/* 현재 진행 상태 입력 */}
