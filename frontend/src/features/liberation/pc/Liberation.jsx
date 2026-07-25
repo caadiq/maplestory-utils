@@ -2,6 +2,7 @@ import { useLayoutEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import { useLayout } from '../../../components/pc/Layout'
+import MapleWindow, { MapleWindowTab } from '../../../components/pc/MapleWindow'
 import { useLiberationStore, liberationInitial, migrateLiberationState } from '../store'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import Genesis from './Genesis'
@@ -36,39 +37,27 @@ export default function Liberation() {
   })
 
   return (
-    <div className="space-y-6 pb-10">
-      {/* 해방 종류 탭 */}
-      <div className="max-w-3xl mx-auto flex gap-2">
-        {[
+    <div className="pb-10 max-w-4xl mx-auto">
+      <MapleWindow
+        title="LIBERATION"
+        tabs={[
           { key: 'genesis', label: '제네시스 해방', img: genesisImg.data?.url },
           { key: 'destiny', label: '데스티니 해방', img: destinyImg.data?.url },
-        ].map((tab) => {
-          const active = liberationType === tab.key
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setLiberationType(tab.key)}
-              className="flex-1 flex items-center justify-center gap-3 rounded-2xl border px-5 py-3"
-              style={active ? {
-                background: 'var(--selected-bg)',
-                borderColor: 'var(--selected-border)',
-                color: 'var(--accent-bright)',
-                boxShadow: 'var(--btn-primary-shadow)',
-              } : {
-                background: 'var(--panel-bg)',
-                borderColor: 'var(--panel-border)',
-                color: 'var(--text-muted)',
-              }}
-            >
-              {tab.img && <img src={tab.img} alt="" className="w-8 h-8 object-contain" />}
-              <span className="text-base font-semibold">{tab.label}</span>
-            </button>
-          )
-        })}
-      </div>
-
-      {liberationType === 'genesis' ? <Genesis /> : <Destiny />}
+        ].map((tab) => (
+          <MapleWindowTab
+            key={tab.key}
+            active={liberationType === tab.key}
+            onClick={() => setLiberationType(tab.key)}
+          >
+            {tab.img && <img src={tab.img} alt="" className="w-5 h-5 object-contain" style={{ imageRendering: 'pixelated' }} />}
+            {tab.label}
+          </MapleWindowTab>
+        ))}
+      >
+        <div className="space-y-4">
+          {liberationType === 'genesis' ? <Genesis /> : <Destiny />}
+        </div>
+      </MapleWindow>
     </div>
   )
 }

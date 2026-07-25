@@ -11,7 +11,6 @@ export default function ProgressBar({
   startChapter,
   currentPoints,
   completionDate,
-  completionColor = 'var(--warning-text-bright)',
   // 데스티니: 1차 해방(무기 전승) 날짜를 따로 표시 { done: bool, date: 'YYYY-MM-DD'|null }
   primaryCompletion = null,
 }) {
@@ -24,117 +23,132 @@ export default function ProgressBar({
     return { chapter: c, status: 'pending', current: 0 }
   })
 
-  const renderSegment = ({ chapter, status, current }) => {
-    const pct = (current / chapter.required) * 100
-    const bg = status === 'done' ? 'var(--progress-emerald)' : status === 'active' ? 'var(--progress-amber)' : 'transparent'
-    return (
-      <div
-        key={`seg-${chapter.idx}`}
-        className="flex-1 h-2 rounded overflow-hidden"
-        style={{ background: 'var(--progress-track)' }}
-      >
-        <div
-          className="h-full transition-all"
-          style={{ width: `${pct}%`, background: bg }}
-        />
-      </div>
-    )
-  }
-
-  const renderPortrait = ({ chapter, status }) => (
-    <div key={`p-${chapter.idx}`} className="flex-1 flex flex-col items-center gap-1.5 min-w-0">
-      <div className={`w-full aspect-square rounded-lg overflow-hidden ${
-        status === 'active' ? 'shadow-lg shadow-amber-500/20' :
-        status === 'pending' ? 'opacity-50' : ''
-      }`}>
-        <img
-          src={`${imageBase}/${chapter.boss}.webp`}
-          alt={chapter.boss}
-          className={`block w-full h-full object-cover ${status === 'pending' ? 'grayscale' : ''}`}
-        />
-      </div>
-      <div
-        className="text-sm font-medium"
-        style={{
-          color: status === 'done' ? 'var(--accent-bright)' :
-                 status === 'active' ? 'var(--warning-text-bright)' : 'var(--text-dim)',
-        }}
-      >
-        {chapter.boss}
-      </div>
-    </div>
-  )
+  // 1차/2차 해방 라벨 폭 (phase 필드가 있으면 그 기준, 없으면 반반)
+  const phase1Count = chapters.filter((c) => c.phase === 1).length || Math.ceil(chapters.length / 2)
 
   return (
     <div
-      className="max-w-3xl mx-auto rounded-2xl border p-6 space-y-5"
-      style={{
-        background: 'var(--panel-bg)',
-        borderColor: 'var(--panel-border)',
-        boxShadow: 'var(--panel-shadow)',
-      }}
+      className="max-w-3xl mx-auto rounded-xl p-5 space-y-4"
+      style={{ background: '#ffffff', boxShadow: 'inset 0 0 0 1px #dbe3ea' }}
     >
       {/* 섹션 제목 */}
-      <div className="text-lg font-semibold" style={{ color: 'var(--accent-bright)' }}>퀘스트 진행 상황</div>
+      <div className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>퀘스트 진행 상황</div>
 
-      {/* 1차 / 2차 라벨 + 세그먼트 바 */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="flex-1 flex flex-col items-center gap-2">
-            <span className="text-base font-bold" style={{ color: 'var(--liberation-primary)' }}>1차 해방</span>
-            <div style={{ width: '100%', height: 3, background: 'var(--liberation-primary-bar)', borderRadius: 999 }} />
-          </div>
-          <div className="flex-1 flex flex-col items-center gap-2">
-            <span className="text-base font-bold" style={{ color: 'var(--liberation-secondary)' }}>2차 해방</span>
-            <div style={{ width: '100%', height: 3, background: 'var(--liberation-secondary-bar)', borderRadius: 999 }} />
-          </div>
+      {/* 1차 / 2차 라벨 + 밑줄 바 */}
+      <div className="flex items-center gap-2">
+        <div className="flex flex-col items-center gap-1.5" style={{ flex: phase1Count }}>
+          <span className="text-sm font-bold" style={{ color: 'var(--mpl-slate-to)' }}>1차 해방</span>
+          <div style={{ width: '100%', height: 3, background: '#b6c3cf', borderRadius: 999 }} />
         </div>
-        <div className="flex gap-2">
-          {chapterStates.map(renderSegment)}
+        <div className="flex flex-col items-center gap-1.5" style={{ flex: chapters.length - phase1Count }}>
+          <span className="text-sm font-bold" style={{ color: 'var(--mpl-slate-to)' }}>2차 해방</span>
+          <div style={{ width: '100%', height: 3, background: '#b6c3cf', borderRadius: 999 }} />
         </div>
       </div>
 
-      {/* 초상화 (붙어있음) */}
-      <div className="flex gap-2">
-        {chapterStates.map(renderPortrait)}
+      {/* 챕터 초상 + 개별 게이지 */}
+      <div className="flex gap-2.5">
+        {chapterStates.map(({ chapter, status, current }) => {
+          const pct = chapter.required ? Math.min((current / chapter.required) * 100, 100) : 0
+          return (
+            <div key={chapter.idx} className="flex-1 min-w-0 text-center">
+              <div
+                className="w-full aspect-square rounded-[10px] overflow-hidden"
+                style={status === 'active' ? { boxShadow: '0 0 0 3px #eec584' } : undefined}
+              >
+                <img
+                  src={`${imageBase}/${chapter.boss}.webp`}
+                  alt={chapter.boss}
+                  className={`block w-full h-full object-cover ${status === 'pending' ? 'grayscale opacity-60' : ''}`}
+                />
+              </div>
+              <div
+                className="text-xs font-semibold mt-1.5 truncate"
+                style={{
+                  color: status === 'done' ? 'var(--accent-bright)' :
+                         status === 'active' ? 'var(--warning-text-bright)' : 'var(--text-dim)',
+                }}
+              >
+                {chapter.boss}
+              </div>
+              <div
+                className="h-[7px] rounded-full overflow-hidden mt-1.5"
+                style={{ background: '#e3eaf0' }}
+              >
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${status === 'done' ? 100 : pct}%`,
+                    background: status === 'done'
+                      ? 'linear-gradient(180deg, var(--mpl-lime-from), var(--mpl-lime-to))'
+                      : 'linear-gradient(180deg, #ffd76e, #f0a828)',
+                  }}
+                />
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {/* 예상 해방 날짜 */}
       {primaryCompletion ? (
-        <div
-          className="grid grid-cols-2 pt-4 border-t"
-          style={{ borderColor: 'var(--panel-border)' }}
-        >
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-base font-semibold" style={{ color: 'var(--liberation-primary)' }}>1차 해방</span>
-            <span className="text-xl font-bold tabular-nums" style={{ color: completionColor }}>
+        <div className="grid grid-cols-2 gap-3 pt-1">
+          <div
+            className="rounded-xl px-5 py-3.5 text-white"
+            style={{
+              background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.25), 0 4px 12px rgba(31,44,61,.25)',
+            }}
+          >
+            <span
+              className="inline-block rounded-full px-3 py-0.5 text-[11px] font-semibold"
+              style={{ background: 'rgba(255,255,255,.25)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.35)' }}
+            >
+              1차 해방
+            </span>
+            <div className="text-xl font-bold tabular-nums mt-1.5">
               {primaryCompletion.done
-                ? <span style={{ color: 'var(--accent-bright)' }}>해방 완료</span>
+                ? '해방 완료'
                 : primaryCompletion.date
                   ? formatKoreanDate(primaryCompletion.date)
-                  : <span className="font-normal" style={{ color: 'var(--text-dim)' }}>미정</span>}
-            </span>
+                  : <span className="font-normal" style={{ color: 'rgba(255,255,255,.7)' }}>미정</span>}
+            </div>
           </div>
-          <div className="flex flex-col items-center gap-1 border-l" style={{ borderColor: 'var(--panel-border)' }}>
-            <span className="text-base font-semibold" style={{ color: 'var(--liberation-secondary)' }}>2차 해방</span>
-            <span className="text-xl font-bold tabular-nums" style={{ color: completionColor }}>
-              {completionDate ? formatKoreanDate(completionDate) : <span className="font-normal" style={{ color: 'var(--text-dim)' }}>미정</span>}
+          <div
+            className="rounded-xl px-5 py-3.5 text-white"
+            style={{
+              background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.25), 0 4px 12px rgba(31,44,61,.25)',
+            }}
+          >
+            <span
+              className="inline-block rounded-full px-3 py-0.5 text-[11px] font-semibold"
+              style={{ background: 'rgba(255,255,255,.25)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.35)' }}
+            >
+              2차 해방
             </span>
+            <div className="text-xl font-bold tabular-nums mt-1.5">
+              {completionDate ? formatKoreanDate(completionDate) : <span className="font-normal" style={{ color: 'rgba(255,255,255,.7)' }}>미정</span>}
+            </div>
           </div>
         </div>
       ) : (
         <div
-          className="flex items-center justify-center gap-3 pt-4 border-t"
-          style={{ borderColor: 'var(--panel-border)' }}
+          className="rounded-xl px-5 py-3.5 text-white"
+          style={{
+            background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.25), 0 4px 12px rgba(31,44,61,.25)',
+          }}
         >
-          <span className="text-lg font-semibold" style={{ color: 'var(--text-strong)' }}>예상 해방 날짜</span>
-          <span style={{ color: 'var(--text-dim)' }}>·</span>
           <span
-            className="text-xl font-bold tabular-nums"
-            style={{ color: completionColor }}
+            className="inline-block rounded-full px-3 py-0.5 text-[11px] font-semibold"
+            style={{ background: 'rgba(255,255,255,.25)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.35)' }}
           >
-            {completionDate ? formatKoreanDate(completionDate) : <span className="font-normal" style={{ color: 'var(--text-dim)' }}>미정</span>}
+            예상 해방 날짜
           </span>
+          <div className="text-xl font-bold tabular-nums mt-1.5">
+            {completionDate ? formatKoreanDate(completionDate) : <span className="font-normal" style={{ color: 'rgba(255,255,255,.7)' }}>미정</span>}
+          </div>
         </div>
       )}
     </div>

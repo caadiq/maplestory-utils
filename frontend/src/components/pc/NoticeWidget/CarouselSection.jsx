@@ -13,10 +13,11 @@ function CardItem({ item, cfg }) {
     : start || end
       ? (startMD === endMD ? startMD : `${startMD} ~ ${endMD}`)
       : fmtYMD(item.date)
-  const badgeBg = {
-    emerald: 'var(--badge-emerald-bg)',
-    amber: 'var(--badge-amber-bg)',
-    gray: 'var(--badge-gray-bg)',
+  const badgeStyle = {
+    emerald: { background: 'var(--badge-emerald-bg)', color: 'var(--badge-text)' },
+    // 마감 임박: MVP UI 살구톤
+    amber: { background: 'linear-gradient(180deg, #f7dcab, #eec584)', color: '#8a5f14' },
+    gray: { background: 'var(--badge-gray-bg)', color: 'var(--badge-text)' },
   }[badge?.tone]
 
   return (
@@ -53,7 +54,7 @@ function CardItem({ item, cfg }) {
         {badge && (
           <span
             className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[11px] font-medium"
-            style={{ background: badgeBg, color: 'var(--badge-text)' }}
+            style={badgeStyle}
           >
             {badge.label}
           </span>
