@@ -128,7 +128,7 @@ export default function WeeklyDefault({
 
   return (
     <div
-      className="max-w-3xl mx-auto rounded-xl p-5 space-y-3"
+      className="rounded-xl p-5 space-y-3"
       style={{ background: 'var(--mpl-card)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}
     >
       <div className="flex items-center justify-between">
