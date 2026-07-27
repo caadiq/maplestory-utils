@@ -199,10 +199,18 @@ function MethodStrip({ methods, methodIcons }) {
                 boxShadow: '0 12px 32px rgba(31,44,61,.32)',
               }}
               onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between px-3 py-1.5" style={{ background: 'linear-gradient(180deg, var(--mpl-navy-from), var(--mpl-navy-to))' }}>
                 <span className="text-[11.5px] font-bold" style={{ color: 'var(--mpl-title-yellow)', letterSpacing: '1.5px', textShadow: '1px 1px 0 rgba(31,44,61,.6)' }}>ALL CUBES</span>
-                <button type="button" onClick={() => setOpen(false)} className="text-[15px] leading-none" style={{ color: '#9fb0c1' }} aria-label="닫기">×</button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); setOpen(false) }}
+                  className="text-[15px] leading-none"
+                  style={{ color: '#9fb0c1' }}
+                  aria-label="닫기"
+                >×</button>
               </div>
               <div className="p-[7px]">
                 <div className="rounded-[7px] p-[5px]" style={{ background: 'var(--mpl-panel)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}>
@@ -256,35 +264,77 @@ function ItemCard({ onClick, icon, worldIcon, character, name, sub, cost, footer
   )
 }
 
-/** 상세 헤더 (뒤로가기 + 아이템명 / 우측 캐릭터) */
-function detailTitle(group, onBack) {
+/** 상세 헤더 좌측: 목록으로 + 섹션 타이틀 */
+function detailTitle(label, onBack) {
   return (
-    <span className="flex items-center gap-2">
-      <button type="button" onClick={onBack} className="text-white text-lg leading-none" aria-label="뒤로">‹</button>
-      {group.item}
+    <span className="flex items-center gap-2.5">
+      <button
+        type="button"
+        onClick={onBack}
+        className="inline-flex items-center gap-1 rounded-full pl-2 pr-3 py-1 text-xs font-bold"
+        style={{ background: 'rgba(255,255,255,.14)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.25)', color: '#fff' }}
+      >
+        ‹ 목록
+      </button>
+      {label}
     </span>
   )
 }
-function detailNick(group, worldIcon) {
+
+/** 상세 헤더 우측: 조회 기간 + 아이템 이동 */
+function detailRight({ periodLabel, index, total, onPrev, onNext }) {
+  const chip = {
+    background: 'rgba(255,255,255,.14)',
+    boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.25)',
+    color: '#fff',
+  }
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full pl-1.5 pr-3 py-1 text-xs font-bold"
-      style={{ background: 'rgba(255,255,255,.14)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.25)', color: '#fff' }}>
-      {worldIcon && <img src={worldIcon} alt="" className="w-4 h-4 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
-      {group.character}
+    <span className="flex items-center gap-2">
+      <span className="rounded-full px-3 py-1 text-[11.5px] font-bold" style={chip}>{periodLabel}</span>
+      <span className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={onPrev}
+          disabled={index <= 0}
+          className="w-6 h-6 rounded-full text-sm leading-none disabled:opacity-35"
+          style={chip}
+          aria-label="이전 아이템"
+        >‹</button>
+        <span className="text-[11.5px] font-bold tabular-nums px-1" style={{ color: '#cfdae4' }}>{index + 1} / {total}</span>
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={index >= total - 1}
+          className="w-6 h-6 rounded-full text-sm leading-none disabled:opacity-35"
+          style={chip}
+          aria-label="다음 아이템"
+        >›</button>
+      </span>
     </span>
   )
 }
 
 // ─────────── 잠재 상세 ───────────
-function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack }) {
+function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
   return (
-    <MapleWindow title={detailTitle(group, onBack)} titleRight={detailNick(group, worldIcon)} bodyClassName="space-y-3">
+    <MapleWindow
+      title={detailTitle('POTENTIAL HISTORY', onBack)}
+      titleRight={detailRight(nav)}
+      bodyClassName="space-y-3"
+    >
       {/* 요약 명패 */}
       <div className="rounded-xl overflow-hidden" style={CARD}>
         <div className="flex items-center gap-3.5 px-4 py-3.5">
           <ItemSlot url={icon} size={64} />
           <div className="flex-1 min-w-0">
-            <div className="text-[21px] font-bold" style={{ color: 'var(--text-strong)' }}>{group.item}</div>
+            <div className="flex items-center gap-2">
+              <span className="text-[21px] font-bold" style={{ color: 'var(--text-strong)' }}>{group.item}</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full pl-1.5 pr-2.5 py-0.5 text-xs font-bold"
+                style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}>
+                {worldIcon && <img src={worldIcon} alt="" className="w-4 h-4 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
+                {group.character}
+              </span>
+            </div>
             <div className="text-[13px] mt-0.5" style={{ color: 'var(--text-dim)' }}>{group.part} · Lv.{group.level}</div>
             <div className="flex gap-4 mt-2 text-[14.5px] font-bold">
               {group.potential && (
@@ -380,7 +430,7 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack }) {
 }
 
 // ─────────── 스타포스 상세 ───────────
-function StarforceDetail({ group, icon, worldIcon, onBack }) {
+function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
   const [showAllRanges, setShowAllRanges] = useState(false)
   // 기본은 2회 이상 시도한 구간만 (없으면 전체) — 나머지는 더보기로 펼침
   const allRanges = starRangeStats(group.records)
@@ -389,12 +439,23 @@ function StarforceDetail({ group, icon, worldIcon, onBack }) {
   const ranges = showAllRanges ? allRanges : baseRanges
   const hiddenRanges = allRanges.length - baseRanges.length
   return (
-    <MapleWindow title={detailTitle(group, onBack)} titleRight={detailNick(group, worldIcon)} bodyClassName="space-y-3">
+    <MapleWindow
+      title={detailTitle('STARFORCE HISTORY', onBack)}
+      titleRight={detailRight(nav)}
+      bodyClassName="space-y-3"
+    >
       <div className="rounded-xl overflow-hidden" style={CARD}>
         <div className="flex items-center gap-3.5 px-4 py-3.5">
           <ItemSlot url={icon} size={64} />
           <div className="flex-1 min-w-0">
-            <div className="text-[21px] font-bold" style={{ color: 'var(--text-strong)' }}>{group.item}</div>
+            <div className="flex items-center gap-2">
+              <span className="text-[21px] font-bold" style={{ color: 'var(--text-strong)' }}>{group.item}</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full pl-1.5 pr-2.5 py-0.5 text-xs font-bold"
+                style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}>
+                {worldIcon && <img src={worldIcon} alt="" className="w-4 h-4 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
+                {group.character}
+              </span>
+            </div>
             <div className="text-2xl font-bold mt-1 tabular-nums">
               <span style={{ color: '#c9a227' }}>★{group.startStar}</span>
               <span style={{ color: 'var(--text-dim)' }}> → </span>
@@ -618,14 +679,25 @@ export default function Enchant() {
   }
 
   const loading = sfQuery.isLoading || cubeQuery.isLoading || potQuery.isLoading
-  const detailGroup = detailKey ? (tab === 'starforce' ? sfGroups : potGroups).find((g) => g.key === detailKey) : null
+  const activeGroups = tab === 'starforce' ? sfGroups : potGroups
+  const detailIndex = detailKey ? activeGroups.findIndex((g) => g.key === detailKey) : -1
+  const detailGroup = detailIndex >= 0 ? activeGroups[detailIndex] : null
+  const RANGE_LABEL = { today: '오늘', '7d': '최근 7일', '30d': '최근 30일', '6m': '최근 6개월', '1y': '최근 1년' }
+  const periodLabel = range === 'custom' ? `${from} ~ ${to}` : RANGE_LABEL[range]
+  const detailNav = {
+    periodLabel,
+    index: detailIndex,
+    total: activeGroups.length,
+    onPrev: () => detailIndex > 0 && setDetailKey(activeGroups[detailIndex - 1].key),
+    onNext: () => detailIndex < activeGroups.length - 1 && setDetailKey(activeGroups[detailIndex + 1].key),
+  }
 
   return (
     <div className="pb-10 max-w-6xl mx-auto mpl-page-enter">
       {detailGroup ? (
         tab === 'starforce'
-          ? <StarforceDetail group={detailGroup} icon={itemIcons[detailGroup.item]} worldIcon={worldIcons[detailGroup.character]} onBack={() => setDetailKey(null)} />
-          : <PotentialDetail group={detailGroup} icon={itemIcons[detailGroup.item]} worldIcon={worldIcons[detailGroup.character]} methodIcons={methodIcons} onBack={() => setDetailKey(null)} />
+          ? <StarforceDetail group={detailGroup} icon={itemIcons[detailGroup.item]} worldIcon={worldIcons[detailGroup.character]} onBack={() => setDetailKey(null)} nav={detailNav} />
+          : <PotentialDetail group={detailGroup} icon={itemIcons[detailGroup.item]} worldIcon={worldIcons[detailGroup.character]} methodIcons={methodIcons} onBack={() => setDetailKey(null)} nav={detailNav} />
       ) : (
         <MapleWindow
           title="ENCHANT HISTORY"
