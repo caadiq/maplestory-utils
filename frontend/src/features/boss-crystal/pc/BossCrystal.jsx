@@ -81,7 +81,10 @@ export default function BossCrystal() {
   }
 
   const currentSelections = selectedChar ? (selections[selectedChar] || {}) : {}
-  const currentSelectedCount = Object.values(currentSelections).filter(Boolean).length
+  // 시즌보스는 결정석 한도(12개) 미포함
+  const seasonIds = new Set(bosses.filter((b) => b.season).map((b) => b.id))
+  const currentSelectedCount = Object.entries(currentSelections)
+    .filter(([bossId, sel]) => sel && !seasonIds.has(Number(bossId))).length
   const isMaxReached = currentSelectedCount >= MAX_PER_CHARACTER
 
   return (
@@ -114,6 +117,7 @@ export default function BossCrystal() {
           >
             <BossSelector
               characterName={selectedChar}
+              worldName={characters.find((c) => c.character_name === selectedChar)?.world_name}
               bosses={bosses}
               selections={currentSelections}
               onChange={handleBossChange}

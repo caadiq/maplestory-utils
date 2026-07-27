@@ -5,6 +5,7 @@ import FeaturePage from '../features/FeaturePage'
 import AdminLayout from '../features/admin/pc/AdminLayout'
 import AdminHome from '../features/admin/pc/AdminHome'
 import AdminImages from '../features/admin/pc/AdminImages'
+import AdminChallengerSeasons from '../features/admin/pc/AdminChallengerSeasons'
 import AdminMenuForm from '../features/admin/pc/AdminMenuForm'
 import AdminFeaturePage from '../features/admin/pc/AdminFeaturePage'
 
@@ -18,6 +19,7 @@ export default function PCRoutes() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminHome />} />
           <Route path="images" element={<AdminImages />} />
+          <Route path="challenger-seasons" element={<AdminChallengerSeasons />} />
           <Route path="menus/new" element={<AdminMenuForm />} />
           <Route path="menus/:id" element={<AdminMenuForm />} />
           <Route path=":slug/*" element={<AdminFeaturePage />} />

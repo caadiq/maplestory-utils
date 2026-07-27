@@ -1,7 +1,9 @@
+import { isSeasonActive } from '../logic'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DIFFICULTIES, formatMeso } from '../pc/admin/constants'
 import { LABEL_EN } from '../logic'
+import { useBackClose } from '../../../hooks/useBackClose'
 
 // 난이도 칩 테두리: easy/normal/hard는 bg=border라 안 보이므로 어두운 테두리로 대체
 function chipBorder(d) {
@@ -11,6 +13,8 @@ function chipBorder(d) {
 // 모바일 전용 가격표 — fromis_9 일정 관리자 MemberSheet 바텀시트 패턴 이식
 // 핵심: backdrop과 시트를 형제로 배치(backdrop opacity 애니가 시트에 영향 X), tween slide-up, blur 없음
 export default function BossPriceModal({ open, onClose, bosses }) {
+  useBackClose(open, onClose)
+
   return createPortal(
     <AnimatePresence>
       {open && (
@@ -54,13 +58,21 @@ export default function BossPriceModal({ open, onClose, bosses }) {
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] space-y-3">
-              {bosses.map((boss) => {
+              {bosses.filter((b) => !b.season || isSeasonActive(b)).map((boss) => {
                 const diffs = DIFFICULTIES.filter((d) => boss.difficulties.some((bd) => bd.difficulty === d.key))
                 return (
                   <div key={boss.id} className="rounded-xl border p-3" style={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)' }}>
                     <div className="flex items-center gap-2.5 mb-2.5">
                       <img src={boss.image_url || '/default.png'} alt="" loading="lazy" decoding="async" className="w-10 h-10 rounded-md object-cover shrink-0" />
                       <span className="text-base font-semibold" style={{ color: 'var(--text-strong)' }}>{boss.name}</span>
+                      {boss.season && (
+                <span
+                  className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                  style={{ background: 'linear-gradient(180deg, #f7dcab, #eec584)', boxShadow: 'inset 0 0 0 1px #e3b878', color: '#9a6a10' }}
+                >
+                  시즌
+                </span>
+              )}
                     </div>
                     <div className="space-y-1.5">
                       {diffs.map((d) => {

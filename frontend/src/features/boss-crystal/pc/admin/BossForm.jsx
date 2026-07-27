@@ -27,12 +27,20 @@ export default function BossForm() {
 
   const [name, setName] = useState('')
   const [maxPartySize, setMaxPartySize] = useState(3)
+  const [isSeasonBoss, setIsSeasonBoss] = useState(false)
+  const [seasonId, setSeasonId] = useState(null)
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [existingImageUrl, setExistingImageUrl] = useState(null)
   const [difficulties, setDifficulties] = useState(emptyDifficultyState())
   const [errors, setErrors] = useState({})
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  // 챌린저스 시즌 목록 (시즌보스 지정용)
+  const { data: seasons = [] } = useQuery({
+    queryKey: ['admin', 'challenger-seasons'],
+    queryFn: () => api('/api/admin/challenger-seasons').catch(() => []),
+  })
 
   // 편집 모드 데이터 로드
   const { data: bossData } = useQuery({
@@ -45,6 +53,8 @@ export default function BossForm() {
     if (!isEdit) {
       setName('')
       setMaxPartySize(3)
+      setIsSeasonBoss(false)
+      setSeasonId(null)
       setImageFile(null)
       setImagePreview(null)
       setExistingImageUrl(null)
@@ -54,6 +64,8 @@ export default function BossForm() {
     if (bossData) {
       setName(bossData.name || '')
       setMaxPartySize(bossData.max_party_size || 3)
+      setIsSeasonBoss(bossData.season_id != null)
+      setSeasonId(bossData.season_id ?? null)
       setExistingImageUrl(bossData.image_url || null)
       setImagePreview(null)
       setImageFile(null)
@@ -85,6 +97,7 @@ export default function BossForm() {
     const errs = {}
     if (!name.trim()) errs.name = '보스 이름을 입력해주세요'
     if (!isEdit && !imageFile) errs.image = '보스 이미지를 업로드해주세요'
+    if (isSeasonBoss && seasonId == null) errs.season = '시즌을 선택해주세요'
 
     const enabledKeys = DIFFICULTIES.filter((d) => difficulties[d.key].enabled)
     if (enabledKeys.length === 0) {
@@ -108,6 +121,7 @@ export default function BossForm() {
       const formData = new FormData()
       formData.append('name', name.trim())
       formData.append('max_party_size', String(maxPartySize))
+      formData.append('season_id', isSeasonBoss && seasonId != null ? String(seasonId) : '')
       if (imageFile) formData.append('image', imageFile)
 
       const diffsPayload = DIFFICULTIES
@@ -193,6 +207,54 @@ export default function BossForm() {
             />
           </FormField>
         </div>
+
+        {/* 시즌보스 지정 */}
+        <FormField
+          label="시즌보스"
+          error={errors.season}
+          hint={seasons.length === 0
+            ? '등록된 챌린저스 시즌이 없습니다 (자원 관리 → 챌린저스 시즌 관리에서 추가)'
+            : '시즌보스는 해당 챌린저스 시즌 기간에 챌린저스 월드 캐릭터에게만 노출됩니다 (메소 드랍 — 결정석 한도 미포함)'}
+        >
+          <div className="flex items-center gap-4 h-12">
+            <button
+              type="button"
+              disabled={seasons.length === 0}
+              onClick={() => {
+                const next = !isSeasonBoss
+                setIsSeasonBoss(next)
+                if (next && seasonId == null) setSeasonId(seasons[0]?.id ?? null)
+                if (errors.season) setErrors((prev) => ({ ...prev, season: undefined }))
+              }}
+              className="flex items-center gap-2.5 disabled:opacity-50"
+            >
+              <span
+                className="relative shrink-0 rounded-full transition-colors"
+                style={{ width: 46, height: 26, background: isSeasonBoss ? 'var(--btn-primary-bg)' : '#374151' }}
+              >
+                <span
+                  className="absolute top-[3px] rounded-full bg-white transition-all"
+                  style={{ width: 20, height: 20, left: isSeasonBoss ? 23 : 3 }}
+                />
+              </span>
+              <span className="text-sm" style={{ color: 'var(--text-emphasis)' }}>
+                {isSeasonBoss ? '시즌보스' : '일반 보스'}
+              </span>
+            </button>
+            {isSeasonBoss && (
+              <Select
+                value={seasonId}
+                onChange={(val) => {
+                  setSeasonId(val)
+                  if (errors.season) setErrors((prev) => ({ ...prev, season: undefined }))
+                }}
+                options={seasons.map((s) => ({ value: s.id, label: `챌린저스 ${s.season_number}시즌` }))}
+                placeholder="시즌 선택"
+                className="w-48"
+              />
+            )}
+          </div>
+        </FormField>
 
         {/* 이미지 */}
         <FormField label="보스 이미지" required={!isEdit} error={errors.image}>
