@@ -4,8 +4,11 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../api/client'
+import { useBackClose } from '../../hooks/useBackClose'
 
 function SundayMapleDialog({ data, onClose }) {
+  useBackClose(true, onClose)
+
   // 배경 스크롤 잠금
   useEffect(() => {
     const prevBody = document.body.style.overflow

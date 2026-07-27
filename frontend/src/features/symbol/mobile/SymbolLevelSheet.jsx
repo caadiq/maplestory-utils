@@ -4,10 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Select from '../../../components/common/Select'
 import { formatMeso } from '../../../utils/formatting'
 import { TYPE_ORDER } from '../utils'
+import { useBackClose } from '../../../hooks/useBackClose'
 
 // 모바일 전용 레벨별 강화 비용표 — 바텀시트
 // 지역이 많아 가로 스크롤은 불편하므로: 타입 세그먼트 + 지역 드롭다운 → 레벨/개수/비용 3열
 export default function SymbolLevelSheet({ open, onClose, allSymbols }) {
+  useBackClose(open, onClose)
+
   const byType = {}
   for (const s of allSymbols) (byType[s.type] ??= []).push(s)
   const types = TYPE_ORDER.filter((t) => byType[t])
