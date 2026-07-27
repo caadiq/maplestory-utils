@@ -607,7 +607,7 @@ export default function Enchant() {
                         {g.totalCost != null && g.totalCost > 0 ? `${formatKoreanMeso(g.totalCost)} 메소` : '-'}
                       </div>
                       <div
-                        className="flex flex-col items-center gap-0.5 mt-auto pt-3 w-full border-t"
+                        className="flex flex-col items-center gap-0.5 mt-2.5 pt-3 w-full border-t"
                         style={{ borderColor: 'var(--mpl-card-line)' }}
                       >
                         <div className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
@@ -671,7 +671,7 @@ export default function Enchant() {
                         </div>
                       </CostBreakdown>
                       <div
-                        className="flex items-end justify-center gap-3.5 mt-auto pt-3 w-full border-t"
+                        className="flex items-end justify-center gap-3.5 mt-2.5 pt-3 w-full border-t"
                         style={{ borderColor: 'var(--mpl-card-line)' }}
                       >
                         {g.methods.slice(0, 4).map((m) => (
@@ -685,7 +685,7 @@ export default function Enchant() {
                         {g.methods.length > 4 && (
                           <div className="relative group/more flex flex-col items-center gap-1">
                             <span
-                              className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold"
+                              className="w-11 h-11 rounded-full flex items-center justify-center text-[15px] font-bold -my-1"
                               style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}
                             >
                               +{g.methods.length - 4}
@@ -695,16 +695,16 @@ export default function Enchant() {
                             </span>
                             {/* 전체 수단 목록 팝업 */}
                             <span
-                              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/more:block z-20 w-60 rounded-xl p-2.5 text-left"
+                              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/more:block z-20 w-72 rounded-xl p-3 text-left"
                               style={{ background: 'var(--popup-bg)', boxShadow: 'var(--popup-shadow), inset 0 0 0 1px var(--popup-border)' }}
                             >
                               {g.methods.map((m) => (
-                                <span key={m.iconName} className="flex items-center gap-2 py-1">
+                                <span key={m.iconName} className="flex items-center gap-2.5 py-1.5">
                                   {methodIcons[m.iconName]
-                                    ? <img src={methodIcons[m.iconName]} alt="" className="w-6 h-6 object-contain shrink-0" style={{ imageRendering: 'pixelated' }} draggable={false} />
-                                    : <span className="w-6 h-6 shrink-0" />}
-                                  <span className="flex-1 text-xs truncate" style={{ color: 'var(--text-muted)' }}>{m.iconName}</span>
-                                  <b className="text-xs tabular-nums" style={{ color: 'var(--text-strong)' }}>{m.count.toLocaleString()}</b>
+                                    ? <img src={methodIcons[m.iconName]} alt="" className="w-8 h-8 object-contain shrink-0" style={{ imageRendering: 'pixelated' }} draggable={false} />
+                                    : <span className="w-8 h-8 shrink-0" />}
+                                  <span className="flex-1 text-[13px] truncate" style={{ color: 'var(--text-muted)' }}>{m.iconName}</span>
+                                  <b className="text-[13px] tabular-nums" style={{ color: 'var(--text-strong)' }}>{m.count.toLocaleString()}</b>
                                 </span>
                               ))}
                             </span>
