@@ -106,7 +106,7 @@ export default function Genesis() {
   return (
     <div className="space-y-4">
       {/* 계산 모드 세그먼트 */}
-      <div className="flex gap-1 p-1 rounded-xl border" style={{ background: 'var(--surface-3)', borderColor: 'var(--panel-border)' }}>
+      <div className="flex gap-1 p-1 rounded-full" style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}>
         {[{ key: 'simple', label: '일반' }, { key: 'weekly', label: '주차별' }].map((t) => {
           const active = calcMode === t.key
           return (
@@ -114,8 +114,12 @@ export default function Genesis() {
               key={t.key}
               type="button"
               onClick={() => setCalcMode(t.key)}
-              className="flex-1 h-9 rounded-lg text-sm font-semibold"
-              style={active ? { background: 'var(--selected-bg)', color: 'var(--accent-bright)' } : { color: 'var(--text-muted)' }}
+              className="flex-1 h-9 rounded-full text-sm font-bold"
+              style={active ? {
+                background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,.3)',
+                color: '#ffffff',
+              } : { color: 'var(--text-muted)' }}
             >
               {t.label}
             </button>
@@ -129,12 +133,11 @@ export default function Genesis() {
         startChapter={state.startChapter}
         currentPoints={state.currentPoints}
         completionDate={isDone ? formatDate(completionDate) : null}
-        completionColor="var(--genesis-date)"
       />
 
       {/* 현재 진행 상태 */}
       <div className="rounded-2xl border p-4 space-y-3" style={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)', boxShadow: 'var(--panel-shadow)' }}>
-        <div className="text-base font-semibold" style={{ color: 'var(--accent-bright)' }}>현재 진행 상태</div>
+        <div className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>현재 진행 상태</div>
 
         <div className="space-y-3">
           <div className="space-y-1.5">
@@ -172,13 +175,14 @@ export default function Genesis() {
           onClick={() => setPassOn(!passOn)}
           className="w-full rounded-2xl border p-4 flex items-center gap-3 text-left"
           style={passOn ? {
-            background: 'var(--panel-bg)', borderColor: 'rgba(252,211,77,0.5)',
-            boxShadow: '0 0 0 1px rgba(252,211,77,0.25), 0 8px 28px rgba(252,211,77,0.10)',
+            background: 'linear-gradient(120deg, #fdf3dd, #f7e3ba)',
+            borderColor: '#e3b878',
+            boxShadow: '0 0 0 1px rgba(227,184,120,.35), 0 8px 28px rgba(227,184,120,.18)',
           } : {
             background: 'var(--panel-bg)', borderColor: 'var(--panel-border)', boxShadow: 'var(--panel-shadow)',
           }}
         >
-          <div className="shrink-0 w-16 h-16 rounded-xl border flex items-center justify-center overflow-hidden" style={{ borderColor: 'rgba(252,211,77,0.18)', background: 'radial-gradient(circle at 50% 45%, rgba(252,211,77,0.12), rgba(2,6,23,0.6))' }}>
+          <div className="shrink-0 w-16 h-16 rounded-xl border flex items-center justify-center overflow-hidden" style={{ borderColor: '#e3c48f', background: 'var(--mpl-card)' }}>
             {passCfg.image?.url ? (
               <img src={passCfg.image.url} alt="제네시스 패스" className="w-14 h-auto" style={{ imageRendering: 'pixelated' }} />
             ) : (
@@ -190,9 +194,9 @@ export default function Genesis() {
             <div className="flex items-center justify-between gap-2">
               <div className="text-sm font-semibold flex items-center gap-1.5" style={{ color: passOn ? 'var(--text-strong)' : 'var(--text-muted)' }}>
                 패스 적용
-                <span className="text-xs font-extrabold" style={{ color: 'var(--genesis-date)' }}>×{passCfg.multiplier}</span>
+                <span className="text-xs font-extrabold" style={{ color: '#c77e15' }}>×{passCfg.multiplier}</span>
               </div>
-              <span className="relative shrink-0 rounded-full transition-colors" style={{ width: 40, height: 23, background: passOn ? 'var(--genesis-date)' : '#374151' }}>
+              <span className="relative shrink-0 rounded-full transition-colors" style={{ width: 40, height: 23, background: passOn ? 'linear-gradient(180deg, var(--mpl-lime-from), var(--mpl-lime-to))' : '#9aa8b5' }}>
                 <span className="absolute top-[3px] rounded-full bg-white transition-all" style={{ width: 17, height: 17, left: passOn ? 20 : 3 }} />
               </span>
             </div>
@@ -200,7 +204,7 @@ export default function Genesis() {
               패스 보유 시 포인트가 {passCfg.multiplier}배로 적립됩니다.
             </div>
             <div className="mt-2">
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-bold" style={passOn ? { background: 'var(--genesis-date)', color: '#0f172a' } : { background: 'rgba(255,255,255,0.07)', color: 'var(--text-dim)' }}>
+              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-bold" style={passOn ? { background: 'linear-gradient(180deg, #f7dcab, #eec584)', color: '#8a5f14', boxShadow: 'inset 0 0 0 1px #e3b878' } : { background: 'var(--mpl-row)', color: 'var(--text-dim)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}>
                 {passCfg.start_date?.replace(/-/g, '.')} ~ {passCfg.end_date?.replace(/-/g, '.')}
               </span>
             </div>
@@ -230,8 +234,12 @@ export default function Genesis() {
         <button
           type="button"
           onClick={() => setResetOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold"
-          style={{ borderColor: 'var(--icon-danger-border)', background: 'var(--icon-danger-bg)', color: 'var(--danger-text)' }}
+          className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold"
+          style={{
+            background: 'linear-gradient(180deg, var(--mpl-red-from), var(--mpl-red-to))',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.4), 0 2px 5px rgba(31,44,61,.25)',
+            color: '#ffffff',
+          }}
         >
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
             <path d="M2 3H14M6 3V2C6 1.45 6.45 1 7 1H9C9.55 1 10 1.45 10 2V3M3 3L4 14C4 14.55 4.45 15 5 15H11C11.55 15 12 14.55 12 14L13 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />

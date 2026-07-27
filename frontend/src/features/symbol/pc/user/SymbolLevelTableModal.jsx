@@ -5,7 +5,7 @@ import { formatMeso } from '../../../../utils/formatting'
 import { TYPE_ORDER } from '../../utils'
 
 // 지역별 색 — 각 심볼 이미지의 대표색에서 추출 (카르시온은 실제 문양의 에메랄드빛으로 보정)
-const REGION_COLOR = {
+export const REGION_COLOR = {
   '소멸의 여로': '#4893b2',
   '츄츄 아일랜드': '#b24faf',
   '레헬른': '#5c2ab2',

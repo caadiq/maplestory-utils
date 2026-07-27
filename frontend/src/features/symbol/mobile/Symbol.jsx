@@ -11,11 +11,13 @@ import { formatMesoKorean } from '../../../utils/formatting'
 import CharacterSuggestDropdown from '../../../components/common/CharacterSuggestDropdown'
 import SymbolCard from '../pc/user/SymbolCard'
 import SymbolLevelSheet from './SymbolLevelSheet'
+import MapleWindow, { MapleWindowTab } from '../../../components/pc/MapleWindow'
+import PageLoader from '../../../components/common/PageLoader'
 
 export default function Symbol() {
-  useFeatureSync({ feature: 'symbol', store: useSymbolStore, initial: symbolInitialState })
+  const { hydrated } = useFeatureSync({ feature: 'symbol', store: useSymbolStore, initial: symbolInitialState })
 
-  const { data: allSymbols = [] } = useQuery({
+  const { data: allSymbols = [], isLoading: symbolsLoading } = useQuery({
     queryKey: ['symbol', 'symbols'],
     queryFn: () => api('/api/symbols').catch(() => []),
     staleTime: 5 * 60 * 1000,
@@ -85,10 +87,37 @@ export default function Symbol() {
     return { totalRequiredMeso: req, totalArrearMeso: arr, overallDate: latest }
   }, [symbols, progress, selectedChar?.event_skill, selectedChar?.artifact])
 
+  if (symbolsLoading || !hydrated) return <PageLoader />
+
   return (
-    <div className="space-y-4">
+    <>
+    <MapleWindow
+      className="mpl-page-enter"
+      title="SYMBOL CALCULATOR"
+      titleRight={(
+        <button
+          type="button"
+          onClick={() => setLevelSheetOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold"
+          style={{
+            background: 'linear-gradient(180deg, var(--mpl-purple-from), var(--mpl-purple-to))',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.4), 0 2px 5px rgba(31,44,61,.25)',
+            color: '#ffffff',
+          }}
+        >
+          ⊞ 레벨별 비용표
+        </button>
+      )}
+      tabs={tabs.length > 0 ? tabs.map((t) => (
+        <MapleWindowTab key={t.key} active={tab === t.key} onClick={() => setTab(t.key)} compact>
+          {t.image_url && <img src={t.image_url} alt="" className="w-5 h-5 shrink-0 object-contain" style={{ imageRendering: 'pixelated' }} />}
+          {t.key}
+        </MapleWindowTab>
+      )) : undefined}
+      bodyClassName="space-y-3"
+    >
       {/* 캐릭터 추가 */}
-      <form onSubmit={handleSearch} className="flex gap-2" style={{ marginBottom: 0 }}>
+      <form onSubmit={handleSearch} className="flex gap-2">
         <div ref={addAnchorRef} className="relative flex-1 min-w-0">
           <input
             type="text"
@@ -97,7 +126,7 @@ export default function Symbol() {
             onFocus={() => setDropdownOpen(true)}
             onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
             placeholder="캐릭터 닉네임으로 장착 심볼 불러오기"
-            className="w-full rounded-lg border-2 px-3 py-2.5 text-sm outline-none focus:border-[var(--input-border-focus)]"
+            className="w-full rounded-full border-2 px-4 py-2.5 text-sm outline-none focus:border-[var(--input-border-focus)]"
             style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-strong)' }}
           />
           <CharacterSuggestDropdown
@@ -111,23 +140,27 @@ export default function Symbol() {
         <button
           type="submit"
           disabled={searchMutation.isPending}
-          className="rounded-lg px-5 py-2.5 text-sm font-medium shrink-0 disabled:opacity-50"
-          style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', boxShadow: 'var(--btn-primary-shadow)' }}
+          className="rounded-full px-5 py-2.5 text-sm font-bold shrink-0 disabled:opacity-50"
+          style={{
+            background: 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.5), 0 2px 5px rgba(31,44,61,.3)',
+            color: '#ffffff',
+          }}
         >
           {searchMutation.isPending ? '...' : '조회'}
         </button>
       </form>
       {addError && <p className="text-sm" style={{ color: 'var(--danger-text)' }}>{addError}</p>}
 
-      {/* 캐릭터 칩 (가로 스크롤, 헤더 아래 고정) */}
+      {/* 캐릭터 칩 (가로 스크롤) */}
       {characters.length > 0 && (
-        <div className="sticky top-14 z-10 -mx-4 border-b" style={{ background: 'var(--bg-from)', borderColor: 'var(--header-border)' }}>
+        <div className="-mx-3.5">
           <OverlayScrollbarsComponent
-            className="pt-2.5 pb-0"
+            className="pb-0"
             options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark os-thin', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'scroll', y: 'hidden' } }}
             defer
           >
-            <div className="flex w-max gap-2.5 px-4 pb-2.5">
+            <div className="flex w-max gap-2.5 px-3.5 pt-0.5 pb-2">
               {characters.map((c) => {
                 const active = c.id === selectedCharId
                 return (
@@ -137,8 +170,8 @@ export default function Symbol() {
                     onClick={() => selectCharacter(c.id)}
                     className="relative shrink-0 rounded-2xl border p-2 pr-8 text-left active:scale-[0.98] transition-transform"
                     style={active
-                      ? { background: 'var(--selected-bg)', borderColor: 'var(--selected-border)' }
-                      : { background: 'var(--panel-bg)', borderColor: 'var(--panel-border)' }}
+                      ? { background: 'var(--mpl-card)', borderColor: 'transparent', boxShadow: 'inset 0 0 0 2px var(--selected-border), 0 3px 10px rgba(134,201,62,.25)' }
+                      : { background: 'var(--mpl-card)', borderColor: 'transparent', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}
                   >
                     <div className="flex items-center gap-2">
                       <div className="w-11 h-11 rounded-lg overflow-hidden shrink-0 flex items-center justify-center" style={{ background: 'var(--surface-nested)' }}>
@@ -170,86 +203,53 @@ export default function Symbol() {
               })}
             </div>
           </OverlayScrollbarsComponent>
-          {selectedCharId && tabs.length > 0 && (
-            <div className="px-4 pb-2.5">
-              <div className="flex gap-1 p-1 rounded-xl border" style={{ background: 'var(--surface-3)', borderColor: 'var(--panel-border)' }}>
-                {tabs.map((t) => {
-                  const active = tab === t.key
-                  return (
-                    <button
-                      key={t.key}
-                      type="button"
-                      onClick={() => setTab(t.key)}
-                      className="flex-1 min-w-0 flex items-center justify-center gap-1 py-1.5 px-1 rounded-lg"
-                      style={active
-                        ? { background: 'var(--selected-bg)', color: 'var(--accent-bright)' }
-                        : { color: 'var(--text-muted)' }}
-                    >
-                      {t.image_url && <img src={t.image_url} alt="" className="w-6 h-6 shrink-0 object-contain" style={{ imageRendering: 'pixelated' }} />}
-                      <span className="text-[12px] font-semibold leading-tight text-center whitespace-pre-line">{t.key.replace(' ', '\n')}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
       {!selectedCharId ? (
-        <div className="rounded-2xl border border-dashed p-12 text-center text-sm" style={{ borderColor: 'var(--dashed-border)', background: 'var(--skeleton-bg)', color: 'var(--text-dim)' }}>
+        <div className="-mt-1.5 rounded-2xl border border-dashed p-12 text-center text-sm" style={{ borderColor: 'var(--dashed-border)', background: 'var(--skeleton-bg)', color: 'var(--text-dim)' }}>
           캐릭터를 추가하고 선택해주세요
         </div>
       ) : (
-        <>
-          {/* 레벨별 비용표 버튼 */}
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => setLevelSheetOpen(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-medium hover:text-[var(--accent-bright)]"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
-                <path d="M1.5 6H14.5M6 6V13.5" stroke="currentColor" strokeWidth="1.3" />
-              </svg>
-              레벨별 비용표
-            </button>
-          </div>
-
+        <div className="space-y-3 -mt-1.5">
           {/* 심볼 카드 리스트 */}
-          <div className="space-y-3">
-            {symbols.map((s) => (
-              <SymbolCard key={s.id} symbol={s} equipped={isEquipped(s.id)} charId={selectedCharId} />
-            ))}
-          </div>
+          {symbols.map((s) => (
+            <SymbolCard key={s.id} symbol={s} equipped={isEquipped(s.id)} charId={selectedCharId} />
+          ))}
 
-          {/* 전체 요약 */}
-          <div className="rounded-2xl border p-4 space-y-3" style={{ background: 'var(--selected-bg)', borderColor: 'var(--selected-border)' }}>
+          {/* 전체 요약 (게임 심볼 패널 톤의 보라 그라데이션 바) */}
+          <div
+            className="rounded-xl p-4 space-y-3"
+            style={{
+              background: 'linear-gradient(180deg, #8f9fe0, #7583cf)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.35), 0 4px 12px rgba(117,131,207,.35)',
+              color: '#ffffff',
+            }}
+          >
             <div>
-              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{tabInfo?.label} 전체 만렙 완료 예상일</div>
-              <div className="text-xl font-bold tabular-nums mt-0.5" style={{ color: 'var(--accent-bright)' }}>
+              <div className="text-xs" style={{ opacity: 0.85 }}>{tabInfo?.label} 전체 만렙 완료 예상일</div>
+              <div className="text-xl font-bold tabular-nums mt-0.5">
                 {overallDate ? formatKoreanDate(overallDate) : '-'}
               </div>
             </div>
-            <div className="flex gap-4 pt-2 border-t" style={{ borderColor: 'var(--row-divider)' }}>
+            <div className="flex gap-4 pt-2.5 border-t" style={{ borderColor: 'rgba(255,255,255,.25)' }}>
               <div className="flex-1">
-                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>누적 체납 메소</div>
-                <div className="text-base font-bold tabular-nums mt-0.5" style={{ color: 'var(--danger-text)' }}>{totalArrearMeso.toLocaleString()}</div>
-                <div className="text-[11px]" style={{ color: 'var(--text-dim)' }}>{formatMesoKorean(totalArrearMeso)}</div>
+                <div className="text-xs" style={{ opacity: 0.85 }}>누적 체납 메소</div>
+                <div className="text-base font-bold tabular-nums mt-0.5">{totalArrearMeso.toLocaleString()}</div>
+                <div className="text-[11px]" style={{ opacity: 0.7 }}>{formatMesoKorean(totalArrearMeso)}</div>
               </div>
               <div className="flex-1">
-                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>남은 필요 메소</div>
-                <div className="text-base font-bold tabular-nums mt-0.5" style={{ color: 'var(--warning-text-bright)' }}>{totalRequiredMeso.toLocaleString()}</div>
-                <div className="text-[11px]" style={{ color: 'var(--text-dim)' }}>{formatMesoKorean(totalRequiredMeso)}</div>
+                <div className="text-xs" style={{ opacity: 0.85 }}>남은 필요 메소</div>
+                <div className="text-base font-bold tabular-nums mt-0.5">{totalRequiredMeso.toLocaleString()}</div>
+                <div className="text-[11px]" style={{ opacity: 0.7 }}>{formatMesoKorean(totalRequiredMeso)}</div>
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
+    </MapleWindow>
 
-      <SymbolLevelSheet open={levelSheetOpen} onClose={() => setLevelSheetOpen(false)} allSymbols={allSymbols} />
-    </div>
+    <SymbolLevelSheet open={levelSheetOpen} onClose={() => setLevelSheetOpen(false)} allSymbols={allSymbols} />
+    </>
   )
 }

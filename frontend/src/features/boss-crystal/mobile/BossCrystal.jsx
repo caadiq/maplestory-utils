@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../../api/client'
@@ -9,9 +9,11 @@ import Select from '../../../components/common/Select'
 import { DIFFICULTIES, formatMeso } from '../pc/admin/constants'
 import { MAX_PER_CHARACTER, MAX_PER_ACCOUNT, LABEL_EN, charRevenue, seasonBossesFor } from '../logic'
 import BossPriceModal from './BossPriceModal'
+import MapleWindow from '../../../components/pc/MapleWindow'
+import PageLoader from '../../../components/common/PageLoader'
 
 export default function BossCrystal() {
-  useFeatureSync({ feature: 'boss-crystal', store: useBossStore, initial: bossInitialState })
+  const { hydrated } = useFeatureSync({ feature: 'boss-crystal', store: useBossStore, initial: bossInitialState })
 
   const characters = useBossStore((s) => s.characters)
   const selectedChar = useBossStore((s) => s.selectedChar)
@@ -21,7 +23,7 @@ export default function BossCrystal() {
   const selectCharacter = useBossStore((s) => s.selectCharacter)
   const setBossSelection = useBossStore((s) => s.setBossSelection)
 
-  const { data: bosses = [] } = useQuery({
+  const { data: bosses = [], isLoading: bossesLoading } = useQuery({
     queryKey: ['boss-crystal', 'bosses'],
     queryFn: () => api('/api/boss-crystal/bosses').catch(() => []),
   })
@@ -31,6 +33,23 @@ export default function BossCrystal() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [priceOpen, setPriceOpen] = useState(false)
   const addAnchorRef = useRef(null)
+
+  // 캐릭터 목록이 스크롤로 가려지면 상단에 컴팩트 선택 바 표시
+  const chipAreaRef = useRef(null)
+  const [showFloatBar, setShowFloatBar] = useState(false)
+  useEffect(() => {
+    const el = chipAreaRef.current
+    if (!el) {
+      setShowFloatBar(false)
+      return
+    }
+    const obs = new IntersectionObserver(
+      ([entry]) => setShowFloatBar(!entry.isIntersecting),
+      { rootMargin: '-56px 0px 0px 0px' } // 고정 헤더(h-14) 높이만큼 보정
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [characters.length])
 
   const searchMutation = useMutation({
     mutationFn: (n) => api(`/api/character/search?name=${encodeURIComponent(n)}`),
@@ -86,68 +105,94 @@ export default function BossCrystal() {
     boxShadow: 'var(--panel-shadow)',
   }
 
+  if (bossesLoading || !hydrated) return <PageLoader />
+
   return (
-    <div className="space-y-4">
-      {/* 계정 전체 수익 요약 */}
-      <div className="rounded-2xl border p-4" style={{ background: 'var(--selected-bg)', borderColor: 'var(--selected-border)' }}>
-        <div className="flex items-end justify-between">
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>계정 전체 주간 수익</span>
+    <div className="mpl-page-enter space-y-4">
+      {/* 계정 전체 수익 요약 + 캐릭터 추가 (게임창) */}
+      <MapleWindow title="WEEKLY PROFIT">
+        {/* 메소 코인 필 */}
+        <div
+          className="flex items-center gap-2.5 rounded-full pl-4 pr-4 py-2.5"
+          style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}
+        >
           <span
-            className="text-xs tabular-nums"
+            className="w-[20px] h-[20px] rounded-full shrink-0"
+            style={{
+              background: 'radial-gradient(circle at 35% 30%, #ffe98a, #f5b93c 65%, #c98f1d)',
+              boxShadow: 'inset 0 -1px 2px rgba(0,0,0,.25)',
+            }}
+          />
+          <span className="flex-1 text-lg font-bold tabular-nums truncate" style={{ color: 'var(--accent-bright)' }}>
+            {formatMeso(totalRevenue)}
+          </span>
+          <span
+            className="text-xs font-bold tabular-nums shrink-0"
             style={{ color: totalCount > MAX_PER_ACCOUNT ? 'var(--danger-text)' : 'var(--text-muted)' }}
           >
             {accountUsage} / {MAX_PER_ACCOUNT}
           </span>
         </div>
-        <div className="text-2xl font-bold tabular-nums mt-1" style={{ color: 'var(--accent-bright)' }}>
-          {formatMeso(totalRevenue)}
+        {/* CRYSTAL 게이지 */}
+        <div className="flex items-center gap-2.5 mt-3 px-1">
+          <span className="text-[11px] font-bold shrink-0" style={{ color: 'var(--text-dim)', letterSpacing: '1px' }}>CRYSTAL</span>
+          <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)', boxShadow: 'inset 0 1px 2px rgba(44,55,69,.12)' }}>
+            <div
+              className="h-full rounded-full transition-all"
+              style={{
+                width: `${usagePct}%`,
+                background: totalCount > MAX_PER_ACCOUNT
+                  ? 'var(--progress-red)'
+                  : 'linear-gradient(180deg, var(--mpl-lime-from), var(--mpl-lime-to))',
+              }}
+            />
+          </div>
         </div>
-        <div className="h-1.5 rounded-full overflow-hidden mt-2" style={{ background: 'var(--progress-track)' }}>
-          <div className="h-full transition-all" style={{ width: `${usagePct}%`, background: totalCount > MAX_PER_ACCOUNT ? 'var(--progress-red)' : 'var(--progress-emerald)' }} />
-        </div>
-      </div>
+        {/* 캐릭터 추가 */}
+        <form onSubmit={handleAdd} className="flex gap-2 mt-3.5" style={{ marginBottom: 0 }}>
+          <div ref={addAnchorRef} className="relative flex-1 min-w-0">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => { setName(e.target.value); if (error) setError('') }}
+              onFocus={() => setDropdownOpen(true)}
+              onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
+              placeholder="캐릭터 닉네임 검색"
+              className="w-full rounded-full border-2 px-4 py-2.5 text-sm outline-none focus:border-[var(--input-border-focus)]"
+              style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-strong)' }}
+            />
+            <CharacterSuggestDropdown
+              open={dropdownOpen}
+              filter={name}
+              anchorRef={addAnchorRef}
+              excludeNames={characters.map((c) => c.character_name)}
+              onSelect={(n) => { setName(n); setDropdownOpen(false); setError(''); searchMutation.mutate(n) }}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={searchMutation.isPending}
+            className="rounded-full px-5 py-2.5 text-sm font-bold shrink-0 disabled:opacity-50"
+            style={{
+              background: 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.5), 0 2px 5px rgba(31,44,61,.3)',
+              color: '#ffffff',
+            }}
+          >
+            {searchMutation.isPending ? '...' : '추가'}
+          </button>
+        </form>
+        {error && <p className="text-sm mt-2" style={{ color: 'var(--danger-text)' }}>{error}</p>}
 
-      {/* 캐릭터 추가 */}
-      <form onSubmit={handleAdd} className="flex gap-2" style={{ marginBottom: 0 }}>
-        <div ref={addAnchorRef} className="relative flex-1 min-w-0">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => { setName(e.target.value); if (error) setError('') }}
-            onFocus={() => setDropdownOpen(true)}
-            onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
-            placeholder="캐릭터 닉네임 검색"
-            className="w-full rounded-lg border-2 px-3 py-2.5 text-sm outline-none focus:border-[var(--input-border-focus)]"
-            style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-strong)' }}
-          />
-          <CharacterSuggestDropdown
-            open={dropdownOpen}
-            filter={name}
-            anchorRef={addAnchorRef}
-            excludeNames={characters.map((c) => c.character_name)}
-            onSelect={(n) => { setName(n); setDropdownOpen(false); setError(''); searchMutation.mutate(n) }}
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={searchMutation.isPending}
-          className="rounded-lg px-5 py-2.5 text-sm font-medium shrink-0 disabled:opacity-50"
-          style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', boxShadow: 'var(--btn-primary-shadow)' }}
-        >
-          {searchMutation.isPending ? '...' : '추가'}
-        </button>
-      </form>
-      {error && <p className="text-sm" style={{ color: 'var(--danger-text)' }}>{error}</p>}
-
-      {/* 캐릭터 칩 (가로 스크롤) — 스크롤 시 헤더 아래 고정 */}
+      {/* 캐릭터 칩 (가로 스크롤) */}
       {characters.length > 0 && (
-        <div className="sticky top-14 z-10 -mx-4 border-b" style={{ background: 'var(--bg-from)', borderColor: 'var(--header-border)' }}>
+        <div ref={chipAreaRef} className="-mx-3.5 -mb-1.5">
           <OverlayScrollbarsComponent
-            className="pt-2.5 pb-0"
+            className="pt-3 pb-0"
             options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark os-thin', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'scroll', y: 'hidden' } }}
             defer
           >
-            <div className="flex w-max gap-2.5 px-4 pb-2.5">
+            <div className="flex w-max gap-2.5 px-3.5 pb-1.5">
           {characters.map((c) => {
             const active = c.character_name === selectedChar
             const r = charRevenue(c.character_name, selections, bosses)
@@ -158,8 +203,8 @@ export default function BossCrystal() {
                 onClick={() => selectCharacter(c.character_name)}
                 className="relative shrink-0 rounded-2xl border p-3 pr-9 text-left active:scale-[0.98] transition-transform"
                 style={active
-                  ? { background: 'var(--selected-bg)', borderColor: 'var(--selected-border)' }
-                  : { background: 'var(--panel-bg)', borderColor: 'var(--panel-border)' }}
+                  ? { background: 'var(--mpl-card)', borderColor: 'transparent', boxShadow: 'inset 0 0 0 2px var(--selected-border), 0 3px 10px rgba(134,201,62,.25)' }
+                  : { background: 'var(--mpl-card)', borderColor: 'transparent', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 flex items-center justify-center" style={{ background: 'var(--surface-nested)' }}>
@@ -196,6 +241,7 @@ export default function BossCrystal() {
           </OverlayScrollbarsComponent>
         </div>
       )}
+      </MapleWindow>
 
       {/* 보스 선택 */}
       {!selectedChar ? (
@@ -207,13 +253,20 @@ export default function BossCrystal() {
           등록된 보스가 없습니다
         </div>
       ) : (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between px-1">
+        <MapleWindow title="BOSS SELECT" bodyClassName="space-y-2">
+          {/* 슬레이트 필 헤더 */}
+          <div
+            className="flex items-center justify-between px-3.5 py-2 rounded-full"
+            style={{
+              background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.25)',
+            }}
+          >
             <button
               type="button"
               onClick={() => setPriceOpen(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-medium hover:text-[var(--accent-bright)]"
-              style={{ color: 'var(--text-muted)' }}
+              className="inline-flex items-center gap-1.5 text-xs font-bold"
+              style={{ color: '#ffffff', textShadow: '0 1px 1px rgba(44,55,69,.3)' }}
             >
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
                 <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
@@ -221,7 +274,7 @@ export default function BossCrystal() {
               </svg>
               전체 가격표
             </button>
-            <span className="text-xs tabular-nums" style={{ color: maxReached ? 'var(--danger-text)' : 'var(--text-dim)' }}>
+            <span className="text-xs font-bold tabular-nums" style={{ color: maxReached ? '#ffb3a8' : '#cfdae4' }}>
               {currentCount} / {MAX_PER_CHARACTER}
             </span>
           </div>
@@ -238,10 +291,10 @@ export default function BossCrystal() {
             return (
               <div
                 key={boss.id}
-                className="rounded-xl border p-3"
+                className="rounded-xl p-3"
                 style={{
-                  ...PANEL,
-                  ...(isSeason ? { borderColor: '#eec584', boxShadow: 'inset 0 0 0 0.5px #eec584' } : {}),
+                  background: 'var(--mpl-card)',
+                  boxShadow: isSeason ? 'inset 0 0 0 1.5px #eec584' : 'inset 0 0 0 1px var(--mpl-card-line)',
                   opacity: disabled ? 'var(--disabled-opacity)' : 1,
                   pointerEvents: disabled ? 'none' : 'auto',
                 }}
@@ -313,6 +366,47 @@ export default function BossCrystal() {
               </div>
             )
           })}
+        </MapleWindow>
+      )}
+
+      {/* 상단 플로팅 캐릭터 선택 바 (목록이 가려졌을 때만) — 슬레이트 필 */}
+      {showFloatBar && characters.length > 0 && (
+        <div
+          className="fixed z-10 rounded-lg px-2"
+          style={{
+            top: 64,
+            left: 12,
+            right: 12,
+            background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.25), 0 6px 16px rgba(31,44,61,.35)',
+            animation: 'mpl-page-fade 0.2s ease-out both',
+          }}
+        >
+          <div className="flex gap-1.5 overflow-x-auto py-1.5" style={{ scrollbarWidth: 'none' }}>
+            {characters.map((c) => {
+              const active = c.character_name === selectedChar
+              return (
+                <button
+                  key={c.character_name}
+                  type="button"
+                  onClick={() => selectCharacter(c.character_name)}
+                  className="shrink-0 flex items-center gap-1.5 rounded-md pl-1 pr-3 py-1"
+                  style={active
+                    ? { background: '#ffffff', boxShadow: '0 1px 3px rgba(31,44,61,.25)' }
+                    : { background: 'rgba(255,255,255,.15)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.2)' }}
+                >
+                  <span className="w-6 h-6 rounded overflow-hidden flex items-center justify-center shrink-0" style={{ background: active ? 'var(--surface-nested)' : 'rgba(255,255,255,.25)' }}>
+                    {c.character_image
+                      ? <img src={c.character_image} alt="" className="w-full h-full object-contain scale-[2.4] origin-center select-none" style={{ imageRendering: 'pixelated' }} draggable={false} />
+                      : <span className="text-[10px]" style={{ color: active ? 'var(--text-dim)' : 'rgba(255,255,255,.7)' }}>?</span>}
+                  </span>
+                  <span className="text-xs font-bold whitespace-nowrap" style={{ color: active ? 'var(--accent-bright)' : '#ffffff' }}>
+                    {c.character_name}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
 

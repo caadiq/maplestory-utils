@@ -82,17 +82,20 @@ export default function MobileSundayBanner() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full rounded-2xl border p-3.5 flex items-center gap-3 active:scale-[0.99] transition-transform"
-        style={{ background: 'var(--selected-bg)', borderColor: 'var(--selected-border)', boxShadow: 'var(--panel-shadow)' }}
+        className="w-full rounded-2xl p-3.5 flex items-center gap-3 active:scale-[0.99] transition-transform"
+        style={{
+          background: 'linear-gradient(120deg, #f7dcab, #eec584)',
+          boxShadow: 'inset 0 0 0 1px #e3b878, 0 3px 10px rgba(200,150,60,.2)',
+        }}
       >
-        <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden" style={{ background: 'var(--panel-bg)' }}>
+        <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden" style={{ background: 'var(--mpl-card)', boxShadow: 'inset 0 0 0 1px #e3c48f' }}>
           {iconData?.url ? <img src={iconData.url} alt={label} className="w-full h-full object-contain" /> : <span className="text-xl">📅</span>}
         </div>
         <div className="flex-1 min-w-0 text-left">
-          <div className="font-semibold text-sm" style={{ color: 'var(--accent-bright)' }}>이번 주 {label}</div>
-          <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>탭하여 혜택 확인</div>
+          <div className="font-bold text-sm" style={{ color: '#9a6a10' }}>이번 주 {label}</div>
+          <div className="text-xs mt-0.5" style={{ color: '#b08a3e' }}>탭하여 혜택 확인</div>
         </div>
-        <span className="shrink-0 text-xs font-medium" style={{ color: 'var(--accent-bright)' }}>보기 →</span>
+        <span className="shrink-0 text-xs font-bold" style={{ color: '#9a6a10' }}>보기 →</span>
       </button>
 
       <AnimatePresence>

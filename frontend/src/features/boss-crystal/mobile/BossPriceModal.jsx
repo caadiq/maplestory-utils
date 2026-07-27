@@ -5,6 +5,15 @@ import { DIFFICULTIES, formatMeso } from '../pc/admin/constants'
 import { LABEL_EN } from '../logic'
 import { useBackClose } from '../../../hooks/useBackClose'
 
+// 난이도별 가격 색 (PC 가격표 모달과 동일)
+const PRICE_COLOR = {
+  easy: '#6e7d8d',
+  normal: '#2196ad',
+  hard: '#d63d82',
+  chaos: '#b07a1f',
+  extreme: '#e02b4e',
+}
+
 // 난이도 칩 테두리: easy/normal/hard는 bg=border라 안 보이므로 어두운 테두리로 대체
 function chipBorder(d) {
   return d.colors.border === d.colors.bg ? 'rgba(0, 0, 0, 0.55)' : d.colors.border
@@ -61,7 +70,14 @@ export default function BossPriceModal({ open, onClose, bosses }) {
               {bosses.filter((b) => !b.season || isSeasonActive(b)).map((boss) => {
                 const diffs = DIFFICULTIES.filter((d) => boss.difficulties.some((bd) => bd.difficulty === d.key))
                 return (
-                  <div key={boss.id} className="rounded-xl border p-3" style={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)' }}>
+                  <div
+                    key={boss.id}
+                    className="rounded-xl p-3"
+                    style={{
+                      background: 'var(--mpl-card)',
+                      boxShadow: boss.season ? 'inset 0 0 0 1.5px #eec584' : 'inset 0 0 0 1px var(--mpl-card-line)',
+                    }}
+                  >
                     <div className="flex items-center gap-2.5 mb-2.5">
                       <img src={boss.image_url || '/default.png'} alt="" loading="lazy" decoding="async" className="w-10 h-10 rounded-md object-cover shrink-0" />
                       <span className="text-base font-semibold" style={{ color: 'var(--text-strong)' }}>{boss.name}</span>
@@ -85,7 +101,7 @@ export default function BossPriceModal({ open, onClose, bosses }) {
                             >
                               {LABEL_EN[d.key] || d.key.toUpperCase()}
                             </span>
-                            <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--accent-bright)' }}>
+                            <span className="text-sm font-bold tabular-nums" style={{ color: PRICE_COLOR[d.key] || 'var(--text-strong)' }}>
                               {formatMeso(bd.crystal_price)}
                             </span>
                           </div>

@@ -37,13 +37,17 @@ export default function BossRow({ boss, sel = DEFAULT_SEL, onChange, imageBase, 
             type="button"
             disabled={disabled}
             onClick={() => onChange({ done: !sel.done })}
-            className="shrink-0 w-16 rounded-md h-8 text-xs font-semibold border"
+            className="shrink-0 w-16 rounded-full h-8 text-xs font-bold"
             style={disabled ? {
-              borderColor: 'var(--panel-border)', color: 'var(--text-dim)',
+              boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-dim)',
             } : sel.done ? {
-              background: 'var(--selected-bg)', borderColor: 'var(--selected-border)', color: 'var(--accent-bright)',
+              background: 'linear-gradient(180deg, var(--mpl-lime-from), var(--mpl-lime-to))',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.45), 0 2px 5px rgba(31,44,61,.2)',
+              color: '#ffffff',
             } : {
-              borderColor: 'var(--btn-border)', color: 'var(--text-dim)',
+              background: 'linear-gradient(180deg, #c2cdd8, #a8b6c4)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.35)',
+              color: '#5c6b7a',
             }}
           >
             {sel.done ? '완료' : '미완료'}
