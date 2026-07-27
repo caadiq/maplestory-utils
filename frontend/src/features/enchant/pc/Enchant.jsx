@@ -264,6 +264,27 @@ function ItemCard({ onClick, icon, worldIcon, character, name, sub, cost, footer
   )
 }
 
+/**
+ * 긴 내역을 나눠 렌더 — 상세 진입이 즉시 되도록 초기엔 일부만 그리고,
+ * 바닥 센티널이 보이면 이어서 로드 (수천 행 동시 렌더 시 수 초씩 멈추는 문제 방지)
+ */
+function useIncrementalList(total, step = 60) {
+  const [count, setCount] = useState(Math.min(step, total))
+  const sentinelRef = useRef(null)
+  useEffect(() => { setCount(Math.min(step, total)) }, [total, step])
+  useEffect(() => {
+    if (count >= total) return
+    const el = sentinelRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) setCount((c) => Math.min(c + step, total))
+    }, { rootMargin: '600px' })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [count, total, step])
+  return { count, sentinelRef, hasMore: count < total }
+}
+
 /** 상세 헤더 좌측: 목록으로 + 섹션 타이틀 */
 function detailTitle(label, onBack) {
   return (
@@ -316,6 +337,7 @@ function detailRight({ periodLabel, index, total, onPrev, onNext }) {
 
 // ─────────── 잠재 상세 ───────────
 function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
+  const { count, sentinelRef, hasMore } = useIncrementalList(group.records.length)
   return (
     <MapleWindow
       title={detailTitle('POTENTIAL HISTORY', onBack)}
@@ -368,7 +390,7 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
           <span className="w-[280px] shrink-0">변경 후</span>
           <span className="w-[104px] text-right shrink-0">비용</span>
         </div>
-        {group.records.map((r, idx) => {
+        {group.records.slice(0, count).map((r, idx) => {
           const { date, time } = formatDateParts(r.date_create)
           const up = gradeUpPair(r)
           const before = r.kind === 'additional' ? r.before_additional_potential_option : r.before_potential_option
@@ -424,6 +446,11 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
             </div>
           )
         })}
+        {hasMore && (
+          <div ref={sentinelRef} className="py-4 text-center text-[13px]" style={{ color: 'var(--text-dim)' }}>
+            {(group.records.length - count).toLocaleString()}건 더 불러오는 중…
+          </div>
+        )}
       </div>
     </MapleWindow>
   )
@@ -438,6 +465,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
   const baseRanges = multi.length > 0 ? multi : allRanges
   const ranges = showAllRanges ? allRanges : baseRanges
   const hiddenRanges = allRanges.length - baseRanges.length
+  const { count, sentinelRef, hasMore } = useIncrementalList(group.records.length)
   return (
     <MapleWindow
       title={detailTitle('STARFORCE HISTORY', onBack)}
@@ -521,7 +549,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
           <span className="flex-1">결과</span>
           <span className="w-[140px] text-right shrink-0">비용</span>
         </div>
-        {group.records.map((r, idx) => {
+        {group.records.slice(0, count).map((r, idx) => {
           const { date, time } = formatDateParts(r.date_create)
           const res = sfResult(r)
           const cost = sfCost(r)
@@ -567,6 +595,11 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
             </div>
           )
         })}
+        {hasMore && (
+          <div ref={sentinelRef} className="py-4 text-center text-[13px]" style={{ color: 'var(--text-dim)' }}>
+            {(group.records.length - count).toLocaleString()}건 더 불러오는 중…
+          </div>
+        )}
       </div>
     </MapleWindow>
   )
