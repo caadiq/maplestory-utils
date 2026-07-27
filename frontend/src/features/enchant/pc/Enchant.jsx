@@ -575,7 +575,7 @@ export default function Enchant() {
                   기간 내 스타포스 기록이 없습니다
                 </div>
               ) : (
-                <div className="grid grid-cols-5 gap-2.5">
+                <div className="grid grid-cols-4 gap-2.5">
                   {sfGroups.map((g) => (
                     <button
                       key={g.key}
@@ -641,7 +641,7 @@ export default function Enchant() {
                   기간 내 잠재능력 기록이 없습니다
                 </div>
               ) : (
-                <div className="grid grid-cols-5 gap-2.5">
+                <div className="grid grid-cols-4 gap-2.5">
                   {potGroups.map((g) => (
                     <button
                       key={g.key}
