@@ -72,6 +72,8 @@ const LEVEL_KEYS = Object.keys(ITEM_LEVELS).sort((a, b) => b.length - a.length)
 
 export function itemLevel(itemName) {
   const name = itemName || ''
+  // 심볼(마이스터 심볼 등)은 스타포스 비용 체계가 달라 계산 제외
+  if (name.includes('심볼')) return null
   for (const key of LEVEL_KEYS) {
     if (name.includes(key)) return ITEM_LEVELS[key]
   }
