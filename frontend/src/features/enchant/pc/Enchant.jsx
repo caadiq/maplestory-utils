@@ -319,11 +319,13 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack }) {
 
 // ─────────── 스타포스 상세 ───────────
 function StarforceDetail({ group, icon, worldIcon, onBack }) {
-  // 의미 있는 구간만: 2회 이상 시도 (없으면 전체) · 최대 10개
+  const [showAllRanges, setShowAllRanges] = useState(false)
+  // 기본은 2회 이상 시도한 구간만 (없으면 전체) — 나머지는 더보기로 펼침
   const allRanges = starRangeStats(group.records)
   const multi = allRanges.filter((s) => s.tries >= 2)
-  const ranges = (multi.length > 0 ? multi : allRanges).slice(0, 10)
-  const hiddenRanges = allRanges.length - ranges.length
+  const baseRanges = multi.length > 0 ? multi : allRanges
+  const ranges = showAllRanges ? allRanges : baseRanges
+  const hiddenRanges = allRanges.length - baseRanges.length
   return (
     <MapleWindow title={detailTitle(group, onBack)} titleRight={detailNick(group, worldIcon)} bodyClassName="space-y-3">
       <div className="rounded-xl overflow-hidden" style={CARD}>
@@ -360,9 +362,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack }) {
         <div className="rounded-xl overflow-hidden" style={CARD}>
           <div className="flex items-center justify-between px-3.5 py-2 text-[13.5px] font-bold" style={SLATE_BAR}>
             <span>구간별 성공률</span>
-            <span className="text-[11.5px] font-semibold" style={{ color: '#cfdae4' }}>
-              시도 많은 순{hiddenRanges > 0 ? ` · 1회 구간 ${hiddenRanges}개 생략` : ''}
-            </span>
+            <span className="text-[11.5px] font-semibold" style={{ color: '#cfdae4' }}>시도 많은 순</span>
           </div>
           {ranges.map((s) => (
             <div key={s.star} className="flex items-center px-3.5 py-2 border-b last:border-b-0 text-[12.5px]" style={{ borderColor: 'var(--mpl-card-line)' }}>
@@ -378,6 +378,16 @@ function StarforceDetail({ group, icon, worldIcon, onBack }) {
               </span>
             </div>
           ))}
+          {hiddenRanges > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowAllRanges((v) => !v)}
+              className="w-full py-2 text-[12px] font-bold hover:brightness-[.98]"
+              style={{ background: 'var(--mpl-row)', color: 'var(--text-muted)' }}
+            >
+              {showAllRanges ? '접기 ▲' : `1회 시도 구간 ${hiddenRanges}개 더보기 ▼`}
+            </button>
+          )}
         </div>
       )}
 
