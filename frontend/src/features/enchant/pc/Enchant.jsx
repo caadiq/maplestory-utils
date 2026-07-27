@@ -81,7 +81,7 @@ function CostBreakdown({ resetCost, feeCost, total, children }) {
     <span className="relative group/cost inline-block">
       {children}
       <span
-        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/cost:block z-20 w-52 rounded-xl p-3 text-left"
+        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/cost:block z-50 w-52 rounded-xl p-3 text-left"
         style={{
           background: 'var(--popup-bg)',
           boxShadow: 'var(--popup-shadow), inset 0 0 0 1px var(--popup-border)',
@@ -283,7 +283,12 @@ function StarforceDetail({ group, icon, onBack }) {
 }
 
 // ─────────── 잠재 상세 ───────────
-function PotentialDetail({ group, icon, onBack }) {
+function methodIconName(r) {
+  return r.method === 'cube' ? r.cube_type : (r.kind === 'additional' ? '에디셔널 잠재능력 재설정' : '잠재능력 재설정')
+}
+
+function PotentialDetail({ group, icon, methodIcons, onBack }) {
+  const [showBefore, setShowBefore] = useState(false)
   return (
     <MapleWindow
       title={(
@@ -328,11 +333,11 @@ function PotentialDetail({ group, icon, onBack }) {
             )}
           </div>
           <div>
-            <div className="text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>큐브 / 메소</div>
+            <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>큐브 / 메소</div>
             <div className="text-base font-bold tabular-nums mt-0.5">{group.cubeTries} / {group.mesoTries}</div>
           </div>
           <div>
-            <div className="text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>등급 상승</div>
+            <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>등급 상승</div>
             <div className="text-base font-bold tabular-nums mt-0.5" style={{ color: '#5aa626' }}>{group.gradeUps}회</div>
           </div>
         </div>
@@ -345,7 +350,19 @@ function PotentialDetail({ group, icon, onBack }) {
           style={{ background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))', color: '#fff', textShadow: '0 1px 1px rgba(44,55,69,.3)' }}
         >
           <span>재설정 내역</span>
-          <span className="text-[11px] font-semibold" style={{ color: '#cfdae4' }}>비용은 추정값 · {group.records.length}건</span>
+          <span className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowBefore((v) => !v)}
+              className="flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+              style={showBefore
+                ? { background: 'rgba(255,255,255,.9)', color: 'var(--mpl-slate-to)' }
+                : { background: 'rgba(255,255,255,.18)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.3)', color: '#e6edf3' }}
+            >
+              변경 전 옵션 {showBefore ? '숨기기' : '보기'}
+            </button>
+            <span className="text-[11px] font-semibold" style={{ color: '#cfdae4' }}>비용은 추정값 · {group.records.length}건</span>
+          </span>
         </div>
         <div>
           {group.records.map((r, idx) => {
@@ -353,33 +370,55 @@ function PotentialDetail({ group, icon, onBack }) {
             const before = r.kind === 'additional' ? r.before_additional_potential_option : r.before_potential_option
             const after = r.kind === 'additional' ? r.after_additional_potential_option : r.after_potential_option
             const ceiling = rowCeiling(r)
+            const mIcon = methodIcons[methodIconName(r)]
             return (
               <div
                 key={r.id}
-                className="px-4 py-3 border-b last:border-b-0"
-                style={{ borderColor: 'var(--mpl-card-line)', background: idx % 2 === 1 ? 'var(--mpl-row)' : undefined }}
+                className="flex gap-3.5 px-4 py-3 border-b last:border-b-0"
+                style={{
+                  borderColor: 'var(--mpl-card-line)',
+                  background: gradeUp ? 'rgba(159,212,94,.12)' : idx % 2 === 1 ? 'var(--mpl-row)' : undefined,
+                  boxShadow: gradeUp ? 'inset 3px 0 0 var(--mpl-lime-to)' : undefined,
+                }}
               >
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-xs tabular-nums" style={{ color: 'var(--text-dim)' }}>{formatTime(r.date_create)}</span>
-                  <KindBadge kind={r.kind} />
-                  <MethodBadge row={r} />
-                  {gradeUp && (
-                    <span className="rounded-full px-2 py-0.5 text-[10.5px] font-bold text-white" style={{ background: 'linear-gradient(180deg, var(--mpl-lime-from), var(--mpl-lime-to))' }}>
-                      등급 UP{r.upgrade_guarantee ? ' (천장)' : ''}
-                    </span>
-                  )}
-                  <span className="flex-1" />
-                  {r.upgrade_guarantee_count > 0 && (
-                    <span className="rounded-full px-2 py-0.5 text-[10.5px] font-bold" style={PILL_GHOST}>
-                      스택 {r.upgrade_guarantee_count}{ceiling ? ` / ${ceiling}` : ''}
-                    </span>
-                  )}
-                  <CostText cost={potentialCost(r)} />
+                {/* 수단 아이콘 */}
+                <div className="shrink-0 pt-1" title={r.methodName}>
+                  {mIcon
+                    ? <img src={mIcon} alt={r.methodName} className="w-10 h-10 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
+                    : <span className="w-10 h-10 rounded-lg flex items-center justify-center text-base" style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}>💰</span>}
                 </div>
-                <div className="grid gap-2 mt-2.5 items-center" style={{ gridTemplateColumns: '1fr 24px 1.2fr' }}>
-                  <OptionBox options={before} variant="before" />
-                  <div className="flex items-center justify-center text-base" style={{ color: gradeUp ? '#5aa626' : 'var(--text-dim)' }}>→</div>
-                  <OptionBox options={after} gradeUp={gradeUp} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <KindBadge kind={r.kind} />
+                    <span className="text-xs font-semibold truncate" style={{ color: 'var(--text-muted)' }}>{r.methodName}</span>
+                    {gradeUp && (
+                      <span className="rounded-full px-2 py-0.5 text-[10.5px] font-bold text-white shrink-0" style={{ background: 'linear-gradient(180deg, var(--mpl-lime-from), var(--mpl-lime-to))' }}>
+                        등급 UP{r.upgrade_guarantee ? ' (천장)' : ''}
+                      </span>
+                    )}
+                    {r.upgrade_guarantee_count > 0 && (
+                      <span className="rounded-full px-2 py-0.5 text-[10.5px] font-bold shrink-0" style={PILL_GHOST}>
+                        스택 {r.upgrade_guarantee_count}{ceiling ? ` / ${ceiling}` : ''}
+                      </span>
+                    )}
+                    <span className="flex-1" />
+                    <span className="text-xs tabular-nums shrink-0" style={{ color: 'var(--text-dim)' }}>{formatTime(r.date_create)}</span>
+                    <CostText cost={potentialCost(r)} />
+                  </div>
+                  <div className="mt-1.5 text-[13.5px] font-semibold leading-relaxed">
+                    {(after || []).map((o, i) => (
+                      <div key={i} style={{ color: GRADE_COLOR[o.grade] || 'var(--text-muted)' }}>{o.value}</div>
+                    ))}
+                    {(!after || after.length === 0) && <span style={{ color: 'var(--text-dim)' }}>-</span>}
+                  </div>
+                  {showBefore && (
+                    <div className="mt-1.5 pt-1.5 border-t text-xs leading-relaxed" style={{ borderColor: 'var(--mpl-card-line)', color: 'var(--text-dim)' }}>
+                      <span className="font-bold text-[10.5px]">변경 전</span>
+                      {(before || []).map((o, i) => (
+                        <div key={i}>{o.value}</div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -514,7 +553,7 @@ export default function Enchant() {
       {detailGroup ? (
         tab === 'starforce'
           ? <StarforceDetail group={detailGroup} icon={itemIcons[detailGroup.item]} onBack={() => setDetailKey(null)} />
-          : <PotentialDetail group={detailGroup} icon={itemIcons[detailGroup.item]} onBack={() => setDetailKey(null)} />
+          : <PotentialDetail group={detailGroup} icon={itemIcons[detailGroup.item]} methodIcons={methodIcons} onBack={() => setDetailKey(null)} />
       ) : (
         <MapleWindow
           title="ENCHANT HISTORY"
@@ -591,7 +630,7 @@ export default function Enchant() {
                       key={g.key}
                       type="button"
                       onClick={() => setDetailKey(g.key)}
-                      className="rounded-xl px-3 pt-4 pb-3 flex flex-col items-center text-center hover:brightness-[.98] active:scale-[0.98] transition"
+                      className="relative z-0 hover:z-30 rounded-xl px-3 pt-4 pb-3 flex flex-col items-center text-center hover:brightness-[.98] active:scale-[0.98] transition"
                       style={{
                         background: 'var(--mpl-card)',
                         boxShadow: g.destroyCount > 0 ? 'inset 0 0 0 1.5px #f0b1a8' : 'inset 0 0 0 1px var(--mpl-card-line)',
@@ -657,7 +696,7 @@ export default function Enchant() {
                       key={g.key}
                       type="button"
                       onClick={() => setDetailKey(g.key)}
-                      className="rounded-xl px-3 pt-4 pb-3 flex flex-col items-center text-center hover:brightness-[.98] active:scale-[0.98] transition"
+                      className="relative z-0 hover:z-30 rounded-xl px-3 pt-4 pb-3 flex flex-col items-center text-center hover:brightness-[.98] active:scale-[0.98] transition"
                       style={{
                         background: 'var(--mpl-card)',
                         boxShadow: g.gradeUps > 0 ? 'inset 0 0 0 1.5px #b6dc8e' : 'inset 0 0 0 1px var(--mpl-card-line)',
@@ -705,14 +744,14 @@ export default function Enchant() {
                             </span>
                             {/* 전체 수단 목록 팝업 */}
                             <span
-                              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/more:block z-20 w-72 rounded-xl p-3 text-left"
+                              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/more:block z-50 w-72 rounded-xl p-3 text-left"
                               style={{ background: 'var(--popup-bg)', boxShadow: 'var(--popup-shadow), inset 0 0 0 1px var(--popup-border)' }}
                             >
                               {g.methods.map((m) => (
                                 <span key={m.iconName} className="flex items-center gap-2.5 py-1.5">
                                   {methodIcons[m.iconName]
-                                    ? <img src={methodIcons[m.iconName]} alt="" className="w-8 h-8 object-contain shrink-0" style={{ imageRendering: 'pixelated' }} draggable={false} />
-                                    : <span className="w-8 h-8 shrink-0" />}
+                                    ? <img src={methodIcons[m.iconName]} alt="" className="w-9 h-9 object-contain shrink-0" style={{ imageRendering: 'pixelated' }} draggable={false} />
+                                    : <span className="w-9 h-9 shrink-0" />}
                                   <span className="flex-1 text-[13px] truncate" style={{ color: 'var(--text-muted)' }}>{m.iconName}</span>
                                   <b className="text-[13px] tabular-nums" style={{ color: 'var(--text-strong)' }}>{m.count.toLocaleString()}</b>
                                 </span>

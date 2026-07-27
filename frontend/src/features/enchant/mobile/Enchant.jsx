@@ -196,7 +196,12 @@ function StarforceDetail({ group, icon, onBack }) {
   )
 }
 
-function PotentialDetail({ group, icon, onBack }) {
+function methodIconName(r) {
+  return r.method === 'cube' ? r.cube_type : (r.kind === 'additional' ? '에디셔널 잠재능력 재설정' : '잠재능력 재설정')
+}
+
+function PotentialDetail({ group, icon, methodIcons, onBack }) {
+  const [showBefore, setShowBefore] = useState(false)
   return (
     <MapleWindow
       title={(
@@ -249,46 +254,74 @@ function PotentialDetail({ group, icon, onBack }) {
           style={{ background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))', color: '#fff' }}
         >
           <span>재설정 내역</span>
-          <span className="text-[10.5px] font-semibold" style={{ color: '#cfdae4' }}>비용은 추정값 · {group.records.length}건</span>
+          <span className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowBefore((v) => !v)}
+              className="rounded-full px-2.5 py-0.5 text-[10.5px] font-bold"
+              style={showBefore
+                ? { background: 'rgba(255,255,255,.9)', color: 'var(--mpl-slate-to)' }
+                : { background: 'rgba(255,255,255,.18)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.3)', color: '#e6edf3' }}
+            >
+              변경 전 {showBefore ? '숨기기' : '보기'}
+            </button>
+            <span className="text-[10.5px] font-semibold" style={{ color: '#cfdae4' }}>{group.records.length}건</span>
+          </span>
         </div>
         {group.records.map((r, idx) => {
           const gradeUp = isGradeUp(r)
           const before = r.kind === 'additional' ? r.before_additional_potential_option : r.before_potential_option
           const after = r.kind === 'additional' ? r.after_additional_potential_option : r.after_potential_option
           const ceiling = rowCeiling(r)
+          const mIcon = methodIcons[methodIconName(r)]
           return (
             <div
               key={r.id}
-              className="px-3.5 py-2.5 border-b last:border-b-0"
-              style={{ borderColor: 'var(--mpl-card-line)', background: idx % 2 === 1 ? 'var(--mpl-row)' : undefined }}
+              className="flex gap-2.5 px-3.5 py-2.5 border-b last:border-b-0"
+              style={{
+                borderColor: 'var(--mpl-card-line)',
+                background: gradeUp ? 'rgba(159,212,94,.12)' : idx % 2 === 1 ? 'var(--mpl-row)' : undefined,
+                boxShadow: gradeUp ? 'inset 3px 0 0 var(--mpl-lime-to)' : undefined,
+              }}
             >
-              <div className="flex items-center gap-1.5 flex-wrap text-[12px]">
-                <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-dim)' }}>{formatTime(r.date_create)}</span>
-                {r.kind === 'additional'
-                  ? <span className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white" style={{ background: 'linear-gradient(180deg, #c98fd8, #a86bc0)' }}>에디셔널</span>
-                  : <span className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white" style={{ background: 'linear-gradient(180deg, #8f9fe0, #7583cf)' }}>잠재</span>}
-                {r.method === 'cube'
-                  ? <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: 'linear-gradient(180deg, #ffd76e, #f0a828)', color: '#6b4b00' }}>{r.methodName}</span>
-                  : <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: 'linear-gradient(180deg, #c2cdd8, #a8b6c4)', color: '#3d4a58' }}>메소 재설정</span>}
-                {gradeUp && (
-                  <span className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white" style={{ background: 'linear-gradient(180deg, var(--mpl-lime-from), var(--mpl-lime-to))' }}>
-                    등급 UP{r.upgrade_guarantee ? ' (천장)' : ''}
-                  </span>
-                )}
-                <span className="flex-1" />
-                <CostText cost={potentialCost(r)} />
+              <div className="shrink-0 pt-0.5" title={r.methodName}>
+                {mIcon
+                  ? <img src={mIcon} alt={r.methodName} className="w-9 h-9 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
+                  : <span className="w-9 h-9 rounded-lg flex items-center justify-center text-sm" style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}>💰</span>}
               </div>
-              {r.upgrade_guarantee_count > 0 && (
-                <div className="mt-1">
-                  <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={PILL_GHOST}>
-                    스택 {r.upgrade_guarantee_count}{ceiling ? ` / ${ceiling}` : ''}
-                  </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap text-[12px]">
+                  {r.kind === 'additional'
+                    ? <span className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white" style={{ background: 'linear-gradient(180deg, #c98fd8, #a86bc0)' }}>에디셔널</span>
+                    : <span className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white" style={{ background: 'linear-gradient(180deg, #8f9fe0, #7583cf)' }}>잠재</span>}
+                  {gradeUp && (
+                    <span className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white" style={{ background: 'linear-gradient(180deg, var(--mpl-lime-from), var(--mpl-lime-to))' }}>
+                      등급 UP{r.upgrade_guarantee ? ' (천장)' : ''}
+                    </span>
+                  )}
+                  {r.upgrade_guarantee_count > 0 && (
+                    <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={PILL_GHOST}>
+                      {r.upgrade_guarantee_count}{ceiling ? `/${ceiling}` : ''}
+                    </span>
+                  )}
+                  <span className="flex-1" />
+                  <span className="text-[10.5px] tabular-nums" style={{ color: 'var(--text-dim)' }}>{formatTime(r.date_create)}</span>
+                  <CostText cost={potentialCost(r)} />
                 </div>
-              )}
-              <div className="grid gap-1.5 mt-2 items-center" style={{ gridTemplateColumns: '1fr 16px 1.25fr' }}>
-                <OptionBox options={before} variant="before" />
-                <div className="flex items-center justify-center text-xs" style={{ color: gradeUp ? '#5aa626' : 'var(--text-dim)' }}>→</div>
-                <OptionBox options={after} gradeUp={gradeUp} />
+                <div className="mt-1 text-[13px] font-semibold leading-relaxed">
+                  {(after || []).map((o, i) => (
+                    <div key={i} style={{ color: GRADE_COLOR[o.grade] || 'var(--text-muted)' }}>{o.value}</div>
+                  ))}
+                  {(!after || after.length === 0) && <span style={{ color: 'var(--text-dim)' }}>-</span>}
+                </div>
+                {showBefore && (
+                  <div className="mt-1.5 pt-1.5 border-t text-[11px] leading-relaxed" style={{ borderColor: 'var(--mpl-card-line)', color: 'var(--text-dim)' }}>
+                    <span className="font-bold text-[10px]">변경 전</span>
+                    {(before || []).map((o, i) => (
+                      <div key={i}>{o.value}</div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )
@@ -398,7 +431,7 @@ export default function Enchant() {
       <div className="mpl-page-enter">
         {tab === 'starforce'
           ? <StarforceDetail group={detailGroup} icon={itemIcons[detailGroup.item]} onBack={() => setDetailKey(null)} />
-          : <PotentialDetail group={detailGroup} icon={itemIcons[detailGroup.item]} onBack={() => setDetailKey(null)} />}
+          : <PotentialDetail group={detailGroup} icon={itemIcons[detailGroup.item]} methodIcons={methodIcons} onBack={() => setDetailKey(null)} />}
       </div>
     )
   }
