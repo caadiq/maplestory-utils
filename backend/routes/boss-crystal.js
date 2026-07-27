@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { BossCrystalBoss, BossCrystalBossDifficulty } from '../models/index.js';
+import { BossCrystalBoss, BossCrystalBossDifficulty, ChallengerSeason } from '../models/index.js';
 import { getPublicUrl } from '../lib/s3.js';
 
 const router = Router();
@@ -9,7 +9,10 @@ router.get('/bosses', async (_req, res) => {
   try {
     const bosses = await BossCrystalBoss.findAll({
       order: [['sort_order', 'ASC'], ['id', 'ASC']],
-      include: [{ model: BossCrystalBossDifficulty, as: 'difficulties' }],
+      include: [
+        { model: BossCrystalBossDifficulty, as: 'difficulties' },
+        { model: ChallengerSeason, as: 'season' },
+      ],
     });
     res.json(bosses.map((b) => {
       const json = b.toJSON();
@@ -18,6 +21,9 @@ router.get('/bosses', async (_req, res) => {
         name: json.name,
         image_url: json.image_path ? getPublicUrl(json.image_path) : null,
         max_party_size: json.max_party_size,
+        season: json.season
+          ? { season_number: json.season.season_number, start_date: json.season.start_date, end_date: json.season.end_date }
+          : null,
         difficulties: (json.difficulties || []).map((d) => ({
           difficulty: d.difficulty,
           crystal_price: Number(d.crystal_price),

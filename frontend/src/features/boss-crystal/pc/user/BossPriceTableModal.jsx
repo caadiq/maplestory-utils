@@ -1,3 +1,4 @@
+import { isSeasonActive } from '../../logic'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import Modal from '../../../../components/common/Modal'
 import { DIFFICULTIES, formatMeso } from '../admin/constants'
@@ -49,7 +50,7 @@ export default function BossPriceTableModal({ open, onClose, bosses }) {
         options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 } }}
         defer
       >
-        {bosses.map((boss, i) => (
+        {bosses.filter((b) => !b.season || isSeasonActive(b)).map((boss, i) => (
           <div
             key={boss.id}
             className={`${GRID} px-2 py-2.5 rounded-lg`}
@@ -58,6 +59,14 @@ export default function BossPriceTableModal({ open, onClose, bosses }) {
             <div className="flex items-center gap-3 min-w-0">
               <img src={boss.image_url || '/default.png'} alt="" loading="lazy" decoding="async" className="w-10 h-10 rounded-md object-cover shrink-0" />
               <span className="font-medium truncate" style={{ color: 'var(--text-strong)' }}>{boss.name}</span>
+              {boss.season && (
+                <span
+                  className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                  style={{ background: 'linear-gradient(180deg, #f7dcab, #eec584)', boxShadow: 'inset 0 0 0 1px #e3b878', color: '#9a6a10' }}
+                >
+                  시즌
+                </span>
+              )}
             </div>
             {DIFFICULTIES.map((d) => {
               const bd = boss.difficulties.find((x) => x.difficulty === d.key)

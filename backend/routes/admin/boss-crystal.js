@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { BossCrystalBoss, BossCrystalBossDifficulty } from '../../models/index.js';
+import { BossCrystalBoss, BossCrystalBossDifficulty, ChallengerSeason } from '../../models/index.js';
 import { convertAndUploadTo, safeDelete, safeRename } from '../../services/image.js';
 
 const BOSS_IMAGE_PREFIX = 'crystal/boss';
@@ -24,6 +24,8 @@ function serialize(boss) {
     image_path: json.image_path,
     max_party_size: json.max_party_size,
     sort_order: json.sort_order,
+    season_id: json.season_id,
+    season: json.season ? { id: json.season.id, season_number: json.season.season_number } : null,
     difficulties: (json.difficulties || []).map((d) => ({
       id: d.id,
       difficulty: d.difficulty,
@@ -51,6 +53,13 @@ function parseDifficulties(raw) {
   });
 }
 
+function parseSeasonId(raw) {
+  if (raw === undefined || raw === null || raw === '' || raw === 'null') return null;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n <= 0) throw new Error('잘못된 시즌 지정입니다');
+  return n;
+}
+
 function parseMaxParty(raw) {
   const n = Number(raw);
   if (isNaN(n) || n < PARTY_SIZE.min || n > PARTY_SIZE.max) {
@@ -64,7 +73,10 @@ router.get('/bosses', async (_req, res) => {
   try {
     const bosses = await BossCrystalBoss.findAll({
       order: [['sort_order', 'ASC'], ['id', 'ASC']],
-      include: [{ model: BossCrystalBossDifficulty, as: 'difficulties' }],
+      include: [
+        { model: BossCrystalBossDifficulty, as: 'difficulties' },
+        { model: ChallengerSeason, as: 'season' },
+      ],
     });
     res.json(bosses.map(serialize));
   } catch (err) {
@@ -77,7 +89,10 @@ router.get('/bosses', async (_req, res) => {
 router.get('/bosses/:id', async (req, res) => {
   try {
     const boss = await BossCrystalBoss.findByPk(req.params.id, {
-      include: [{ model: BossCrystalBossDifficulty, as: 'difficulties' }],
+      include: [
+        { model: BossCrystalBossDifficulty, as: 'difficulties' },
+        { model: ChallengerSeason, as: 'season' },
+      ],
     });
     if (!boss) return res.status(404).json({ error: '보스를 찾을 수 없습니다' });
     res.json(serialize(boss));
@@ -98,6 +113,7 @@ router.post('/bosses', upload.single('image'), async (req, res) => {
   try {
     const difficulties = parseDifficulties(req.body.difficulties);
     const maxPartySize = parseMaxParty(req.body.max_party_size);
+    const seasonId = parseSeasonId(req.body.season_id);
 
     // 중복 체크
     const existing = await BossCrystalBoss.findOne({ where: { name: trimmedName } });
@@ -114,6 +130,7 @@ router.post('/bosses', upload.single('image'), async (req, res) => {
         image_path: imagePath,
         max_party_size: maxPartySize,
         sort_order: max + 1,
+        season_id: seasonId,
       }, { transaction: tx });
 
       await BossCrystalBossDifficulty.bulkCreate(
@@ -128,7 +145,10 @@ router.post('/bosses', upload.single('image'), async (req, res) => {
     });
 
     const fresh = await BossCrystalBoss.findByPk(boss.id, {
-      include: [{ model: BossCrystalBossDifficulty, as: 'difficulties' }],
+      include: [
+        { model: BossCrystalBossDifficulty, as: 'difficulties' },
+        { model: ChallengerSeason, as: 'season' },
+      ],
     });
     res.json(serialize(fresh));
   } catch (err) {
@@ -154,6 +174,7 @@ router.patch('/bosses/:id', upload.single('image'), async (req, res) => {
 
     const difficulties = parseDifficulties(req.body.difficulties);
     const maxPartySize = parseMaxParty(req.body.max_party_size);
+    const seasonId = parseSeasonId(req.body.season_id);
 
     let newImagePath = boss.image_path;
 
@@ -178,6 +199,7 @@ router.patch('/bosses/:id', upload.single('image'), async (req, res) => {
       boss.name = newName;
       boss.image_path = newImagePath;
       boss.max_party_size = maxPartySize;
+      boss.season_id = seasonId;
       await boss.save({ transaction: tx });
 
       await BossCrystalBossDifficulty.destroy({ where: { boss_id: boss.id }, transaction: tx });
@@ -188,7 +210,10 @@ router.patch('/bosses/:id', upload.single('image'), async (req, res) => {
     });
 
     const fresh = await BossCrystalBoss.findByPk(boss.id, {
-      include: [{ model: BossCrystalBossDifficulty, as: 'difficulties' }],
+      include: [
+        { model: BossCrystalBossDifficulty, as: 'difficulties' },
+        { model: ChallengerSeason, as: 'season' },
+      ],
     });
     res.json(serialize(fresh));
   } catch (err) {

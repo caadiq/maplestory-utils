@@ -7,7 +7,7 @@ import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import CharacterSuggestDropdown from '../../../components/common/CharacterSuggestDropdown'
 import Select from '../../../components/common/Select'
 import { DIFFICULTIES, formatMeso } from '../pc/admin/constants'
-import { MAX_PER_CHARACTER, MAX_PER_ACCOUNT, LABEL_EN, charRevenue } from '../logic'
+import { MAX_PER_CHARACTER, MAX_PER_ACCOUNT, LABEL_EN, charRevenue, seasonBossesFor } from '../logic'
 import BossPriceModal from './BossPriceModal'
 
 export default function BossCrystal() {
@@ -67,8 +67,18 @@ export default function BossCrystal() {
   const usagePct = Math.min((accountUsage / MAX_PER_ACCOUNT) * 100, 100)
 
   const currentSel = selectedChar ? (selections[selectedChar] || {}) : {}
-  const currentCount = Object.values(currentSel).filter(Boolean).length
+  // 시즌보스는 결정석 한도(12개) 미포함
+  const seasonIds = new Set(bosses.filter((b) => b.season).map((b) => b.id))
+  const currentCount = Object.entries(currentSel)
+    .filter(([bossId, sel]) => sel && !seasonIds.has(Number(bossId))).length
   const maxReached = currentCount >= MAX_PER_CHARACTER
+
+  // 선택 캐릭터에게 노출할 목록: 시즌보스(챌린저스+활성 시즌) 먼저, 그 뒤 일반 보스
+  const selectedWorld = characters.find((c) => c.character_name === selectedChar)?.world_name
+  const visibleBosses = [
+    ...seasonBossesFor(selectedWorld, bosses),
+    ...bosses.filter((b) => !b.season),
+  ]
 
   const PANEL = {
     background: 'var(--panel-bg)',
@@ -165,8 +175,8 @@ export default function BossCrystal() {
                       <div className="text-base font-semibold truncate max-w-[9rem]" style={{ color: active ? 'var(--accent-bright)' : 'var(--text-strong)' }}>{c.character_name}</div>
                     </div>
                     <div className="text-xs truncate max-w-[9rem] mt-0.5" style={{ color: 'var(--text-dim)' }}>Lv.{c.character_level} · {c.job_name}</div>
-                    <div className="text-sm tabular-nums mt-1" style={{ color: r.count > 0 ? 'var(--accent-bright)' : 'var(--text-dim)' }}>
-                      {r.count > 0 ? `${formatMeso(r.revenue)} · ${r.count}개` : '미선택'}
+                    <div className="text-sm tabular-nums mt-1" style={{ color: r.revenue > 0 ? 'var(--accent-bright)' : 'var(--text-dim)' }}>
+                      {r.revenue > 0 ? `${formatMeso(r.revenue)} · ${r.count}개` : '미선택'}
                     </div>
                   </div>
                 </div>
@@ -215,27 +225,47 @@ export default function BossCrystal() {
               {currentCount} / {MAX_PER_CHARACTER}
             </span>
           </div>
-          {bosses.map((boss) => {
+          {visibleBosses.map((boss) => {
+            const isSeason = !!boss.season
             const availableDiffs = DIFFICULTIES.filter((d) => boss.difficulties.some((bd) => bd.difficulty === d.key))
             const sel = currentSel[boss.id]
             const bdInfo = sel ? boss.difficulties.find((bd) => bd.difficulty === sel.difficulty) : null
             const partyN = sel?.party || 1
             const revenue = bdInfo ? Math.floor(bdInfo.crystal_price / partyN) : 0
-            const disabled = maxReached && !sel
+            const disabled = maxReached && !sel && !isSeason
             const partyOptions = Array.from({ length: boss.max_party_size }, (_, i) => i + 1).map((n) => ({ value: n, label: `${n}인` }))
 
             return (
               <div
                 key={boss.id}
                 className="rounded-xl border p-3"
-                style={{ ...PANEL, opacity: disabled ? 'var(--disabled-opacity)' : 1, pointerEvents: disabled ? 'none' : 'auto' }}
+                style={{
+                  ...PANEL,
+                  ...(isSeason ? { borderColor: '#eec584', boxShadow: 'inset 0 0 0 0.5px #eec584' } : {}),
+                  opacity: disabled ? 'var(--disabled-opacity)' : 1,
+                  pointerEvents: disabled ? 'none' : 'auto',
+                }}
               >
                 {/* 보스 이미지 + 이름 + 수익 */}
                 <div className="flex items-center gap-2.5">
                   <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0" style={{ background: 'var(--surface-nested)' }}>
                     <img src={boss.image_url || '/default.png'} alt={boss.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   </div>
-                  <span className="text-sm font-semibold flex-1 truncate">{boss.name}</span>
+                  <span className="text-sm font-semibold flex-1 truncate">
+                    {boss.name}
+                    {isSeason && (
+                      <span
+                        className="ml-1.5 inline-block align-middle rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                        style={{
+                          background: 'linear-gradient(180deg, #f7dcab, #eec584)',
+                          boxShadow: 'inset 0 0 0 1px #e3b878',
+                          color: '#9a6a10',
+                        }}
+                      >
+                        시즌
+                      </span>
+                    )}
+                  </span>
                   <span className="text-sm font-medium tabular-nums" style={{ color: sel ? 'var(--accent-bright)' : 'var(--text-dim)' }}>
                     {sel ? formatMeso(revenue) : '-'}
                   </span>

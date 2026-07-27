@@ -1,9 +1,14 @@
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import Select from '../../../../components/common/Select'
 import { DIFFICULTIES, formatMeso } from '../admin/constants'
-import { LABEL_EN } from '../../logic'
+import { LABEL_EN, seasonBossesFor } from '../../logic'
 
-export default function BossSelector({ characterName, bosses, selections, onChange, maxReached, onOpenPriceTable }) {
+export default function BossSelector({ characterName, worldName, bosses, selections, onChange, maxReached, onOpenPriceTable }) {
+  // 시즌보스(챌린저스 월드 + 활성 시즌만) 먼저, 그 뒤 일반 보스
+  const seasonBosses = seasonBossesFor(worldName, bosses)
+  const normalBosses = bosses.filter((b) => !b.season)
+  const visibleBosses = [...seasonBosses, ...normalBosses]
+
   if (!characterName) {
     return (
       <div
@@ -72,8 +77,9 @@ export default function BossSelector({ characterName, bosses, selections, onChan
         }}
         defer
       >
-        <div className="space-y-1.5 pr-3">
-          {bosses.map((boss) => {
+        <div className="space-y-1.5 pr-3 pt-2">
+          {visibleBosses.map((boss) => {
+            const isSeason = !!boss.season
             const availableDiffs = DIFFICULTIES.filter((d) =>
               boss.difficulties.some((bd) => bd.difficulty === d.key)
             )
@@ -87,8 +93,8 @@ export default function BossSelector({ characterName, bosses, selections, onChan
               label: `${n}인`,
             }))
 
-            // 한도 도달 + 이 보스가 선택 안 됐으면 비활성화
-            const disabled = maxReached && !sel
+            // 한도 도달 + 이 보스가 선택 안 됐으면 비활성화 (시즌보스는 한도 미포함이라 제외)
+            const disabled = maxReached && !sel && !isSeason
 
             return (
               <div
@@ -98,7 +104,9 @@ export default function BossSelector({ characterName, bosses, selections, onChan
                 }`}
                 style={{
                   background: 'var(--mpl-card)',
-                  boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)',
+                  boxShadow: isSeason
+                    ? 'inset 0 0 0 1.5px #eec584'
+                    : 'inset 0 0 0 1px var(--mpl-card-line)',
                   opacity: disabled ? 'var(--disabled-opacity)' : 1,
                 }}
               >
@@ -111,6 +119,18 @@ export default function BossSelector({ characterName, bosses, selections, onChan
                     <img src={boss.image_url || '/default.png'} alt={boss.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   </div>
                   <span className="text-base font-medium leading-tight whitespace-nowrap overflow-hidden text-ellipsis">{boss.name}</span>
+                  {isSeason && (
+                    <span
+                      className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                      style={{
+                        background: 'linear-gradient(180deg, #f7dcab, #eec584)',
+                        boxShadow: 'inset 0 0 0 1px #e3b878',
+                        color: '#9a6a10',
+                      }}
+                    >
+                      시즌
+                    </span>
+                  )}
                 </div>
 
                 {/* 난이도 - 한 줄 고정 */}

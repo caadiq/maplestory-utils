@@ -3,6 +3,7 @@ import { Menu } from './Menu.js';
 import { SundayMaple } from './SundayMaple.js';
 import { BossCrystalBoss } from './boss-crystal/Boss.js';
 import { BossCrystalBossDifficulty } from './boss-crystal/BossDifficulty.js';
+import { ChallengerSeason } from './boss-crystal/ChallengerSeason.js';
 import { Symbol } from './symbol/Symbol.js';
 import { SymbolLevel } from './symbol/SymbolLevel.js';
 import { GenesisPass } from './genesis-pass/GenesisPass.js';
@@ -37,6 +38,10 @@ BossCrystalBoss.hasMany(BossCrystalBossDifficulty, {
 });
 BossCrystalBossDifficulty.belongsTo(BossCrystalBoss, { foreignKey: 'boss_id', as: 'boss' });
 
+// BossCrystal Boss <-> ChallengerSeason (시즌보스)
+ChallengerSeason.hasMany(BossCrystalBoss, { foreignKey: 'season_id', as: 'bosses' });
+BossCrystalBoss.belongsTo(ChallengerSeason, { foreignKey: 'season_id', as: 'season', onDelete: 'SET NULL' });
+
 // Symbol <-> SymbolLevel
 Symbol.hasMany(SymbolLevel, {
   foreignKey: 'symbol_id',
@@ -45,4 +50,4 @@ Symbol.hasMany(SymbolLevel, {
 });
 SymbolLevel.belongsTo(Symbol, { foreignKey: 'symbol_id', as: 'symbol' });
 
-export { Image, Menu, SundayMaple, BossCrystalBoss, BossCrystalBossDifficulty, Symbol, SymbolLevel, GenesisPass, User, Session, UserCharacter, UserState };
+export { Image, Menu, SundayMaple, BossCrystalBoss, BossCrystalBossDifficulty, ChallengerSeason, Symbol, SymbolLevel, GenesisPass, User, Session, UserCharacter, UserState };

@@ -49,6 +49,18 @@ function BossCardContent({ boss, dragging = false }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
             <h3 className="font-medium truncate">{boss.name}</h3>
+            {boss.season && (
+              <span
+                className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold self-center"
+                style={{
+                  background: 'linear-gradient(180deg, #f7dcab, #eec584)',
+                  boxShadow: 'inset 0 0 0 1px #e3b878',
+                  color: '#9a6a10',
+                }}
+              >
+                {boss.season.season_number}시즌
+              </span>
+            )}
             <span className="text-xs shrink-0" style={{ color: 'var(--text-dim)' }}>최대 {boss.max_party_size}인</span>
           </div>
           <div className="flex flex-wrap gap-1 mt-2">
@@ -104,6 +116,14 @@ function SortableBossCard({ boss }) {
   )
 }
 
+function SeasonBossCard({ boss }) {
+  return (
+    <Link to={`bosses/${boss.id}`} className="block group hover:[&_h3]:text-[var(--accent-hover-text)] [&_h3]:transition">
+      <BossCardContent boss={boss} />
+    </Link>
+  )
+}
+
 export default function BossList() {
   const queryClient = useQueryClient()
   const { data: bosses = [], isLoading } = useQuery({
@@ -140,14 +160,20 @@ export default function BossList() {
     setActiveId(null)
     if (!over || active.id === over.id) return
 
-    const oldIdx = items.findIndex((b) => b.id === active.id)
-    const newIdx = items.findIndex((b) => b.id === over.id)
-    const next = arrayMove(items, oldIdx, newIdx)
-    setItems(next)
+    const normal = items.filter((b) => !b.season)
+    const oldIdx = normal.findIndex((b) => b.id === active.id)
+    const newIdx = normal.findIndex((b) => b.id === over.id)
+    if (oldIdx < 0 || newIdx < 0) return
+    const next = arrayMove(normal, oldIdx, newIdx)
+    setItems([...items.filter((b) => b.season), ...next])
     reorderMutation.mutate(next.map((b) => b.id))
   }
 
   const activeBoss = items.find((b) => b.id === activeId)
+
+  // 시즌보스는 별도 섹션으로 분리 (정렬 대상 아님)
+  const seasonItems = items.filter((b) => b.season)
+  const normalItems = items.filter((b) => !b.season)
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pt-6">
@@ -202,9 +228,20 @@ export default function BossList() {
           onDragCancel={() => setActiveId(null)}
           onDragEnd={handleDragEnd}
         >
-          <SortableContext items={items.map((b) => b.id)} strategy={rectSortingStrategy}>
+          {seasonItems.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>시즌보스</h3>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {seasonItems.map((boss) => (
+                  <SeasonBossCard key={boss.id} boss={boss} />
+                ))}
+              </div>
+              <h3 className="text-sm font-semibold pt-3" style={{ color: 'var(--text-muted)' }}>일반 보스</h3>
+            </div>
+          )}
+          <SortableContext items={normalItems.map((b) => b.id)} strategy={rectSortingStrategy}>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {items.map((boss) => (
+              {normalItems.map((boss) => (
                 <SortableBossCard key={boss.id} boss={boss} />
               ))}
             </div>
