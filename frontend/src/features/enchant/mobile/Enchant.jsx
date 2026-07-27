@@ -491,7 +491,7 @@ export default function Enchant() {
                       {g.totalCost != null && g.totalCost > 0 ? `${formatKoreanMeso(g.totalCost)} 메소` : '-'}
                     </div>
                     <div
-                      className="flex flex-col items-center gap-0.5 mt-auto pt-2.5 w-full border-t"
+                      className="flex flex-col items-center gap-0.5 mt-2 pt-2.5 w-full border-t"
                       style={{ borderColor: 'var(--mpl-card-line)' }}
                     >
                       <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -555,7 +555,7 @@ export default function Enchant() {
                       {g.totalCost != null && g.totalCost > 0 ? `${formatKoreanMeso(g.totalCost)} 메소` : '-'}
                     </div>
                     <div
-                      className="flex items-end justify-center gap-3 mt-auto pt-2.5 w-full border-t"
+                      className="flex items-end justify-center gap-3 mt-2 pt-2.5 w-full border-t"
                       style={{ borderColor: 'var(--mpl-card-line)' }}
                     >
                       {g.methods.slice(0, 3).map((m) => (
@@ -569,7 +569,7 @@ export default function Enchant() {
                       {g.methods.length > 3 && (
                         <div className="flex flex-col items-center gap-1">
                           <span
-                            className="w-9 h-9 rounded-full flex items-center justify-center text-[12.5px] font-bold"
+                            className="w-11 h-11 rounded-full flex items-center justify-center text-[14px] font-bold -my-1"
                             style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}
                           >
                             +{g.methods.length - 3}
