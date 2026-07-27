@@ -555,10 +555,10 @@ export default function Enchant() {
                       {g.totalCost != null && g.totalCost > 0 ? `${formatKoreanMeso(g.totalCost)} 메소` : '-'}
                     </div>
                     <div
-                      className="flex items-end justify-center gap-3 flex-wrap mt-auto pt-2.5 w-full border-t"
+                      className="flex items-end justify-center gap-3 mt-auto pt-2.5 w-full border-t"
                       style={{ borderColor: 'var(--mpl-card-line)' }}
                     >
-                      {g.methods.map((m) => (
+                      {g.methods.slice(0, 3).map((m) => (
                         <div key={m.iconName} className="flex flex-col items-center gap-1" title={m.iconName}>
                           {methodIcons[m.iconName]
                             ? <img src={methodIcons[m.iconName]} alt={m.iconName} className="w-9 h-9 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
@@ -566,6 +566,19 @@ export default function Enchant() {
                           <span className="text-[12.5px] font-bold tabular-nums leading-none" style={{ color: 'var(--text-strong)' }}>{m.count.toLocaleString()}</span>
                         </div>
                       ))}
+                      {g.methods.length > 3 && (
+                        <div className="flex flex-col items-center gap-1">
+                          <span
+                            className="w-9 h-9 rounded-full flex items-center justify-center text-[12.5px] font-bold"
+                            style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}
+                          >
+                            +{g.methods.length - 3}
+                          </span>
+                          <span className="text-[12.5px] font-bold tabular-nums leading-none" style={{ color: 'var(--text-dim)' }}>
+                            {g.methods.slice(3).reduce((s, m) => s + m.count, 0).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </button>
                 ))}
