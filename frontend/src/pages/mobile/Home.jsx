@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import MobileSundayBanner from '../../components/mobile/SundayBanner'
 import MobileNoticeWidget from '../../components/mobile/NoticeWidget'
+import PageLoader from '../../components/common/PageLoader'
 
 export default function MobileHome() {
   const { data: menus = [], isLoading } = useQuery({
@@ -10,23 +11,20 @@ export default function MobileHome() {
     queryFn: () => api('/api/menus').catch(() => []),
   })
 
+  if (isLoading) return <PageLoader />
+
   return (
-    <div className="space-y-6">
+    <div className="mpl-page-enter space-y-6">
       {/* 썬데이 메이플 배너 (금~일만) */}
       <MobileSundayBanner />
 
       <div className="flex items-center gap-3">
+        <div className="h-px flex-1" style={{ backgroundImage: 'linear-gradient(to right, transparent, var(--divider-line), transparent)' }} />
         <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>Utilities</span>
-        <div className="h-px flex-1" style={{ backgroundImage: 'linear-gradient(to right, var(--divider-line), transparent)' }} />
+        <div className="h-px flex-1" style={{ backgroundImage: 'linear-gradient(to right, transparent, var(--divider-line), transparent)' }} />
       </div>
 
-      {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: 'var(--skeleton-bg)' }} />
-          ))}
-        </div>
-      ) : menus.length === 0 ? (
+      {menus.length === 0 ? (
         <div className="rounded-2xl border p-12 text-center" style={{ background: 'var(--empty-bg)', borderColor: 'var(--empty-border)' }}>
           <div className="text-4xl mb-3 opacity-50">🍁</div>
           <p style={{ color: 'var(--text-muted)' }}>아직 등록된 기능이 없습니다</p>
@@ -37,10 +35,10 @@ export default function MobileHome() {
             <Link
               key={menu.id}
               to={menu.url}
-              className="flex items-center gap-3 rounded-2xl border p-4 active:scale-[0.99] transition-transform border-[var(--card-border)]"
+              className="flex items-center gap-3 rounded-2xl p-4 active:scale-[0.99] transition-transform"
               style={{
-                backgroundImage: 'linear-gradient(to bottom right, var(--card-bg-from), var(--card-bg-to))',
-                boxShadow: 'var(--card-shadow)',
+                background: 'var(--mpl-card)',
+                boxShadow: 'inset 0 0 0 1px var(--mpl-card-line), var(--card-shadow)',
               }}
             >
               <div
@@ -63,8 +61,9 @@ export default function MobileHome() {
 
       {/* 메이플 공지 */}
       <div className="flex items-center gap-3 pt-2">
+        <div className="h-px flex-1" style={{ backgroundImage: 'linear-gradient(to right, transparent, var(--divider-line), transparent)' }} />
         <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>Notices</span>
-        <div className="h-px flex-1" style={{ backgroundImage: 'linear-gradient(to right, var(--divider-line), transparent)' }} />
+        <div className="h-px flex-1" style={{ backgroundImage: 'linear-gradient(to right, transparent, var(--divider-line), transparent)' }} />
       </div>
       <MobileNoticeWidget />
     </div>

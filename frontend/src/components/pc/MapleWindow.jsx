@@ -47,12 +47,14 @@ export default function MapleWindow({ title, titleRight, tabs, children, classNa
 }
 
 /** 창 탭 (인벤토리 탭 스타일 — 비활성 짙은 남색 / 활성 하늘색) */
-export function MapleWindowTab({ active, onClick, children }) {
+export function MapleWindowTab({ active, onClick, compact = false, children }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-1.5 px-5 pt-2 pb-1.5 rounded-t-lg text-[13px] font-semibold transition"
+      className={`flex items-center gap-1.5 pt-2 pb-1.5 rounded-t-lg font-semibold transition whitespace-nowrap ${
+        compact ? 'px-2.5 text-[12px]' : 'px-5 text-[13px]'
+      }`}
       style={active ? {
         background: 'linear-gradient(180deg, var(--mpl-sky-from), #41b5e6)',
         color: '#ffffff',

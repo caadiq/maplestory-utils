@@ -36,7 +36,7 @@ export default function WeeklyDefault({
       style={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)', boxShadow: 'var(--panel-shadow)' }}
     >
       <div className="flex items-center justify-between">
-        <div className="text-base font-semibold" style={{ color: 'var(--accent-bright)' }}>{label}</div>
+        <div className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>{label}</div>
         <div className="text-sm tabular-nums">
           {mode === 'weekly' ? (
             <>

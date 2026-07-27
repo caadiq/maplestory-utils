@@ -5,6 +5,7 @@ import Select from '../../../components/common/Select'
 import { formatMeso } from '../../../utils/formatting'
 import { TYPE_ORDER } from '../utils'
 import { useBackClose } from '../../../hooks/useBackClose'
+import { REGION_COLOR } from '../pc/user/SymbolLevelTableModal'
 
 // 모바일 전용 레벨별 강화 비용표 — 바텀시트
 // 지역이 많아 가로 스크롤은 불편하므로: 타입 세그먼트 + 지역 드롭다운 → 레벨/개수/비용 3열
@@ -64,7 +65,13 @@ export default function SymbolLevelSheet({ open, onClose, allSymbols }) {
 
             {/* 타입 세그먼트 + 지역 드롭다운 */}
             <div className="shrink-0 px-4 pt-3 space-y-2">
-              <div className="flex gap-1 p-1 rounded-xl border" style={{ background: 'var(--surface-3)', borderColor: 'var(--panel-border)' }}>
+              <div
+                className="flex gap-1.5 p-1.5 rounded-xl"
+                style={{
+                  background: 'linear-gradient(180deg, var(--mpl-navy-from), var(--mpl-navy-to))',
+                  boxShadow: '0 3px 10px rgba(31,44,61,.25)',
+                }}
+              >
                 {types.map((t) => {
                   const active = t === type
                   const icon = byType[t]?.[0]?.image_url
@@ -73,13 +80,21 @@ export default function SymbolLevelSheet({ open, onClose, allSymbols }) {
                       key={t}
                       type="button"
                       onClick={() => setPickedType(t)}
-                      className="flex-1 min-w-0 flex items-center justify-center gap-1 py-1.5 px-1 rounded-lg"
+                      className="flex-1 min-w-0 flex items-center justify-center gap-1 py-1.5 px-1 rounded-lg whitespace-nowrap"
                       style={active
-                        ? { background: 'var(--selected-bg)', color: 'var(--accent-bright)' }
-                        : { color: 'var(--text-muted)' }}
+                        ? {
+                            background: 'linear-gradient(180deg, var(--mpl-sky-from), #41b5e6)',
+                            color: '#ffffff',
+                            textShadow: '0 1px 2px rgba(31,80,110,.4)',
+                            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.4)',
+                          }
+                        : {
+                            background: 'linear-gradient(180deg, #44566b, #3a4a5c)',
+                            color: '#9fb0c1',
+                          }}
                     >
                       {icon && <img src={icon} alt="" className="w-5 h-5 shrink-0 object-contain" style={{ imageRendering: 'pixelated' }} />}
-                      <span className="text-[12px] font-semibold leading-tight text-center whitespace-pre-line">{t.replace(' ', '\n')}</span>
+                      <span className="text-[12px] font-semibold leading-tight text-center">{t}</span>
                     </button>
                   )
                 })}
@@ -96,12 +111,17 @@ export default function SymbolLevelSheet({ open, onClose, allSymbols }) {
             {/* 표 헤더 (스크롤 영역 밖에 고정) */}
             {sym && (
               <div
-                className="shrink-0 mt-3 mx-4 flex items-center px-2 py-2.5 text-sm font-semibold border-b-2"
-                style={{ borderColor: 'var(--panel-border)' }}
+                className="shrink-0 mt-3 mx-4 flex items-center px-3.5 py-2 text-sm font-bold rounded-lg"
+                style={{
+                  background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,.25)',
+                  color: '#ffffff',
+                  textShadow: '0 1px 1px rgba(44,55,69,.3)',
+                }}
               >
-                <span className="w-20 shrink-0" style={{ color: 'var(--text-emphasis)' }}>레벨</span>
-                <span className="flex-1 text-center" style={{ color: 'var(--text-emphasis)' }}>개수</span>
-                <span className="flex-1 text-right" style={{ color: 'var(--text-strong)' }}>비용</span>
+                <span className="w-20 shrink-0">레벨</span>
+                <span className="flex-1 text-center">개수</span>
+                <span className="flex-1 text-right">비용</span>
               </div>
             )}
 
@@ -114,7 +134,7 @@ export default function SymbolLevelSheet({ open, onClose, allSymbols }) {
                     className="flex items-center px-2 py-2.5 text-sm"
                     style={{ background: i % 2 === 1 ? 'var(--row-stripe, rgba(128,128,128,0.06))' : 'transparent' }}
                   >
-                    <span className="w-20 shrink-0 font-semibold tabular-nums" style={{ color: 'var(--accent-bright)' }}>
+                    <span className="w-20 shrink-0 font-semibold tabular-nums" style={{ color: REGION_COLOR[sym.region] || 'var(--accent-bright)' }}>
                       {lv.level} <span style={{ color: 'var(--text-dim)' }}>→</span> {lv.level + 1}
                     </span>
                     <span className="flex-1 text-center tabular-nums font-medium" style={{ color: 'var(--warning-text-bright)' }}>

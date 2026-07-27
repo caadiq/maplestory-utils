@@ -21,14 +21,17 @@ function TextList({ cfg, items, isLoading, isMaintenance }) {
 
   return (
     <section className="rounded-2xl border overflow-hidden" style={panelStyle}>
-      <div className="flex items-center justify-between px-4 py-2.5 border-b" style={{ borderColor: 'var(--panel-border)' }}>
-        <h3 className="text-sm font-bold" style={{ color: 'var(--text-emphasis)' }}>{cfg.label}</h3>
+      <div
+        className="flex items-center justify-between px-4 py-2.5"
+        style={{ background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))' }}
+      >
+        <h3 className="text-sm font-bold" style={{ color: '#ffffff', textShadow: '0 1px 1px rgba(44,55,69,.3)' }}>{cfg.label}</h3>
         {pages > 1 && (
-          <div className="flex items-center gap-3 text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
+          <div className="flex items-center gap-3 text-xs tabular-nums" style={{ color: '#cfdae4' }}>
             <button type="button" onClick={() => setPage(Math.max(0, clamped - 1))} disabled={clamped === 0} className="w-6 h-6 flex items-center justify-center disabled:opacity-30" aria-label="이전">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7.5 3L4.5 6L7.5 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </button>
-            <span><span style={{ color: 'var(--text-emphasis)' }}>{clamped + 1}</span>/{pages}</span>
+            <span><span style={{ color: '#ffffff' }}>{clamped + 1}</span>/{pages}</span>
             <button type="button" onClick={() => setPage(Math.min(pages - 1, clamped + 1))} disabled={clamped >= pages - 1} className="w-6 h-6 flex items-center justify-center disabled:opacity-30" aria-label="다음">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </button>
@@ -65,7 +68,12 @@ function MobileCard({ item, cfg }) {
   const dateText = (item.ongoing_flag === 'true' || item.ongoing_flag === true)
     ? '상시판매'
     : start || end ? (startMD === endMD ? startMD : `${startMD} ~ ${endMD}`) : fmtYMD(item.date)
-  const badgeBg = { emerald: 'var(--badge-emerald-bg)', amber: 'var(--badge-amber-bg)', gray: 'var(--badge-gray-bg)' }[badge?.tone]
+  const badgeStyle = {
+    emerald: { background: 'var(--badge-emerald-bg)', color: 'var(--badge-text)' },
+    // 마감 임박: MVP UI 살구톤 (PC와 동일)
+    amber: { background: 'linear-gradient(180deg, #f7dcab, #eec584)', color: '#8a5f14' },
+    gray: { background: 'var(--badge-gray-bg)', color: 'var(--badge-text)' },
+  }[badge?.tone]
 
   return (
     <a href={item.url} target="_blank" rel="noopener noreferrer" className="block w-60 rounded-xl overflow-hidden border" style={panelStyle}>
@@ -76,7 +84,7 @@ function MobileCard({ item, cfg }) {
           <div className="w-full h-full flex items-center justify-center text-3xl" style={{ color: 'var(--thumb-placeholder)' }}>📢</div>
         )}
         {badge && (
-          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ background: badgeBg, color: 'var(--badge-text)' }}>{badge.label}</span>
+          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[11px] font-bold" style={badgeStyle}>{badge.label}</span>
         )}
       </div>
       <div className="p-3 space-y-1">
@@ -97,7 +105,7 @@ function CardRow({ cfg, items, isLoading, isMaintenance }) {
           <StateMsg isLoading={isLoading} isMaintenance={isMaintenance} empty={`진행중인 ${cfg.label}이 없습니다`} />
         </div>
       ) : (
-        <div className="flex overflow-x-auto pb-2 snap-x -mx-4" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex overflow-x-auto pt-1 pb-6 -mb-4 snap-x -mx-4" style={{ scrollbarWidth: 'none' }}>
           {slice.map((it) => (
             <div key={it.notice_id} className="shrink-0 snap-start pl-4 last:pr-4">
               <MobileCard item={it} cfg={cfg} />
