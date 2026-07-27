@@ -333,6 +333,25 @@ export default function Enchant() {
   })
   const itemIcons = iconQuery.data || {}
 
+  const methodIconNames = useMemo(() => {
+    const names = new Set()
+    for (const g of groupPotential(potRows)) for (const m of g.methods) names.add(m.iconName)
+    return [...names]
+  }, [potRows])
+  const methodIconQuery = useQuery({
+    queryKey: ['enchant', 'method-icons', methodIconNames.join('|')],
+    queryFn: async () => {
+      const entries = await Promise.all(methodIconNames.map(async (n) => {
+        const d = await api(`/api/images/${encodeURIComponent(n)}`).catch(() => null)
+        return [n, d?.url || null]
+      }))
+      return Object.fromEntries(entries)
+    },
+    enabled: enabled && methodIconNames.length > 0,
+    staleTime: Infinity,
+  })
+  const methodIcons = methodIconQuery.data || {}
+
   const sfGroups = useMemo(() => groupStarforce(sfItems), [sfItems])
   const sfSum = useMemo(() => starforceSummary(sfItems), [sfItems])
   const potGroups = useMemo(() => groupPotential(potRows), [potRows])
@@ -488,32 +507,33 @@ export default function Enchant() {
                     key={g.key}
                     type="button"
                     onClick={() => setDetailKey(g.key)}
-                    className="aspect-square rounded-xl p-2.5 flex flex-col items-center justify-center gap-0.5 text-center active:scale-[0.98] transition"
+                    className="rounded-xl px-2.5 py-3.5 flex flex-col items-center gap-1 text-center active:scale-[0.98] transition"
                     style={{
                       background: 'var(--mpl-card)',
                       boxShadow: g.gradeUps > 0 ? 'inset 0 0 0 1.5px #b6dc8e' : 'inset 0 0 0 1px var(--mpl-card-line)',
                     }}
                   >
-                    <ItemIcon url={itemIcons[g.item]} size={40} />
-                    <div className="font-bold text-[12.5px] leading-tight mt-1" style={{ color: 'var(--text-strong)' }}>{g.item}</div>
-                    <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>{g.character}</div>
-                    {g.potential && (
-                      <div className="text-[11px] font-bold">
-                        잠재 <GradeText grade={g.potential.from} />
-                        {g.potential.from !== g.potential.to && <> <span style={{ color: 'var(--text-dim)' }}>→</span> <GradeText grade={g.potential.to} /></>}
-                      </div>
-                    )}
-                    {g.additional && (
-                      <div className="text-[11px] font-bold">
-                        에디 <GradeText grade={g.additional.from} />
-                        {g.additional.from !== g.additional.to && <> <span style={{ color: 'var(--text-dim)' }}>→</span> <GradeText grade={g.additional.to} /></>}
-                      </div>
-                    )}
-                    <div className="text-[11.5px] font-bold tabular-nums" style={{ color: '#c9862a' }}>
-                      {g.totalCost != null && g.totalCost > 0 ? formatKoreanMeso(g.totalCost) : '-'}
+                    <ItemIcon url={itemIcons[g.item]} size={48} />
+                    <div className="font-bold text-[13.5px] leading-tight mt-1" style={{ color: 'var(--text-strong)' }}>{g.item}</div>
+                    <div className="text-[11px]" style={{ color: 'var(--text-dim)' }}>{g.character} · Lv.{g.level}</div>
+                    <div className="text-[15px] font-bold tabular-nums mt-1" style={{ color: '#c9862a' }}>
+                      {g.totalCost != null && g.totalCost > 0 ? `${formatKoreanMeso(g.totalCost)} 메소` : '-'}
                     </div>
-                    <div className="text-[10.5px]" style={{ color: 'var(--text-muted)' }}>
-                      큐브 <b style={{ color: 'var(--text-strong)' }}>{g.cubeTries}</b> · 메소 <b style={{ color: 'var(--text-strong)' }}>{g.mesoTries}</b>회
+                    {g.feeCost > 0 && g.resetCost > 0 && (
+                      <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>+ 감정 {formatKoreanMeso(g.feeCost)} 포함</div>
+                    )}
+                    <div
+                      className="flex items-end justify-center gap-2.5 flex-wrap mt-2 pt-2 w-full border-t"
+                      style={{ borderColor: 'var(--mpl-card-line)' }}
+                    >
+                      {g.methods.map((m) => (
+                        <div key={m.iconName} className="flex flex-col items-center gap-0.5" title={m.iconName}>
+                          {methodIcons[m.iconName]
+                            ? <img src={methodIcons[m.iconName]} alt={m.iconName} className="w-6 h-6 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
+                            : <span className="w-6 h-6 rounded flex items-center justify-center text-[9px]" style={{ background: 'var(--mpl-row)', color: 'var(--text-dim)' }}>?</span>}
+                          <span className="text-[11px] font-bold tabular-nums" style={{ color: '#c9862a' }}>{m.count.toLocaleString()}</span>
+                        </div>
+                      ))}
                     </div>
                   </button>
                 ))}
