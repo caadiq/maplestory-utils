@@ -15,7 +15,7 @@ export default function Home() {
   if (loading) return <PageLoader />
 
   return (
-    <div className="mpl-page-enter space-y-10 max-w-5xl mx-auto pt-6">
+    <div className="mpl-stagger space-y-10 max-w-5xl mx-auto pt-6">
       {/* 썬데이 메이플 배너 (금~일만 표시) */}
       <div className="">
         <SundayMapleBanner />
