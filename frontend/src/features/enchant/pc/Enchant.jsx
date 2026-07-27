@@ -12,7 +12,7 @@ import {
   todayKST, daysAgoKST, formatKoreanMeso, formatDateParts,
   sfResult, sfCost, flagApplied, groupStarforce, starforceSummary,
   normalizePotential, groupPotential, potentialSummary, potentialCost,
-  gradeUpPair, rowCeiling, GRADE_COLOR, GRADE_COLOR_SOFT,
+  gradeUpPair, rowCeiling, starRangeStats, GRADE_COLOR, GRADE_COLOR_SOFT,
 } from '../logic'
 
 const PILL_ACTIVE = {
@@ -319,6 +319,11 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack }) {
 
 // ─────────── 스타포스 상세 ───────────
 function StarforceDetail({ group, icon, worldIcon, onBack }) {
+  // 의미 있는 구간만: 2회 이상 시도 (없으면 전체) · 최대 10개
+  const allRanges = starRangeStats(group.records)
+  const multi = allRanges.filter((s) => s.tries >= 2)
+  const ranges = (multi.length > 0 ? multi : allRanges).slice(0, 10)
+  const hiddenRanges = allRanges.length - ranges.length
   return (
     <MapleWindow title={detailTitle(group, onBack)} titleRight={detailNick(group, worldIcon)} bodyClassName="space-y-3">
       <div className="rounded-xl overflow-hidden" style={CARD}>
@@ -334,7 +339,13 @@ function StarforceDetail({ group, icon, worldIcon, onBack }) {
           </div>
         </div>
         <div className="flex" style={{ borderTop: '1px solid var(--mpl-card-line)' }}>
-          <StatCell first label="사용 메소 (추정)" value={group.totalCost != null && group.totalCost > 0 ? formatKoreanMeso(group.totalCost) : '-'} color="#c9862a" />
+          <StatCell
+            first
+            label="사용 메소 (추정)"
+            value={group.totalCost != null && group.totalCost > 0 ? formatKoreanMeso(group.totalCost) : '-'}
+            sub={group.totalCost > 0 ? `평균 ${formatKoreanMeso(Math.round(group.totalCost / group.tries))} / 회` : null}
+            color="#c9862a"
+          />
           <StatCell label="강화 / 파괴" value={`${group.tries} / ${group.destroyCount}`} sub={`파괴방지 ${group.defenceCount}회`} />
           <StatCell
             label={`★${group.topTarget} 도전`}
@@ -343,6 +354,32 @@ function StarforceDetail({ group, icon, worldIcon, onBack }) {
           />
         </div>
       </div>
+
+      {/* 구간별 성공률 */}
+      {ranges.length > 0 && (
+        <div className="rounded-xl overflow-hidden" style={CARD}>
+          <div className="flex items-center justify-between px-3.5 py-2 text-[13.5px] font-bold" style={SLATE_BAR}>
+            <span>구간별 성공률</span>
+            <span className="text-[11.5px] font-semibold" style={{ color: '#cfdae4' }}>
+              시도 많은 순{hiddenRanges > 0 ? ` · 1회 구간 ${hiddenRanges}개 생략` : ''}
+            </span>
+          </div>
+          {ranges.map((s) => (
+            <div key={s.star} className="flex items-center px-3.5 py-2 border-b last:border-b-0 text-[12.5px]" style={{ borderColor: 'var(--mpl-card-line)' }}>
+              <span className="w-[110px] shrink-0 font-bold tabular-nums">
+                <span style={{ color: '#c9a227' }}>★{s.star}</span> <span style={{ color: 'var(--text-dim)' }}>→</span> <span style={{ color: '#c9a227' }}>★{s.star + 1}</span>
+              </span>
+              <span className="flex-1 mr-3.5 h-[9px] rounded-full overflow-hidden" style={{ background: '#e4ebf1', boxShadow: 'inset 0 1px 2px rgba(31,44,61,.12)' }}>
+                <span className="block h-full rounded-full" style={{ width: `${s.rate}%`, background: 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))' }} />
+              </span>
+              <span className="w-[52px] text-right font-bold tabular-nums">{s.rate.toFixed(1)}%</span>
+              <span className="w-[112px] text-right tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                <b style={{ color: 'var(--text-strong)' }}>{s.tries}</b>회 · 파괴 <b style={{ color: s.destroy > 0 ? 'var(--mpl-red-to)' : 'var(--text-strong)' }}>{s.destroy}</b>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="rounded-xl overflow-hidden" style={CARD}>
         <div className="flex items-center px-3.5 py-2 text-xs font-bold" style={SLATE_BAR}>
