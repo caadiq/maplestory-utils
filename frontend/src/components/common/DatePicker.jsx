@@ -35,11 +35,14 @@ export default function DatePicker({ value, onChange, placeholder = '날짜 선�
     const rect = buttonRef.current.getBoundingClientRect()
     const spaceBelow = window.innerHeight - rect.bottom
     const flip = spaceBelow < POPUP_EST_HEIGHT && rect.top > spaceBelow
+    // 화면이 좁으면(모바일) 팝업 폭을 화면에 맞춤
+    const width = Math.min(POPUP_WIDTH, window.innerWidth - 16)
     setFlipUp(flip)
     setPos({
       top: rect.bottom + 8,
-      left: Math.max(8, Math.min(rect.left, window.innerWidth - POPUP_WIDTH - 8)),
+      left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
       bottomOffset: window.innerHeight - rect.top + 8,
+      width,
     })
   }
 
@@ -169,7 +172,7 @@ export default function DatePicker({ value, onChange, placeholder = '날짜 선�
             transition={{ duration: 0.15 }}
             className="fixed z-[100] rounded-xl border p-5"
             style={{
-              width: POPUP_WIDTH,
+              width: pos.width || POPUP_WIDTH,
               left: pos.left,
               ...(flipUp ? { bottom: pos.bottomOffset } : { top: pos.top }),
               background: 'var(--popup-bg)',

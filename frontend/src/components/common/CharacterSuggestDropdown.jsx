@@ -77,7 +77,7 @@ export default function CharacterSuggestDropdown({ open, filter = '', excludeNam
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: pos.flipUp ? 4 : -4 }}
           transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed z-[100] rounded-lg border max-h-64 overflow-y-auto"
+          className="fixed z-[100] rounded-lg border overflow-hidden"
           style={{
             background: 'var(--popup-bg)',
             borderColor: 'var(--popup-border)',
@@ -87,6 +87,7 @@ export default function CharacterSuggestDropdown({ open, filter = '', excludeNam
             ...(pos.flipUp ? { bottom: pos.bottom + 4 } : { top: pos.top + 4 }),
           }}
         >
+          <div className="max-h-64 overflow-y-auto">
           {isLoading ? (
             <div className="p-4 text-center text-sm" style={{ color: 'var(--text-dim)' }}>불러오는 중...</div>
           ) : error ? (
@@ -137,6 +138,7 @@ export default function CharacterSuggestDropdown({ open, filter = '', excludeNam
               ))}
             </ul>
           )}
+        </div>
         </motion.div>
       )}
     </AnimatePresence>

@@ -63,13 +63,14 @@ export default function QuestSelector({ chapters, imageBase, value, onChange }) 
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border py-1 max-h-72 overflow-y-auto origin-top"
+            className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border overflow-hidden origin-top"
             style={{
               background: 'var(--popup-bg)',
               borderColor: 'var(--popup-border)',
               boxShadow: 'var(--popup-shadow)',
             }}
           >
+            <div className="py-1 max-h-72 overflow-y-auto">
           {chapters.map((chapter) => {
             const isSelected = chapter.idx === value
             return (
@@ -101,6 +102,7 @@ export default function QuestSelector({ chapters, imageBase, value, onChange }) 
               </button>
             )
           })}
+          </div>
           </motion.div>
         )}
       </AnimatePresence>
