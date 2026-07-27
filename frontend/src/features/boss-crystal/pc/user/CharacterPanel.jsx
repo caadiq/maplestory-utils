@@ -8,7 +8,31 @@ import Tooltip from '../../../../components/common/Tooltip'
 import CharacterSuggestDropdown from '../../../../components/common/CharacterSuggestDropdown'
 import { useFitText } from '../../../../hooks/useFitText'
 import { DIFFICULTIES, formatMeso, getDifficultyBadgeStyle } from '../admin/constants'
-import { MAX_PER_CHARACTER, MAX_PER_ACCOUNT, charRevenue } from '../../logic'
+import { MAX_PER_CHARACTER, MAX_PER_ACCOUNT, charRevenue, isSeasonActive } from '../../logic'
+
+/** 이름·레벨·직업 줄 — 항상 전체 텍스트 호버 툴팁 표시 */
+function NameLine({ char }) {
+  return (
+    <div
+      data-tooltip={[char.world_name, `${char.character_name} · Lv.${char.character_level} · ${char.job_name}`]
+        .filter(Boolean).join(' · ')}
+      className="flex items-baseline gap-2 min-w-0"
+    >
+      {char.world_icon && (
+        <img
+          src={char.world_icon}
+          alt=""
+          className="w-5 h-5 shrink-0 object-contain self-center"
+          style={{ imageRendering: 'pixelated' }}
+        />
+      )}
+      <span className="truncate text-base font-semibold">{char.character_name}</span>
+      <span className="truncate text-xs" style={{ color: 'var(--text-dim)' }}>
+        Lv.{char.character_level} · {char.job_name}
+      </span>
+    </div>
+  )
+}
 
 function CharacterContent({ char, selections, bosses }) {
   const bossIndex = new Map(bosses.map((b, i) => [b.id, i]))
@@ -27,13 +51,19 @@ function CharacterContent({ char, selections, bosses }) {
     })
     .filter(Boolean)
 
+  // 시즌보스(활성 시즌만)는 결정석 한도 미포함 — 별도로 분리해 맨 앞에 표시
+  const seasonSelected = selectedBosses.filter((x) => x.boss.season && isSeasonActive(x.boss))
+  const normalSelected = selectedBosses.filter((x) => !x.boss.season)
+
   // 12개 상한은 수익 높은 순으로 취한 뒤, 표시는 보스 목록 순서대로 정렬
-  const topByRevenue = [...selectedBosses].sort((a, b) => b.revenue - a.revenue).slice(0, MAX_PER_CHARACTER)
-  const visibleBosses = topByRevenue.sort(
+  const topByRevenue = [...normalSelected].sort((a, b) => b.revenue - a.revenue).slice(0, MAX_PER_CHARACTER)
+  const sorted = topByRevenue.sort(
     (a, b) => (bossIndex.get(a.boss.id) ?? 0) - (bossIndex.get(b.boss.id) ?? 0)
   )
-  const totalRevenue = visibleBosses.reduce((s, x) => s + x.revenue, 0)
-  const count = selectedBosses.length
+  const visibleBosses = sorted
+  const totalRevenue = [...seasonSelected, ...sorted].reduce((s, x) => s + x.revenue, 0)
+  const hasAny = seasonSelected.length > 0 || sorted.length > 0
+  const count = normalSelected.length
 
   return (
     <div className="space-y-3">
@@ -55,23 +85,11 @@ function CharacterContent({ char, selections, bosses }) {
         </div>
 
         <div className="flex-1 min-w-0 space-y-2">
-          <div className="flex items-baseline gap-2 min-w-0">
-            {char.world_icon && (
-              <img
-                src={char.world_icon}
-                alt=""
-                title={char.world_name}
-                className="w-5 h-5 shrink-0 object-contain self-center"
-                style={{ imageRendering: 'pixelated' }}
-              />
-            )}
-            <span className="text-base font-semibold truncate">{char.character_name}</span>
-            <span className="text-xs truncate" style={{ color: 'var(--text-dim)' }}>
-              Lv.{char.character_level} · {char.job_name}
-            </span>
-          </div>
+          <NameLine char={char} />
 
-          {visibleBosses.length > 0 ? (
+          {hasAny ? (
+            <div className="space-y-1.5">
+            {visibleBosses.length > 0 && (
             <div className="grid grid-cols-6 gap-1.5">
               {visibleBosses.map((item) => {
                 const diff = DIFFICULTIES.find((d) => d.key === item.difficulty)
@@ -102,6 +120,58 @@ function CharacterContent({ char, selections, bosses }) {
                   </Tooltip>
                 )
               })}
+            </div>
+            )}
+            {/* 시즌보스 줄 — 결정석 한도와 별개라 12개 그리드와 분리 */}
+            {seasonSelected.length > 0 && (
+            <div className="grid grid-cols-6 gap-1.5">
+              {seasonSelected.map((item) => {
+                const diff = DIFFICULTIES.find((d) => d.key === item.difficulty)
+                return (
+                  <Tooltip
+                    key={item.boss.id}
+                    text={`시즌보스 · ${diff?.label || ''} ${item.boss.name} · ${formatMeso(item.revenue)}`}
+                  >
+                    <div className="space-y-0.5">
+                      <div
+                        className="aspect-square rounded overflow-hidden border-2"
+                        style={{
+                          background: 'var(--surface-nested)',
+                          borderColor: '#eec584',
+                          boxShadow: '0 0 5px rgba(238,197,132,.55)',
+                        }}
+                      >
+                        <img src={item.boss.image_url || '/default.png'} alt="" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover select-none" />
+                      </div>
+                      <div className="flex justify-center">
+                        <div
+                          className="text-[9px] font-bold leading-none rounded border w-3.5 h-3.5 flex items-center justify-center"
+                          style={getDifficultyBadgeStyle(item.difficulty)}
+                        >
+                          {diff?.initial}
+                        </div>
+                      </div>
+                    </div>
+                  </Tooltip>
+                )
+              })}
+              <div
+                className="flex items-center"
+                style={{ gridColumn: `span ${Math.max(1, 6 - seasonSelected.length)}` }}
+              >
+                <span
+                  className="rounded-full px-2.5 py-1 text-[10px] font-bold leading-none"
+                  style={{
+                    background: 'linear-gradient(180deg, #f7dcab, #eec584)',
+                    boxShadow: 'inset 0 0 0 1px #e3b878',
+                    color: '#9a6a10',
+                  }}
+                >
+                  시즌보스
+                </span>
+              </div>
+            </div>
+            )}
             </div>
           ) : (
             <div
@@ -134,9 +204,9 @@ function CharacterContent({ char, selections, bosses }) {
         </div>
         <div
           className="text-sm font-semibold tabular-nums whitespace-nowrap"
-          style={{ color: count > 0 ? 'var(--accent-bright)' : 'var(--text-dim)' }}
+          style={{ color: hasAny ? 'var(--accent-bright)' : 'var(--text-dim)' }}
         >
-          {count > 0 ? formatMeso(totalRevenue) : '-'}
+          {hasAny ? formatMeso(totalRevenue) : '-'}
         </div>
       </div>
     </div>
