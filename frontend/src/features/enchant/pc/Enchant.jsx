@@ -251,10 +251,10 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack }) {
       <div className="rounded-xl overflow-hidden" style={CARD}>
         <div className="flex items-center px-3.5 py-2 text-xs font-bold" style={SLATE_BAR}>
           <span className="w-[92px] shrink-0">일시</span>
-          <span className="w-[180px] shrink-0">수단</span>
+          <span className="w-[218px] shrink-0">수단</span>
           <span className="flex-1 pr-2.5">변경 전</span>
-          <span className="flex-[1.05]">변경 후</span>
-          <span className="w-[84px] text-right shrink-0">비용</span>
+          <span className="flex-1">변경 후</span>
+          <span className="w-[90px] text-right shrink-0">비용</span>
         </div>
         {group.records.map((r, idx) => {
           const { date, time } = formatDateParts(r.date_create)
@@ -274,7 +274,7 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack }) {
                 <span className="block text-[11.5px] font-bold" style={{ color: 'var(--text-muted)' }}>{date}</span>
                 <span className="block text-[11.5px]" style={{ color: 'var(--text-dim)' }}>{time}</span>
               </span>
-              <span className="w-[180px] shrink-0 flex flex-col gap-1 pr-2">
+              <span className="w-[218px] shrink-0 flex flex-col gap-1 pr-2.5">
                 <span className="flex items-center gap-1.5 min-w-0">
                   {mIcon
                     ? <img src={mIcon} alt="" className="w-[26px] h-[26px] object-contain shrink-0" style={{ imageRendering: 'pixelated' }} draggable={false} />
@@ -300,13 +300,13 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack }) {
                 ))}
                 {(!before || before.length === 0) && <span style={{ color: 'var(--text-dim)' }}>-</span>}
               </span>
-              <span className="flex-[1.05] leading-[1.45] font-bold">
+              <span className="flex-1 leading-[1.45] font-bold">
                 {(after || []).map((o, i) => (
                   <span key={i} className="block" style={{ color: GRADE_COLOR[o.grade] || 'var(--text-muted)' }}>{o.value}</span>
                 ))}
                 {(!after || after.length === 0) && <span style={{ color: 'var(--text-dim)' }}>-</span>}
               </span>
-              <span className="w-[84px] text-right shrink-0 font-bold tabular-nums" style={{ color: '#c9862a' }}>
+              <span className="w-[90px] text-right shrink-0 font-bold tabular-nums" style={{ color: '#c9862a' }}>
                 {cost != null ? formatKoreanMeso(cost) : '-'}
               </span>
             </div>
