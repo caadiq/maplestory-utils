@@ -89,17 +89,23 @@ function CostText({ cost }) {
   return <span className="text-[12.5px] font-bold tabular-nums whitespace-nowrap" style={{ color: '#c9862a' }}>{formatKoreanMeso(cost)}</span>
 }
 
-function OptionBox({ options, highlight }) {
+function OptionBox({ options, variant = 'after', gradeUp = false }) {
+  const isBefore = variant === 'before'
   return (
     <div
-      className="rounded-lg px-2.5 py-2 text-[11px] leading-relaxed"
-      style={{
-        background: 'var(--mpl-row)',
-        boxShadow: highlight ? 'inset 0 0 0 1.5px #8fc7e8' : 'inset 0 0 0 1px var(--mpl-card-line)',
+      className={`rounded-lg px-2.5 py-2 leading-relaxed ${isBefore ? 'text-[11px]' : 'text-xs font-semibold'}`}
+      style={isBefore ? {
+        background: 'transparent',
+        boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)',
+      } : {
+        background: 'var(--mpl-card)',
+        boxShadow: gradeUp ? 'inset 0 0 0 2px #b6dc8e, 0 1px 4px rgba(31,44,61,.08)' : 'inset 0 0 0 1.5px #b9cede, 0 1px 4px rgba(31,44,61,.08)',
       }}
     >
       {(options || []).map((o, i) => (
-        <div key={i} style={{ color: GRADE_COLOR[o.grade] || 'var(--text-muted)' }}>{o.value}</div>
+        <div key={i} style={{ color: isBefore ? 'var(--text-dim)' : (GRADE_COLOR[o.grade] || 'var(--text-muted)') }}>
+          {o.value}
+        </div>
       ))}
       {(!options || options.length === 0) && <span style={{ color: 'var(--text-dim)' }}>-</span>}
     </div>
@@ -245,13 +251,17 @@ function PotentialDetail({ group, icon, onBack }) {
           <span>재설정 내역</span>
           <span className="text-[10.5px] font-semibold" style={{ color: '#cfdae4' }}>비용은 추정값 · {group.records.length}건</span>
         </div>
-        {group.records.map((r) => {
+        {group.records.map((r, idx) => {
           const gradeUp = isGradeUp(r)
           const before = r.kind === 'additional' ? r.before_additional_potential_option : r.before_potential_option
           const after = r.kind === 'additional' ? r.after_additional_potential_option : r.after_potential_option
           const ceiling = rowCeiling(r)
           return (
-            <div key={r.id} className="px-3.5 py-2.5 border-b last:border-b-0" style={{ borderColor: 'var(--mpl-card-line)' }}>
+            <div
+              key={r.id}
+              className="px-3.5 py-2.5 border-b last:border-b-0"
+              style={{ borderColor: 'var(--mpl-card-line)', background: idx % 2 === 1 ? 'var(--mpl-row)' : undefined }}
+            >
               <div className="flex items-center gap-1.5 flex-wrap text-[12px]">
                 <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-dim)' }}>{formatTime(r.date_create)}</span>
                 {r.kind === 'additional'
@@ -275,10 +285,10 @@ function PotentialDetail({ group, icon, onBack }) {
                   </span>
                 </div>
               )}
-              <div className="grid gap-1.5 mt-2" style={{ gridTemplateColumns: '1fr 16px 1fr' }}>
-                <OptionBox options={before} />
-                <div className="flex items-center justify-center text-xs" style={{ color: 'var(--text-dim)' }}>→</div>
-                <OptionBox options={after} highlight={!gradeUp} />
+              <div className="grid gap-1.5 mt-2 items-center" style={{ gridTemplateColumns: '1fr 16px 1.25fr' }}>
+                <OptionBox options={before} variant="before" />
+                <div className="flex items-center justify-center text-xs" style={{ color: gradeUp ? '#5aa626' : 'var(--text-dim)' }}>→</div>
+                <OptionBox options={after} gradeUp={gradeUp} />
               </div>
             </div>
           )
