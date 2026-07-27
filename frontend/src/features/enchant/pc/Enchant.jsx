@@ -1,5 +1,6 @@
 import { useState, useMemo, useLayoutEffect, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import { useAuth } from '../../../hooks/useAuth'
@@ -265,24 +266,18 @@ function ItemCard({ onClick, icon, worldIcon, character, name, sub, cost, footer
 }
 
 /**
- * 긴 내역을 나눠 렌더 — 상세 진입이 즉시 되도록 초기엔 일부만 그리고,
- * 바닥 센티널이 보이면 이어서 로드 (수천 행 동시 렌더 시 수 초씩 멈추는 문제 방지)
+ * 내역 가상 스크롤 — 화면에 보이는 행만 렌더 (fromis_9 일정 페이지와 동일한 방식)
+ * 수천 건이어도 DOM에는 수십 개만 존재해 진입·스크롤이 모두 가볍다.
  */
-function useIncrementalList(total, step = 60) {
-  const [count, setCount] = useState(Math.min(step, total))
-  const sentinelRef = useRef(null)
-  useEffect(() => { setCount(Math.min(step, total)) }, [total, step])
-  useEffect(() => {
-    if (count >= total) return
-    const el = sentinelRef.current
-    if (!el) return
-    const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) setCount((c) => Math.min(c + step, total))
-    }, { rootMargin: '600px' })
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [count, total, step])
-  return { count, sentinelRef, hasMore: count < total }
+function useRowVirtualizer(count, estimateSize) {
+  const scrollRef = useRef(null)
+  const virtualizer = useVirtualizer({
+    count,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => estimateSize,
+    overscan: 8,
+  })
+  return { scrollRef, virtualizer }
 }
 
 /** 상세 헤더 좌측: 목록으로 + 섹션 타이틀 */
@@ -337,7 +332,7 @@ function detailRight({ periodLabel, index, total, onPrev, onNext }) {
 
 // ─────────── 잠재 상세 ───────────
 function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
-  const { count, sentinelRef, hasMore } = useIncrementalList(group.records.length)
+  const { scrollRef, virtualizer } = useRowVirtualizer(group.records.length, 88)
   return (
     <MapleWindow
       title={detailTitle('POTENTIAL HISTORY', onBack)}
@@ -390,7 +385,11 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
           <span className="w-[280px] shrink-0">변경 후</span>
           <span className="w-[104px] text-right shrink-0">비용</span>
         </div>
-        {group.records.slice(0, count).map((r, idx) => {
+        <div ref={scrollRef} className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 340px)', minHeight: 320 }}>
+        <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+        {virtualizer.getVirtualItems().map((v) => {
+          const r = group.records[v.index]
+          const idx = v.index
           const { date, time } = formatDateParts(r.date_create)
           const up = gradeUpPair(r)
           const before = r.kind === 'additional' ? r.before_additional_potential_option : r.before_potential_option
@@ -401,8 +400,18 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
           return (
             <div
               key={r.id}
-              className="flex items-center px-4 py-3 border-b last:border-b-0 text-[14px]"
-              style={{ borderColor: 'var(--mpl-card-line)', background: idx % 2 === 1 ? 'var(--mpl-row)' : undefined }}
+              ref={virtualizer.measureElement}
+              data-index={v.index}
+              className="flex items-center px-4 py-3 border-b text-[14px]"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${v.start}px)`,
+                borderColor: 'var(--mpl-card-line)',
+                background: idx % 2 === 1 ? 'var(--mpl-row)' : 'var(--mpl-card)',
+              }}
             >
               <span className="w-[104px] shrink-0 leading-tight">
                 <span className="block text-[12.5px] font-bold" style={{ color: 'var(--text-muted)' }}>{date}</span>
@@ -446,11 +455,8 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
             </div>
           )
         })}
-        {hasMore && (
-          <div ref={sentinelRef} className="py-4 text-center text-[13px]" style={{ color: 'var(--text-dim)' }}>
-            {(group.records.length - count).toLocaleString()}건 더 불러오는 중…
-          </div>
-        )}
+        </div>
+        </div>
       </div>
     </MapleWindow>
   )
@@ -465,7 +471,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
   const baseRanges = multi.length > 0 ? multi : allRanges
   const ranges = showAllRanges ? allRanges : baseRanges
   const hiddenRanges = allRanges.length - baseRanges.length
-  const { count, sentinelRef, hasMore } = useIncrementalList(group.records.length)
+  const { scrollRef, virtualizer } = useRowVirtualizer(group.records.length, 62)
   return (
     <MapleWindow
       title={detailTitle('STARFORCE HISTORY', onBack)}
@@ -549,17 +555,28 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
           <span className="flex-1">결과</span>
           <span className="w-[140px] text-right shrink-0">비용</span>
         </div>
-        {group.records.slice(0, count).map((r, idx) => {
+        <div ref={scrollRef} className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)', minHeight: 300 }}>
+        <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+        {virtualizer.getVirtualItems().map((v) => {
+          const r = group.records[v.index]
+          const idx = v.index
           const { date, time } = formatDateParts(r.date_create)
           const res = sfResult(r)
           const cost = sfCost(r)
           return (
             <div
               key={r.id}
-              className="flex items-center px-4 py-3 border-b last:border-b-0 text-[14px]"
+              ref={virtualizer.measureElement}
+              data-index={v.index}
+              className="flex items-center px-4 py-3 border-b text-[14px]"
               style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${v.start}px)`,
                 borderColor: 'var(--mpl-card-line)',
-                background: idx % 2 === 1 ? 'var(--mpl-row)' : undefined,
+                background: idx % 2 === 1 ? 'var(--mpl-row)' : 'var(--mpl-card)',
                 boxShadow: res === 'destroy' ? 'inset 3px 0 0 var(--mpl-red-to)' : undefined,
               }}
             >
@@ -595,11 +612,8 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
             </div>
           )
         })}
-        {hasMore && (
-          <div ref={sentinelRef} className="py-4 text-center text-[13px]" style={{ color: 'var(--text-dim)' }}>
-            {(group.records.length - count).toLocaleString()}건 더 불러오는 중…
-          </div>
-        )}
+        </div>
+        </div>
       </div>
     </MapleWindow>
   )
