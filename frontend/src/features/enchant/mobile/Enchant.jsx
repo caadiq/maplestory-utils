@@ -35,7 +35,7 @@ function SummaryCard({ label, value, color, ring, className = '' }) {
       className={`rounded-xl px-3 py-2.5 ${className}`}
       style={{ background: 'var(--mpl-card)', boxShadow: ring ? `inset 0 0 0 2px ${ring}` : 'inset 0 0 0 1px var(--mpl-card-line)' }}
     >
-      <div className="text-[10.5px] font-bold" style={{ color: 'var(--text-muted)' }}>{label}</div>
+      <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{label}</div>
       <div className="text-base font-bold tabular-nums mt-0.5" style={{ color: color || 'var(--text-strong)' }}>{value}</div>
     </div>
   )
@@ -219,6 +219,11 @@ function PotentialDetail({ group, icon, onBack }) {
           <div className="flex-1">
             <div className="text-[10.5px] font-bold" style={{ color: 'var(--text-muted)' }}>비용 (추정)</div>
             <div className="text-sm font-bold tabular-nums mt-0.5" style={{ color: '#c9862a' }}>{group.totalCost != null ? formatKoreanMeso(group.totalCost) : '-'}</div>
+            {group.totalCost > 0 && group.feeCost > 0 && (
+              <div className="text-[10px] tabular-nums mt-0.5" style={{ color: 'var(--text-dim)' }}>
+                재설정 {formatKoreanMeso(group.resetCost)}<br />감정 {formatKoreanMeso(group.feeCost)}
+              </div>
+            )}
           </div>
           <div className="flex-1">
             <div className="text-[10.5px] font-bold" style={{ color: 'var(--text-muted)' }}>큐브 / 메소</div>
@@ -331,7 +336,8 @@ export default function Enchant() {
     enabled: enabled && characterNames.length > 0,
     staleTime: 60 * 60 * 1000,
   })
-  const itemIcons = iconQuery.data || {}
+  const itemIcons = iconQuery.data?.items || {}
+  const worldIcons = iconQuery.data?.characterWorldIcons || {}
 
   const methodIconNames = useMemo(() => {
     const names = new Set()
@@ -466,29 +472,32 @@ export default function Enchant() {
                     }}
                   >
                     <ItemIcon url={itemIcons[g.item]} size={48} />
-                    <div className="font-bold text-[13px] leading-tight mt-1.5" style={{ color: 'var(--text-strong)' }}>{g.item}</div>
-                    <div className="text-[12px] font-bold tabular-nums mt-0.5">
+                    <div className="font-bold text-sm leading-tight mt-1.5" style={{ color: 'var(--text-strong)' }}>{g.item}</div>
+                    <div className="text-[13px] font-bold tabular-nums mt-0.5">
                       <span style={{ color: '#c9a227' }}>★{g.startStar}</span>
                       <span style={{ color: 'var(--text-dim)' }}> → </span>
                       {g.destroyed ? <span style={{ color: 'var(--mpl-red-to)' }}>파괴</span> : <span style={{ color: '#c9a227' }}>★{g.endStar}</span>}
                     </div>
                     <span
-                      className="rounded-full px-2 py-0.5 text-[10.5px] font-bold mt-1"
+                      className="inline-flex items-center gap-1 rounded-full pl-1.5 pr-2 py-0.5 text-xs font-bold mt-1"
                       style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}
                     >
+                      {worldIcons[g.character] && (
+                        <img src={worldIcons[g.character]} alt="" className="w-4 h-4 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
+                      )}
                       {g.character}
                     </span>
-                    <div className="text-[15px] font-bold tabular-nums mt-2" style={{ color: '#c9862a' }}>
+                    <div className="text-base font-bold tabular-nums mt-2" style={{ color: '#c9862a' }}>
                       {g.totalCost != null && g.totalCost > 0 ? `${formatKoreanMeso(g.totalCost)} 메소` : '-'}
                     </div>
                     <div
                       className="flex flex-col items-center gap-0.5 mt-auto pt-2.5 w-full border-t"
                       style={{ borderColor: 'var(--mpl-card-line)' }}
                     >
-                      <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
                         강화/파괴 <b style={{ color: 'var(--text-strong)' }}>{g.tries}</b>번/<b style={{ color: 'var(--mpl-red-to)' }}>{g.destroyCount}</b>번
                       </div>
-                      <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
                         <span style={{ color: '#c9a227' }}>★{g.topTarget}</span> 도전{' '}
                         <b style={{ color: 'var(--accent-bright)' }}>{g.topSuccess}성공</b>{' '}
                         <b style={{ color: 'var(--mpl-red-to)' }}>{g.topFail}실패</b>
@@ -531,19 +540,19 @@ export default function Enchant() {
                     }}
                   >
                     <ItemIcon url={itemIcons[g.item]} size={48} />
-                    <div className="font-bold text-[13px] leading-tight mt-1.5" style={{ color: 'var(--text-strong)' }}>{g.item}</div>
-                    <div className="text-[10.5px] mt-0.5" style={{ color: 'var(--text-dim)' }}>{g.part} · Lv.{g.level}</div>
+                    <div className="font-bold text-sm leading-tight mt-1.5" style={{ color: 'var(--text-strong)' }}>{g.item}</div>
+                    <div className="text-xs mt-0.5" style={{ color: 'var(--text-dim)' }}>{g.part} · Lv.{g.level}</div>
                     <span
-                      className="rounded-full px-2 py-0.5 text-[10.5px] font-bold mt-1"
+                      className="inline-flex items-center gap-1 rounded-full pl-1.5 pr-2 py-0.5 text-xs font-bold mt-1"
                       style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}
                     >
+                      {worldIcons[g.character] && (
+                        <img src={worldIcons[g.character]} alt="" className="w-4 h-4 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
+                      )}
                       {g.character}
                     </span>
-                    <div className="text-[15px] font-bold tabular-nums mt-2" style={{ color: '#c9862a' }}>
+                    <div className="text-base font-bold tabular-nums mt-2" style={{ color: '#c9862a' }}>
                       {g.totalCost != null && g.totalCost > 0 ? `${formatKoreanMeso(g.totalCost)} 메소` : '-'}
-                    </div>
-                    <div className="text-[10px] h-3.5" style={{ color: 'var(--text-dim)' }}>
-                      {g.feeCost > 0 && g.resetCost > 0 ? `+ 감정 ${formatKoreanMeso(g.feeCost)} 포함` : ''}
                     </div>
                     <div
                       className="flex items-end justify-center gap-3 flex-wrap mt-auto pt-2.5 w-full border-t"
@@ -554,7 +563,7 @@ export default function Enchant() {
                           {methodIcons[m.iconName]
                             ? <img src={methodIcons[m.iconName]} alt={m.iconName} className="w-9 h-9 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
                             : <span className="w-9 h-9 rounded flex items-center justify-center text-[9px]" style={{ background: 'var(--mpl-row)', color: 'var(--text-dim)' }}>?</span>}
-                          <span className="text-[11px] font-bold tabular-nums leading-none" style={{ color: 'var(--text-strong)' }}>{m.count.toLocaleString()}</span>
+                          <span className="text-[12.5px] font-bold tabular-nums leading-none" style={{ color: 'var(--text-strong)' }}>{m.count.toLocaleString()}</span>
                         </div>
                       ))}
                     </div>

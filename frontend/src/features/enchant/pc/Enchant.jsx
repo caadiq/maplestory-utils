@@ -37,7 +37,7 @@ function SummaryCard({ label, value, sub, color, ring }) {
       className="rounded-xl px-3.5 py-3"
       style={{ background: 'var(--mpl-card)', boxShadow: ring ? `inset 0 0 0 2px ${ring}` : 'inset 0 0 0 1px var(--mpl-card-line)' }}
     >
-      <div className="text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>{label}</div>
+      <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{label}</div>
       <div className="text-xl font-bold tabular-nums mt-0.5" style={{ color: color || 'var(--text-strong)' }}>
         {value}
         {sub && <span className="text-xs ml-1" style={{ color: 'var(--text-dim)' }}>{sub}</span>}
@@ -70,6 +70,39 @@ function ItemIcon({ url, size = 40 }) {
         decoding="async"
         style={{ width: size * 0.8, height: size * 0.8, objectFit: 'contain', imageRendering: 'pixelated', filter: 'drop-shadow(0 0 1px rgba(1,0,0,.5))' }}
       />
+    </span>
+  )
+}
+
+/** 비용 브레이크다운 호버 툴팁 (재설정/감정/합계 정렬) */
+function CostBreakdown({ resetCost, feeCost, total, children }) {
+  if (!total || total <= 0) return children
+  return (
+    <span className="relative group/cost inline-block">
+      {children}
+      <span
+        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/cost:block z-20 w-52 rounded-xl p-3 text-left"
+        style={{
+          background: 'var(--popup-bg)',
+          boxShadow: 'var(--popup-shadow), inset 0 0 0 1px var(--popup-border)',
+        }}
+      >
+        <span className="flex items-center justify-between text-xs py-0.5">
+          <span style={{ color: 'var(--text-muted)' }}>잠재 재설정</span>
+          <b className="tabular-nums" style={{ color: 'var(--text-strong)' }}>{formatKoreanMeso(resetCost)}</b>
+        </span>
+        <span className="flex items-center justify-between text-xs py-0.5">
+          <span style={{ color: 'var(--text-muted)' }}>큐브 감정</span>
+          <b className="tabular-nums" style={{ color: 'var(--text-strong)' }}>{formatKoreanMeso(feeCost)}</b>
+        </span>
+        <span
+          className="flex items-center justify-between text-xs pt-1.5 mt-1 border-t"
+          style={{ borderColor: 'var(--popup-border)' }}
+        >
+          <span className="font-bold" style={{ color: 'var(--text-muted)' }}>합계</span>
+          <b className="tabular-nums text-[13px]" style={{ color: '#c9862a' }}>{formatKoreanMeso(total)}</b>
+        </span>
+      </span>
     </span>
   )
 }
@@ -278,10 +311,15 @@ function PotentialDetail({ group, icon, onBack }) {
         </div>
         <div className="flex gap-7 text-center">
           <div>
-            <div className="text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>비용 (추정)</div>
+            <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>비용 (추정)</div>
             <div className="text-base font-bold tabular-nums mt-0.5" style={{ color: '#c9862a' }}>
               {group.totalCost != null ? formatKoreanMeso(group.totalCost) : '-'}
             </div>
+            {group.totalCost > 0 && (
+              <div className="text-[11.5px] tabular-nums mt-0.5" style={{ color: 'var(--text-dim)' }}>
+                재설정 {formatKoreanMeso(group.resetCost)} · 감정 {formatKoreanMeso(group.feeCost)}
+              </div>
+            )}
           </div>
           <div>
             <div className="text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>큐브 / 메소</div>
@@ -409,7 +447,8 @@ export default function Enchant() {
     enabled: enabled && characterNames.length > 0,
     staleTime: 60 * 60 * 1000,
   })
-  const itemIcons = iconQuery.data || {}
+  const itemIcons = iconQuery.data?.items || {}
+  const worldIcons = iconQuery.data?.characterWorldIcons || {}
 
   // 수단(큐브/재설정) 아이콘 — 이미지 관리에 등록된 큐브 이미지 사용
   const methodIconNames = useMemo(() => {
@@ -549,34 +588,37 @@ export default function Enchant() {
                       }}
                     >
                       <ItemIcon url={itemIcons[g.item]} size={52} />
-                      <div className="font-bold text-sm leading-tight mt-2" style={{ color: 'var(--text-strong)' }}>{g.item}</div>
-                      <div className="text-[13px] font-bold tabular-nums mt-0.5">
+                      <div className="font-bold text-[15px] leading-tight mt-2" style={{ color: 'var(--text-strong)' }}>{g.item}</div>
+                      <div className="text-sm font-bold tabular-nums mt-0.5">
                         <span style={{ color: '#c9a227' }}>★{g.startStar}</span>
                         <span style={{ color: 'var(--text-dim)' }}> → </span>
                         {g.destroyed ? <span style={{ color: 'var(--mpl-red-to)' }}>파괴</span> : <span style={{ color: '#c9a227' }}>★{g.endStar}</span>}
                       </div>
                       <span
-                        className="rounded-full px-2.5 py-0.5 text-[11px] font-bold mt-1.5"
+                        className="inline-flex items-center gap-1 rounded-full pl-1.5 pr-2.5 py-0.5 text-[12.5px] font-bold mt-1.5"
                         style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}
                       >
+                        {worldIcons[g.character] && (
+                          <img src={worldIcons[g.character]} alt="" className="w-4 h-4 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
+                        )}
                         {g.character}
                       </span>
-                      <div className="text-[17px] font-bold tabular-nums mt-2.5" style={{ color: '#c9862a' }}>
+                      <div className="text-lg font-bold tabular-nums mt-2.5" style={{ color: '#c9862a' }}>
                         {g.totalCost != null && g.totalCost > 0 ? `${formatKoreanMeso(g.totalCost)} 메소` : '-'}
                       </div>
                       <div
                         className="flex flex-col items-center gap-0.5 mt-auto pt-3 w-full border-t"
                         style={{ borderColor: 'var(--mpl-card-line)' }}
                       >
-                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <div className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
                           강화/파괴 <b style={{ color: 'var(--text-strong)' }}>{g.tries}</b>번/<b style={{ color: 'var(--mpl-red-to)' }}>{g.destroyCount}</b>번
                         </div>
-                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <div className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
                           <span style={{ color: '#c9a227' }}>★{g.topTarget}</span> 도전{' '}
                           <b style={{ color: 'var(--accent-bright)' }}>{g.topSuccess}성공</b>{' '}
                           <b style={{ color: 'var(--mpl-red-to)' }}>{g.topFail}실패</b>
                         </div>
-                        <div className="text-[11.5px] font-semibold h-4" style={{ color: '#c9862a' }}>
+                        <div className="text-[12.5px] font-semibold h-4" style={{ color: '#c9862a' }}>
                           {g.failStreak ? `${g.failStreak.star}성에서 ${g.failStreak.count}번 연속 실패` : ''}
                         </div>
                       </div>
@@ -612,20 +654,22 @@ export default function Enchant() {
                       }}
                     >
                       <ItemIcon url={itemIcons[g.item]} size={52} />
-                      <div className="font-bold text-sm leading-tight mt-2" style={{ color: 'var(--text-strong)' }}>{g.item}</div>
-                      <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-dim)' }}>{g.part} · Lv.{g.level}</div>
+                      <div className="font-bold text-[15px] leading-tight mt-2" style={{ color: 'var(--text-strong)' }}>{g.item}</div>
+                      <div className="text-[12.5px] mt-0.5" style={{ color: 'var(--text-dim)' }}>{g.part} · Lv.{g.level}</div>
                       <span
-                        className="rounded-full px-2.5 py-0.5 text-[11px] font-bold mt-1.5"
+                        className="inline-flex items-center gap-1 rounded-full pl-1.5 pr-2.5 py-0.5 text-[12.5px] font-bold mt-1.5"
                         style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}
                       >
+                        {worldIcons[g.character] && (
+                          <img src={worldIcons[g.character]} alt="" className="w-4 h-4 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
+                        )}
                         {g.character}
                       </span>
-                      <div className="text-[17px] font-bold tabular-nums mt-2.5" style={{ color: '#c9862a' }}>
-                        {g.totalCost != null && g.totalCost > 0 ? `${formatKoreanMeso(g.totalCost)} 메소` : '-'}
-                      </div>
-                      <div className="text-[11px] h-4" style={{ color: 'var(--text-dim)' }}>
-                        {g.feeCost > 0 && g.resetCost > 0 ? `+ 감정 ${formatKoreanMeso(g.feeCost)} 포함` : ''}
-                      </div>
+                      <CostBreakdown resetCost={g.resetCost} feeCost={g.feeCost} total={g.totalCost}>
+                        <div className="text-lg font-bold tabular-nums mt-2.5" style={{ color: '#c9862a' }}>
+                          {g.totalCost != null && g.totalCost > 0 ? `${formatKoreanMeso(g.totalCost)} 메소` : '-'}
+                        </div>
+                      </CostBreakdown>
                       <div
                         className="flex items-end justify-center gap-3.5 flex-wrap mt-auto pt-3 w-full border-t"
                         style={{ borderColor: 'var(--mpl-card-line)' }}
@@ -634,8 +678,8 @@ export default function Enchant() {
                           <div key={m.iconName} className="flex flex-col items-center gap-1" title={m.iconName}>
                             {methodIcons[m.iconName]
                               ? <img src={methodIcons[m.iconName]} alt={m.iconName} className="w-9 h-9 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
-                              : <span className="w-9 h-9 rounded flex items-center justify-center text-[10px]" style={{ background: 'var(--mpl-row)', color: 'var(--text-dim)' }}>?</span>}
-                            <span className="text-xs font-bold tabular-nums leading-none" style={{ color: 'var(--text-strong)' }}>{m.count.toLocaleString()}</span>
+                              : <span className="w-9 h-9 rounded flex items-center justify-center text-[11px]" style={{ background: 'var(--mpl-row)', color: 'var(--text-dim)' }}>?</span>}
+                            <span className="text-[13px] font-bold tabular-nums leading-none" style={{ color: 'var(--text-strong)' }}>{m.count.toLocaleString()}</span>
                           </div>
                         ))}
                       </div>
