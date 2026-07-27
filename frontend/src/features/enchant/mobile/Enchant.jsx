@@ -41,6 +41,34 @@ function SummaryCard({ label, value, color, ring }) {
   )
 }
 
+function ItemIcon({ url, size = 40 }) {
+  if (!url) {
+    return (
+      <span
+        className="rounded-lg flex items-center justify-center shrink-0"
+        style={{ width: size, height: size, background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-dim)', fontSize: size * 0.4 }}
+      >
+        ?
+      </span>
+    )
+  }
+  return (
+    <span
+      className="rounded-lg flex items-center justify-center shrink-0"
+      style={{ width: size, height: size, background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}
+    >
+      <img
+        src={url}
+        alt=""
+        draggable={false}
+        loading="lazy"
+        decoding="async"
+        style={{ width: size * 0.8, height: size * 0.8, objectFit: 'contain', imageRendering: 'pixelated', filter: 'drop-shadow(0 0 1px rgba(1,0,0,.5))' }}
+      />
+    </span>
+  )
+}
+
 function GradeText({ grade }) {
   if (!grade) return <span style={{ color: 'var(--text-dim)' }}>-</span>
   return <span style={{ color: GRADE_COLOR[grade] || 'var(--text-strong)' }}>{grade}</span>
@@ -78,7 +106,7 @@ function OptionBox({ options, highlight }) {
   )
 }
 
-function StarforceDetail({ group, onBack }) {
+function StarforceDetail({ group, icon, onBack }) {
   return (
     <MapleWindow
       title={(
@@ -89,7 +117,9 @@ function StarforceDetail({ group, onBack }) {
       )}
       bodyClassName="space-y-3"
     >
-      <div className="rounded-xl p-3.5" style={{ background: 'var(--mpl-card)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}>
+      <div className="rounded-xl p-3.5 flex gap-3" style={{ background: 'var(--mpl-card)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}>
+        <ItemIcon url={icon} size={46} />
+        <div className="flex-1 min-w-0">
         <div className="font-bold text-sm" style={{ color: 'var(--text-strong)' }}>
           {group.item} <span className="text-[11px] font-semibold" style={{ color: 'var(--text-dim)' }}>· {group.character}</span>
         </div>
@@ -113,6 +143,7 @@ function StarforceDetail({ group, onBack }) {
               <span style={{ color: 'var(--accent-bright)' }}>{group.topSuccess}성공</span> <span style={{ color: 'var(--mpl-red-to)' }}>{group.topFail}실패</span>
             </div>
           </div>
+        </div>
         </div>
       </div>
 
@@ -159,7 +190,7 @@ function StarforceDetail({ group, onBack }) {
   )
 }
 
-function PotentialDetail({ group, onBack }) {
+function PotentialDetail({ group, icon, onBack }) {
   return (
     <MapleWindow
       title={(
@@ -170,7 +201,9 @@ function PotentialDetail({ group, onBack }) {
       )}
       bodyClassName="space-y-3"
     >
-      <div className="rounded-xl p-3.5" style={{ background: 'var(--mpl-card)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}>
+      <div className="rounded-xl p-3.5 flex gap-3" style={{ background: 'var(--mpl-card)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}>
+        <ItemIcon url={icon} size={46} />
+        <div className="flex-1 min-w-0">
         <div className="font-bold text-sm" style={{ color: 'var(--text-strong)' }}>
           {group.item} <span className="text-[11px] font-semibold" style={{ color: 'var(--text-dim)' }}>· {group.part} · Lv.{group.level} · {group.character}</span>
         </div>
@@ -195,6 +228,7 @@ function PotentialDetail({ group, onBack }) {
             <div className="text-[10.5px] font-bold" style={{ color: 'var(--text-muted)' }}>등급 상승</div>
             <div className="text-sm font-bold tabular-nums mt-0.5" style={{ color: '#5aa626' }}>{group.gradeUps}회</div>
           </div>
+        </div>
         </div>
       </div>
 
@@ -260,7 +294,8 @@ export default function Enchant() {
   const [detailKey, setDetailKey] = useState(null)
   useBackClose(detailKey != null, () => setDetailKey(null))
 
-  const from = range === 'today' ? todayKST() : range === '7d' ? daysAgoKST(6) : customFrom
+  const RANGE_DAYS = { today: 0, '7d': 6, '30d': 29, '6m': 182, '1y': 365 }
+  const from = range === 'custom' ? customFrom : daysAgoKST(RANGE_DAYS[range] ?? 6)
   const to = range === 'custom' ? customTo : todayKST()
 
   const enabled = !!user
@@ -285,6 +320,18 @@ export default function Enchant() {
     for (const i of potQuery.data?.items || []) names.add(i.character_name)
     return [{ value: null, label: '전체 캐릭터' }, ...[...names].sort().map((n) => ({ value: n, label: n }))]
   }, [sfQuery.data, cubeQuery.data, potQuery.data])
+
+  const characterNames = useMemo(
+    () => characterOptions.filter((o) => o.value).map((o) => o.value),
+    [characterOptions]
+  )
+  const iconQuery = useQuery({
+    queryKey: ['enchant', 'item-icons', characterNames.join(',')],
+    queryFn: () => api(`/api/enchant/item-icons?characters=${encodeURIComponent(characterNames.join(','))}`),
+    enabled: enabled && characterNames.length > 0,
+    staleTime: 60 * 60 * 1000,
+  })
+  const itemIcons = iconQuery.data || {}
 
   const sfGroups = useMemo(() => groupStarforce(sfItems), [sfItems])
   const sfSum = useMemo(() => starforceSummary(sfItems), [sfItems])
@@ -315,8 +362,8 @@ export default function Enchant() {
     return (
       <div className="mpl-page-enter">
         {tab === 'starforce'
-          ? <StarforceDetail group={detailGroup} onBack={() => setDetailKey(null)} />
-          : <PotentialDetail group={detailGroup} onBack={() => setDetailKey(null)} />}
+          ? <StarforceDetail group={detailGroup} icon={itemIcons[detailGroup.item]} onBack={() => setDetailKey(null)} />
+          : <PotentialDetail group={detailGroup} icon={itemIcons[detailGroup.item]} onBack={() => setDetailKey(null)} />}
       </div>
     )
   }
@@ -341,6 +388,9 @@ export default function Enchant() {
           {[
             { key: 'today', label: '오늘' },
             { key: '7d', label: '7일' },
+            { key: '30d', label: '30일' },
+            { key: '6m', label: '6개월' },
+            { key: '1y', label: '1년' },
             { key: 'custom', label: '직접' },
           ].map((r) => (
             <button
@@ -394,7 +444,8 @@ export default function Enchant() {
                       boxShadow: g.destroyCount > 0 ? 'inset 0 0 0 1.5px #f0b1a8' : 'inset 0 0 0 1px var(--mpl-card-line)',
                     }}
                   >
-                    <div className="font-bold text-[12.5px] leading-tight" style={{ color: 'var(--text-strong)' }}>{g.item}</div>
+                    <ItemIcon url={itemIcons[g.item]} size={40} />
+                    <div className="font-bold text-[12.5px] leading-tight mt-1" style={{ color: 'var(--text-strong)' }}>{g.item}</div>
                     <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>{g.character}</div>
                     <div className="text-[13px] font-bold tabular-nums mt-0.5">
                       <span style={{ color: '#c9a227' }}>★{g.startStar}</span>
@@ -443,7 +494,8 @@ export default function Enchant() {
                       boxShadow: g.gradeUps > 0 ? 'inset 0 0 0 1.5px #b6dc8e' : 'inset 0 0 0 1px var(--mpl-card-line)',
                     }}
                   >
-                    <div className="font-bold text-[12.5px] leading-tight" style={{ color: 'var(--text-strong)' }}>{g.item}</div>
+                    <ItemIcon url={itemIcons[g.item]} size={40} />
+                    <div className="font-bold text-[12.5px] leading-tight mt-1" style={{ color: 'var(--text-strong)' }}>{g.item}</div>
                     <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>{g.character}</div>
                     {g.potential && (
                       <div className="text-[11px] font-bold">

@@ -16,6 +16,27 @@ const cache = new Map(); // key: `${type}:${date}` → { at, items }
 const DAY_MS = 24 * 60 * 60 * 1000;
 const TODAY_TTL = 5 * 60 * 1000;
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** 넥슨 GET — 429(rate limit) 시 지수 백오프 재시도 */
+async function nexonGet(url, params) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const { data } = await axios.get(url, {
+        params,
+        headers: { 'x-nxopen-api-key': process.env.NEXON_API_KEY },
+      });
+      return data;
+    } catch (err) {
+      if (err.response?.status === 429 && attempt < 4) {
+        await sleep(500 * Math.pow(2, attempt));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 function todayKST() {
   return new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
 }
@@ -31,10 +52,7 @@ async function fetchDay(type, date) {
   let cursor = null;
   for (let i = 0; i < 20; i++) { // 페이징 안전 상한
     const params = cursor ? { count: 1000, cursor } : { count: 1000, date };
-    const { data } = await axios.get(`${NEXON_BASE}/${path}`, {
-      params,
-      headers: { 'x-nxopen-api-key': process.env.NEXON_API_KEY },
-    });
+    const data = await nexonGet(`${NEXON_BASE}/${path}`, params);
     items.push(...(data[listKey] || []));
     cursor = data.next_cursor;
     if (!cursor) break;
@@ -63,7 +81,7 @@ router.get('/history', requireAuth, async (req, res) => {
   const start = new Date(`${from}T00:00:00+09:00`).getTime();
   const end = new Date(`${to}T00:00:00+09:00`).getTime();
   if (end < start) return res.status(400).json({ error: '기간이 잘못되었습니다' });
-  if ((end - start) / DAY_MS > 31) return res.status(400).json({ error: '최대 31일까지 조회할 수 있습니다' });
+  if ((end - start) / DAY_MS > 366) return res.status(400).json({ error: '최대 1년까지 조회할 수 있습니다' });
 
   // 넥슨 데이터 제공 시작일(2023-12-27) 이전은 요청하지 않음
   const MIN_DATE = '2023-12-27';
@@ -88,6 +106,58 @@ router.get('/history', requireAuth, async (req, res) => {
     console.error('강화 이력 조회 오류:', status, err.response?.data?.error?.message || err.message);
     if (status === 429) return res.status(429).json({ error: '넥슨 API 요청 한도 초과 — 잠시 후 다시 시도해주세요' });
     res.status(500).json({ error: '강화 이력 조회 실패' });
+  }
+});
+
+// 캐릭터 장착 장비의 item_name → item_icon 매핑 (넥슨 정적 아이콘 URL)
+const ocidCache = new Map(); // name → ocid
+const iconCache = new Map(); // character → { at, icons: { name: url } }
+const ICON_TTL = 60 * 60 * 1000;
+
+async function fetchCharacterIcons(characterName) {
+  const cached = iconCache.get(characterName);
+  if (cached && Date.now() - cached.at < ICON_TTL) return cached.icons;
+
+  let ocid = ocidCache.get(characterName);
+  if (!ocid) {
+    const idData = await nexonGet('https://open.api.nexon.com/maplestory/v1/id', { character_name: characterName });
+    ocid = idData.ocid;
+    ocidCache.set(characterName, ocid);
+  }
+  const data = await nexonGet('https://open.api.nexon.com/maplestory/v1/character/item-equipment', { ocid });
+  const icons = {};
+  const collect = (list) => {
+    for (const eq of list || []) {
+      if (eq.item_name && eq.item_icon && !icons[eq.item_name]) icons[eq.item_name] = eq.item_icon;
+    }
+  };
+  collect(data.item_equipment);
+  collect(data.item_equipment_preset_1);
+  collect(data.item_equipment_preset_2);
+  collect(data.item_equipment_preset_3);
+  iconCache.set(characterName, { at: Date.now(), icons });
+  return icons;
+}
+
+/**
+ * GET /api/enchant/item-icons?characters=이름1,이름2
+ * 각 캐릭터의 장착 장비(프리셋 포함)에서 장비명 → 아이콘 URL 매핑을 병합해 반환.
+ * 이력에 있지만 장착 중이 아닌 장비는 매핑에 없을 수 있음.
+ */
+router.get('/item-icons', requireAuth, async (req, res) => {
+  const names = (req.query.characters || '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 30);
+  if (names.length === 0) return res.json({});
+  try {
+    const merged = {};
+    for (let i = 0; i < names.length; i += 3) {
+      const chunk = names.slice(i, i + 3);
+      const results = await Promise.all(chunk.map((n) => fetchCharacterIcons(n).catch(() => ({}))));
+      for (const icons of results) Object.assign(merged, icons);
+    }
+    res.json(merged);
+  } catch (err) {
+    console.error('아이템 아이콘 조회 오류:', err.message);
+    res.status(500).json({ error: '아이콘 조회 실패' });
   }
 });
 
