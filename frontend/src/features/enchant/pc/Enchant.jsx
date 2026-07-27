@@ -1,4 +1,5 @@
 import { useState, useMemo, useLayoutEffect, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import { useAuth } from '../../../hooks/useAuth'
@@ -93,15 +94,40 @@ function methodIconName(r) {
   return r.method === 'cube' ? r.cube_type : (r.kind === 'additional' ? '에디셔널 잠재능력 재설정' : '잠재능력 재설정')
 }
 
-/** 카드 하단 수단 스트립 — 상위 4개 + (+N) 클릭 팝오버 */
+/** 카드 하단 수단 스트립 — 상위 4개 + (+N) 클릭 팝오버 (body 포털) */
 function MethodStrip({ methods, methodIcons }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef(null)
+  const [pos, setPos] = useState({ left: 0, bottom: 0 })
+  const btnRef = useRef(null)
+  const popRef = useRef(null)
+
+  const POP_W = 272
+  const place = () => {
+    const el = btnRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    setPos({
+      left: Math.max(8, Math.min(r.left + r.width / 2 - POP_W / 2, window.innerWidth - POP_W - 8)),
+      bottom: window.innerHeight - r.top + 10,
+    })
+  }
+
+  useLayoutEffect(() => { if (open) place() }, [open])
   useEffect(() => {
     if (!open) return
-    const onDown = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
+    const onDown = (e) => {
+      if (btnRef.current?.contains(e.target) || popRef.current?.contains(e.target)) return
+      setOpen(false)
+    }
+    const onScroll = () => place()
     document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('resize', onScroll)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      window.removeEventListener('scroll', onScroll, true)
+      window.removeEventListener('resize', onScroll)
+    }
   }, [open])
 
   const top = methods.slice(0, 4)
@@ -118,9 +144,11 @@ function MethodStrip({ methods, methodIcons }) {
         </div>
       ))}
       {rest.length > 0 && (
-        <div ref={ref} className="relative flex flex-col items-center gap-1">
+        <div className="flex flex-col items-center gap-1">
           <button
+            ref={btnRef}
             type="button"
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => { e.stopPropagation(); setOpen((v) => !v) }}
             className="w-11 h-11 -my-1 rounded-full flex items-center justify-center text-[15px] font-bold transition"
             style={open
@@ -133,11 +161,19 @@ function MethodStrip({ methods, methodIcons }) {
             {rest.reduce((s, m) => s + m.count, 0).toLocaleString()}
           </span>
 
-          {open && (
+          {open && createPortal(
             <div
-              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 z-50 w-[272px] rounded-[10px] overflow-hidden text-left"
-              style={{ background: 'var(--mpl-win-body)', border: '1px solid rgba(31,44,61,.4)', boxShadow: '0 12px 32px rgba(31,44,61,.32)' }}
-              onClick={(e) => e.stopPropagation()}
+              ref={popRef}
+              className="fixed z-[100] rounded-[10px] overflow-hidden text-left"
+              style={{
+                left: pos.left,
+                bottom: pos.bottom,
+                width: POP_W,
+                background: 'var(--mpl-win-body)',
+                border: '1px solid rgba(31,44,61,.4)',
+                boxShadow: '0 12px 32px rgba(31,44,61,.32)',
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between px-3 py-1.5" style={{ background: 'linear-gradient(180deg, var(--mpl-navy-from), var(--mpl-navy-to))' }}>
                 <span className="text-[11.5px] font-bold" style={{ color: 'var(--mpl-title-yellow)', letterSpacing: '1.5px', textShadow: '1px 1px 0 rgba(31,44,61,.6)' }}>ALL CUBES</span>
@@ -160,7 +196,8 @@ function MethodStrip({ methods, methodIcons }) {
                   ))}
                 </div>
               </div>
-            </div>
+            </div>,
+            document.body
           )}
         </div>
       )}
@@ -176,7 +213,7 @@ function ItemCard({ onClick, icon, worldIcon, character, name, sub, cost, footer
       tabIndex={0}
       onClick={onClick}
       onKeyDown={(e) => { if (e.key === 'Enter') onClick?.() }}
-      className="relative z-0 hover:z-30 rounded-xl flex flex-col cursor-pointer hover:brightness-[.99] active:scale-[0.995] transition"
+      className="rounded-xl flex flex-col cursor-pointer hover:brightness-[.99] transition"
       style={{ background: 'var(--mpl-card)', boxShadow: `0 2px 8px rgba(31,44,61,.10), inset 0 0 0 ${ring ? '1.5px ' + ring : '1px var(--mpl-card-line)'}` }}
     >
       <div className="flex items-center gap-1.5 px-2.5 py-[7px] rounded-t-xl" style={SLATE_BAR}>
@@ -187,7 +224,7 @@ function ItemCard({ onClick, icon, worldIcon, character, name, sub, cost, footer
         <ItemSlot url={icon} />
         <div className="text-[15px] font-bold leading-tight mt-2" style={{ color: 'var(--text-strong)' }}>{name}</div>
         <div className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>{sub}</div>
-        <div className="text-[19px] font-bold tabular-nums mt-2.5" style={{ color: '#c9862a', letterSpacing: '-.4px' }}>{cost}</div>
+        <div className="text-[19px] font-bold tabular-nums mt-2.5" style={{ color: 'var(--accent-bright)', letterSpacing: '-.4px' }}>{cost}</div>
         {footer}
       </div>
     </div>
@@ -222,9 +259,9 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack }) {
         <div className="flex items-center gap-3.5 px-4 py-3.5">
           <ItemSlot url={icon} size={64} />
           <div className="flex-1 min-w-0">
-            <div className="text-lg font-bold" style={{ color: 'var(--text-strong)' }}>{group.item}</div>
-            <div className="text-[12.5px] mt-0.5" style={{ color: 'var(--text-dim)' }}>{group.part} · Lv.{group.level}</div>
-            <div className="flex gap-3.5 mt-1.5 text-[13px] font-bold">
+            <div className="text-[21px] font-bold" style={{ color: 'var(--text-strong)' }}>{group.item}</div>
+            <div className="text-[13px] mt-0.5" style={{ color: 'var(--text-dim)' }}>{group.part} · Lv.{group.level}</div>
+            <div className="flex gap-4 mt-2 text-[14.5px] font-bold">
               {group.potential && (
                 <span>잠재 <GradeText grade={group.potential.from} />{group.potential.from !== group.potential.to && <><span style={{ color: 'var(--text-dim)', fontWeight: 700 }}> → </span><GradeText grade={group.potential.to} /></>}</span>
               )}
@@ -249,12 +286,12 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack }) {
 
       {/* 테이블 */}
       <div className="rounded-xl overflow-hidden" style={CARD}>
-        <div className="flex items-center px-3.5 py-2 text-xs font-bold" style={SLATE_BAR}>
-          <span className="w-[92px] shrink-0">일시</span>
+        <div className="flex items-center px-4 py-2.5 text-[13px] font-bold" style={SLATE_BAR}>
+          <span className="w-[104px] shrink-0">일시</span>
           <span className="flex-1 min-w-0">수단</span>
-          <span className="w-[258px] shrink-0 pr-2.5">변경 전</span>
-          <span className="w-[258px] shrink-0">변경 후</span>
-          <span className="w-[90px] text-right shrink-0">비용</span>
+          <span className="w-[280px] shrink-0 pr-3">변경 전</span>
+          <span className="w-[280px] shrink-0">변경 후</span>
+          <span className="w-[104px] text-right shrink-0">비용</span>
         </div>
         {group.records.map((r, idx) => {
           const { date, time } = formatDateParts(r.date_create)
@@ -267,19 +304,19 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack }) {
           return (
             <div
               key={r.id}
-              className="flex items-center px-3.5 py-2.5 border-b last:border-b-0 text-[12.5px]"
+              className="flex items-center px-4 py-3 border-b last:border-b-0 text-[14px]"
               style={{ borderColor: 'var(--mpl-card-line)', background: idx % 2 === 1 ? 'var(--mpl-row)' : undefined }}
             >
-              <span className="w-[92px] shrink-0 leading-tight">
-                <span className="block text-[11.5px] font-bold" style={{ color: 'var(--text-muted)' }}>{date}</span>
-                <span className="block text-[11.5px]" style={{ color: 'var(--text-dim)' }}>{time}</span>
+              <span className="w-[104px] shrink-0 leading-tight">
+                <span className="block text-[12.5px] font-bold" style={{ color: 'var(--text-muted)' }}>{date}</span>
+                <span className="block text-[12.5px]" style={{ color: 'var(--text-dim)' }}>{time}</span>
               </span>
               <span className="flex-1 min-w-0 flex flex-col gap-1 pr-3">
                 <span className="flex items-center gap-1.5 min-w-0">
                   {mIcon
-                    ? <img src={mIcon} alt="" className="w-[26px] h-[26px] object-contain shrink-0" style={{ imageRendering: 'pixelated' }} draggable={false} />
-                    : <span className="w-[26px] h-[26px] shrink-0 flex items-center justify-center text-xs">💰</span>}
-                  <span className="text-[11.5px] font-bold truncate" style={{ color: 'var(--text-muted)' }}>{r.methodName}</span>
+                    ? <img src={mIcon} alt="" className="w-[30px] h-[30px] object-contain shrink-0" style={{ imageRendering: 'pixelated' }} draggable={false} />
+                    : <span className="w-[30px] h-[30px] shrink-0 flex items-center justify-center text-sm">💰</span>}
+                  <span className="text-[13px] font-bold truncate" style={{ color: 'var(--text-muted)' }}>{r.methodName}</span>
                 </span>
                 {up ? (
                   <span
@@ -294,19 +331,19 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack }) {
                   </span>
                 ) : null}
               </span>
-              <span className="w-[258px] shrink-0 pr-2.5 leading-[1.45]">
+              <span className="w-[280px] shrink-0 pr-3 leading-[1.5]">
                 {(before || []).map((o, i) => (
                   <span key={i} className="block" style={{ color: GRADE_COLOR_SOFT[o.grade] || '#a6b4c0' }}>{o.value}</span>
                 ))}
                 {(!before || before.length === 0) && <span style={{ color: 'var(--text-dim)' }}>-</span>}
               </span>
-              <span className="w-[258px] shrink-0 leading-[1.45] font-bold">
+              <span className="w-[280px] shrink-0 leading-[1.5] font-bold">
                 {(after || []).map((o, i) => (
                   <span key={i} className="block" style={{ color: GRADE_COLOR[o.grade] || 'var(--text-muted)' }}>{o.value}</span>
                 ))}
                 {(!after || after.length === 0) && <span style={{ color: 'var(--text-dim)' }}>-</span>}
               </span>
-              <span className="w-[90px] text-right shrink-0 font-bold tabular-nums" style={{ color: '#c9862a' }}>
+              <span className="w-[104px] text-right shrink-0 font-bold tabular-nums text-[14px]" style={{ color: 'var(--accent-bright)' }}>
                 {cost != null ? formatKoreanMeso(cost) : '-'}
               </span>
             </div>
@@ -332,8 +369,8 @@ function StarforceDetail({ group, icon, worldIcon, onBack }) {
         <div className="flex items-center gap-3.5 px-4 py-3.5">
           <ItemSlot url={icon} size={64} />
           <div className="flex-1 min-w-0">
-            <div className="text-lg font-bold" style={{ color: 'var(--text-strong)' }}>{group.item}</div>
-            <div className="text-xl font-bold mt-1 tabular-nums">
+            <div className="text-[21px] font-bold" style={{ color: 'var(--text-strong)' }}>{group.item}</div>
+            <div className="text-2xl font-bold mt-1 tabular-nums">
               <span style={{ color: '#c9a227' }}>★{group.startStar}</span>
               <span style={{ color: 'var(--text-dim)' }}> → </span>
               {group.destroyed ? <span style={{ color: 'var(--mpl-red-to)' }}>파괴</span> : <span style={{ color: '#c9a227' }}>★{group.endStar}</span>}
@@ -365,15 +402,15 @@ function StarforceDetail({ group, icon, worldIcon, onBack }) {
             <span className="text-[11.5px] font-semibold" style={{ color: '#cfdae4' }}>시도 많은 순</span>
           </div>
           {ranges.map((s) => (
-            <div key={s.star} className="flex items-center px-3.5 py-2 border-b last:border-b-0 text-[12.5px]" style={{ borderColor: 'var(--mpl-card-line)' }}>
-              <span className="w-[110px] shrink-0 font-bold tabular-nums">
+            <div key={s.star} className="flex items-center px-4 py-2.5 border-b last:border-b-0 text-[14px]" style={{ borderColor: 'var(--mpl-card-line)' }}>
+              <span className="w-[124px] shrink-0 font-bold tabular-nums">
                 <span style={{ color: '#c9a227' }}>★{s.star}</span> <span style={{ color: 'var(--text-dim)' }}>→</span> <span style={{ color: '#c9a227' }}>★{s.star + 1}</span>
               </span>
               <span className="flex-1 mr-3.5 h-[9px] rounded-full overflow-hidden" style={{ background: '#e4ebf1', boxShadow: 'inset 0 1px 2px rgba(31,44,61,.12)' }}>
                 <span className="block h-full rounded-full" style={{ width: `${s.rate}%`, background: 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))' }} />
               </span>
-              <span className="w-[52px] text-right font-bold tabular-nums">{s.rate.toFixed(1)}%</span>
-              <span className="w-[112px] text-right tabular-nums" style={{ color: 'var(--text-muted)' }}>
+              <span className="w-[60px] text-right font-bold tabular-nums">{s.rate.toFixed(1)}%</span>
+              <span className="w-[124px] text-right tabular-nums" style={{ color: 'var(--text-muted)' }}>
                 <b style={{ color: 'var(--text-strong)' }}>{s.tries}</b>회 · 파괴 <b style={{ color: s.destroy > 0 ? 'var(--mpl-red-to)' : 'var(--text-strong)' }}>{s.destroy}</b>
               </span>
             </div>
@@ -382,7 +419,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack }) {
             <button
               type="button"
               onClick={() => setShowAllRanges((v) => !v)}
-              className="w-full py-2 text-[12px] font-bold hover:brightness-[.98]"
+              className="w-full py-2.5 text-[13px] font-bold hover:brightness-[.98]"
               style={{ background: 'var(--mpl-row)', color: 'var(--text-muted)' }}
             >
               {showAllRanges ? '접기 ▲' : `1회 시도 구간 ${hiddenRanges}개 더보기 ▼`}
@@ -392,11 +429,11 @@ function StarforceDetail({ group, icon, worldIcon, onBack }) {
       )}
 
       <div className="rounded-xl overflow-hidden" style={CARD}>
-        <div className="flex items-center px-3.5 py-2 text-xs font-bold" style={SLATE_BAR}>
-          <span className="w-[92px] shrink-0">일시</span>
-          <span className="w-[150px] shrink-0">단계</span>
+        <div className="flex items-center px-4 py-2.5 text-[13px] font-bold" style={SLATE_BAR}>
+          <span className="w-[104px] shrink-0">일시</span>
+          <span className="w-[170px] shrink-0">단계</span>
           <span className="flex-1">결과</span>
-          <span className="w-[120px] text-right shrink-0">비용</span>
+          <span className="w-[140px] text-right shrink-0">비용</span>
         </div>
         {group.records.map((r, idx) => {
           const { date, time } = formatDateParts(r.date_create)
@@ -405,18 +442,18 @@ function StarforceDetail({ group, icon, worldIcon, onBack }) {
           return (
             <div
               key={r.id}
-              className="flex items-center px-3.5 py-2.5 border-b last:border-b-0 text-[12.5px]"
+              className="flex items-center px-4 py-3 border-b last:border-b-0 text-[14px]"
               style={{
                 borderColor: 'var(--mpl-card-line)',
                 background: idx % 2 === 1 ? 'var(--mpl-row)' : undefined,
                 boxShadow: res === 'destroy' ? 'inset 3px 0 0 var(--mpl-red-to)' : undefined,
               }}
             >
-              <span className="w-[92px] shrink-0 leading-tight">
-                <span className="block text-[11.5px] font-bold" style={{ color: 'var(--text-muted)' }}>{date}</span>
-                <span className="block text-[11.5px]" style={{ color: 'var(--text-dim)' }}>{time}</span>
+              <span className="w-[104px] shrink-0 leading-tight">
+                <span className="block text-[12.5px] font-bold" style={{ color: 'var(--text-muted)' }}>{date}</span>
+                <span className="block text-[12.5px]" style={{ color: 'var(--text-dim)' }}>{time}</span>
               </span>
-              <span className="w-[150px] shrink-0 font-bold tabular-nums text-[13px]">
+              <span className="w-[170px] shrink-0 font-bold tabular-nums text-[15px]">
                 {r.before_starforce_count}성 <span style={{ color: 'var(--text-dim)' }}>→</span>{' '}
                 {res === 'destroy'
                   ? <span style={{ color: 'var(--mpl-red-to)' }}>파괴</span>
@@ -425,7 +462,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack }) {
                     : `${r.after_starforce_count}성`}
               </span>
               <span className="flex-1 flex items-center gap-1.5">
-                <span className="rounded-full px-2.5 py-0.5 text-[10.5px] font-bold" style={BADGE[res].style}>{BADGE[res].label}</span>
+                <span className="rounded-full px-3 py-0.5 text-[11.5px] font-bold" style={BADGE[res].style}>{BADGE[res].label}</span>
                 {flagApplied(r.destroy_defence) && (
                   <span className="rounded-full px-2 py-0.5 text-[10.5px] font-bold" style={{ background: 'linear-gradient(180deg, #c2cdd8, #a8b6c4)', color: '#3d4a58' }}>🛡 파괴방지</span>
                 )}
@@ -433,11 +470,11 @@ function StarforceDetail({ group, icon, worldIcon, onBack }) {
                   <span className="rounded-full px-2 py-0.5 text-[10.5px] font-bold" style={{ background: 'linear-gradient(180deg, #ffd76e, #f0a828)', color: '#6b4b00' }}>찬스타임</span>
                 )}
               </span>
-              <span className="w-[120px] text-right shrink-0 tabular-nums whitespace-nowrap">
+              <span className="w-[140px] text-right shrink-0 tabular-nums whitespace-nowrap text-[14px]">
                 {cost == null ? <span style={{ color: 'var(--text-dim)' }}>-</span> : (
                   <>
                     {cost.discounted && <span className="text-[11px] line-through mr-1.5" style={{ color: 'var(--text-dim)' }}>{formatKoreanMeso(cost.base)}</span>}
-                    <span className="font-bold" style={{ color: '#c9862a' }}>{formatKoreanMeso(cost.final)}</span>
+                    <span className="font-bold" style={{ color: 'var(--accent-bright)' }}>{formatKoreanMeso(cost.final)}</span>
                   </>
                 )}
               </span>
@@ -527,6 +564,20 @@ export default function Enchant() {
   })
   const methodIcons = methodIconQuery.data || {}
 
+  // 탭 아이콘 (이미지 관리 등록분)
+  const tabIconQuery = useQuery({
+    queryKey: ['enchant', 'tab-icons'],
+    queryFn: async () => {
+      const [sf, pot] = await Promise.all([
+        api('/api/images/' + encodeURIComponent('스타포스')).catch(() => null),
+        api('/api/images/' + encodeURIComponent('잠재능력 재설정')).catch(() => null),
+      ])
+      return { starforce: sf?.url || null, potential: pot?.url || null }
+    },
+    staleTime: Infinity,
+  })
+  const tabIcons = tabIconQuery.data || {}
+
   if (authLoading) return <PageLoader />
 
   if (!user) {
@@ -577,10 +628,11 @@ export default function Enchant() {
             </div>
           )}
           tabs={[
-            { key: 'starforce', label: '⭐ 스타포스' },
-            { key: 'potential', label: '✨ 잠재능력' },
+            { key: 'starforce', label: '스타포스', icon: tabIcons.starforce },
+            { key: 'potential', label: '잠재능력', icon: tabIcons.potential },
           ].map((t) => (
             <MapleWindowTab key={t.key} active={tab === t.key} onClick={() => { setTab(t.key); setDetailKey(null) }}>
+              {t.icon && <img src={t.icon} alt="" className="w-5 h-5 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
               {t.label}
             </MapleWindowTab>
           ))}
@@ -631,7 +683,7 @@ export default function Enchant() {
                           ? <span style={{ color: 'var(--mpl-red-to)', fontWeight: 800 }}>파괴</span>
                           : <span style={{ color: '#c9a227', fontWeight: 800 }}>★{g.endStar}</span>}
                       </>}
-                      cost={g.totalCost != null && g.totalCost > 0 ? `${formatKoreanMeso(g.totalCost)} 메소` : '-'}
+                      cost={g.totalCost != null && g.totalCost > 0 ? formatKoreanMeso(g.totalCost) : '-'}
                       ring={g.destroyCount > 0 ? '#f0b1a8' : null}
                       footer={(
                         <div className="mt-2.5 pt-3 w-full flex flex-col items-center gap-0.5" style={{ borderTop: '1px dashed #d9e2ea' }}>
@@ -643,7 +695,7 @@ export default function Enchant() {
                             <b style={{ color: 'var(--accent-bright)' }}>{g.topSuccess}성공</b>{' '}
                             <b style={{ color: 'var(--mpl-red-to)' }}>{g.topFail}실패</b>
                           </div>
-                          <div className="text-[12.5px] font-semibold h-4" style={{ color: '#c9862a' }}>
+                          <div className="text-[12.5px] font-semibold h-4" style={{ color: 'var(--accent-bright)' }}>
                             {g.failStreak ? `${g.failStreak.star}성에서 ${g.failStreak.count}번 연속 실패` : ''}
                           </div>
                         </div>
@@ -677,7 +729,7 @@ export default function Enchant() {
                       character={g.character}
                       name={g.item}
                       sub={`${g.part} · Lv.${g.level}`}
-                      cost={g.totalCost != null && g.totalCost > 0 ? `${formatKoreanMeso(g.totalCost)} 메소` : '-'}
+                      cost={g.totalCost != null && g.totalCost > 0 ? formatKoreanMeso(g.totalCost) : '-'}
                       footer={<MethodStrip methods={g.methods} methodIcons={methodIcons} />}
                     />
                   ))}
