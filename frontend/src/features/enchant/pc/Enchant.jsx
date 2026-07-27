@@ -41,6 +41,31 @@ const BADGE = {
 
 // ─────────── 공용 조각 ───────────
 
+/**
+ * 게임 아이콘 — 원본보다 키울 땐 픽셀 유지(선명), 줄일 땐 부드럽게(뭉개짐 방지)
+ * 저해상도 도트(예: 11×10)를 정수 배율로 키우면 깨지지 않는다.
+ */
+function GameIcon({ url, size, alt = '', className = '' }) {
+  const [natural, setNatural] = useState(null)
+  if (!url) return null
+  const upscaling = natural != null && natural < size
+  return (
+    <img
+      src={url}
+      alt={alt}
+      draggable={false}
+      onLoad={(e) => setNatural(e.currentTarget.naturalWidth)}
+      className={className}
+      style={{
+        width: size,
+        height: size,
+        objectFit: 'contain',
+        imageRendering: upscaling ? 'pixelated' : 'auto',
+      }}
+    />
+  )
+}
+
 /** 아이템 슬롯 (인게임 장비창 톤) */
 function ItemSlot({ url, size = 60 }) {
   return (
@@ -569,7 +594,7 @@ export default function Enchant() {
     queryKey: ['enchant', 'tab-icons'],
     queryFn: async () => {
       const [sf, pot] = await Promise.all([
-        api('/api/images/' + encodeURIComponent('스타포스')).catch(() => null),
+        api('/api/images/' + encodeURIComponent('스타포스 HD')).catch(() => api('/api/images/' + encodeURIComponent('스타포스')).catch(() => null)),
         api('/api/images/' + encodeURIComponent('잠재능력 재설정')).catch(() => null),
       ])
       return { starforce: sf?.url || null, potential: pot?.url || null }
@@ -632,7 +657,7 @@ export default function Enchant() {
             { key: 'potential', label: '잠재능력', icon: tabIcons.potential },
           ].map((t) => (
             <MapleWindowTab key={t.key} active={tab === t.key} onClick={() => { setTab(t.key); setDetailKey(null) }}>
-              {t.icon && <img src={t.icon} alt="" className="w-5 h-5 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
+              {t.icon && <GameIcon url={t.icon} size={22} />}
               {t.label}
             </MapleWindowTab>
           ))}
