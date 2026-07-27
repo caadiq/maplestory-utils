@@ -125,7 +125,7 @@ export default function Symbol() {
             onChange={(e) => { setAddName(e.target.value); if (addError) setAddError('') }}
             onFocus={() => setDropdownOpen(true)}
             onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
-            placeholder="캐릭터 닉네임으로 장착 심볼 불러오기"
+            placeholder="캐릭터 닉네임 검색"
             className="w-full rounded-full border-2 px-4 py-2.5 text-sm outline-none focus:border-[var(--input-border-focus)]"
             style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-strong)' }}
           />

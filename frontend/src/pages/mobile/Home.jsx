@@ -14,7 +14,7 @@ export default function MobileHome() {
   if (isLoading) return <PageLoader />
 
   return (
-    <div className="mpl-page-enter space-y-6">
+    <div className="mpl-stagger space-y-6">
       {/* 썬데이 메이플 배너 (금~일만) */}
       <MobileSundayBanner />
 
