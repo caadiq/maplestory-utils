@@ -223,8 +223,9 @@ export default function Layout() {
           </div>
         </header>
         <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
-        <main className={`flex-1 mx-auto w-full max-w-[1400px] ${
-          fullscreen ? 'min-h-0 px-6 py-4' : 'px-6 pt-4 pb-10'
+        {/* fullscreen(계산기)은 1448 — 좌우 패딩 48을 제외한 내부 폭이 1400이라 보스 그리드가 넘치지 않음 */}
+        <main className={`flex-1 mx-auto w-full ${
+          fullscreen ? 'max-w-[1448px] min-h-0 px-6 py-4' : 'max-w-[1400px] px-6 pt-4 pb-10'
         }`}>
           <Outlet />
         </main>

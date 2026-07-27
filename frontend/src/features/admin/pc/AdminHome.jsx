@@ -16,7 +16,7 @@ function MenuCard({ menu }) {
   return (
     <Link
       to={adminPath}
-      className="group relative rounded-2xl border p-5 transition-transform duration-300 hover:scale-[1.02] border-[var(--card-border)]"
+      className="group relative rounded-2xl border p-5 flex items-center transition-transform duration-300 hover:scale-[1.02] border-[var(--card-border)]"
       style={{
         backgroundImage: 'linear-gradient(to bottom right, var(--card-bg-from), var(--card-bg-to))',
         boxShadow: 'var(--card-shadow)',
@@ -32,7 +32,7 @@ function MenuCard({ menu }) {
         ⚙
       </button>
 
-      <div className="relative flex items-start gap-4">
+      <div className="relative flex items-center gap-4 w-full">
         <div
           className="shrink-0 w-12 h-12 rounded-xl border flex items-center justify-center overflow-hidden border-[var(--icon-box-border)]"
           style={{ backgroundImage: 'linear-gradient(to bottom right, var(--icon-box-from), var(--icon-box-to))' }}
@@ -128,13 +128,13 @@ export default function AdminHome() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Link
             to="/admin/images"
-            className="group relative rounded-2xl border p-5 transition-transform duration-300 hover:scale-[1.02] border-[var(--card-border)]"
+            className="group relative rounded-2xl border p-5 flex items-center transition-transform duration-300 hover:scale-[1.02] border-[var(--card-border)]"
             style={{
               backgroundImage: 'linear-gradient(to bottom right, var(--card-bg-from), var(--card-bg-to))',
               boxShadow: 'var(--card-shadow)',
             }}
           >
-            <div className="relative flex items-start gap-4">
+            <div className="relative flex items-center gap-4 w-full">
               <div
                 className="shrink-0 w-12 h-12 rounded-xl border flex items-center justify-center text-2xl border-[var(--icon-box-border)]"
                 style={{ backgroundImage: 'linear-gradient(to bottom right, var(--icon-box-from), var(--icon-box-to))' }}
@@ -155,14 +155,38 @@ export default function AdminHome() {
           </Link>
 
           <Link
-            to="/admin/genesis-pass"
-            className="group relative rounded-2xl border p-5 transition-transform duration-300 hover:scale-[1.02] border-[var(--card-border)]"
+            to="/admin/challenger-seasons"
+            className="group relative rounded-2xl border p-5 flex items-center transition-transform duration-300 hover:scale-[1.02] border-[var(--card-border)]"
             style={{
               backgroundImage: 'linear-gradient(to bottom right, var(--card-bg-from), var(--card-bg-to))',
               boxShadow: 'var(--card-shadow)',
             }}
           >
-            <div className="relative flex items-start gap-4">
+            <div className="relative flex items-center gap-4 w-full">
+              <div
+                className="shrink-0 w-12 h-12 rounded-xl border flex items-center justify-center text-2xl border-[var(--icon-box-border)]"
+                style={{ backgroundImage: 'linear-gradient(to bottom right, var(--icon-box-from), var(--icon-box-to))' }}
+              >
+                🏆
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium">챌린저스 시즌 관리</h3>
+                <p className="text-sm mt-1 line-clamp-2" style={{ color: 'var(--text-dim)' }}>
+                  챌린저스 월드 시즌 기간을 관리합니다 (시즌보스 노출 기간)
+                </p>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/admin/genesis-pass"
+            className="group relative rounded-2xl border p-5 flex items-center transition-transform duration-300 hover:scale-[1.02] border-[var(--card-border)]"
+            style={{
+              backgroundImage: 'linear-gradient(to bottom right, var(--card-bg-from), var(--card-bg-to))',
+              boxShadow: 'var(--card-shadow)',
+            }}
+          >
+            <div className="relative flex items-center gap-4 w-full">
               <div
                 className="shrink-0 w-12 h-12 rounded-xl border flex items-center justify-center text-2xl border-[var(--icon-box-border)]"
                 style={{ backgroundImage: 'linear-gradient(to bottom right, var(--icon-box-from), var(--icon-box-to))' }}

@@ -1,5 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+
+const POPUP_WIDTH = 420
+const POPUP_EST_HEIGHT = 460
 
 function ChevronIcon({ dir = 'down', size = 16, className = '' }) {
   const rotate = { left: 90, right: -90, up: 180, down: 0 }[dir] || 0
@@ -20,18 +24,47 @@ export default function DatePicker({ value, onChange, placeholder = '날짜 선�
   const [isOpen, setIsOpen] = useState(false)
   const [viewMode, setViewMode] = useState('days')
   const [viewDate, setViewDate] = useState(() => (value ? new Date(value) : new Date()))
-  const ref = useRef(null)
+  const [flipUp, setFlipUp] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0, bottomOffset: 0 })
+  const buttonRef = useRef(null)
+  const popupRef = useRef(null)
+
+  // 포털(fixed) 배치 — 부모 overflow:hidden(모달 등)에 잘리지 않게
+  const updatePosition = () => {
+    if (!buttonRef.current) return
+    const rect = buttonRef.current.getBoundingClientRect()
+    const spaceBelow = window.innerHeight - rect.bottom
+    const flip = spaceBelow < POPUP_EST_HEIGHT && rect.top > spaceBelow
+    setFlipUp(flip)
+    setPos({
+      top: rect.bottom + 8,
+      left: Math.max(8, Math.min(rect.left, window.innerWidth - POPUP_WIDTH - 8)),
+      bottomOffset: window.innerHeight - rect.top + 8,
+    })
+  }
+
+  useLayoutEffect(() => {
+    if (isOpen) updatePosition()
+  }, [isOpen])
 
   useEffect(() => {
-    const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) {
-        setIsOpen(false)
-        setViewMode('days')
-      }
+    if (!isOpen) return
+    const onDown = (e) => {
+      if (buttonRef.current?.contains(e.target)) return
+      if (popupRef.current?.contains(e.target)) return
+      setIsOpen(false)
+      setViewMode('days')
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
+    const onScroll = () => updatePosition()
+    document.addEventListener('mousedown', onDown)
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('resize', onScroll)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      window.removeEventListener('scroll', onScroll, true)
+      window.removeEventListener('resize', onScroll)
+    }
+  }, [isOpen])
 
   useEffect(() => { if (value) setViewDate(new Date(value)) }, [value])
 
@@ -93,17 +126,28 @@ export default function DatePicker({ value, onChange, placeholder = '날짜 선�
   const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
 
   return (
-    <div ref={ref} className="relative">
+    <div className="relative">
       <button
+        ref={buttonRef}
         type="button"
-        onClick={(e) => stop(e, () => setIsOpen(!isOpen))}
-        className="w-full h-12 rounded-lg border px-4 text-base flex items-center justify-between"
+        onClick={(e) => stop(e, () => {
+          if (!isOpen) {
+            // 열 때마다 선택값(없으면 오늘) 기준 달로 초기화
+            setViewDate(value ? new Date(value) : new Date())
+            setViewMode('days')
+          }
+          setIsOpen(!isOpen)
+        })}
+        className="w-full h-12 rounded-lg border px-4 text-base flex items-center justify-between gap-2 min-w-0"
         style={{
           background: 'var(--input-bg)',
           borderColor: isOpen ? 'var(--input-border-focus)' : 'var(--input-border)',
         }}
       >
-        <span style={{ color: value ? 'var(--text-strong)' : 'var(--input-placeholder)' }}>
+        <span
+          className="whitespace-nowrap overflow-hidden text-ellipsis"
+          style={{ color: value ? 'var(--text-strong)' : 'var(--input-placeholder)' }}
+        >
           {value ? formatDisplay(value) : placeholder}
         </span>
         <svg
@@ -115,16 +159,19 @@ export default function DatePicker({ value, onChange, placeholder = '날짜 선�
         </svg>
       </button>
 
-      <AnimatePresence>
+      {createPortal(<AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -6 }}
+            ref={popupRef}
+            initial={{ opacity: 0, y: flipUp ? 6 : -6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
+            exit={{ opacity: 0, y: flipUp ? 6 : -6 }}
             transition={{ duration: 0.15 }}
-            className="absolute z-50 mt-2 left-0 rounded-xl border p-5"
+            className="fixed z-[100] rounded-xl border p-5"
             style={{
-              width: 420,
+              width: POPUP_WIDTH,
+              left: pos.left,
+              ...(flipUp ? { bottom: pos.bottomOffset } : { top: pos.top }),
               background: 'var(--popup-bg)',
               borderColor: 'var(--popup-border)',
               boxShadow: 'var(--popup-shadow)',
@@ -261,7 +308,7 @@ export default function DatePicker({ value, onChange, placeholder = '날짜 선�
             </AnimatePresence>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>, document.body)}
     </div>
   )
 }
