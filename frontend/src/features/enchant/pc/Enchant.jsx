@@ -671,10 +671,10 @@ export default function Enchant() {
                         </div>
                       </CostBreakdown>
                       <div
-                        className="flex items-end justify-center gap-3.5 flex-wrap mt-auto pt-3 w-full border-t"
+                        className="flex items-end justify-center gap-3.5 mt-auto pt-3 w-full border-t"
                         style={{ borderColor: 'var(--mpl-card-line)' }}
                       >
-                        {g.methods.map((m) => (
+                        {g.methods.slice(0, 4).map((m) => (
                           <div key={m.iconName} className="flex flex-col items-center gap-1" title={m.iconName}>
                             {methodIcons[m.iconName]
                               ? <img src={methodIcons[m.iconName]} alt={m.iconName} className="w-9 h-9 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
@@ -682,6 +682,34 @@ export default function Enchant() {
                             <span className="text-[13px] font-bold tabular-nums leading-none" style={{ color: 'var(--text-strong)' }}>{m.count.toLocaleString()}</span>
                           </div>
                         ))}
+                        {g.methods.length > 4 && (
+                          <div className="relative group/more flex flex-col items-center gap-1">
+                            <span
+                              className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold"
+                              style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}
+                            >
+                              +{g.methods.length - 4}
+                            </span>
+                            <span className="text-[13px] font-bold tabular-nums leading-none" style={{ color: 'var(--text-dim)' }}>
+                              {g.methods.slice(4).reduce((s, m) => s + m.count, 0).toLocaleString()}
+                            </span>
+                            {/* 전체 수단 목록 팝업 */}
+                            <span
+                              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/more:block z-20 w-60 rounded-xl p-2.5 text-left"
+                              style={{ background: 'var(--popup-bg)', boxShadow: 'var(--popup-shadow), inset 0 0 0 1px var(--popup-border)' }}
+                            >
+                              {g.methods.map((m) => (
+                                <span key={m.iconName} className="flex items-center gap-2 py-1">
+                                  {methodIcons[m.iconName]
+                                    ? <img src={methodIcons[m.iconName]} alt="" className="w-6 h-6 object-contain shrink-0" style={{ imageRendering: 'pixelated' }} draggable={false} />
+                                    : <span className="w-6 h-6 shrink-0" />}
+                                  <span className="flex-1 text-xs truncate" style={{ color: 'var(--text-muted)' }}>{m.iconName}</span>
+                                  <b className="text-xs tabular-nums" style={{ color: 'var(--text-strong)' }}>{m.count.toLocaleString()}</b>
+                                </span>
+                              ))}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </button>
                   ))}
