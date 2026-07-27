@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import axios from 'axios';
+import { Op } from 'sequelize';
 import { requireAuth } from '../middleware/session.js';
+import { Image } from '../models/index.js';
+import { getPublicUrl } from '../lib/s3.js';
 
 const router = Router();
 
@@ -116,7 +119,7 @@ const ICON_TTL = 60 * 60 * 1000;
 
 async function fetchCharacterIcons(characterName) {
   const cached = iconCache.get(characterName);
-  if (cached && Date.now() - cached.at < ICON_TTL) return cached.icons;
+  if (cached && Date.now() - cached.at < ICON_TTL) return cached;
 
   let ocid = ocidCache.get(characterName);
   if (!ocid) {
@@ -124,7 +127,10 @@ async function fetchCharacterIcons(characterName) {
     ocid = idData.ocid;
     ocidCache.set(characterName, ocid);
   }
-  const data = await nexonGet('https://open.api.nexon.com/maplestory/v1/character/item-equipment', { ocid });
+  const [data, basic] = await Promise.all([
+    nexonGet('https://open.api.nexon.com/maplestory/v1/character/item-equipment', { ocid }),
+    nexonGet('https://open.api.nexon.com/maplestory/v1/character/basic', { ocid }).catch(() => null),
+  ]);
   const icons = {};
   const collect = (list) => {
     for (const eq of list || []) {
@@ -135,8 +141,24 @@ async function fetchCharacterIcons(characterName) {
   collect(data.item_equipment_preset_1);
   collect(data.item_equipment_preset_2);
   collect(data.item_equipment_preset_3);
-  iconCache.set(characterName, { at: Date.now(), icons });
-  return icons;
+  const entry = { at: Date.now(), icons, worldName: basic?.world_name || null };
+  iconCache.set(characterName, entry);
+  return entry;
+}
+
+// "월드 : 월드명" 형식으로 등록된 이미지에서 월드 아이콘 매핑
+async function worldIconMap(worldNames) {
+  if (!worldNames.length) return {};
+  const images = await Image.findAll({
+    where: { [Op.or]: [{ name: { [Op.like]: '월드%' } }, ...worldNames.map((w) => ({ name: w }))] },
+  });
+  const map = {};
+  for (const img of images) {
+    const m = img.name.match(/^월드\s*:\s*(.+)$/);
+    const key = m ? m[1].trim() : img.name.trim();
+    map[key] = getPublicUrl(img.path);
+  }
+  return map;
 }
 
 /**
@@ -149,12 +171,22 @@ router.get('/item-icons', requireAuth, async (req, res) => {
   if (names.length === 0) return res.json({});
   try {
     const merged = {};
+    const charWorlds = {};
     for (let i = 0; i < names.length; i += 3) {
       const chunk = names.slice(i, i + 3);
-      const results = await Promise.all(chunk.map((n) => fetchCharacterIcons(n).catch(() => ({}))));
-      for (const icons of results) Object.assign(merged, icons);
+      const results = await Promise.all(chunk.map((n) => fetchCharacterIcons(n).catch(() => null)));
+      results.forEach((entry, idx) => {
+        if (!entry) return;
+        Object.assign(merged, entry.icons);
+        if (entry.worldName) charWorlds[chunk[idx]] = entry.worldName;
+      });
     }
-    res.json(merged);
+    const worlds = await worldIconMap([...new Set(Object.values(charWorlds))]);
+    const characterWorldIcons = {};
+    for (const [name, world] of Object.entries(charWorlds)) {
+      characterWorldIcons[name] = worlds[world] || null;
+    }
+    res.json({ items: merged, characterWorldIcons });
   } catch (err) {
     console.error('아이템 아이콘 조회 오류:', err.message);
     res.status(500).json({ error: '아이콘 조회 실패' });
