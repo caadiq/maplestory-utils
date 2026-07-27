@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '../../api/client'
+import { useBackClose } from '../../hooks/useBackClose'
 
 function ImageModal({ data, onClose }) {
+  useBackClose(true, onClose)
+
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'

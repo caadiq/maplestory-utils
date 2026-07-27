@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
+import { useBackClose } from '../../hooks/useBackClose'
 
 export default function ConfirmDialog({
   open,
@@ -11,6 +12,8 @@ export default function ConfirmDialog({
   destructive = false,
   loading = false,
 }) {
+  useBackClose(open, onClose)
+
   const accent = destructive
     ? {
         ringColor: 'var(--ring-danger)',

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useBackClose } from '../../hooks/useBackClose'
 
 /**
  * 관리자 페이지에서 쓰는 일반 모달 래퍼 (게임창 스타일)
@@ -8,6 +9,8 @@ import { motion, AnimatePresence } from 'framer-motion'
  * - 뒷배경 클릭 또는 × 버튼으로 닫힘
  */
 export default function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }) {
+  useBackClose(open, onClose)
+
   // 모달이 열려 있는 동안 배경(body) 스크롤 잠금
   useEffect(() => {
     if (!open) return

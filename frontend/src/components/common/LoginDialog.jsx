@@ -3,8 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import { useAuth } from '../../hooks/useAuth'
+import { useBackClose } from '../../hooks/useBackClose'
 
 export default function LoginDialog({ open, onClose }) {
+  useBackClose(open, onClose)
+
   const queryClient = useQueryClient()
   const { user } = useAuth()
 

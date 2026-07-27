@@ -3,10 +3,13 @@ import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../../../api/client'
+import { useBackClose } from '../../../../hooks/useBackClose'
 
 const PAGE_SIZE = 24
 
 export default function ImagePicker({ open, onClose, onSelect, currentImageId }) {
+  useBackClose(open, onClose)
+
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
