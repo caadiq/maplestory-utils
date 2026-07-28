@@ -825,15 +825,22 @@ export default function Enchant() {
         </svg>
       ),
     },
-    ...rawCharacterNames.filter((n) => !excluded.has(n)).sort().map((n) => ({
-      value: n,
-      label: n,
-      hasIconSlot: true,
-      icon: charInfo[n]?.image || undefined,
-      iconScale: 3,
-      iconOffsetY: -3,
-      subIcon: charInfo[n]?.worldIcon || undefined,
-    })),
+    // 닉네임 변경 등으로 계정 조회가 안 되는(이미지·서버 없는) 캐릭터는 뒤로
+    ...rawCharacterNames
+      .filter((n) => !excluded.has(n))
+      .sort((a, b) => {
+        const known = (n) => (charInfo[n]?.image ? 0 : 1)
+        return known(a) - known(b) || a.localeCompare(b, 'ko')
+      })
+      .map((n) => ({
+        value: n,
+        label: n,
+        hasIconSlot: true,
+        icon: charInfo[n]?.image || undefined,
+        iconScale: 3,
+        iconOffsetY: -3,
+        subIcon: charInfo[n]?.worldIcon || undefined,
+      })),
   ], [rawCharacterNames, excluded, charInfo])
 
   const sfGroups = useMemo(() => sortGroups(groupStarforce(sfItems), sort), [sfItems, sort])
