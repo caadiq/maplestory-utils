@@ -1,6 +1,7 @@
 import { useState, useMemo, useLayoutEffect, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import { useAuth } from '../../../hooks/useAuth'
@@ -306,14 +307,16 @@ function ItemCard({ onClick, icon, worldIcon, character, name, sub, cost, costTi
  * 수천 건이어도 DOM에는 수십 개만 존재해 진입·스크롤이 모두 가볍다.
  */
 function useRowVirtualizer(count, estimateSize) {
-  const scrollRef = useRef(null)
+  const [scrollEl, setScrollEl] = useState(null)
   const virtualizer = useVirtualizer({
     count,
-    getScrollElement: () => scrollRef.current,
+    getScrollElement: () => scrollEl,
     estimateSize: () => estimateSize,
     overscan: 8,
   })
-  return { scrollRef, virtualizer }
+  // OverlayScrollbars가 만든 뷰포트 요소를 스크롤 소스로 사용
+  const onScrollbarsInit = (instance) => setScrollEl(instance.elements().viewport)
+  return { onScrollbarsInit, virtualizer }
 }
 
 /** 잠재 탭 상단 통계 — 누적 비용 · 수단별 사용량 · 등급별 재설정 · 등급업 확률 */
@@ -470,7 +473,7 @@ function detailRight({ periodLabel, index, total, onPrev, onNext }) {
 
 // ─────────── 잠재 상세 ───────────
 function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
-  const { scrollRef, virtualizer } = useRowVirtualizer(group.records.length, 88)
+  const { onScrollbarsInit, virtualizer } = useRowVirtualizer(group.records.length, 88)
   return (
     <MapleWindow
       title={detailTitle('POTENTIAL HISTORY', onBack)}
@@ -486,7 +489,7 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
             {worldIcon && <img src={worldIcon} alt="" className="w-[18px] h-[18px] object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
             {group.character}
           </span>
-          <div className="text-[21px] font-bold mt-1.5" style={{ color: 'var(--text-strong)' }}>{group.item}</div>
+          <div className="text-[21px] font-bold mt-0.5" style={{ color: 'var(--text-strong)' }}>{group.item}</div>
           <div className="text-[13px] mt-0.5" style={{ color: 'var(--text-dim)' }}>{group.part} · Lv.{group.level}</div>
         </div>
       </div>
@@ -503,7 +506,13 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
           <span className="w-[280px] shrink-0">변경 후</span>
           <span className="w-[104px] text-right shrink-0">비용</span>
         </div>
-        <div ref={scrollRef} className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 340px)', minHeight: 320 }}>
+        <OverlayScrollbarsComponent
+          className="overflow-hidden"
+          style={{ maxHeight: 'calc(100vh - 340px)', minHeight: 320 }}
+          options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'hidden', y: 'scroll' } }}
+          events={{ initialized: onScrollbarsInit }}
+          defer
+        >
         <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
         {virtualizer.getVirtualItems().map((v) => {
           const r = group.records[v.index]
@@ -574,7 +583,7 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
           )
         })}
         </div>
-        </div>
+        </OverlayScrollbarsComponent>
       </div>
     </MapleWindow>
   )
@@ -589,7 +598,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
   const baseRanges = multi.length > 0 ? multi : allRanges
   const ranges = showAllRanges ? allRanges : baseRanges
   const hiddenRanges = allRanges.length - baseRanges.length
-  const { scrollRef, virtualizer } = useRowVirtualizer(group.records.length, 62)
+  const { onScrollbarsInit, virtualizer } = useRowVirtualizer(group.records.length, 62)
   return (
     <MapleWindow
       title={detailTitle('STARFORCE HISTORY', onBack)}
@@ -604,7 +613,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
             {worldIcon && <img src={worldIcon} alt="" className="w-[18px] h-[18px] object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
             {group.character}
           </span>
-          <div className="text-[21px] font-bold mt-1.5" style={{ color: 'var(--text-strong)' }}>{group.item}</div>
+          <div className="text-[21px] font-bold mt-0.5" style={{ color: 'var(--text-strong)' }}>{group.item}</div>
           <div className="text-lg font-bold mt-0.5 tabular-nums">
             <span style={{ color: '#c9a227' }}>★{group.startStar}</span>
             <span style={{ color: 'var(--text-dim)' }}> → </span>
@@ -663,7 +672,13 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
           <span className="flex-1">결과</span>
           <span className="w-[140px] text-right shrink-0">비용</span>
         </div>
-        <div ref={scrollRef} className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 420px)', minHeight: 300 }}>
+        <OverlayScrollbarsComponent
+          className="overflow-hidden"
+          style={{ maxHeight: 'calc(100vh - 420px)', minHeight: 300 }}
+          options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'hidden', y: 'scroll' } }}
+          events={{ initialized: onScrollbarsInit }}
+          defer
+        >
         <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
         {virtualizer.getVirtualItems().map((v) => {
           const r = group.records[v.index]
@@ -721,7 +736,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
           )
         })}
         </div>
-        </div>
+        </OverlayScrollbarsComponent>
       </div>
     </MapleWindow>
   )
