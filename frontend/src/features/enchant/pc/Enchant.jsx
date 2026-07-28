@@ -823,10 +823,11 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
       </div>
 
       {/* 아이템 통계 (목록 통계와 동일 톤) */}
-      <div className="grid grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-5 gap-2.5">
         <SummaryCard label="사용 메소" value={group.totalCost != null ? formatMesoShort(group.totalCost) : '-'} full={isMesoTruncated(group.totalCost) ? formatKoreanMeso(group.totalCost) : null} color="var(--accent-bright)" />
         <SummaryCard label="강화 시도" value={`${group.tries.toLocaleString()}회`} />
         <SummaryCard label="성공" value={`${group.success.toLocaleString()}회`} color="#4e9e20" />
+        <SummaryCard label="실패" value={`${(group.tries - group.success - group.destroyCount).toLocaleString()}회`} color="#5c6b7a" />
         <SummaryCard label="파괴" value={`${group.destroyCount.toLocaleString()}회`} color={group.destroyCount > 0 ? 'var(--mpl-red-to)' : undefined} />
       </div>
 
@@ -1153,7 +1154,7 @@ export default function Enchant() {
   }
 
   return (
-    <div className="pb-10 max-w-6xl mx-auto mpl-page-enter">
+    <div key={detailKey || 'list'} className="pb-10 max-w-6xl mx-auto mpl-page-enter">
       {detailGroup ? (
         tab === 'starforce'
           ? <StarforceDetail group={detailGroup} icon={itemIcons[detailGroup.item]} worldIcon={worldIcons[detailGroup.character]} onBack={() => setDetailKey(null)} nav={detailNav} />
