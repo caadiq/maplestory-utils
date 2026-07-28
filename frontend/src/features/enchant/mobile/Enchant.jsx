@@ -366,7 +366,7 @@ export default function Enchant() {
     for (const i of sfQuery.data?.items || []) names.add(i.character_name)
     for (const i of cubeQuery.data?.items || []) names.add(i.character_name)
     for (const i of potQuery.data?.items || []) names.add(i.character_name)
-    return [{ value: null, label: '전체 캐릭터' }, ...[...names].sort().map((n) => ({ value: n, label: n }))]
+    return [{ value: null, label: '모든 캐릭터' }, ...[...names].sort().map((n) => ({ value: n, label: n }))]
   }, [sfQuery.data, cubeQuery.data, potQuery.data])
 
   const characterNames = useMemo(

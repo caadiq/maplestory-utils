@@ -79,7 +79,7 @@ export default function Select({ value, onChange, options, disabled, className =
           <OverlayScrollbarsComponent
             className="py-1"
             style={{ maxHeight: 240 }}
-            options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'hidden', y: 'scroll' } }}
+            options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark os-thin', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'hidden', y: 'scroll' } }}
             defer
           >
             {options.map((opt) => {
@@ -101,17 +101,12 @@ export default function Select({ value, onChange, options, disabled, className =
                     if (!isActive) e.currentTarget.style.background = ''
                   }}
                 >
-                  {isActive ? (
-                    <svg className="w-3 h-3 shrink-0" viewBox="0 0 12 12" fill="none">
-                      <path d="M2.5 6L5 8.5L9.5 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  ) : <span className="w-3 shrink-0" />}
                   {opt.hasIconSlot && (
                     <span
                       className="w-9 h-9 rounded-lg shrink-0 flex items-center justify-center overflow-hidden"
                       style={{ background: 'var(--surface-nested)' }}
                     >
-                      {opt.icon ? (
+                      {opt.iconElement ? opt.iconElement : opt.icon ? (
                         <img
                           src={opt.icon}
                           alt=""
@@ -130,9 +125,9 @@ export default function Select({ value, onChange, options, disabled, className =
                     </span>
                   )}
                   <span className="flex items-center gap-1.5 min-w-0">
-                    {opt.subIcon && (
+                    {opt.subIcon ? (
                       <img src={opt.subIcon} alt="" className="w-[18px] h-[18px] shrink-0 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
-                    )}
+                    ) : opt.hasIconSlot && <span className="w-[18px] shrink-0" />}
                     <span className="truncate">{opt.label}</span>
                     {opt.sub && <span className="text-[13px] shrink-0" style={{ color: 'var(--text-dim)' }}>{opt.sub}</span>}
                   </span>

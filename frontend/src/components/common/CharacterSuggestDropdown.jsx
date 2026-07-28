@@ -88,7 +88,7 @@ export default function CharacterSuggestDropdown({ open, filter = '', excludeNam
             ...(pos.flipUp ? { bottom: pos.bottom + 4 } : { top: pos.top + 4 }),
           }}
         >
-          <OverlayScrollbarsComponent style={{ maxHeight: 256 }} options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'hidden', y: 'scroll' } }} defer>
+          <OverlayScrollbarsComponent style={{ maxHeight: 256 }} options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark os-thin', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'hidden', y: 'scroll' } }} defer>
           {isLoading ? (
             <div className="p-4 text-center text-sm" style={{ color: 'var(--text-dim)' }}>불러오는 중...</div>
           ) : error ? (

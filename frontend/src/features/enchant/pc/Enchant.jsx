@@ -813,7 +813,18 @@ export default function Enchant() {
   }, [cubeQuery.data, potQuery.data, charFilter, excluded])
 
   const characterOptions = useMemo(() => [
-    { value: null, label: '전체 캐릭터' },
+    {
+      value: null,
+      label: '모든 캐릭터',
+      hasIconSlot: true,
+      iconElement: (
+        <svg className="w-[18px] h-[18px]" viewBox="0 0 20 20" fill="none" style={{ color: 'var(--text-dim)' }}>
+          <circle cx="7.5" cy="6.5" r="2.75" stroke="currentColor" strokeWidth="1.4" />
+          <path d="M2.25 15.5c0-2.6 2.35-4.15 5.25-4.15s5.25 1.55 5.25 4.15" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          <path d="M13.25 4.35a2.6 2.6 0 0 1 0 4.9M14.5 11.9c2.05.45 3.35 1.85 3.35 3.6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        </svg>
+      ),
+    },
     ...rawCharacterNames.filter((n) => !excluded.has(n)).sort().map((n) => ({
       value: n,
       label: n,
