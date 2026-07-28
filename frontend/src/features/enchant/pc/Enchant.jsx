@@ -812,6 +812,28 @@ export default function Enchant() {
     return rows
   }, [cubeQuery.data, potQuery.data, charFilter, excluded])
 
+  // 서버끼리 묶고(대표 = 최고 레벨), 서버 안에서는 레벨 내림차순. 조회 안 되는 캐릭터는 맨 뒤
+  const sortedCharacters = useMemo(() => {
+    const names = rawCharacterNames.filter((n) => !excluded.has(n))
+    const topLevel = {}
+    for (const n of names) {
+      const w = charInfo[n]?.world
+      if (!w) continue
+      topLevel[w] = Math.max(topLevel[w] ?? 0, charInfo[n]?.level ?? 0)
+    }
+    return names.sort((a, b) => {
+      const ia = charInfo[a]
+      const ib = charInfo[b]
+      const knownA = ia?.image ? 0 : 1
+      const knownB = ib?.image ? 0 : 1
+      if (knownA !== knownB) return knownA - knownB
+      const wa = ia?.world || ''
+      const wb = ib?.world || ''
+      if (wa !== wb) return (topLevel[wb] ?? 0) - (topLevel[wa] ?? 0) || wa.localeCompare(wb, 'ko')
+      return (ib?.level ?? 0) - (ia?.level ?? 0) || a.localeCompare(b, 'ko')
+    })
+  }, [rawCharacterNames, excluded, charInfo])
+
   const characterOptions = useMemo(() => [
     {
       value: null,
@@ -825,23 +847,19 @@ export default function Enchant() {
         </svg>
       ),
     },
-    // 닉네임 변경 등으로 계정 조회가 안 되는(이미지·서버 없는) 캐릭터는 뒤로
-    ...rawCharacterNames
-      .filter((n) => !excluded.has(n))
-      .sort((a, b) => {
-        const known = (n) => (charInfo[n]?.image ? 0 : 1)
-        return known(a) - known(b) || a.localeCompare(b, 'ko')
-      })
-      .map((n) => ({
-        value: n,
-        label: n,
-        hasIconSlot: true,
-        icon: charInfo[n]?.image || undefined,
-        iconScale: 3,
-        iconOffsetY: -3,
-        subIcon: charInfo[n]?.worldIcon || undefined,
-      })),
-  ], [rawCharacterNames, excluded, charInfo])
+    ...sortedCharacters.map((n, i) => ({
+      value: n,
+      label: n,
+      hasIconSlot: true,
+      icon: charInfo[n]?.image || undefined,
+      iconScale: 3,
+      iconOffsetY: -3,
+      subIcon: charInfo[n]?.worldIcon || undefined,
+      sub: charInfo[n]?.level ? `Lv.${charInfo[n].level}` : undefined,
+      // 서버가 바뀌는 지점에 구분선
+      groupStart: i > 0 && charInfo[sortedCharacters[i - 1]]?.world !== charInfo[n]?.world,
+    })),
+  ], [sortedCharacters, charInfo])
 
   const sfGroups = useMemo(() => sortGroups(groupStarforce(sfItems), sort), [sfItems, sort])
   const sfSum = useMemo(() => starforceSummary(sfItems), [sfItems])

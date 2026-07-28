@@ -172,6 +172,7 @@ async function fetchCharacterInfo(characterName) {
     icons,
     worldName: basic?.world_name || null,
     characterImage: basic?.character_image || null,
+    characterLevel: basic?.character_level ?? null,
   };
   charInfoCache.set(characterName, entry);
   return entry;
@@ -249,7 +250,11 @@ router.get('/item-icons', requireAuth, async (req, res) => {
       results.forEach((entry, idx) => {
         if (!entry) return;
         Object.assign(merged, entry.icons);
-        characterWorlds[chunk[idx]] = { world: entry.worldName, image: entry.characterImage };
+        characterWorlds[chunk[idx]] = {
+          world: entry.worldName,
+          image: entry.characterImage,
+          level: entry.characterLevel,
+        };
       });
     }
 
@@ -280,6 +285,7 @@ router.get('/item-icons', requireAuth, async (req, res) => {
         worldIcon: world ? worldIconMap[world] || null : null,
         normalWorld: isNormalWorld(world),
         image: info?.image || null,
+        level: info?.level ?? null,
       };
     }
 

@@ -89,11 +89,14 @@ export default function Select({ value, onChange, options, disabled, className =
                   key={opt.value}
                   type="button"
                   onClick={() => { onChange(opt.value); setOpen(false) }}
-                  className="w-full text-left pl-3 pr-5 py-2.5 text-sm flex items-center gap-2"
-                  style={isActive ? {
-                    background: 'var(--option-selected-bg)',
-                    color: 'var(--option-selected-text)',
-                  } : undefined}
+                  className={`w-full text-left pl-3 pr-5 py-2.5 text-sm flex items-center gap-2 ${opt.groupStart ? 'border-t' : ''}`}
+                  style={{
+                    ...(opt.groupStart ? { borderTopColor: 'var(--popup-border)' } : null),
+                    ...(isActive ? {
+                      background: 'var(--option-selected-bg)',
+                      color: 'var(--option-selected-text)',
+                    } : null),
+                  }}
                   onMouseEnter={(e) => {
                     if (!isActive) e.currentTarget.style.background = 'var(--row-hover-bg)'
                   }}
