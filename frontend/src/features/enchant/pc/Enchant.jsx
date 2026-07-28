@@ -608,9 +608,9 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
         <div className="flex items-center px-4 py-2.5 text-[13px] font-bold" style={SLATE_BAR}>
           <span className="w-[104px] shrink-0">일시</span>
           <span className="flex-1 min-w-0">수단</span>
-          <span className="w-[280px] shrink-0 pr-3">변경 전</span>
-          <span className="w-[280px] shrink-0">변경 후</span>
-          <span className="w-[104px] text-right shrink-0">비용</span>
+          <span className="w-[262px] shrink-0 pr-3">변경 전</span>
+          <span className="w-[262px] shrink-0">변경 후</span>
+          <span className="w-[150px] text-right shrink-0">비용</span>
         </div>
         <OverlayScrollbarsComponent
           className="overflow-hidden"
@@ -670,19 +670,19 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
                   </span>
                 ) : null}
               </span>
-              <span className="w-[280px] shrink-0 pr-3 leading-[1.5]">
+              <span className="w-[262px] shrink-0 pr-3 leading-[1.5]">
                 {(before || []).map((o, i) => (
                   <span key={i} className="block" style={{ color: GRADE_COLOR_SOFT[o.grade] || '#a6b4c0' }}>{o.value}</span>
                 ))}
                 {(!before || before.length === 0) && <span style={{ color: 'var(--text-dim)' }}>-</span>}
               </span>
-              <span className="w-[280px] shrink-0 leading-[1.5] font-bold">
+              <span className="w-[262px] shrink-0 leading-[1.5] font-bold">
                 {(after || []).map((o, i) => (
                   <span key={i} className="block" style={{ color: GRADE_COLOR[o.grade] || 'var(--text-muted)' }}>{o.value}</span>
                 ))}
                 {(!after || after.length === 0) && <span style={{ color: 'var(--text-dim)' }}>-</span>}
               </span>
-              <span className="w-[104px] text-right shrink-0 font-bold tabular-nums text-[14px]" style={{ color: 'var(--accent-bright)' }}>
+              <span className="w-[150px] text-right shrink-0 font-bold tabular-nums text-[14px] whitespace-nowrap" style={{ color: 'var(--accent-bright)' }}>
                 {cost != null ? formatKoreanMeso(cost) : '-'}
               </span>
             </div>
@@ -776,7 +776,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
           <span className="w-[104px] shrink-0">일시</span>
           <span className="w-[170px] shrink-0">단계</span>
           <span className="flex-1">결과</span>
-          <span className="w-[140px] text-right shrink-0">비용</span>
+          <span className="w-[250px] text-right shrink-0">비용</span>
         </div>
         <OverlayScrollbarsComponent
           className="overflow-hidden"
@@ -837,7 +837,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
                   <span className="rounded-md px-2 py-0.5 text-[12.5px] font-bold" style={{ background: 'linear-gradient(180deg, #ffd76e, #f0a828)', color: '#6b4b00' }}>찬스타임</span>
                 )}
               </span>
-              <span className="w-[140px] text-right shrink-0 tabular-nums whitespace-nowrap text-[14px]">
+              <span className="w-[250px] text-right shrink-0 tabular-nums whitespace-nowrap text-[14px]">
                 {cost == null ? <span style={{ color: 'var(--text-dim)' }}>-</span> : (
                   <CostReasonTooltip cost={cost}>
                     {cost.final !== cost.base && <span className="text-[13px] line-through mr-1.5" style={{ color: 'var(--text-dim)' }}>{formatKoreanMeso(cost.base)}</span>}
