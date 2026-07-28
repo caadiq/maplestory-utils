@@ -14,7 +14,7 @@ import { setDynamicItemLevels } from '../costs'
 import {
   formatKoreanMeso, formatMesoShort, isMesoTruncated, formatDateParts,
   sfResult, sfCost, flagApplied, isDrop, groupStarforce, starforceSummary,
-  normalizePotential, groupPotential, potentialCost,
+  normalizePotential, groupPotential, potentialCost, setInsightLevels, isExcludedItem,
   gradeUpPair, rowCeiling, starRangeStats, potentialStats, sortGroups, SORT_OPTIONS,
   GRADE_COLOR, GRADE_COLOR_SOFT,
 } from '../logic'
@@ -1010,14 +1010,15 @@ export default function Enchant() {
   )
 
   const sfItems = useMemo(() => {
-    let items = (sfQuery.data?.items || []).filter((i) => !excluded.has(i.character_name))
+    let items = (sfQuery.data?.items || [])
+      .filter((i) => !excluded.has(i.character_name) && !isExcludedItem(i.target_item))
     if (charFilter) items = items.filter((i) => i.character_name === charFilter)
     return items
   }, [sfQuery.data, charFilter, excluded])
 
   const potRows = useMemo(() => {
     let rows = normalizePotential(cubeQuery.data?.items || [], potQuery.data?.items || [])
-      .filter((i) => !excluded.has(i.character_name))
+      .filter((i) => !excluded.has(i.character_name) && !isExcludedItem(i.target_item))
     if (charFilter) rows = rows.filter((i) => i.character_name === charFilter)
     return rows
   }, [cubeQuery.data, potQuery.data, charFilter, excluded])
@@ -1089,8 +1090,19 @@ export default function Enchant() {
     setDynamicItemLevels(itemLevelDict)
     return starforceSummary(sfItems)
   }, [sfItems, itemLevelDict])
-  const potGroups = useMemo(() => sortGroups(groupPotential(potRows), sort), [potRows, sort])
-  const potStat = useMemo(() => potentialStats(potRows), [potRows])
+  // 통찰력 성향에 따라 큐브 감정 비용이 무료가 되는 구간이 달라진다
+  const insightMap = useMemo(
+    () => Object.fromEntries(Object.entries(charInfo).map(([n, v]) => [n, v.insight])),
+    [charInfo]
+  )
+  const potGroups = useMemo(() => {
+    setInsightLevels(insightMap)
+    return sortGroups(groupPotential(potRows), sort)
+  }, [potRows, sort, insightMap])
+  const potStat = useMemo(() => {
+    setInsightLevels(insightMap)
+    return potentialStats(potRows)
+  }, [potRows, insightMap])
 
   const methodIconNames = useMemo(() => {
     const names = new Set()
