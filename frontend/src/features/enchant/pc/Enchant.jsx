@@ -606,7 +606,7 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
       {/* 테이블 */}
       <div className="rounded-xl overflow-hidden" style={CARD}>
         <div className="flex items-center px-4 py-2.5 text-[13px] font-bold" style={SLATE_BAR}>
-          <span className="w-[104px] shrink-0">일시</span>
+          <span className="w-[136px] shrink-0">일시</span>
           <span className="flex-1 min-w-0">수단</span>
           <span className="w-[262px] shrink-0 pr-3">변경 전</span>
           <span className="w-[262px] shrink-0">변경 후</span>
@@ -646,7 +646,7 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
                 background: idx % 2 === 1 ? 'var(--mpl-row)' : 'var(--mpl-card)',
               }}
             >
-              <span className="w-[104px] shrink-0 leading-tight">
+              <span className="w-[136px] shrink-0 leading-tight whitespace-nowrap">
                 <span className="block text-[12.5px] font-bold" style={{ color: 'var(--text-muted)' }}>{date}</span>
                 <span className="block text-[12.5px]" style={{ color: 'var(--text-dim)' }}>{time}</span>
               </span>
@@ -773,7 +773,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
 
       <div className="rounded-xl overflow-hidden" style={CARD}>
         <div className="flex items-center px-4 py-2.5 text-[13px] font-bold" style={SLATE_BAR}>
-          <span className="w-[104px] shrink-0">일시</span>
+          <span className="w-[136px] shrink-0">일시</span>
           <span className="w-[170px] shrink-0">단계</span>
           <span className="flex-1">결과</span>
           <span className="w-[250px] text-right shrink-0">비용</span>
@@ -809,12 +809,15 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
                 background: res === 'destroy'
                   ? 'var(--mpl-row-danger, #fdf1ef)'
                   : idx % 2 === 1 ? 'var(--mpl-row)' : 'var(--mpl-card)',
-                boxShadow: res === 'destroy'
-                  ? 'inset 3px 0 0 var(--mpl-red-to)'
-                  : drop ? 'inset 3px 0 0 #e0a35f' : undefined,
+                boxShadow: `inset 3px 0 0 ${
+                  res === 'destroy' ? 'var(--mpl-red-to)'
+                    : drop ? '#dd9231'
+                      : res === 'success' ? '#7cbf3f'
+                        : '#c2cdd8'
+                }`,
               }}
             >
-              <span className="w-[104px] shrink-0 leading-tight">
+              <span className="w-[136px] shrink-0 leading-tight whitespace-nowrap">
                 <span className="block text-[12.5px] font-bold" style={{ color: 'var(--text-muted)' }}>{date}</span>
                 <span className="block text-[12.5px]" style={{ color: 'var(--text-dim)' }}>{time}</span>
               </span>
@@ -834,7 +837,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
                   {BADGE[drop ? 'drop' : res].label}
                 </span>
                 {flagApplied(r.chance_time) && (
-                  <span className="rounded-md px-2 py-0.5 text-[12.5px] font-bold" style={{ background: 'linear-gradient(180deg, #ffd76e, #f0a828)', color: '#6b4b00' }}>찬스타임</span>
+                  <span className="rounded-md px-3 py-1 text-[13px] font-bold" style={{ background: 'linear-gradient(180deg, #ffd76e, #f0a828)', color: '#6b4b00' }}>찬스타임</span>
                 )}
               </span>
               <span className="w-[250px] text-right shrink-0 tabular-nums whitespace-nowrap text-[14px]">
