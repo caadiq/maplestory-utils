@@ -157,11 +157,13 @@ export function cubeFee(_cubeType, level, freeUpTo = 30) {
 }
 
 /**
- * 통찰력 성향의 무료 감정 상한 — 단계가 오를수록 더 높은 레벨까지 감정비가 무료다.
- * (감정 비용에만 적용되고 메소 잠재능력 재설정에는 적용되지 않는다)
+ * 통찰력 성향의 무료 감정 상한 (감정 비용 전용 — 메소 잠재능력 재설정에는 적용되지 않는다)
+ *   1단계 Lv.30 → 30레벨 이하 장비
+ *   2단계 Lv.60 → 70레벨 이하 장비
+ *   3단계 Lv.90 → 120레벨 이하 장비
+ * 0단계라도 30레벨 이하는 원래 감정비가 없어 결과는 1단계와 같다.
  */
 export function insightFreeLevel(insight) {
-  if (insight == null) return 30
   if (insight >= 90) return 120
   if (insight >= 60) return 70
   return 30
