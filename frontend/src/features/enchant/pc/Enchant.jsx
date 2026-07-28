@@ -708,7 +708,7 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
         </div>
         <OverlayScrollbarsComponent
           className="overflow-hidden"
-          style={{ maxHeight: 'calc(100vh - 340px)', minHeight: 320 }}
+          style={{ maxHeight: 'calc(100vh - 340px)' }}
           options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'hidden', y: 'scroll' } }}
           events={{ initialized: onScrollbarsInit }}
           defer
@@ -874,7 +874,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
         </div>
         <OverlayScrollbarsComponent
           className="overflow-hidden"
-          style={{ maxHeight: 'calc(100vh - 420px)', minHeight: 300 }}
+          style={{ maxHeight: 'calc(100vh - 420px)' }}
           options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'hidden', y: 'scroll' } }}
           events={{ initialized: onScrollbarsInit }}
           defer
