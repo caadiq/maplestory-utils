@@ -317,9 +317,9 @@ function useRowVirtualizer(count, estimateSize) {
 }
 
 /** 잠재 탭 상단 통계 — 누적 비용 · 수단별 사용량 · 등급별 재설정 · 등급업 확률 */
-function PotentialStatsPanel({ stat, methodIcons }) {
+function PotentialStatsPanel({ stat, methodIcons, compact = false }) {
   const grades = ['레어', '에픽', '유니크', '레전드리']
-  const box = { background: 'var(--mpl-card)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }
+  const box = { background: 'var(--mpl-card)', border: '1px solid var(--mpl-card-line)' }
   const head = {
     background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))',
     color: '#fff',
@@ -329,11 +329,11 @@ function PotentialStatsPanel({ stat, methodIcons }) {
     <div className="space-y-3">
       <div className="grid grid-cols-4 gap-2.5">
         <div className="rounded-xl px-4 py-3" style={box}>
-          <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>누적 재설정 비용</div>
+          <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{compact ? '재설정 비용' : '누적 재설정 비용'}</div>
           <div className="text-[22px] font-bold tabular-nums mt-0.5" style={{ color: 'var(--accent-bright)' }}>{formatKoreanMeso(stat.resetCost)}</div>
         </div>
         <div className="rounded-xl px-4 py-3" style={box}>
-          <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>누적 감정 비용</div>
+          <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{compact ? '감정 비용' : '누적 감정 비용'}</div>
           <div className="text-[22px] font-bold tabular-nums mt-0.5" style={{ color: 'var(--accent-bright)' }}>{formatKoreanMeso(stat.feeCost)}</div>
         </div>
         <div className="rounded-xl px-4 py-3" style={box}>
@@ -384,7 +384,7 @@ function PotentialStatsPanel({ stat, methodIcons }) {
       <div className="grid grid-cols-2 gap-3">
         {[
           { key: 'potential', label: '잠재능력 등급업' },
-          { key: 'additional', label: '에디셔널 등급업' },
+          { key: 'additional', label: '에디셔널 잠재능력 등급업' },
         ].map((sec) => (
           <div key={sec.key} className="rounded-xl overflow-hidden" style={box}>
             <div className="flex items-center px-4 py-2 text-[13px] font-bold" style={head}>
@@ -477,42 +477,22 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
       titleRight={detailRight(nav)}
       bodyClassName="space-y-3"
     >
-      {/* 요약 명패 */}
-      <div className="rounded-xl overflow-hidden" style={CARD}>
-        <div className="flex items-center gap-3.5 px-4 py-3.5">
-          <ItemSlot url={icon} size={64} />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-[21px] font-bold" style={{ color: 'var(--text-strong)' }}>{group.item}</span>
-              <span className="inline-flex items-center gap-2 rounded-full pl-2 pr-3.5 py-1 text-[14px] font-bold"
-                style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}>
-                {worldIcon && <img src={worldIcon} alt="" className="w-[22px] h-[22px] object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
-                {group.character}
-              </span>
-            </div>
-            <div className="text-[13px] mt-0.5" style={{ color: 'var(--text-dim)' }}>{group.part} · Lv.{group.level}</div>
-            <div className="flex gap-4 mt-2 text-[14.5px] font-bold">
-              {group.potential && (
-                <span>잠재 <GradeText grade={group.potential.from} />{group.potential.from !== group.potential.to && <><span style={{ color: 'var(--text-dim)', fontWeight: 700 }}> → </span><GradeText grade={group.potential.to} /></>}</span>
-              )}
-              {group.additional && (
-                <span>에디 <GradeText grade={group.additional.from} />{group.additional.from !== group.additional.to && <><span style={{ color: 'var(--text-dim)', fontWeight: 700 }}> → </span><GradeText grade={group.additional.to} /></>}</span>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="flex" style={{ borderTop: '1px solid var(--mpl-card-line)' }}>
-          <StatCell
-            first
-            label="사용 메소"
-            value={group.totalCost != null ? formatKoreanMeso(group.totalCost) : '-'}
-            sub={group.totalCost > 0 ? `재설정 ${formatKoreanMeso(group.resetCost)} · 감정 ${formatKoreanMeso(group.feeCost)}` : null}
-            color="#c9862a"
-          />
-          <StatCell label="큐브 / 메소" value={`${group.cubeTries.toLocaleString()} / ${group.mesoTries.toLocaleString()}`} sub={`총 ${group.tries.toLocaleString()}회`} />
-          <StatCell label="등급 상승" value={`${group.gradeUps}회`} color={group.gradeUps > 0 ? '#4e9e20' : undefined} />
+      {/* 요약 명패 — 닉네임(서버) 위, 아이템명 아래 */}
+      <div className="rounded-xl px-4 py-3.5 flex items-center gap-3.5" style={CARD}>
+        <ItemSlot url={icon} size={64} />
+        <div className="flex-1 min-w-0">
+          <span className="inline-flex items-center gap-2 rounded-full pl-2 pr-3.5 py-1 text-[14px] font-bold"
+            style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}>
+            {worldIcon && <img src={worldIcon} alt="" className="w-[22px] h-[22px] object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
+            {group.character}
+          </span>
+          <div className="text-[21px] font-bold mt-1.5" style={{ color: 'var(--text-strong)' }}>{group.item}</div>
+          <div className="text-[13px] mt-0.5" style={{ color: 'var(--text-dim)' }}>{group.part} · Lv.{group.level}</div>
         </div>
       </div>
+
+      {/* 아이템 통계 (목록 통계와 동일 구성) */}
+      <PotentialStatsPanel stat={potentialStats(group.records)} methodIcons={methodIcons} compact />
 
       {/* 테이블 */}
       <div className="rounded-xl overflow-hidden" style={CARD}>
@@ -616,40 +596,30 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
       titleRight={detailRight(nav)}
       bodyClassName="space-y-3"
     >
-      <div className="rounded-xl overflow-hidden" style={CARD}>
-        <div className="flex items-center gap-3.5 px-4 py-3.5">
-          <ItemSlot url={icon} size={64} />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-[21px] font-bold" style={{ color: 'var(--text-strong)' }}>{group.item}</span>
-              <span className="inline-flex items-center gap-2 rounded-full pl-2 pr-3.5 py-1 text-[14px] font-bold"
-                style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}>
-                {worldIcon && <img src={worldIcon} alt="" className="w-[22px] h-[22px] object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
-                {group.character}
-              </span>
-            </div>
-            <div className="text-2xl font-bold mt-1 tabular-nums">
-              <span style={{ color: '#c9a227' }}>★{group.startStar}</span>
-              <span style={{ color: 'var(--text-dim)' }}> → </span>
-              {group.destroyed ? <span style={{ color: 'var(--mpl-red-to)' }}>파괴</span> : <span style={{ color: '#c9a227' }}>★{group.endStar}</span>}
-            </div>
+      <div className="rounded-xl px-4 py-3.5 flex items-center gap-3.5" style={CARD}>
+        <ItemSlot url={icon} size={64} />
+        <div className="flex-1 min-w-0">
+          <span className="inline-flex items-center gap-2 rounded-full pl-2 pr-3.5 py-1 text-[14px] font-bold"
+            style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}>
+            {worldIcon && <img src={worldIcon} alt="" className="w-[22px] h-[22px] object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
+            {group.character}
+          </span>
+          <div className="text-[21px] font-bold mt-1.5" style={{ color: 'var(--text-strong)' }}>{group.item}</div>
+          <div className="text-lg font-bold mt-0.5 tabular-nums">
+            <span style={{ color: '#c9a227' }}>★{group.startStar}</span>
+            <span style={{ color: 'var(--text-dim)' }}> → </span>
+            {group.destroyed ? <span style={{ color: 'var(--mpl-red-to)' }}>파괴</span> : <span style={{ color: '#c9a227' }}>★{group.endStar}</span>}
           </div>
         </div>
-        <div className="flex" style={{ borderTop: '1px solid var(--mpl-card-line)' }}>
-          <StatCell
-            first
-            label="사용 메소"
-            value={group.totalCost != null && group.totalCost > 0 ? formatKoreanMeso(group.totalCost) : '-'}
-            sub={group.totalCost > 0 ? `평균 ${formatKoreanMeso(Math.round(group.totalCost / group.tries))} / 회` : null}
-            color="#c9862a"
-          />
-          <StatCell label="강화 / 파괴" value={`${group.tries} / ${group.destroyCount}`} sub={`파괴방지 ${group.defenceCount}회`} />
-          <StatCell
-            label={`★${group.topTarget} 도전`}
-            value={<><span style={{ color: 'var(--accent-bright)' }}>{group.topSuccess}</span> / <span style={{ color: 'var(--mpl-red-to)' }}>{group.topFail}</span></>}
-            sub="성공 / 실패"
-          />
-        </div>
+      </div>
+
+      {/* 아이템 통계 (목록 통계와 동일 톤) */}
+      <div className="grid grid-cols-5 gap-2.5">
+        <SummaryCard label="사용 메소" value={group.totalCost != null && group.totalCost > 0 ? formatKoreanMeso(group.totalCost) : '-'} color="var(--accent-bright)" />
+        <SummaryCard label="강화 시도" value={`${group.tries.toLocaleString()}회`} />
+        <SummaryCard label="성공" value={`${group.success.toLocaleString()}회`} color="#4e9e20" />
+        <SummaryCard label="파괴" value={`${group.destroyCount.toLocaleString()}회`} color={group.destroyCount > 0 ? 'var(--mpl-red-to)' : undefined} />
+        <SummaryCard label="파괴방지" value={`${group.defenceCount.toLocaleString()}회`} />
       </div>
 
       {/* 구간별 성공률 */}
@@ -936,8 +906,8 @@ export default function Enchant() {
                 <SummaryCard label="성공" value={`${sfSum.success}회`} color="#5aa626" />
                 <SummaryCard label="실패" value={`${sfSum.fail}회`} color="#5c6b7a" />
                 <SummaryCard label="파괴" value={`${sfSum.destroy}회`} color="var(--mpl-red-to)" ring={sfSum.destroy > 0 ? '#f0b1a8' : null} />
-                <SummaryCard label="파괴방지" value={`${sfSum.defence}회`} color="#c9862a" />
-                <SummaryCard label="총 메소 (추정)" value={sfSum.cost > 0 ? formatKoreanMeso(sfSum.cost) : '-'} color="#c9862a" ring="#eec584" />
+                <SummaryCard label="파괴방지" value={`${sfSum.defence}회`} color="var(--accent-bright)" />
+                <SummaryCard label="총 메소 (추정)" value={sfSum.cost > 0 ? formatKoreanMeso(sfSum.cost) : '-'} color="var(--accent-bright)" ring="#eec584" />
               </div>
               {sfGroups.length === 0 ? (
                 <div className="rounded-xl border border-dashed p-14 text-center text-sm" style={{ borderColor: 'var(--dashed-border)', color: 'var(--text-dim)' }}>
