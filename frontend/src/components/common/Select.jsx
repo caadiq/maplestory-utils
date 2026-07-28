@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 
 /**
  * 커스텀 드롭다운 셀렉트 (포털로 렌더링 → 부모 overflow:hidden에도 잘림 없음)
@@ -75,7 +76,12 @@ export default function Select({ value, onChange, options, disabled, className =
             ),
           }}
         >
-          <div className="max-h-60 overflow-y-auto py-1">
+          <OverlayScrollbarsComponent
+            className="py-1"
+            style={{ maxHeight: 240 }}
+            options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'hidden', y: 'scroll' } }}
+            defer
+          >
             {options.map((opt) => {
               const isActive = opt.value === value
               return (
@@ -95,16 +101,45 @@ export default function Select({ value, onChange, options, disabled, className =
                     if (!isActive) e.currentTarget.style.background = ''
                   }}
                 >
-                  {isActive && (
+                  {isActive ? (
                     <svg className="w-3 h-3 shrink-0" viewBox="0 0 12 12" fill="none">
                       <path d="M2.5 6L5 8.5L9.5 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
+                  ) : <span className="w-3 shrink-0" />}
+                  {opt.hasIconSlot && (
+                    <span
+                      className="w-9 h-9 rounded-lg shrink-0 flex items-center justify-center overflow-hidden"
+                      style={{ background: 'var(--surface-nested)' }}
+                    >
+                      {opt.icon ? (
+                        <img
+                          src={opt.icon}
+                          alt=""
+                          className="w-full h-full object-contain select-none"
+                          style={{
+                            transform: `scale(${opt.iconScale || 1}) translateY(${opt.iconOffsetY ?? 0}%)`,
+                          }}
+                          draggable={false}
+                        />
+                      ) : (
+                        <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" style={{ color: 'var(--text-dim)' }}>
+                          <circle cx="8" cy="5.5" r="2.75" stroke="currentColor" strokeWidth="1.4" />
+                          <path d="M2.75 13.5c0-2.5 2.35-4 5.25-4s5.25 1.5 5.25 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                        </svg>
+                      )}
+                    </span>
                   )}
-                  <span className={!isActive ? 'pl-5' : ''}>{opt.label}</span>
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    {opt.subIcon && (
+                      <img src={opt.subIcon} alt="" className="w-[18px] h-[18px] shrink-0 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
+                    )}
+                    <span className="truncate">{opt.label}</span>
+                    {opt.sub && <span className="text-[13px] shrink-0" style={{ color: 'var(--text-dim)' }}>{opt.sub}</span>}
+                  </span>
                 </button>
               )
             })}
-          </div>
+          </OverlayScrollbarsComponent>
         </motion.div>
       )}
     </AnimatePresence>
@@ -126,8 +161,14 @@ export default function Select({ value, onChange, options, disabled, className =
           color: 'var(--text-strong)',
         }}
       >
-        <span style={{ color: selected ? 'var(--text-strong)' : 'var(--input-placeholder)' }}>
-          {selected ? selected.label : placeholder}
+        <span
+          className="flex items-center gap-1.5 min-w-0"
+          style={{ color: selected ? 'var(--text-strong)' : 'var(--input-placeholder)' }}
+        >
+          {selected?.subIcon && (
+            <img src={selected.subIcon} alt="" className="w-4 h-4 shrink-0 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
+          )}
+          <span className="truncate">{selected ? selected.label : placeholder}</span>
         </span>
         <svg
           className={`w-3.5 h-3.5 transition ${open ? 'rotate-180' : ''}`}

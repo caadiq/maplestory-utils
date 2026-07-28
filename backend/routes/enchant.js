@@ -167,7 +167,12 @@ async function fetchCharacterInfo(characterName) {
     collect(equip.item_equipment_preset_2);
     collect(equip.item_equipment_preset_3);
   }
-  const entry = { at: Date.now(), icons, worldName: basic?.world_name || null };
+  const entry = {
+    at: Date.now(),
+    icons,
+    worldName: basic?.world_name || null,
+    characterImage: basic?.character_image || null,
+  };
   charInfoCache.set(characterName, entry);
   return entry;
 }
@@ -244,7 +249,7 @@ router.get('/item-icons', requireAuth, async (req, res) => {
       results.forEach((entry, idx) => {
         if (!entry) return;
         Object.assign(merged, entry.icons);
-        characterWorlds[chunk[idx]] = entry.worldName;
+        characterWorlds[chunk[idx]] = { world: entry.worldName, image: entry.characterImage };
       });
     }
 
@@ -255,7 +260,7 @@ router.get('/item-icons', requireAuth, async (req, res) => {
       urls.forEach((u, idx) => { if (u) merged[chunk[idx]] = u; });
     }
 
-    const worlds = [...new Set(Object.values(characterWorlds).filter(Boolean))];
+    const worlds = [...new Set(Object.values(characterWorlds).map((v) => v?.world).filter(Boolean))];
     const worldIconMap = {};
     if (worlds.length) {
       const images = await Image.findAll({
@@ -268,11 +273,13 @@ router.get('/item-icons', requireAuth, async (req, res) => {
     }
 
     const characters = {};
-    for (const [name, world] of Object.entries(characterWorlds)) {
+    for (const [name, info] of Object.entries(characterWorlds)) {
+      const world = info?.world || null;
       characters[name] = {
         world,
         worldIcon: world ? worldIconMap[world] || null : null,
         normalWorld: isNormalWorld(world),
+        image: info?.image || null,
       };
     }
 
