@@ -70,10 +70,19 @@ export const ITEM_LEVELS = {
 // 긴 이름 우선 매칭 (예: '카오스 혼테일의 목걸이' > '혼테일의 목걸이')
 const LEVEL_KEYS = Object.keys(ITEM_LEVELS).sort((a, b) => b.length - a.length)
 
+// 실데이터에서 얻은 이름→착용 레벨 사전 (계정 장비 + 잠재 이력).
+// 스타포스 이력에는 item_level이 없어 이름으로 추정해야 하므로, 정확한 값이 있으면 그걸 우선한다.
+let dynamicLevels = {}
+
+export function setDynamicItemLevels(map) {
+  dynamicLevels = map || {}
+}
+
 export function itemLevel(itemName) {
   const name = itemName || ''
   // 심볼(마이스터 심볼 등)은 스타포스 비용 체계가 달라 계산 제외
   if (name.includes('심볼')) return null
+  if (dynamicLevels[name]) return dynamicLevels[name]
   for (const key of LEVEL_KEYS) {
     if (name.includes(key)) return ITEM_LEVELS[key]
   }

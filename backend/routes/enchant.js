@@ -156,9 +156,13 @@ async function fetchCharacterInfo(characterName) {
     nexonGet('https://open.api.nexon.com/maplestory/v1/character/basic', { ocid }).catch(() => null),
   ]);
   const icons = {};
+  const levels = {};
   const collect = (list) => {
     for (const eq of list || []) {
-      if (eq.item_name && eq.item_icon && !icons[eq.item_name]) icons[eq.item_name] = eq.item_icon;
+      if (!eq.item_name) continue;
+      if (eq.item_icon && !icons[eq.item_name]) icons[eq.item_name] = eq.item_icon;
+      const lv = eq.item_base_option?.base_equipment_level;
+      if (lv && !levels[eq.item_name]) levels[eq.item_name] = Number(lv);
     }
   };
   if (equip) {
@@ -170,6 +174,7 @@ async function fetchCharacterInfo(characterName) {
   const entry = {
     at: Date.now(),
     icons,
+    levels,
     worldName: basic?.world_name || null,
     characterImage: basic?.character_image || null,
     characterLevel: basic?.character_level ?? null,
@@ -179,12 +184,13 @@ async function fetchCharacterInfo(characterName) {
 }
 
 // 계정 전체 캐릭터의 장착 아이콘 사전 (넥슨 static 아이콘) — 1시간 캐시
-let accountIconCache = null; // { at, icons }
+let accountIconCache = null; // { at, icons, levels }
 
 async function fetchAccountIcons() {
-  if (accountIconCache && Date.now() - accountIconCache.at < ICON_TTL) return accountIconCache.icons;
+  if (accountIconCache && Date.now() - accountIconCache.at < ICON_TTL) return accountIconCache;
 
   const icons = {};
+  const levels = {};
   try {
     const list = await nexonGet('https://open.api.nexon.com/maplestory/v1/character/list', {});
     const ocids = [];
@@ -203,7 +209,10 @@ async function fetchAccountIcons() {
         if (!equip) continue;
         for (const key of ['item_equipment', 'item_equipment_preset_1', 'item_equipment_preset_2', 'item_equipment_preset_3']) {
           for (const eq of equip[key] || []) {
-            if (eq.item_name && eq.item_icon && !icons[eq.item_name]) icons[eq.item_name] = eq.item_icon;
+            if (!eq.item_name) continue;
+            if (eq.item_icon && !icons[eq.item_name]) icons[eq.item_name] = eq.item_icon;
+            const lv = eq.item_base_option?.base_equipment_level;
+            if (lv && !levels[eq.item_name]) levels[eq.item_name] = Number(lv);
           }
         }
       }
@@ -211,24 +220,27 @@ async function fetchAccountIcons() {
   } catch (err) {
     console.error('계정 아이콘 수집 오류:', err.message);
   }
-  accountIconCache = { at: Date.now(), icons };
-  return icons;
+  accountIconCache = { at: Date.now(), icons, levels };
+  return accountIconCache;
 }
 
-/** maplestory.io 폴백 — 계정 어디에도 장착돼 있지 않은 아이템 */
+/** maplestory.io 폴백 — 계정 어디에도 장착돼 있지 않은 아이템 (아이콘 + 착용 레벨) */
 async function fetchIoIcon(itemName) {
   if (ioIconCache.has(itemName)) return ioIconCache.get(itemName);
-  let url = null;
+  let entry = { url: null, level: null };
   try {
     const { data } = await axios.get('https://maplestory.io/api/KMS/389/item', {
       params: { searchFor: itemName, count: 5 },
       timeout: 8000,
     });
-    const exact = (data || []).find((i) => i.name === itemName) || (data || [])[0];
-    if (exact?.id) url = `https://maplestory.io/api/KMS/389/item/${exact.id}/icon`;
+    // 이름이 정확히 같은 것만 레벨을 신뢰 (부분 일치는 다른 아이템일 수 있음)
+    const exact = (data || []).find((i) => i.name === itemName);
+    const pick = exact || (data || [])[0];
+    if (pick?.id) entry.url = `https://maplestory.io/api/KMS/389/item/${pick.id}/icon`;
+    if (exact?.requiredLevel) entry.level = Number(exact.requiredLevel);
   } catch { /* 실패 시 아이콘 없음 */ }
-  ioIconCache.set(itemName, url);
-  return url;
+  ioIconCache.set(itemName, entry);
+  return entry;
 }
 
 /**
@@ -242,7 +254,9 @@ router.get('/item-icons', requireAuth, async (req, res) => {
 
   try {
     // 계정 전체 장착 사전 먼저 (넥슨 static 아이콘)
-    const merged = { ...(await fetchAccountIcons()) };
+    const account = await fetchAccountIcons();
+    const merged = { ...account.icons };
+    const itemLevels = { ...account.levels };
     const characterWorlds = {};
     for (let i = 0; i < names.length; i += 3) {
       const chunk = names.slice(i, i + 3);
@@ -250,6 +264,7 @@ router.get('/item-icons', requireAuth, async (req, res) => {
       results.forEach((entry, idx) => {
         if (!entry) return;
         Object.assign(merged, entry.icons);
+        Object.assign(itemLevels, entry.levels || {});
         characterWorlds[chunk[idx]] = {
           world: entry.worldName,
           image: entry.characterImage,
@@ -258,11 +273,16 @@ router.get('/item-icons', requireAuth, async (req, res) => {
       });
     }
 
-    const missing = wantedItems.filter((n) => !merged[n]);
-    for (let i = 0; i < missing.length; i += 6) {
-      const chunk = missing.slice(i, i + 6);
-      const urls = await Promise.all(chunk.map((n) => fetchIoIcon(n)));
-      urls.forEach((u, idx) => { if (u) merged[chunk[idx]] = u; });
+    // 아이콘이 없거나 레벨을 모르는 아이템은 maplestory.io로 보강
+    const needIo = wantedItems.filter((n) => !merged[n] || !itemLevels[n]);
+    for (let i = 0; i < needIo.length; i += 6) {
+      const chunk = needIo.slice(i, i + 6);
+      const found = await Promise.all(chunk.map((n) => fetchIoIcon(n)));
+      found.forEach((e, idx) => {
+        const name = chunk[idx];
+        if (e?.url && !merged[name]) merged[name] = e.url;
+        if (e?.level && !itemLevels[name]) itemLevels[name] = e.level;
+      });
     }
 
     const worlds = [...new Set(Object.values(characterWorlds).map((v) => v?.world).filter(Boolean))];
@@ -289,7 +309,7 @@ router.get('/item-icons', requireAuth, async (req, res) => {
       };
     }
 
-    res.json({ items: merged, characters });
+    res.json({ items: merged, itemLevels, characters });
   } catch (err) {
     console.error('아이템 아이콘 조회 오류:', err.message);
     res.status(500).json({ error: '아이콘 조회 실패' });

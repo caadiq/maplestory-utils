@@ -10,9 +10,10 @@ import { useBackClose } from '../../../hooks/useBackClose'
 import MapleWindow, { MapleWindowTab } from '../../../components/pc/MapleWindow'
 import PageLoader from '../../../components/common/PageLoader'
 import Select from '../../../components/common/Select'
+import { setDynamicItemLevels } from '../costs'
 import {
   formatKoreanMeso, formatDateParts,
-  sfResult, sfCost, flagApplied, groupStarforce, starforceSummary,
+  sfResult, sfCost, flagApplied, isDrop, groupStarforce, starforceSummary,
   normalizePotential, groupPotential, potentialCost,
   gradeUpPair, rowCeiling, starRangeStats, potentialStats, sortGroups, SORT_OPTIONS,
   GRADE_COLOR, GRADE_COLOR_SOFT,
@@ -38,6 +39,7 @@ const CARD = { background: 'var(--mpl-card)', border: '1px solid var(--mpl-card-
 const BADGE = {
   success: { label: '성공', style: { background: 'linear-gradient(180deg, var(--mpl-lime-from), var(--mpl-lime-to))', color: '#fff' } },
   fail: { label: '실패', style: { background: 'linear-gradient(180deg, #c2cdd8, #a8b6c4)', color: '#5c6b7a' } },
+  drop: { label: '하락', style: { background: 'linear-gradient(180deg, #f0b661, #dd9231)', color: '#fff' } },
   destroy: { label: '파괴', style: { background: 'linear-gradient(180deg, var(--mpl-red-from), var(--mpl-red-to))', color: '#fff' } },
 }
 
@@ -119,6 +121,31 @@ function StatCell({ label, value, sub, color, first }) {
 /** 수단 아이콘 이름 (큐브명 또는 재설정 종류) */
 function methodIconName(r) {
   return r.method === 'cube' ? r.cube_type : (r.kind === 'additional' ? '에디셔널 잠재능력 재설정' : '잠재능력 재설정')
+}
+
+/** 스타포스 카드 하단 — 성공 / 실패 / 파괴 횟수 */
+function ResultStrip({ success, fail, destroy }) {
+  const cells = [
+    { label: '성공', value: success, color: 'var(--mpl-lime-to)' },
+    { label: '실패', value: fail, color: 'var(--text-muted)' },
+    { label: '파괴', value: destroy, color: destroy > 0 ? 'var(--mpl-red-to)' : 'var(--text-dim)' },
+  ]
+  return (
+    <div className="mt-2.5 pt-3 w-full flex items-center" style={{ borderTop: '1px dashed #d9e2ea' }}>
+      {cells.map((c, i) => (
+        <div
+          key={c.label}
+          className="flex-1 flex flex-col items-center gap-0.5"
+          style={i > 0 ? { borderLeft: '1px solid var(--mpl-card-line)' } : undefined}
+        >
+          <span className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>{c.label}</span>
+          <span className="text-[17px] font-bold tabular-nums leading-none" style={{ color: c.color }}>
+            {c.value.toLocaleString()}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 /** 카드 하단 수단 스트립 — 상위 4개 + (+N) 클릭 팝오버 (body 포털) */
@@ -265,6 +292,65 @@ function CostTooltip({ resetCost, feeCost, total, children }) {
             <b className="tabular-nums text-[14px]" style={{ color: 'var(--accent-bright)' }}>{formatKoreanMeso(total)}</b>
           </span>
         </span>
+      )}
+    </span>
+  )
+}
+
+/** 스타포스 비용 툴팁 — 정가와 달라진 사유 표시 (스크롤 영역에 잘리지 않도록 body 포털) */
+function CostReasonTooltip({ cost, children }) {
+  const [pos, setPos] = useState(null)
+  const ref = useRef(null)
+  const reasons = cost?.reasons || []
+  if (reasons.length === 0) return children
+
+  const W = 240
+  const show = () => {
+    const r = ref.current?.getBoundingClientRect()
+    if (!r) return
+    const flipDown = r.top < 170
+    setPos({
+      left: Math.max(8, Math.min(r.right - W, window.innerWidth - W - 8)),
+      top: flipDown ? r.bottom + 8 : null,
+      bottom: flipDown ? null : window.innerHeight - r.top + 8,
+    })
+  }
+
+  return (
+    <span
+      ref={ref}
+      className="relative inline-block"
+      onMouseEnter={show}
+      onMouseLeave={() => setPos(null)}
+    >
+      {children}
+      {pos && createPortal(
+        <div
+          className="fixed z-[120] rounded-xl p-3 text-left pointer-events-none"
+          style={{
+            width: W,
+            left: pos.left,
+            ...(pos.top != null ? { top: pos.top } : { bottom: pos.bottom }),
+            background: 'var(--popup-bg)',
+            boxShadow: 'var(--popup-shadow), inset 0 0 0 1px var(--popup-border)',
+          }}
+        >
+          <div className="flex items-center justify-between text-[13px] py-0.5">
+            <span style={{ color: 'var(--text-muted)' }}>기본 비용</span>
+            <b className="tabular-nums" style={{ color: 'var(--text-strong)' }}>{formatKoreanMeso(cost.base)}</b>
+          </div>
+          {reasons.map((r) => (
+            <div key={r.label} className="flex items-center justify-between text-[13px] py-0.5 gap-3">
+              <span className="truncate" style={{ color: 'var(--text-muted)' }}>{r.label}</span>
+              <b className="tabular-nums shrink-0" style={{ color: 'var(--accent-bright)' }}>{r.effect}</b>
+            </div>
+          ))}
+          <div className="flex items-center justify-between text-[13px] pt-1.5 mt-1 border-t" style={{ borderColor: 'var(--popup-border)' }}>
+            <span className="font-bold" style={{ color: 'var(--text-muted)' }}>실제 비용</span>
+            <b className="tabular-nums text-[14px]" style={{ color: 'var(--accent-bright)' }}>{formatKoreanMeso(cost.final)}</b>
+          </div>
+        </div>,
+        document.body,
       )}
     </span>
   )
@@ -624,11 +710,11 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
 
       {/* 아이템 통계 (목록 통계와 동일 톤) */}
       <div className="grid grid-cols-5 gap-2.5">
-        <SummaryCard label="사용 메소" value={group.totalCost != null && group.totalCost > 0 ? formatKoreanMeso(group.totalCost) : '-'} color="var(--accent-bright)" />
+        <SummaryCard label="사용 메소" value={group.totalCost != null ? formatKoreanMeso(group.totalCost) : '-'} color="var(--accent-bright)" />
         <SummaryCard label="강화 시도" value={`${group.tries.toLocaleString()}회`} />
         <SummaryCard label="성공" value={`${group.success.toLocaleString()}회`} color="#4e9e20" />
+        <SummaryCard label="하락" value={`${(group.dropCount || 0).toLocaleString()}회`} color={group.dropCount > 0 ? '#c9772a' : undefined} />
         <SummaryCard label="파괴" value={`${group.destroyCount.toLocaleString()}회`} color={group.destroyCount > 0 ? 'var(--mpl-red-to)' : undefined} />
-        <SummaryCard label="파괴방지" value={`${group.defenceCount.toLocaleString()}회`} />
       </div>
 
       {/* 구간별 성공률 */}
@@ -685,6 +771,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
           const idx = v.index
           const { date, time } = formatDateParts(r.date_create)
           const res = sfResult(r)
+          const drop = isDrop(r)
           const cost = sfCost(r)
           return (
             <div
@@ -699,8 +786,12 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
                 width: '100%',
                 transform: `translateY(${v.start}px)`,
                 borderColor: 'var(--mpl-card-line)',
-                background: idx % 2 === 1 ? 'var(--mpl-row)' : 'var(--mpl-card)',
-                boxShadow: res === 'destroy' ? 'inset 3px 0 0 var(--mpl-red-to)' : undefined,
+                background: res === 'destroy'
+                  ? 'var(--mpl-row-danger, #fdf1ef)'
+                  : idx % 2 === 1 ? 'var(--mpl-row)' : 'var(--mpl-card)',
+                boxShadow: res === 'destroy'
+                  ? 'inset 3px 0 0 var(--mpl-red-to)'
+                  : drop ? 'inset 3px 0 0 #e0a35f' : undefined,
               }}
             >
               <span className="w-[104px] shrink-0 leading-tight">
@@ -716,20 +807,22 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
                     : `${r.after_starforce_count}성`}
               </span>
               <span className="flex-1 flex items-center gap-1.5">
-                <span className="rounded-full px-3 py-0.5 text-[13px] font-bold" style={BADGE[res].style}>{BADGE[res].label}</span>
-                {flagApplied(r.destroy_defence) && (
-                  <span className="rounded-full px-2 py-0.5 text-[12.5px] font-bold" style={{ background: 'linear-gradient(180deg, #c2cdd8, #a8b6c4)', color: '#3d4a58' }}>🛡 파괴방지</span>
-                )}
+                <span
+                  className="rounded-md px-3.5 py-1 text-[14px] font-bold"
+                  style={BADGE[drop ? 'drop' : res].style}
+                >
+                  {BADGE[drop ? 'drop' : res].label}
+                </span>
                 {flagApplied(r.chance_time) && (
-                  <span className="rounded-full px-2 py-0.5 text-[12.5px] font-bold" style={{ background: 'linear-gradient(180deg, #ffd76e, #f0a828)', color: '#6b4b00' }}>찬스타임</span>
+                  <span className="rounded-md px-2 py-0.5 text-[12.5px] font-bold" style={{ background: 'linear-gradient(180deg, #ffd76e, #f0a828)', color: '#6b4b00' }}>찬스타임</span>
                 )}
               </span>
               <span className="w-[140px] text-right shrink-0 tabular-nums whitespace-nowrap text-[14px]">
                 {cost == null ? <span style={{ color: 'var(--text-dim)' }}>-</span> : (
-                  <>
-                    {cost.discounted && <span className="text-[13px] line-through mr-1.5" style={{ color: 'var(--text-dim)' }}>{formatKoreanMeso(cost.base)}</span>}
+                  <CostReasonTooltip cost={cost}>
+                    {cost.final !== cost.base && <span className="text-[13px] line-through mr-1.5" style={{ color: 'var(--text-dim)' }}>{formatKoreanMeso(cost.base)}</span>}
                     <span className="font-bold" style={{ color: 'var(--accent-bright)' }}>{formatKoreanMeso(cost.final)}</span>
-                  </>
+                  </CostReasonTooltip>
                 )}
               </span>
             </div>
@@ -861,8 +954,23 @@ export default function Enchant() {
     })),
   ], [sortedCharacters, charInfo])
 
-  const sfGroups = useMemo(() => sortGroups(groupStarforce(sfItems), sort), [sfItems, sort])
-  const sfSum = useMemo(() => starforceSummary(sfItems), [sfItems])
+  // 스타포스 이력엔 item_level이 없다 — 계정 장비·잠재 이력에서 얻은 실제 레벨을 비용 계산에 주입
+  const itemLevelDict = useMemo(() => {
+    const dict = { ...(iconQuery.data?.itemLevels || {}) }
+    for (const r of potRows) {
+      if (r.item_level && !dict[r.target_item]) dict[r.target_item] = r.item_level
+    }
+    return dict
+  }, [iconQuery.data, potRows])
+
+  const sfGroups = useMemo(() => {
+    setDynamicItemLevels(itemLevelDict)
+    return sortGroups(groupStarforce(sfItems), sort)
+  }, [sfItems, sort, itemLevelDict])
+  const sfSum = useMemo(() => {
+    setDynamicItemLevels(itemLevelDict)
+    return starforceSummary(sfItems)
+  }, [sfItems, itemLevelDict])
   const potGroups = useMemo(() => sortGroups(groupPotential(potRows), sort), [potRows, sort])
   const potStat = useMemo(() => potentialStats(potRows), [potRows])
 
@@ -979,8 +1087,8 @@ export default function Enchant() {
                 <SummaryCard label="성공" value={`${sfSum.success}회`} color="#5aa626" />
                 <SummaryCard label="실패" value={`${sfSum.fail}회`} color="#5c6b7a" />
                 <SummaryCard label="파괴" value={`${sfSum.destroy}회`} color="var(--mpl-red-to)" ring={sfSum.destroy > 0 ? '#f0b1a8' : null} />
-                <SummaryCard label="파괴방지" value={`${sfSum.defence}회`} color="var(--accent-bright)" />
-                <SummaryCard label="총 메소 (추정)" value={sfSum.cost > 0 ? formatKoreanMeso(sfSum.cost) : '-'} color="var(--accent-bright)" ring="#eec584" />
+                <SummaryCard label="하락" value={`${sfSum.drop}회`} color="#c9772a" />
+                <SummaryCard label="총 메소" value={sfSum.cost > 0 ? formatKoreanMeso(sfSum.cost) : '-'} color="var(--accent-bright)" ring="#eec584" />
               </div>
               {sfGroups.length === 0 ? (
                 <div className="rounded-xl border border-dashed p-14 text-center text-sm" style={{ borderColor: 'var(--dashed-border)', color: 'var(--text-dim)' }}>
@@ -1003,23 +1111,9 @@ export default function Enchant() {
                           ? <span style={{ color: 'var(--mpl-red-to)', fontWeight: 800 }}>파괴</span>
                           : <span style={{ color: '#c9a227', fontWeight: 800 }}>★{g.endStar}</span>}
                       </>}
-                      cost={g.totalCost != null && g.totalCost > 0 ? formatKoreanMeso(g.totalCost) : '-'}
+                      cost={g.totalCost != null ? formatKoreanMeso(g.totalCost) : '-'}
                       ring={g.destroyCount > 0 ? '#f0b1a8' : null}
-                      footer={(
-                        <div className="mt-2.5 pt-3 w-full flex flex-col items-center gap-0.5" style={{ borderTop: '1px dashed #d9e2ea' }}>
-                          <div className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-                            강화/파괴 <b style={{ color: 'var(--text-strong)' }}>{g.tries}</b>번/<b style={{ color: 'var(--mpl-red-to)' }}>{g.destroyCount}</b>번
-                          </div>
-                          <div className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-                            <span style={{ color: '#c9a227' }}>★{g.topTarget}</span> 도전{' '}
-                            <b style={{ color: 'var(--accent-bright)' }}>{g.topSuccess}성공</b>{' '}
-                            <b style={{ color: 'var(--mpl-red-to)' }}>{g.topFail}실패</b>
-                          </div>
-                          <div className="text-[12.5px] font-semibold h-4" style={{ color: 'var(--accent-bright)' }}>
-                            {g.failStreak ? `${g.failStreak.star}성에서 ${g.failStreak.count}번 연속 실패` : ''}
-                          </div>
-                        </div>
-                      )}
+                      footer={<ResultStrip success={g.success} fail={g.tries - g.success - g.destroyCount} destroy={g.destroyCount} />}
                     />
                   ))}
                 </div>
@@ -1043,7 +1137,7 @@ export default function Enchant() {
                       character={g.character}
                       name={g.item}
                       sub={`${g.part} · Lv.${g.level}`}
-                      cost={g.totalCost != null && g.totalCost > 0 ? formatKoreanMeso(g.totalCost) : '-'}
+                      cost={g.totalCost != null ? formatKoreanMeso(g.totalCost) : '-'}
                       costTip={{ resetCost: g.resetCost, feeCost: g.feeCost, total: g.totalCost }}
                       footer={<MethodStrip methods={g.methods} methodIcons={methodIcons} />}
                     />
