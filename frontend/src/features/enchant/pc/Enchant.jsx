@@ -12,7 +12,7 @@ import PageLoader from '../../../components/common/PageLoader'
 import Select from '../../../components/common/Select'
 import { setDynamicItemLevels } from '../costs'
 import {
-  formatKoreanMeso, formatDateParts,
+  formatKoreanMeso, formatMesoShort, isMesoTruncated, formatDateParts,
   sfResult, sfCost, flagApplied, isDrop, groupStarforce, starforceSummary,
   normalizePotential, groupPotential, potentialCost,
   gradeUpPair, rowCeiling, starRangeStats, potentialStats, sortGroups, SORT_OPTIONS,
@@ -90,19 +90,20 @@ function ItemSlot({ url, size = 60 }) {
   )
 }
 
-function SummaryCard({ label, value, color, ring }) {
-  // 1의 자리까지 표기하면 값이 길어진다 — 길이에 따라 폰트를 줄여 한 줄을 유지
+function SummaryCard({ label, value, color, full }) {
   const len = String(value).length
-  const size = len > 20 ? 15 : len > 16 ? 17 : len > 13 ? 19 : 21
+  const size = len > 16 ? 17 : len > 13 ? 19 : 21
   return (
-    <div className="rounded-xl px-3.5 py-3" style={ring ? { background: 'var(--mpl-card)', boxShadow: `inset 0 0 0 2px ${ring}` } : CARD}>
+    <div className="rounded-xl px-3.5 py-3" style={CARD}>
       <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{label}</div>
-      <div
-        className="font-bold tabular-nums mt-0.5 whitespace-nowrap"
-        style={{ color: color || 'var(--text-strong)', fontSize: size, letterSpacing: '-.3px' }}
-      >
-        {value}
-      </div>
+      <ValueTooltip text={full} offset={30}>
+        <div
+          className="font-bold tabular-nums mt-0.5 whitespace-nowrap"
+          style={{ color: color || 'var(--text-strong)', fontSize: size, letterSpacing: '-.3px' }}
+        >
+          {value}
+        </div>
+      </ValueTooltip>
     </div>
   )
 }
@@ -364,6 +365,49 @@ function CostReasonTooltip({ cost, children }) {
   )
 }
 
+/** 값 위에 뜨는 단순 툴팁 (축약된 금액의 전체 값 등) — 스크롤 영역에 잘리지 않게 body 포털 */
+function ValueTooltip({ text, children, className = '', offset = 8 }) {
+  const [pos, setPos] = useState(null)
+  const ref = useRef(null)
+  if (!text) return children
+  const show = () => {
+    const r = ref.current?.getBoundingClientRect()
+    if (!r) return
+    const flipDown = r.top < 90
+    setPos({
+      left: r.left + r.width / 2,
+      top: flipDown ? r.bottom + offset : null,
+      bottom: flipDown ? null : window.innerHeight - r.top + offset,
+    })
+  }
+  return (
+    <span
+      ref={ref}
+      className={`inline-block ${className}`}
+      onMouseEnter={show}
+      onMouseLeave={() => setPos(null)}
+    >
+      {children}
+      {pos && createPortal(
+        <div
+          className="fixed z-[120] rounded-lg px-3 py-1.5 text-[13px] font-bold tabular-nums whitespace-nowrap pointer-events-none"
+          style={{
+            left: pos.left,
+            ...(pos.top != null ? { top: pos.top } : { bottom: pos.bottom }),
+            transform: 'translateX(-50%)',
+            background: 'var(--popup-bg)',
+            color: 'var(--text-strong)',
+            boxShadow: 'var(--popup-shadow), inset 0 0 0 1px var(--popup-border)',
+          }}
+        >
+          {text}
+        </div>,
+        document.body,
+      )}
+    </span>
+  )
+}
+
 /** 카드 금액 — 자릿수가 많아지면 폰트를 줄여 한 줄 유지 */
 function CostText({ cost }) {
   const len = String(cost).length
@@ -379,7 +423,7 @@ function CostText({ cost }) {
 }
 
 /** 아이템 카드 (명패형) */
-function ItemCard({ onClick, icon, worldIcon, character, name, sub, cost, costTip, footer, ring }) {
+function ItemCard({ onClick, icon, worldIcon, character, name, sub, cost, costFull, costTip, footer }) {
   return (
     <div
       role="button"
@@ -387,7 +431,7 @@ function ItemCard({ onClick, icon, worldIcon, character, name, sub, cost, costTi
       onClick={onClick}
       onKeyDown={(e) => { if (e.key === 'Enter') onClick?.() }}
       className="rounded-xl flex flex-col cursor-pointer hover:brightness-[.99] transition"
-      style={{ background: 'var(--mpl-card)', boxShadow: `0 2px 8px rgba(31,44,61,.10), inset 0 0 0 ${ring ? '1.5px ' + ring : '1px var(--mpl-card-line)'}` }}
+      style={{ background: 'var(--mpl-card)', boxShadow: '0 2px 8px rgba(31,44,61,.10), inset 0 0 0 1px var(--mpl-card-line)' }}
     >
       <div className="flex items-center gap-1.5 px-2.5 py-[7px] rounded-t-xl" style={SLATE_BAR}>
         {worldIcon && <img src={worldIcon} alt="" className="w-4 h-4 object-contain shrink-0" style={{ imageRendering: 'pixelated' }} draggable={false} />}
@@ -400,7 +444,7 @@ function ItemCard({ onClick, icon, worldIcon, character, name, sub, cost, costTi
         {costTip ? (
           <CostTooltip {...costTip}><CostText cost={cost} /></CostTooltip>
         ) : (
-          <CostText cost={cost} />
+          <ValueTooltip text={costFull}><CostText cost={cost} /></ValueTooltip>
         )}
         {footer}
       </div>
@@ -439,11 +483,15 @@ function PotentialStatsPanel({ stat, methodIcons, compact = false }) {
       <div className="grid grid-cols-4 gap-2.5">
         <div className="rounded-xl px-4 py-3" style={box}>
           <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{compact ? '재설정 비용' : '누적 재설정 비용'}</div>
-          <div className="text-[22px] font-bold tabular-nums mt-0.5" style={{ color: 'var(--accent-bright)' }}>{formatKoreanMeso(stat.resetCost)}</div>
+          <ValueTooltip text={isMesoTruncated(stat.resetCost) ? formatKoreanMeso(stat.resetCost) : null} offset={30}>
+            <div className="text-[22px] font-bold tabular-nums mt-0.5 whitespace-nowrap" style={{ color: 'var(--accent-bright)' }}>{formatMesoShort(stat.resetCost)}</div>
+          </ValueTooltip>
         </div>
         <div className="rounded-xl px-4 py-3" style={box}>
           <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{compact ? '감정 비용' : '누적 감정 비용'}</div>
-          <div className="text-[22px] font-bold tabular-nums mt-0.5" style={{ color: 'var(--accent-bright)' }}>{formatKoreanMeso(stat.feeCost)}</div>
+          <ValueTooltip text={isMesoTruncated(stat.feeCost) ? formatKoreanMeso(stat.feeCost) : null} offset={30}>
+            <div className="text-[22px] font-bold tabular-nums mt-0.5 whitespace-nowrap" style={{ color: 'var(--accent-bright)' }}>{formatMesoShort(stat.feeCost)}</div>
+          </ValueTooltip>
         </div>
         <div className="rounded-xl px-4 py-3" style={box}>
           <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>총 재설정</div>
@@ -730,7 +778,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
 
       {/* 아이템 통계 (목록 통계와 동일 톤) */}
       <div className="grid grid-cols-5 gap-2.5">
-        <SummaryCard label="사용 메소" value={group.totalCost != null ? formatKoreanMeso(group.totalCost) : '-'} color="var(--accent-bright)" />
+        <SummaryCard label="사용 메소" value={group.totalCost != null ? formatMesoShort(group.totalCost) : '-'} full={isMesoTruncated(group.totalCost) ? formatKoreanMeso(group.totalCost) : null} color="var(--accent-bright)" />
         <SummaryCard label="강화 시도" value={`${group.tries.toLocaleString()}회`} />
         <SummaryCard label="성공" value={`${group.success.toLocaleString()}회`} color="#4e9e20" />
         <SummaryCard label="하락" value={`${(group.dropCount || 0).toLocaleString()}회`} color={group.dropCount > 0 ? '#c9772a' : undefined} />
@@ -1109,9 +1157,9 @@ export default function Enchant() {
                 <SummaryCard label="총 시도" value={`${sfSum.tries}회`} />
                 <SummaryCard label="성공" value={`${sfSum.success}회`} color="#5aa626" />
                 <SummaryCard label="실패" value={`${sfSum.fail}회`} color="#5c6b7a" />
-                <SummaryCard label="파괴" value={`${sfSum.destroy}회`} color="var(--mpl-red-to)" ring={sfSum.destroy > 0 ? '#f0b1a8' : null} />
+                <SummaryCard label="파괴" value={`${sfSum.destroy}회`} color="var(--mpl-red-to)" />
                 <SummaryCard label="하락" value={`${sfSum.drop}회`} color="#c9772a" />
-                <SummaryCard label="총 메소" value={sfSum.cost > 0 ? formatKoreanMeso(sfSum.cost) : '-'} color="var(--accent-bright)" ring="#eec584" />
+                <SummaryCard label="총 메소" value={sfSum.cost > 0 ? formatMesoShort(sfSum.cost) : '-'} full={isMesoTruncated(sfSum.cost) ? formatKoreanMeso(sfSum.cost) : null} color="var(--accent-bright)" />
               </div>
               {sfGroups.length === 0 ? (
                 <div className="rounded-xl border border-dashed p-14 text-center text-sm" style={{ borderColor: 'var(--dashed-border)', color: 'var(--text-dim)' }}>
@@ -1134,8 +1182,8 @@ export default function Enchant() {
                           ? <span style={{ color: 'var(--mpl-red-to)', fontWeight: 800 }}>파괴</span>
                           : <span style={{ color: '#c9a227', fontWeight: 800 }}>★{g.endStar}</span>}
                       </>}
-                      cost={g.totalCost != null ? formatKoreanMeso(g.totalCost) : '-'}
-                      ring={g.destroyCount > 0 ? '#f0b1a8' : null}
+                      cost={g.totalCost != null ? formatMesoShort(g.totalCost) : '-'}
+                      costFull={isMesoTruncated(g.totalCost) ? formatKoreanMeso(g.totalCost) : null}
                       footer={<ResultStrip success={g.success} fail={g.tries - g.success - g.destroyCount} destroy={g.destroyCount} />}
                     />
                   ))}
@@ -1160,7 +1208,8 @@ export default function Enchant() {
                       character={g.character}
                       name={g.item}
                       sub={`${g.part} · Lv.${g.level}`}
-                      cost={g.totalCost != null ? formatKoreanMeso(g.totalCost) : '-'}
+                      cost={g.totalCost != null ? formatMesoShort(g.totalCost) : '-'}
+                      costFull={isMesoTruncated(g.totalCost) ? formatKoreanMeso(g.totalCost) : null}
                       costTip={{ resetCost: g.resetCost, feeCost: g.feeCost, total: g.totalCost }}
                       footer={<MethodStrip methods={g.methods} methodIcons={methodIcons} />}
                     />
