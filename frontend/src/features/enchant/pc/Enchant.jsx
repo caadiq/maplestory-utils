@@ -647,8 +647,8 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
               }}
             >
               <span className="w-[136px] shrink-0 leading-tight whitespace-nowrap">
-                <span className="block text-[12.5px] font-bold" style={{ color: 'var(--text-muted)' }}>{date}</span>
-                <span className="block text-[12.5px]" style={{ color: 'var(--text-dim)' }}>{time}</span>
+                <span className="block text-[13px] font-bold" style={{ color: 'var(--text-strong)' }}>{date}</span>
+                <span className="block text-[13px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{time}</span>
               </span>
               <span className="flex-1 min-w-0 flex flex-col gap-1 pr-3">
                 <span className="flex items-center gap-1.5 min-w-0">
@@ -818,8 +818,8 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
               }}
             >
               <span className="w-[136px] shrink-0 leading-tight whitespace-nowrap">
-                <span className="block text-[12.5px] font-bold" style={{ color: 'var(--text-muted)' }}>{date}</span>
-                <span className="block text-[12.5px]" style={{ color: 'var(--text-dim)' }}>{time}</span>
+                <span className="block text-[13px] font-bold" style={{ color: 'var(--text-strong)' }}>{date}</span>
+                <span className="block text-[13px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{time}</span>
               </span>
               <span className="w-[170px] shrink-0 font-bold tabular-nums text-[15px]">
                 {r.before_starforce_count}성 <span style={{ color: 'var(--text-dim)' }}>→</span>{' '}
