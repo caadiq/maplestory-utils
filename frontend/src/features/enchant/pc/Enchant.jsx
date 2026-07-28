@@ -91,10 +91,18 @@ function ItemSlot({ url, size = 60 }) {
 }
 
 function SummaryCard({ label, value, color, ring }) {
+  // 1의 자리까지 표기하면 값이 길어진다 — 길이에 따라 폰트를 줄여 한 줄을 유지
+  const len = String(value).length
+  const size = len > 20 ? 15 : len > 16 ? 17 : len > 13 ? 19 : 21
   return (
     <div className="rounded-xl px-3.5 py-3" style={ring ? { background: 'var(--mpl-card)', boxShadow: `inset 0 0 0 2px ${ring}` } : CARD}>
       <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{label}</div>
-      <div className="text-xl font-bold tabular-nums mt-0.5" style={{ color: color || 'var(--text-strong)' }}>{value}</div>
+      <div
+        className="font-bold tabular-nums mt-0.5 whitespace-nowrap"
+        style={{ color: color || 'var(--text-strong)', fontSize: size, letterSpacing: '-.3px' }}
+      >
+        {value}
+      </div>
     </div>
   )
 }
@@ -304,7 +312,7 @@ function CostReasonTooltip({ cost, children }) {
   const reasons = cost?.reasons || []
   if (reasons.length === 0) return children
 
-  const W = 240
+  const W = 300
   const show = () => {
     const r = ref.current?.getBoundingClientRect()
     if (!r) return
@@ -340,9 +348,9 @@ function CostReasonTooltip({ cost, children }) {
             <b className="tabular-nums" style={{ color: 'var(--text-strong)' }}>{formatKoreanMeso(cost.base)}</b>
           </div>
           {reasons.map((r) => (
-            <div key={r.label} className="flex items-center justify-between text-[13px] py-0.5 gap-3">
-              <span className="truncate" style={{ color: 'var(--text-muted)' }}>{r.label}</span>
-              <b className="tabular-nums shrink-0" style={{ color: 'var(--accent-bright)' }}>{r.effect}</b>
+            <div key={r.label} className="flex items-start justify-between text-[13px] py-0.5 gap-3">
+              <span className="leading-snug" style={{ color: 'var(--text-muted)', wordBreak: 'keep-all' }}>{r.label}</span>
+              <b className="tabular-nums shrink-0 whitespace-nowrap" style={{ color: 'var(--accent-bright)' }}>{r.effect}</b>
             </div>
           ))}
           <div className="flex items-center justify-between text-[13px] pt-1.5 mt-1 border-t" style={{ borderColor: 'var(--popup-border)' }}>
@@ -353,6 +361,20 @@ function CostReasonTooltip({ cost, children }) {
         document.body,
       )}
     </span>
+  )
+}
+
+/** 카드 금액 — 자릿수가 많아지면 폰트를 줄여 한 줄 유지 */
+function CostText({ cost }) {
+  const len = String(cost).length
+  const size = len > 18 ? 15 : len > 15 ? 17 : 19
+  return (
+    <div
+      className="font-bold tabular-nums mt-2.5 whitespace-nowrap"
+      style={{ color: 'var(--accent-bright)', fontSize: size, letterSpacing: '-.4px' }}
+    >
+      {cost}
+    </div>
   )
 }
 
@@ -376,11 +398,9 @@ function ItemCard({ onClick, icon, worldIcon, character, name, sub, cost, costTi
         <div className="text-[15px] font-bold leading-tight mt-2" style={{ color: 'var(--text-strong)' }}>{name}</div>
         <div className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>{sub}</div>
         {costTip ? (
-          <CostTooltip {...costTip}>
-            <div className="text-[19px] font-bold tabular-nums mt-2.5" style={{ color: 'var(--accent-bright)', letterSpacing: '-.4px' }}>{cost}</div>
-          </CostTooltip>
+          <CostTooltip {...costTip}><CostText cost={cost} /></CostTooltip>
         ) : (
-          <div className="text-[19px] font-bold tabular-nums mt-2.5" style={{ color: 'var(--accent-bright)', letterSpacing: '-.4px' }}>{cost}</div>
+          <CostText cost={cost} />
         )}
         {footer}
       </div>
