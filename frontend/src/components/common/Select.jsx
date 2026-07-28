@@ -130,7 +130,7 @@ export default function Select({ value, onChange, options, disabled, className =
                   <span className="flex items-center gap-1.5 min-w-0">
                     {opt.subIcon ? (
                       <img src={opt.subIcon} alt="" className="w-[18px] h-[18px] shrink-0 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
-                    ) : opt.hasIconSlot && <span className="w-[18px] shrink-0" />}
+                    ) : opt.hasIconSlot && !opt.noSubIcon && <span className="w-[18px] shrink-0" />}
                     <span className="truncate">{opt.label}</span>
                     {opt.sub && <span className="text-[13px] shrink-0" style={{ color: 'var(--text-dim)' }}>{opt.sub}</span>}
                   </span>
