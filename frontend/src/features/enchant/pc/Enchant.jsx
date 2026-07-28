@@ -481,8 +481,8 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
       bodyClassName="space-y-3"
     >
       {/* 요약 명패 — 닉네임(서버) 위, 아이템명 아래 */}
-      <div className="rounded-xl px-4 py-3.5 flex items-center gap-3.5" style={CARD}>
-        <ItemSlot url={icon} size={64} />
+      <div className="rounded-xl p-4 flex items-center gap-4" style={CARD}>
+        <ItemSlot url={icon} size={78} />
         <div className="flex-1 min-w-0">
           <span className="inline-flex items-center gap-1.5 rounded-full pl-1.5 pr-3 py-0.5 text-[13px] font-bold"
             style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}>
@@ -605,8 +605,8 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
       titleRight={detailRight(nav)}
       bodyClassName="space-y-3"
     >
-      <div className="rounded-xl px-4 py-3.5 flex items-center gap-3.5" style={CARD}>
-        <ItemSlot url={icon} size={64} />
+      <div className="rounded-xl p-4 flex items-center gap-4" style={CARD}>
+        <ItemSlot url={icon} size={78} />
         <div className="flex-1 min-w-0">
           <span className="inline-flex items-center gap-1.5 rounded-full pl-1.5 pr-3 py-0.5 text-[13px] font-bold"
             style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}>
