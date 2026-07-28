@@ -148,12 +148,23 @@ export function potentialResetCost(kind, grade, level) {
 
 // ─────────────── 큐브 사용 수수료(감정비) ───────────────
 /** 큐브류 아이템 사용 시 감정비 — 장비 레벨 기준, 등급 무관 */
-export function cubeFee(_cubeType, level) {
+export function cubeFee(_cubeType, level, freeUpTo = 30) {
   if (level == null) return null
-  if (level <= 30) return 0
+  if (level <= freeUpTo) return 0
   if (level <= 70) return 0.5 * level * level
   if (level <= 120) return 2.5 * level * level
   return 20 * level * level
+}
+
+/**
+ * 통찰력 성향의 무료 감정 상한 — 단계가 오를수록 더 높은 레벨까지 감정비가 무료다.
+ * (감정 비용에만 적용되고 메소 잠재능력 재설정에는 적용되지 않는다)
+ */
+export function insightFreeLevel(insight) {
+  if (insight == null) return 30
+  if (insight >= 90) return 120
+  if (insight >= 60) return 70
+  return 30
 }
 
 // ─────────────── 등급업 천장 (등급 상승 보장) ───────────────

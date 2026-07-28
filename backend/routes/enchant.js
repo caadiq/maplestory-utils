@@ -151,9 +151,10 @@ async function fetchCharacterInfo(characterName) {
     ocid = idData.ocid;
     ocidCache.set(characterName, ocid);
   }
-  const [equip, basic] = await Promise.all([
+  const [equip, basic, propensity] = await Promise.all([
     nexonGet('https://open.api.nexon.com/maplestory/v1/character/item-equipment', { ocid }).catch(() => null),
     nexonGet('https://open.api.nexon.com/maplestory/v1/character/basic', { ocid }).catch(() => null),
+    nexonGet('https://open.api.nexon.com/maplestory/v1/character/propensity', { ocid }).catch(() => null),
   ]);
   const icons = {};
   const levels = {};
@@ -178,6 +179,7 @@ async function fetchCharacterInfo(characterName) {
     worldName: basic?.world_name || null,
     characterImage: basic?.character_image || null,
     characterLevel: basic?.character_level ?? null,
+    insight: propensity?.insight_level ?? null,   // 통찰력 — 큐브 감정 비용 무료 구간 판정용
   };
   charInfoCache.set(characterName, entry);
   return entry;
@@ -269,6 +271,7 @@ router.get('/item-icons', requireAuth, async (req, res) => {
           world: entry.worldName,
           image: entry.characterImage,
           level: entry.characterLevel,
+          insight: entry.insight,
         };
       });
     }
@@ -306,6 +309,7 @@ router.get('/item-icons', requireAuth, async (req, res) => {
         normalWorld: isNormalWorld(world),
         image: info?.image || null,
         level: info?.level ?? null,
+        insight: info?.insight ?? null,
       };
     }
 
