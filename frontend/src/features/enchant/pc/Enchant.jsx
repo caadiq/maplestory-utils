@@ -433,7 +433,7 @@ function ValueTooltip({ text, children, className = '', offset = 8 }) {
       {children}
       {pos && createPortal(
         <div
-          className="fixed z-[120] rounded-[10px] px-3.5 py-2.5 pointer-events-none"
+          className="fixed z-[120] rounded-[10px] px-3.5 py-2 pointer-events-none"
           style={{
             left: pos.left,
             ...(pos.top != null ? { top: pos.top } : { bottom: pos.bottom }),
@@ -441,8 +441,7 @@ function ValueTooltip({ text, children, className = '', offset = 8 }) {
             ...TIP_BOX,
           }}
         >
-          <div className="text-[12.5px] font-bold" style={{ color: TIP_LABEL }}>정확한 금액</div>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center gap-2">
             {mesoIcon && (
               <img src={mesoIcon} alt="" className="w-[14px] h-[14px] object-contain shrink-0" draggable={false} />
             )}
