@@ -606,7 +606,7 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
       {/* 테이블 */}
       <div className="rounded-xl overflow-hidden" style={CARD}>
         <div className="flex items-center px-4 py-2.5 text-[13px] font-bold" style={SLATE_BAR}>
-          <span className="w-[136px] shrink-0">일시</span>
+          <span className="w-[168px] shrink-0">일시</span>
           <span className="flex-1 min-w-0">수단</span>
           <span className="w-[262px] shrink-0 pr-3">변경 전</span>
           <span className="w-[262px] shrink-0">변경 후</span>
@@ -646,7 +646,7 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
                 background: idx % 2 === 1 ? 'var(--mpl-row)' : 'var(--mpl-card)',
               }}
             >
-              <span className="w-[136px] shrink-0 leading-tight whitespace-nowrap">
+              <span className="w-[168px] shrink-0 leading-tight whitespace-nowrap">
                 <span className="block text-[13px] font-bold" style={{ color: 'var(--text-strong)' }}>{date}</span>
                 <span className="block text-[13px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{time}</span>
               </span>
@@ -773,7 +773,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
 
       <div className="rounded-xl overflow-hidden" style={CARD}>
         <div className="flex items-center px-4 py-2.5 text-[13px] font-bold" style={SLATE_BAR}>
-          <span className="w-[136px] shrink-0">일시</span>
+          <span className="w-[168px] shrink-0">일시</span>
           <span className="w-[170px] shrink-0">단계</span>
           <span className="flex-1">결과</span>
           <span className="w-[250px] text-right shrink-0">비용</span>
@@ -817,7 +817,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
                 }`,
               }}
             >
-              <span className="w-[136px] shrink-0 leading-tight whitespace-nowrap">
+              <span className="w-[168px] shrink-0 leading-tight whitespace-nowrap">
                 <span className="block text-[13px] font-bold" style={{ color: 'var(--text-strong)' }}>{date}</span>
                 <span className="block text-[13px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{time}</span>
               </span>
