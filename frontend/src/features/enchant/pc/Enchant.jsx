@@ -36,6 +36,26 @@ const SLATE_BAR = {
 }
 const CARD = { background: 'var(--mpl-card)', border: '1px solid var(--mpl-card-line)' }
 
+// 인게임 아이템 툴팁 톤 (모든 툴팁 공용)
+const TIP_BOX = {
+  background: 'linear-gradient(180deg, #33414f, #263340)',
+  boxShadow: '0 10px 26px rgba(15,23,32,.34), inset 0 0 0 1px rgba(255,255,255,.16)',
+}
+const TIP_LABEL = '#a9bccd'
+const TIP_TEXT = '#eaf1f7'
+const TIP_ACCENT = '#ffd76e'
+const TIP_LINE = 'rgba(255,255,255,.16)'
+
+/** 메소 아이콘 (이미지 관리 등록분) — 쿼리 캐시를 공유하므로 여러 번 불러도 요청은 하나 */
+function useMesoIcon() {
+  const { data } = useQuery({
+    queryKey: ['image', '메소'],
+    queryFn: () => api('/api/images/' + encodeURIComponent('메소')).catch(() => null),
+    staleTime: Infinity,
+  })
+  return data?.url || null
+}
+
 const BADGE = {
   success: { label: '성공', style: { background: 'linear-gradient(180deg, var(--mpl-lime-from), var(--mpl-lime-to))', color: '#fff' } },
   fail: { label: '실패', style: { background: 'linear-gradient(180deg, #c2cdd8, #a8b6c4)', color: '#5c6b7a' } },
@@ -96,7 +116,7 @@ function SummaryCard({ label, value, color, full }) {
   return (
     <div className="rounded-xl px-3.5 py-3" style={CARD}>
       <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{label}</div>
-      <ValueTooltip text={full} offset={30}>
+      <ValueTooltip text={full}>
         <div
           className="font-bold tabular-nums mt-0.5 whitespace-nowrap"
           style={{ color: color || 'var(--text-strong)', fontSize: size, letterSpacing: '-.3px' }}
@@ -274,33 +294,54 @@ function MethodStrip({ methods, methodIcons }) {
 
 /** 비용 브레이크다운 호버 툴팁 */
 function CostTooltip({ resetCost, feeCost, total, children }) {
-  const [show, setShow] = useState(false)
+  const [pos, setPos] = useState(null)
+  const ref = useRef(null)
   if (!total || total <= 0) return children
+
+  const W = 240
+  const show = () => {
+    const r = ref.current?.getBoundingClientRect()
+    if (!r) return
+    const flipDown = r.top < 140
+    setPos({
+      left: Math.max(8, Math.min(r.left + r.width / 2 - W / 2, window.innerWidth - W - 8)),
+      top: flipDown ? r.bottom + 8 : null,
+      bottom: flipDown ? null : window.innerHeight - r.top + 8,
+    })
+  }
+
   return (
     <span
+      ref={ref}
       className="relative inline-block"
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
+      onMouseEnter={show}
+      onMouseLeave={() => setPos(null)}
     >
       {children}
-      {show && (
-        <span
-          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-40 w-56 rounded-xl p-3 text-left"
-          style={{ background: 'var(--popup-bg)', boxShadow: 'var(--popup-shadow), inset 0 0 0 1px var(--popup-border)' }}
+      {pos && createPortal(
+        <div
+          className="fixed z-[120] rounded-[10px] p-3 text-left pointer-events-none"
+          style={{
+            width: W,
+            left: pos.left,
+            ...(pos.top != null ? { top: pos.top } : { bottom: pos.bottom }),
+            ...TIP_BOX,
+          }}
         >
-          <span className="flex items-center justify-between text-[13px] py-0.5">
-            <span style={{ color: 'var(--text-muted)' }}>잠재 재설정</span>
-            <b className="tabular-nums" style={{ color: 'var(--text-strong)' }}>{formatKoreanMeso(resetCost)}</b>
-          </span>
-          <span className="flex items-center justify-between text-[13px] py-0.5">
-            <span style={{ color: 'var(--text-muted)' }}>큐브 감정</span>
-            <b className="tabular-nums" style={{ color: 'var(--text-strong)' }}>{formatKoreanMeso(feeCost)}</b>
-          </span>
-          <span className="flex items-center justify-between text-[13px] pt-1.5 mt-1 border-t" style={{ borderColor: 'var(--popup-border)' }}>
-            <span className="font-bold" style={{ color: 'var(--text-muted)' }}>합계</span>
-            <b className="tabular-nums text-[14px]" style={{ color: 'var(--accent-bright)' }}>{formatKoreanMeso(total)}</b>
-          </span>
-        </span>
+          <div className="flex items-center justify-between text-[13px] py-0.5">
+            <span style={{ color: TIP_LABEL }}>잠재 재설정</span>
+            <b className="tabular-nums" style={{ color: TIP_TEXT }}>{formatKoreanMeso(resetCost)}</b>
+          </div>
+          <div className="flex items-center justify-between text-[13px] py-0.5">
+            <span style={{ color: TIP_LABEL }}>큐브 감정</span>
+            <b className="tabular-nums" style={{ color: TIP_TEXT }}>{formatKoreanMeso(feeCost)}</b>
+          </div>
+          <div className="flex items-center justify-between text-[13px] pt-1.5 mt-1 border-t" style={{ borderColor: TIP_LINE }}>
+            <span className="font-bold" style={{ color: TIP_LABEL }}>합계</span>
+            <b className="tabular-nums text-[14px]" style={{ color: TIP_ACCENT }}>{formatKoreanMeso(total)}</b>
+          </div>
+        </div>,
+        document.body,
       )}
     </span>
   )
@@ -335,28 +376,27 @@ function CostReasonTooltip({ cost, children }) {
       {children}
       {pos && createPortal(
         <div
-          className="fixed z-[120] rounded-xl p-3 text-left pointer-events-none"
+          className="fixed z-[120] rounded-[10px] p-3 text-left pointer-events-none"
           style={{
             width: W,
             left: pos.left,
             ...(pos.top != null ? { top: pos.top } : { bottom: pos.bottom }),
-            background: 'var(--popup-bg)',
-            boxShadow: 'var(--popup-shadow), inset 0 0 0 1px var(--popup-border)',
+            ...TIP_BOX,
           }}
         >
           <div className="flex items-center justify-between text-[13px] py-0.5">
-            <span style={{ color: 'var(--text-muted)' }}>기본 비용</span>
-            <b className="tabular-nums" style={{ color: 'var(--text-strong)' }}>{formatKoreanMeso(cost.base)}</b>
+            <span style={{ color: TIP_LABEL }}>기본 비용</span>
+            <b className="tabular-nums" style={{ color: TIP_TEXT }}>{formatKoreanMeso(cost.base)}</b>
           </div>
           {reasons.map((r) => (
             <div key={r.label} className="flex items-start justify-between text-[13px] py-0.5 gap-3">
-              <span className="leading-snug" style={{ color: 'var(--text-muted)', wordBreak: 'keep-all' }}>{r.label}</span>
-              <b className="tabular-nums shrink-0 whitespace-nowrap" style={{ color: 'var(--accent-bright)' }}>{r.effect}</b>
+              <span className="leading-snug" style={{ color: TIP_LABEL, wordBreak: 'keep-all' }}>{r.label}</span>
+              <b className="tabular-nums shrink-0 whitespace-nowrap" style={{ color: TIP_ACCENT }}>{r.effect}</b>
             </div>
           ))}
-          <div className="flex items-center justify-between text-[13px] pt-1.5 mt-1 border-t" style={{ borderColor: 'var(--popup-border)' }}>
-            <span className="font-bold" style={{ color: 'var(--text-muted)' }}>실제 비용</span>
-            <b className="tabular-nums text-[14px]" style={{ color: 'var(--accent-bright)' }}>{formatKoreanMeso(cost.final)}</b>
+          <div className="flex items-center justify-between text-[13px] pt-1.5 mt-1 border-t" style={{ borderColor: TIP_LINE }}>
+            <span className="font-bold" style={{ color: TIP_LABEL }}>실제 비용</span>
+            <b className="tabular-nums text-[14px]" style={{ color: TIP_ACCENT }}>{formatKoreanMeso(cost.final)}</b>
           </div>
         </div>,
         document.body,
@@ -365,11 +405,13 @@ function CostReasonTooltip({ cost, children }) {
   )
 }
 
-/** 값 위에 뜨는 단순 툴팁 (축약된 금액의 전체 값 등) — 스크롤 영역에 잘리지 않게 body 포털 */
+/** 축약된 금액의 정확한 값을 띄우는 툴팁 — 스크롤 영역에 잘리지 않게 body 포털 */
 function ValueTooltip({ text, children, className = '', offset = 8 }) {
   const [pos, setPos] = useState(null)
   const ref = useRef(null)
+  const mesoIcon = useMesoIcon()
   if (!text) return children
+
   const show = () => {
     const r = ref.current?.getBoundingClientRect()
     if (!r) return
@@ -380,6 +422,7 @@ function ValueTooltip({ text, children, className = '', offset = 8 }) {
       bottom: flipDown ? null : window.innerHeight - r.top + offset,
     })
   }
+
   return (
     <span
       ref={ref}
@@ -390,17 +433,21 @@ function ValueTooltip({ text, children, className = '', offset = 8 }) {
       {children}
       {pos && createPortal(
         <div
-          className="fixed z-[120] rounded-lg px-3 py-1.5 text-[13px] font-bold tabular-nums whitespace-nowrap pointer-events-none"
+          className="fixed z-[120] rounded-[10px] px-3.5 py-2.5 pointer-events-none"
           style={{
             left: pos.left,
             ...(pos.top != null ? { top: pos.top } : { bottom: pos.bottom }),
             transform: 'translateX(-50%)',
-            background: 'var(--popup-bg)',
-            color: 'var(--text-strong)',
-            boxShadow: 'var(--popup-shadow), inset 0 0 0 1px var(--popup-border)',
+            ...TIP_BOX,
           }}
         >
-          {text}
+          <div className="text-[12.5px] font-bold" style={{ color: TIP_LABEL }}>정확한 금액</div>
+          <div className="flex items-center gap-2 mt-1">
+            {mesoIcon && (
+              <img src={mesoIcon} alt="" className="w-[22px] h-[22px] object-contain shrink-0" style={{ imageRendering: 'pixelated' }} draggable={false} />
+            )}
+            <span className="text-[17px] font-bold tabular-nums whitespace-nowrap" style={{ color: TIP_ACCENT, letterSpacing: '-.2px' }}>{text}</span>
+          </div>
         </div>,
         document.body,
       )}
@@ -483,13 +530,13 @@ function PotentialStatsPanel({ stat, methodIcons, compact = false }) {
       <div className="grid grid-cols-4 gap-2.5">
         <div className="rounded-xl px-4 py-3" style={box}>
           <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{compact ? '재설정 비용' : '누적 재설정 비용'}</div>
-          <ValueTooltip text={isMesoTruncated(stat.resetCost) ? formatKoreanMeso(stat.resetCost) : null} offset={30}>
+          <ValueTooltip text={isMesoTruncated(stat.resetCost) ? formatKoreanMeso(stat.resetCost) : null} >
             <div className="text-[22px] font-bold tabular-nums mt-0.5 whitespace-nowrap" style={{ color: 'var(--accent-bright)' }}>{formatMesoShort(stat.resetCost)}</div>
           </ValueTooltip>
         </div>
         <div className="rounded-xl px-4 py-3" style={box}>
           <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{compact ? '감정 비용' : '누적 감정 비용'}</div>
-          <ValueTooltip text={isMesoTruncated(stat.feeCost) ? formatKoreanMeso(stat.feeCost) : null} offset={30}>
+          <ValueTooltip text={isMesoTruncated(stat.feeCost) ? formatKoreanMeso(stat.feeCost) : null} >
             <div className="text-[22px] font-bold tabular-nums mt-0.5 whitespace-nowrap" style={{ color: 'var(--accent-bright)' }}>{formatMesoShort(stat.feeCost)}</div>
           </ValueTooltip>
         </div>
