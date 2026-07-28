@@ -9,12 +9,12 @@ import { useBackClose } from '../../../hooks/useBackClose'
 import MapleWindow, { MapleWindowTab } from '../../../components/pc/MapleWindow'
 import PageLoader from '../../../components/common/PageLoader'
 import Select from '../../../components/common/Select'
-import DatePicker from '../../../components/common/DatePicker'
 import {
-  todayKST, daysAgoKST, formatKoreanMeso, formatDateParts,
+  formatKoreanMeso, formatDateParts,
   sfResult, sfCost, flagApplied, groupStarforce, starforceSummary,
-  normalizePotential, groupPotential, potentialSummary, potentialCost,
-  gradeUpPair, rowCeiling, starRangeStats, GRADE_COLOR, GRADE_COLOR_SOFT,
+  normalizePotential, groupPotential, potentialCost,
+  gradeUpPair, rowCeiling, starRangeStats, potentialStats, sortGroups, SORT_OPTIONS,
+  GRADE_COLOR, GRADE_COLOR_SOFT,
 } from '../logic'
 
 const PILL_ACTIVE = {
@@ -278,6 +278,108 @@ function useRowVirtualizer(count, estimateSize) {
     overscan: 8,
   })
   return { scrollRef, virtualizer }
+}
+
+/** 잠재 탭 상단 통계 — 누적 비용 · 수단별 사용량 · 등급별 재설정 · 등급업 확률 */
+function PotentialStatsPanel({ stat, methodIcons }) {
+  const grades = ['레어', '에픽', '유니크', '레전드리']
+  const box = { background: 'var(--mpl-card)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }
+  const head = {
+    background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))',
+    color: '#fff',
+    textShadow: '0 1px 1px rgba(44,55,69,.3)',
+  }
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-4 gap-2.5">
+        <div className="rounded-xl px-4 py-3" style={box}>
+          <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>누적 재설정 비용</div>
+          <div className="text-[22px] font-bold tabular-nums mt-0.5" style={{ color: 'var(--accent-bright)' }}>{formatKoreanMeso(stat.resetCost)}</div>
+        </div>
+        <div className="rounded-xl px-4 py-3" style={box}>
+          <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>누적 감정 비용</div>
+          <div className="text-[22px] font-bold tabular-nums mt-0.5" style={{ color: 'var(--accent-bright)' }}>{formatKoreanMeso(stat.feeCost)}</div>
+        </div>
+        <div className="rounded-xl px-4 py-3" style={box}>
+          <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>총 재설정</div>
+          <div className="text-[22px] font-bold tabular-nums mt-0.5">{stat.total.toLocaleString()}회</div>
+        </div>
+        <div className="rounded-xl px-4 py-3" style={box}>
+          <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>미라클 타임</div>
+          <div className="text-[22px] font-bold tabular-nums mt-0.5">{stat.miracle.toLocaleString()}회</div>
+        </div>
+      </div>
+
+      <div className="grid gap-3" style={{ gridTemplateColumns: '1.15fr 1fr' }}>
+        <div className="rounded-xl overflow-hidden" style={box}>
+          <div className="px-4 py-2 text-[13px] font-bold" style={head}>재설정 횟수 / 큐브 개수</div>
+          <div className="p-3 grid grid-cols-6 gap-x-2 gap-y-3">
+            {stat.methods.map((m) => (
+              <div key={m.iconName} className="flex flex-col items-center gap-1" title={m.iconName}>
+                {methodIcons[m.iconName]
+                  ? <img src={methodIcons[m.iconName]} alt="" className="w-9 h-9 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
+                  : <span className="w-9 h-9 rounded flex items-center justify-center text-[11px]" style={{ background: 'var(--mpl-row)', color: 'var(--text-dim)' }}>?</span>}
+                <span className="text-[12.5px] font-bold tabular-nums" style={{ color: 'var(--accent-bright)' }}>{m.count.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-xl overflow-hidden" style={box}>
+          <div className="flex items-center px-4 py-2 text-[13px] font-bold" style={head}>
+            <span className="flex-1">등급별 재설정</span>
+            <span className="w-[92px] text-right">잠재</span>
+            <span className="w-[92px] text-right">에디셔널</span>
+          </div>
+          {grades.map((g, i) => (
+            <div
+              key={g}
+              className="flex items-center px-4 py-2 text-[13.5px] border-b last:border-b-0"
+              style={{ borderColor: 'var(--mpl-card-line)', background: i % 2 === 1 ? 'var(--mpl-row)' : undefined }}
+            >
+              <span className="flex-1 font-bold" style={{ color: GRADE_COLOR[g] }}>{g}</span>
+              <span className="w-[92px] text-right tabular-nums font-bold">{(stat.resetByGrade.potential[g] || 0).toLocaleString()}</span>
+              <span className="w-[92px] text-right tabular-nums font-bold">{(stat.resetByGrade.additional[g] || 0).toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {[
+          { key: 'potential', label: '잠재능력 등급업' },
+          { key: 'additional', label: '에디셔널 등급업' },
+        ].map((sec) => (
+          <div key={sec.key} className="rounded-xl overflow-hidden" style={box}>
+            <div className="flex items-center px-4 py-2 text-[13px] font-bold" style={head}>
+              <span className="flex-1">{sec.label}</span>
+              <span className="w-[92px] text-right">성공 / 시도</span>
+              <span className="w-[72px] text-right">확률</span>
+            </div>
+            {stat.upgradeRates[sec.key].map((r, i) => (
+              <div
+                key={r.from}
+                className="flex items-center px-4 py-2 text-[13.5px] border-b last:border-b-0"
+                style={{ borderColor: 'var(--mpl-card-line)', background: i % 2 === 1 ? 'var(--mpl-row)' : undefined }}
+              >
+                <span className="flex-1 font-bold">
+                  <span style={{ color: GRADE_COLOR[r.from] }}>{r.from}</span>
+                  <span style={{ color: 'var(--text-dim)' }}> → </span>
+                  <span style={{ color: GRADE_COLOR[r.to] }}>{r.to}</span>
+                </span>
+                <span className="w-[92px] text-right tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                  {r.success.toLocaleString()} / {r.tries.toLocaleString()}
+                </span>
+                <span className="w-[72px] text-right tabular-nums font-bold" style={{ color: r.tries > 0 ? 'var(--accent-bright)' : 'var(--text-dim)' }}>
+                  {r.tries > 0 ? `${r.rate.toFixed(2)}%` : '-'}
+                </span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 /** 상세 헤더 좌측: 목록으로 + 섹션 타이틀 */
@@ -629,54 +731,75 @@ export default function Enchant() {
   }, [setFullscreen])
 
   const [tab, setTab] = useState('starforce')
-  const [range, setRange] = useState('7d')
-  const [customFrom, setCustomFrom] = useState(daysAgoKST(7))
-  const [customTo, setCustomTo] = useState(todayKST())
+  const [sort, setSort] = useState('cost')
   const [charFilter, setCharFilter] = useState(null)
   const [detailKey, setDetailKey] = useState(null)
   useBackClose(detailKey != null, () => setDetailKey(null))
 
-  const RANGE_DAYS = { today: 0, '7d': 6, '30d': 29, '6m': 182, '1y': 365 }
-  const from = range === 'custom' ? customFrom : daysAgoKST(RANGE_DAYS[range] ?? 6)
-  const to = range === 'custom' ? customTo : todayKST()
-
+  // 전체 기간 조회 (서버가 날짜별로 영구 캐시)
   const enabled = !!user
-  const qOpts = { enabled, staleTime: 60 * 1000, retry: 1 }
-  const sfQuery = useQuery({ queryKey: ['enchant', 'starforce', from, to], queryFn: () => api(`/api/enchant/history?type=starforce&from=${from}&to=${to}`), ...qOpts })
-  const cubeQuery = useQuery({ queryKey: ['enchant', 'cube', from, to], queryFn: () => api(`/api/enchant/history?type=cube&from=${from}&to=${to}`), ...qOpts })
-  const potQuery = useQuery({ queryKey: ['enchant', 'potential', from, to], queryFn: () => api(`/api/enchant/history?type=potential&from=${from}&to=${to}`), ...qOpts })
+  const qOpts = { enabled, staleTime: 5 * 60 * 1000, retry: 1 }
+  const sfQuery = useQuery({ queryKey: ['enchant', 'starforce', 'all'], queryFn: () => api('/api/enchant/history?type=starforce'), ...qOpts })
+  const cubeQuery = useQuery({ queryKey: ['enchant', 'cube', 'all'], queryFn: () => api('/api/enchant/history?type=cube'), ...qOpts })
+  const potQuery = useQuery({ queryKey: ['enchant', 'potential', 'all'], queryFn: () => api('/api/enchant/history?type=potential'), ...qOpts })
 
-  const sfItems = useMemo(() => {
-    const items = sfQuery.data?.items || []
-    return charFilter ? items.filter((i) => i.character_name === charFilter) : items
-  }, [sfQuery.data, charFilter])
-  const potRows = useMemo(() => {
-    const rows = normalizePotential(cubeQuery.data?.items || [], potQuery.data?.items || [])
-    return charFilter ? rows.filter((i) => i.character_name === charFilter) : rows
-  }, [cubeQuery.data, potQuery.data, charFilter])
-
-  const characterOptions = useMemo(() => {
+  // 원본 데이터에서 캐릭터·아이템 이름 수집 (아이콘/월드 조회 입력)
+  const rawCharacterNames = useMemo(() => {
     const names = new Set()
     for (const i of sfQuery.data?.items || []) names.add(i.character_name)
     for (const i of cubeQuery.data?.items || []) names.add(i.character_name)
     for (const i of potQuery.data?.items || []) names.add(i.character_name)
-    return [{ value: null, label: '전체 캐릭터' }, ...[...names].sort().map((n) => ({ value: n, label: n }))]
+    return [...names].filter(Boolean)
   }, [sfQuery.data, cubeQuery.data, potQuery.data])
 
-  const characterNames = useMemo(() => characterOptions.filter((o) => o.value).map((o) => o.value), [characterOptions])
+  const itemNames = useMemo(() => {
+    const set = new Set()
+    for (const i of sfQuery.data?.items || []) set.add(i.target_item)
+    for (const i of cubeQuery.data?.items || []) set.add(i.target_item)
+    for (const i of potQuery.data?.items || []) set.add(i.target_item)
+    return [...set].filter(Boolean).slice(0, 300)
+  }, [sfQuery.data, cubeQuery.data, potQuery.data])
+
   const iconQuery = useQuery({
-    queryKey: ['enchant', 'item-icons', characterNames.join(',')],
-    queryFn: () => api(`/api/enchant/item-icons?characters=${encodeURIComponent(characterNames.join(','))}`),
-    enabled: enabled && characterNames.length > 0,
+    queryKey: ['enchant', 'item-icons', rawCharacterNames.join(','), itemNames.length],
+    queryFn: () => api(`/api/enchant/item-icons?characters=${encodeURIComponent(rawCharacterNames.join(','))}&items=${encodeURIComponent(itemNames.join(','))}`),
+    enabled: enabled && rawCharacterNames.length > 0,
     staleTime: 60 * 60 * 1000,
   })
   const itemIcons = iconQuery.data?.items || {}
-  const worldIcons = iconQuery.data?.characterWorldIcons || {}
+  const charInfo = useMemo(() => iconQuery.data?.characters || {}, [iconQuery.data])
+  const worldIcons = useMemo(
+    () => Object.fromEntries(Object.entries(charInfo).map(([n, v]) => [n, v.worldIcon])),
+    [charInfo]
+  )
+  // 이벤트/테스트 월드 캐릭터는 통계에서 제외 (정보 조회 실패 시엔 포함)
+  const excluded = useMemo(
+    () => new Set(Object.entries(charInfo).filter(([, v]) => v.normalWorld === false).map(([n]) => n)),
+    [charInfo]
+  )
 
-  const sfGroups = useMemo(() => groupStarforce(sfItems), [sfItems])
+  const sfItems = useMemo(() => {
+    let items = (sfQuery.data?.items || []).filter((i) => !excluded.has(i.character_name))
+    if (charFilter) items = items.filter((i) => i.character_name === charFilter)
+    return items
+  }, [sfQuery.data, charFilter, excluded])
+
+  const potRows = useMemo(() => {
+    let rows = normalizePotential(cubeQuery.data?.items || [], potQuery.data?.items || [])
+      .filter((i) => !excluded.has(i.character_name))
+    if (charFilter) rows = rows.filter((i) => i.character_name === charFilter)
+    return rows
+  }, [cubeQuery.data, potQuery.data, charFilter, excluded])
+
+  const characterOptions = useMemo(() => [
+    { value: null, label: '전체 캐릭터' },
+    ...rawCharacterNames.filter((n) => !excluded.has(n)).sort().map((n) => ({ value: n, label: n })),
+  ], [rawCharacterNames, excluded])
+
+  const sfGroups = useMemo(() => sortGroups(groupStarforce(sfItems), sort), [sfItems, sort])
   const sfSum = useMemo(() => starforceSummary(sfItems), [sfItems])
-  const potGroups = useMemo(() => groupPotential(potRows), [potRows])
-  const potSum = useMemo(() => potentialSummary(potRows), [potRows])
+  const potGroups = useMemo(() => sortGroups(groupPotential(potRows), sort), [potRows, sort])
+  const potStat = useMemo(() => potentialStats(potRows), [potRows])
 
   const methodIconNames = useMemo(() => {
     const names = new Set()
@@ -729,8 +852,7 @@ export default function Enchant() {
   const activeGroups = tab === 'starforce' ? sfGroups : potGroups
   const detailIndex = detailKey ? activeGroups.findIndex((g) => g.key === detailKey) : -1
   const detailGroup = detailIndex >= 0 ? activeGroups[detailIndex] : null
-  const RANGE_LABEL = { today: '오늘', '7d': '최근 7일', '30d': '최근 30일', '6m': '최근 6개월', '1y': '최근 1년' }
-  const periodLabel = range === 'custom' ? `${from} ~ ${to}` : RANGE_LABEL[range]
+  const periodLabel = '전체 기간'
   const detailNav = {
     periodLabel,
     index: detailIndex,
@@ -750,25 +872,9 @@ export default function Enchant() {
           title="ENCHANT HISTORY"
           titleRight={(
             <div className="flex items-center gap-2">
+              <span className="text-[11.5px] font-bold" style={{ color: '#cfdae4' }}>전체 기간</span>
               <Select value={charFilter} onChange={setCharFilter} options={characterOptions} className="w-36" />
-              {[
-                { key: 'today', label: '오늘' },
-                { key: '7d', label: '7일' },
-                { key: '30d', label: '30일' },
-                { key: '6m', label: '6개월' },
-                { key: '1y', label: '1년' },
-                { key: 'custom', label: '직접' },
-              ].map((r) => (
-                <button
-                  key={r.key}
-                  type="button"
-                  onClick={() => setRange(r.key)}
-                  className="rounded-full px-3.5 py-1 text-[11.5px] font-bold"
-                  style={range === r.key ? PILL_ACTIVE : PILL_GHOST}
-                >
-                  {r.label}
-                </button>
-              ))}
+              <Select value={sort} onChange={setSort} options={SORT_OPTIONS} className="w-36" />
             </div>
           )}
           tabs={[
@@ -782,15 +888,6 @@ export default function Enchant() {
           ))}
           bodyClassName="space-y-3"
         >
-          {range === 'custom' && (
-            <div className="flex items-center gap-2">
-              <div className="w-56"><DatePicker value={customFrom} onChange={setCustomFrom} placeholder="시작일" /></div>
-              <span style={{ color: 'var(--text-dim)' }}>~</span>
-              <div className="w-56"><DatePicker value={customTo} onChange={setCustomTo} placeholder="종료일" /></div>
-              <span className="text-xs" style={{ color: 'var(--text-dim)' }}>최대 1년</span>
-            </div>
-          )}
-
           {loading ? (
             <div className="py-24 flex flex-col items-center gap-3">
               <div className="w-8 h-8 rounded-full animate-spin" style={{ border: '3px solid var(--accent)', borderTopColor: 'transparent' }} />
@@ -851,13 +948,7 @@ export default function Enchant() {
             </>
           ) : (
             <>
-              <div className="grid grid-cols-5 gap-2.5">
-                <SummaryCard label="총 재설정" value={`${potSum.tries}회`} />
-                <SummaryCard label="큐브 / 메소" value={`${potSum.cube} / ${potSum.meso}`} />
-                <SummaryCard label="등급 상승" value={`${potSum.gradeUps}회`} color="#5aa626" />
-                <SummaryCard label="미라클 타임" value={`${potSum.miracle}회`} />
-                <SummaryCard label="총 비용 (추정)" value={potSum.cost > 0 ? formatKoreanMeso(potSum.cost) : '-'} color="#c9862a" ring="#eec584" />
-              </div>
+              <PotentialStatsPanel stat={potStat} methodIcons={methodIcons} />
               {potGroups.length === 0 ? (
                 <div className="rounded-xl border border-dashed p-14 text-center text-sm" style={{ borderColor: 'var(--dashed-border)', color: 'var(--text-dim)' }}>
                   기간 내 잠재능력 기록이 없습니다

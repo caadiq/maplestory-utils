@@ -4,6 +4,7 @@ import { SundayMaple } from './SundayMaple.js';
 import { BossCrystalBoss } from './boss-crystal/Boss.js';
 import { BossCrystalBossDifficulty } from './boss-crystal/BossDifficulty.js';
 import { ChallengerSeason } from './boss-crystal/ChallengerSeason.js';
+import { EnchantHistoryCache } from './enchant/HistoryCache.js';
 import { Symbol } from './symbol/Symbol.js';
 import { SymbolLevel } from './symbol/SymbolLevel.js';
 import { GenesisPass } from './genesis-pass/GenesisPass.js';
@@ -50,4 +51,4 @@ Symbol.hasMany(SymbolLevel, {
 });
 SymbolLevel.belongsTo(Symbol, { foreignKey: 'symbol_id', as: 'symbol' });
 
-export { Image, Menu, SundayMaple, BossCrystalBoss, BossCrystalBossDifficulty, ChallengerSeason, Symbol, SymbolLevel, GenesisPass, User, Session, UserCharacter, UserState };
+export { Image, Menu, SundayMaple, BossCrystalBoss, BossCrystalBossDifficulty, ChallengerSeason, EnchantHistoryCache, Symbol, SymbolLevel, GenesisPass, User, Session, UserCharacter, UserState };
