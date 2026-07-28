@@ -32,7 +32,7 @@ const SLATE_BAR = {
   color: '#ffffff',
   textShadow: '0 1px 1px rgba(44,55,69,.3)',
 }
-const CARD = { background: 'var(--mpl-card)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }
+const CARD = { background: 'var(--mpl-card)', border: '1px solid var(--mpl-card-line)' }
 
 const BADGE = {
   success: { label: '성공', style: { background: 'linear-gradient(180deg, var(--mpl-lime-from), var(--mpl-lime-to))', color: '#fff' } },
@@ -108,9 +108,9 @@ function StatCell({ label, value, sub, color, first }) {
       className={`flex-1 px-4 py-3 ${first ? 'text-left' : 'text-center'}`}
       style={first ? undefined : { borderLeft: '1px solid var(--mpl-card-line)' }}
     >
-      <div className="text-[11.5px] font-bold" style={{ color: 'var(--text-muted)' }}>{label}</div>
+      <div className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>{label}</div>
       <div className="text-[21px] font-bold tabular-nums mt-0.5" style={{ color: color || 'var(--text-strong)', letterSpacing: '-.3px' }}>{value}</div>
-      {sub && <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-dim)' }}>{sub}</div>}
+      {sub && <div className="text-[13px] mt-0.5" style={{ color: 'var(--text-dim)' }}>{sub}</div>}
     </div>
   )
 }
@@ -165,12 +165,12 @@ function MethodStrip({ methods, methodIcons }) {
         <div key={m.iconName} className="flex flex-col items-center gap-1" title={m.iconName}>
           {methodIcons[m.iconName]
             ? <img src={methodIcons[m.iconName]} alt={m.iconName} className="w-9 h-9 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
-            : <span className="w-9 h-9 rounded flex items-center justify-center text-[11px]" style={{ background: 'var(--mpl-row)', color: 'var(--text-dim)' }}>?</span>}
+            : <span className="w-9 h-9 rounded flex items-center justify-center text-[13px]" style={{ background: 'var(--mpl-row)', color: 'var(--text-dim)' }}>?</span>}
           <span className="text-[13px] font-bold tabular-nums leading-none" style={{ color: 'var(--text-strong)' }}>{m.count.toLocaleString()}</span>
         </div>
       ))}
       {rest.length > 0 && (
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex flex-col items-center gap-1 self-center">
           <button
             ref={btnRef}
             type="button"
@@ -183,10 +183,6 @@ function MethodStrip({ methods, methodIcons }) {
           >
             +{rest.length}
           </button>
-          <span className="text-[13px] font-bold tabular-nums leading-none" style={{ color: 'var(--text-dim)' }}>
-            {rest.reduce((s, m) => s + m.count, 0).toLocaleString()}
-          </span>
-
           {open && createPortal(
             <div
               ref={popRef}
@@ -203,7 +199,7 @@ function MethodStrip({ methods, methodIcons }) {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between px-3 py-1.5" style={{ background: 'linear-gradient(180deg, var(--mpl-navy-from), var(--mpl-navy-to))' }}>
-                <span className="text-[11.5px] font-bold" style={{ color: 'var(--mpl-title-yellow)', letterSpacing: '1.5px', textShadow: '1px 1px 0 rgba(31,44,61,.6)' }}>ALL CUBES</span>
+                <span className="text-[13px] font-bold" style={{ color: 'var(--mpl-title-yellow)', letterSpacing: '1.5px', textShadow: '1px 1px 0 rgba(31,44,61,.6)' }}>ALL CUBES</span>
                 <button
                   type="button"
                   onMouseDown={(e) => e.stopPropagation()}
@@ -239,8 +235,42 @@ function MethodStrip({ methods, methodIcons }) {
   )
 }
 
+/** 비용 브레이크다운 호버 툴팁 */
+function CostTooltip({ resetCost, feeCost, total, children }) {
+  const [show, setShow] = useState(false)
+  if (!total || total <= 0) return children
+  return (
+    <span
+      className="relative inline-block"
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      {children}
+      {show && (
+        <span
+          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-40 w-56 rounded-xl p-3 text-left"
+          style={{ background: 'var(--popup-bg)', boxShadow: 'var(--popup-shadow), inset 0 0 0 1px var(--popup-border)' }}
+        >
+          <span className="flex items-center justify-between text-[13px] py-0.5">
+            <span style={{ color: 'var(--text-muted)' }}>잠재 재설정</span>
+            <b className="tabular-nums" style={{ color: 'var(--text-strong)' }}>{formatKoreanMeso(resetCost)}</b>
+          </span>
+          <span className="flex items-center justify-between text-[13px] py-0.5">
+            <span style={{ color: 'var(--text-muted)' }}>큐브 감정</span>
+            <b className="tabular-nums" style={{ color: 'var(--text-strong)' }}>{formatKoreanMeso(feeCost)}</b>
+          </span>
+          <span className="flex items-center justify-between text-[13px] pt-1.5 mt-1 border-t" style={{ borderColor: 'var(--popup-border)' }}>
+            <span className="font-bold" style={{ color: 'var(--text-muted)' }}>합계</span>
+            <b className="tabular-nums text-[14px]" style={{ color: 'var(--accent-bright)' }}>{formatKoreanMeso(total)}</b>
+          </span>
+        </span>
+      )}
+    </span>
+  )
+}
+
 /** 아이템 카드 (명패형) */
-function ItemCard({ onClick, icon, worldIcon, character, name, sub, cost, footer, ring }) {
+function ItemCard({ onClick, icon, worldIcon, character, name, sub, cost, costTip, footer, ring }) {
   return (
     <div
       role="button"
@@ -258,7 +288,13 @@ function ItemCard({ onClick, icon, worldIcon, character, name, sub, cost, footer
         <ItemSlot url={icon} />
         <div className="text-[15px] font-bold leading-tight mt-2" style={{ color: 'var(--text-strong)' }}>{name}</div>
         <div className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>{sub}</div>
-        <div className="text-[19px] font-bold tabular-nums mt-2.5" style={{ color: 'var(--accent-bright)', letterSpacing: '-.4px' }}>{cost}</div>
+        {costTip ? (
+          <CostTooltip {...costTip}>
+            <div className="text-[19px] font-bold tabular-nums mt-2.5" style={{ color: 'var(--accent-bright)', letterSpacing: '-.4px' }}>{cost}</div>
+          </CostTooltip>
+        ) : (
+          <div className="text-[19px] font-bold tabular-nums mt-2.5" style={{ color: 'var(--accent-bright)', letterSpacing: '-.4px' }}>{cost}</div>
+        )}
         {footer}
       </div>
     </div>
@@ -310,7 +346,7 @@ function PotentialStatsPanel({ stat, methodIcons }) {
         </div>
       </div>
 
-      <div className="grid gap-3" style={{ gridTemplateColumns: '1.15fr 1fr' }}>
+      <div className="grid gap-3 items-start" style={{ gridTemplateColumns: '1.15fr 1fr' }}>
         <div className="rounded-xl overflow-hidden" style={box}>
           <div className="px-4 py-2 text-[13px] font-bold" style={head}>재설정 횟수 / 큐브 개수</div>
           <div className="p-3 grid grid-cols-6 gap-x-2 gap-y-3">
@@ -318,7 +354,7 @@ function PotentialStatsPanel({ stat, methodIcons }) {
               <div key={m.iconName} className="flex flex-col items-center gap-1" title={m.iconName}>
                 {methodIcons[m.iconName]
                   ? <img src={methodIcons[m.iconName]} alt="" className="w-9 h-9 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
-                  : <span className="w-9 h-9 rounded flex items-center justify-center text-[11px]" style={{ background: 'var(--mpl-row)', color: 'var(--text-dim)' }}>?</span>}
+                  : <span className="w-9 h-9 rounded flex items-center justify-center text-[13px]" style={{ background: 'var(--mpl-row)', color: 'var(--text-dim)' }}>?</span>}
                 <span className="text-[12.5px] font-bold tabular-nums" style={{ color: 'var(--accent-bright)' }}>{m.count.toLocaleString()}</span>
               </div>
             ))}
@@ -408,7 +444,7 @@ function detailRight({ periodLabel, index, total, onPrev, onNext }) {
   }
   return (
     <span className="flex items-center gap-2">
-      <span className="rounded-full px-3 py-1 text-[11.5px] font-bold" style={chip}>{periodLabel}</span>
+      <span className="rounded-full px-3 py-1 text-[13px] font-bold" style={chip}>{periodLabel}</span>
       <span className="flex items-center gap-1">
         <button
           type="button"
@@ -418,7 +454,7 @@ function detailRight({ periodLabel, index, total, onPrev, onNext }) {
           style={chip}
           aria-label="이전 아이템"
         >‹</button>
-        <span className="text-[11.5px] font-bold tabular-nums px-1" style={{ color: '#cfdae4' }}>{index + 1} / {total}</span>
+        <span className="text-[13px] font-bold tabular-nums px-1" style={{ color: '#cfdae4' }}>{index + 1} / {total}</span>
         <button
           type="button"
           onClick={onNext}
@@ -448,9 +484,9 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-[21px] font-bold" style={{ color: 'var(--text-strong)' }}>{group.item}</span>
-              <span className="inline-flex items-center gap-1.5 rounded-full pl-1.5 pr-2.5 py-0.5 text-xs font-bold"
+              <span className="inline-flex items-center gap-2 rounded-full pl-2 pr-3.5 py-1 text-[14px] font-bold"
                 style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}>
-                {worldIcon && <img src={worldIcon} alt="" className="w-4 h-4 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
+                {worldIcon && <img src={worldIcon} alt="" className="w-[22px] h-[22px] object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
                 {group.character}
               </span>
             </div>
@@ -468,7 +504,7 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
         <div className="flex" style={{ borderTop: '1px solid var(--mpl-card-line)' }}>
           <StatCell
             first
-            label="사용 메소 (추정)"
+            label="사용 메소"
             value={group.totalCost != null ? formatKoreanMeso(group.totalCost) : '-'}
             sub={group.totalCost > 0 ? `재설정 ${formatKoreanMeso(group.resetCost)} · 감정 ${formatKoreanMeso(group.feeCost)}` : null}
             color="#c9862a"
@@ -528,13 +564,13 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
                 </span>
                 {up ? (
                   <span
-                    className="inline-flex items-center gap-1 self-start rounded-full px-2 py-0.5 text-[10.5px] font-bold"
+                    className="inline-flex items-center gap-1 self-start rounded-full px-2 py-0.5 text-[12.5px] font-bold"
                     style={{ background: 'linear-gradient(180deg, #fdf6e3, #f7e9c8)', boxShadow: 'inset 0 0 0 1px #e6d3a4' }}
                   >
                     <GradeText grade={up.from} /><span style={{ color: '#b9a473', fontSize: 9 }}>▶</span><GradeText grade={up.to} />
                   </span>
                 ) : r.upgrade_guarantee_count > 0 ? (
-                  <span className="self-start rounded-full px-2 py-0.5 text-[10.5px] font-bold" style={PILL_GHOST}>
+                  <span className="self-start rounded-full px-2 py-0.5 text-[12.5px] font-bold" style={PILL_GHOST}>
                     스택 {r.upgrade_guarantee_count}{ceiling ? ` / ${ceiling}` : ''}
                   </span>
                 ) : null}
@@ -586,9 +622,9 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-[21px] font-bold" style={{ color: 'var(--text-strong)' }}>{group.item}</span>
-              <span className="inline-flex items-center gap-1.5 rounded-full pl-1.5 pr-2.5 py-0.5 text-xs font-bold"
+              <span className="inline-flex items-center gap-2 rounded-full pl-2 pr-3.5 py-1 text-[14px] font-bold"
                 style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}>
-                {worldIcon && <img src={worldIcon} alt="" className="w-4 h-4 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
+                {worldIcon && <img src={worldIcon} alt="" className="w-[22px] h-[22px] object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
                 {group.character}
               </span>
             </div>
@@ -602,7 +638,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
         <div className="flex" style={{ borderTop: '1px solid var(--mpl-card-line)' }}>
           <StatCell
             first
-            label="사용 메소 (추정)"
+            label="사용 메소"
             value={group.totalCost != null && group.totalCost > 0 ? formatKoreanMeso(group.totalCost) : '-'}
             sub={group.totalCost > 0 ? `평균 ${formatKoreanMeso(Math.round(group.totalCost / group.tries))} / 회` : null}
             color="#c9862a"
@@ -621,7 +657,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
         <div className="rounded-xl overflow-hidden" style={CARD}>
           <div className="flex items-center justify-between px-3.5 py-2 text-[13.5px] font-bold" style={SLATE_BAR}>
             <span>구간별 성공률</span>
-            <span className="text-[11.5px] font-semibold" style={{ color: '#cfdae4' }}>시도 많은 순</span>
+            <span className="text-[13px] font-semibold" style={{ color: '#cfdae4' }}>시도 많은 순</span>
           </div>
           {ranges.map((s) => (
             <div key={s.star} className="flex items-center px-4 py-2.5 border-b last:border-b-0 text-[14px]" style={{ borderColor: 'var(--mpl-card-line)' }}>
@@ -695,18 +731,18 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
                     : `${r.after_starforce_count}성`}
               </span>
               <span className="flex-1 flex items-center gap-1.5">
-                <span className="rounded-full px-3 py-0.5 text-[11.5px] font-bold" style={BADGE[res].style}>{BADGE[res].label}</span>
+                <span className="rounded-full px-3 py-0.5 text-[13px] font-bold" style={BADGE[res].style}>{BADGE[res].label}</span>
                 {flagApplied(r.destroy_defence) && (
-                  <span className="rounded-full px-2 py-0.5 text-[10.5px] font-bold" style={{ background: 'linear-gradient(180deg, #c2cdd8, #a8b6c4)', color: '#3d4a58' }}>🛡 파괴방지</span>
+                  <span className="rounded-full px-2 py-0.5 text-[12.5px] font-bold" style={{ background: 'linear-gradient(180deg, #c2cdd8, #a8b6c4)', color: '#3d4a58' }}>🛡 파괴방지</span>
                 )}
                 {flagApplied(r.chance_time) && (
-                  <span className="rounded-full px-2 py-0.5 text-[10.5px] font-bold" style={{ background: 'linear-gradient(180deg, #ffd76e, #f0a828)', color: '#6b4b00' }}>찬스타임</span>
+                  <span className="rounded-full px-2 py-0.5 text-[12.5px] font-bold" style={{ background: 'linear-gradient(180deg, #ffd76e, #f0a828)', color: '#6b4b00' }}>찬스타임</span>
                 )}
               </span>
               <span className="w-[140px] text-right shrink-0 tabular-nums whitespace-nowrap text-[14px]">
                 {cost == null ? <span style={{ color: 'var(--text-dim)' }}>-</span> : (
                   <>
-                    {cost.discounted && <span className="text-[11px] line-through mr-1.5" style={{ color: 'var(--text-dim)' }}>{formatKoreanMeso(cost.base)}</span>}
+                    {cost.discounted && <span className="text-[13px] line-through mr-1.5" style={{ color: 'var(--text-dim)' }}>{formatKoreanMeso(cost.base)}</span>}
                     <span className="font-bold" style={{ color: 'var(--accent-bright)' }}>{formatKoreanMeso(cost.final)}</span>
                   </>
                 )}
@@ -872,7 +908,7 @@ export default function Enchant() {
           title="ENCHANT HISTORY"
           titleRight={(
             <div className="flex items-center gap-2">
-              <span className="text-[11.5px] font-bold" style={{ color: '#cfdae4' }}>전체 기간</span>
+              <span className="text-[13px] font-bold" style={{ color: '#cfdae4' }}>전체 기간</span>
               <Select value={charFilter} onChange={setCharFilter} options={characterOptions} className="w-36" />
               <Select value={sort} onChange={setSort} options={SORT_OPTIONS} className="w-36" />
             </div>
@@ -965,6 +1001,7 @@ export default function Enchant() {
                       name={g.item}
                       sub={`${g.part} · Lv.${g.level}`}
                       cost={g.totalCost != null && g.totalCost > 0 ? formatKoreanMeso(g.totalCost) : '-'}
+                      costTip={{ resetCost: g.resetCost, feeCost: g.feeCost, total: g.totalCost }}
                       footer={<MethodStrip methods={g.methods} methodIcons={methodIcons} />}
                     />
                   ))}
