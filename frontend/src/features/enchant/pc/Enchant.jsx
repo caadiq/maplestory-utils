@@ -503,7 +503,7 @@ function PotentialStatsPanel({ stat, methodIcons, compact = false }) {
         </div>
       </div>
 
-      <div className="grid gap-3 items-start" style={{ gridTemplateColumns: '1.15fr 1fr' }}>
+      <div className="grid grid-cols-2 gap-3 items-start">
         <div className="rounded-xl overflow-hidden" style={box}>
           <div className="px-4 py-2 text-[13px] font-bold" style={head}>재설정 횟수 / 큐브 개수</div>
           <div className="p-3 grid grid-cols-6 gap-x-2 gap-y-3">
@@ -777,11 +777,10 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
       </div>
 
       {/* 아이템 통계 (목록 통계와 동일 톤) */}
-      <div className="grid grid-cols-5 gap-2.5">
+      <div className="grid grid-cols-4 gap-2.5">
         <SummaryCard label="사용 메소" value={group.totalCost != null ? formatMesoShort(group.totalCost) : '-'} full={isMesoTruncated(group.totalCost) ? formatKoreanMeso(group.totalCost) : null} color="var(--accent-bright)" />
         <SummaryCard label="강화 시도" value={`${group.tries.toLocaleString()}회`} />
         <SummaryCard label="성공" value={`${group.success.toLocaleString()}회`} color="#4e9e20" />
-        <SummaryCard label="하락" value={`${(group.dropCount || 0).toLocaleString()}회`} color={group.dropCount > 0 ? '#c9772a' : undefined} />
         <SummaryCard label="파괴" value={`${group.destroyCount.toLocaleString()}회`} color={group.destroyCount > 0 ? 'var(--mpl-red-to)' : undefined} />
       </div>
 
@@ -1003,6 +1002,7 @@ export default function Enchant() {
       value: null,
       label: '모든 캐릭터',
       hasIconSlot: true,
+      noSubIcon: true,
       iconElement: (
         <svg className="w-[18px] h-[18px]" viewBox="0 0 20 20" fill="none" style={{ color: 'var(--text-dim)' }}>
           <circle cx="7.5" cy="6.5" r="2.75" stroke="currentColor" strokeWidth="1.4" />
@@ -1153,12 +1153,11 @@ export default function Enchant() {
             </div>
           ) : tab === 'starforce' ? (
             <>
-              <div className="grid grid-cols-6 gap-2.5">
-                <SummaryCard label="총 시도" value={`${sfSum.tries}회`} />
-                <SummaryCard label="성공" value={`${sfSum.success}회`} color="#5aa626" />
-                <SummaryCard label="실패" value={`${sfSum.fail}회`} color="#5c6b7a" />
-                <SummaryCard label="파괴" value={`${sfSum.destroy}회`} color="var(--mpl-red-to)" />
-                <SummaryCard label="하락" value={`${sfSum.drop}회`} color="#c9772a" />
+              <div className="grid grid-cols-5 gap-2.5">
+                <SummaryCard label="총 시도" value={`${sfSum.tries.toLocaleString()}회`} />
+                <SummaryCard label="성공" value={`${sfSum.success.toLocaleString()}회`} color="#5aa626" />
+                <SummaryCard label="실패" value={`${sfSum.fail.toLocaleString()}회`} color="#5c6b7a" />
+                <SummaryCard label="파괴" value={`${sfSum.destroy.toLocaleString()}회`} color="var(--mpl-red-to)" />
                 <SummaryCard label="총 메소" value={sfSum.cost > 0 ? formatMesoShort(sfSum.cost) : '-'} full={isMesoTruncated(sfSum.cost) ? formatKoreanMeso(sfSum.cost) : null} color="var(--accent-bright)" />
               </div>
               {sfGroups.length === 0 ? (
