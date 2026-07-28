@@ -844,7 +844,7 @@ export default function Enchant() {
   const methodIconNames = useMemo(() => {
     const names = new Set()
     for (const g of potGroups) for (const m of g.methods) names.add(m.iconName)
-    return [...names]
+    return [...names].sort()   // 정렬 순서가 바뀌어도 queryKey가 흔들리지 않도록 고정
   }, [potGroups])
   const methodIconQuery = useQuery({
     queryKey: ['enchant', 'method-icons', methodIconNames.join('|')],
@@ -857,6 +857,7 @@ export default function Enchant() {
     },
     enabled: enabled && methodIconNames.length > 0,
     staleTime: Infinity,
+    placeholderData: (prev) => prev,   // 목록이 바뀌어도 기존 아이콘 유지 (깜빡임 방지)
   })
   const methodIcons = methodIconQuery.data || {}
 

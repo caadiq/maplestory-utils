@@ -79,7 +79,7 @@ export default function Select({ value, onChange, options, disabled, className =
           <OverlayScrollbarsComponent
             className="py-1"
             style={{ maxHeight: 240 }}
-            options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark os-thin', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'hidden', y: 'scroll' } }}
+            options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'hidden', y: 'scroll' } }}
             defer
           >
             {options.map((opt) => {
@@ -89,7 +89,7 @@ export default function Select({ value, onChange, options, disabled, className =
                   key={opt.value}
                   type="button"
                   onClick={() => { onChange(opt.value); setOpen(false) }}
-                  className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-2"
+                  className="w-full text-left pl-3 pr-5 py-2.5 text-sm flex items-center gap-2"
                   style={isActive ? {
                     background: 'var(--option-selected-bg)',
                     color: 'var(--option-selected-text)',
