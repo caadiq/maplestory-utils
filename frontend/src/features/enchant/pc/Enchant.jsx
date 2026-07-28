@@ -444,7 +444,7 @@ function ValueTooltip({ text, children, className = '', offset = 8 }) {
           <div className="text-[12.5px] font-bold" style={{ color: TIP_LABEL }}>정확한 금액</div>
           <div className="flex items-center gap-2 mt-1">
             {mesoIcon && (
-              <img src={mesoIcon} alt="" className="w-[22px] h-[22px] object-contain shrink-0" style={{ imageRendering: 'pixelated' }} draggable={false} />
+              <img src={mesoIcon} alt="" className="w-[14px] h-[14px] object-contain shrink-0" draggable={false} />
             )}
             <span className="text-[17px] font-bold tabular-nums whitespace-nowrap" style={{ color: TIP_ACCENT, letterSpacing: '-.2px' }}>{text}</span>
           </div>
