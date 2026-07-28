@@ -481,9 +481,9 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
       <div className="rounded-xl px-4 py-3.5 flex items-center gap-3.5" style={CARD}>
         <ItemSlot url={icon} size={64} />
         <div className="flex-1 min-w-0">
-          <span className="inline-flex items-center gap-2 rounded-full pl-2 pr-3.5 py-1 text-[14px] font-bold"
+          <span className="inline-flex items-center gap-1.5 rounded-full pl-1.5 pr-3 py-0.5 text-[13px] font-bold"
             style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}>
-            {worldIcon && <img src={worldIcon} alt="" className="w-[22px] h-[22px] object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
+            {worldIcon && <img src={worldIcon} alt="" className="w-[18px] h-[18px] object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
             {group.character}
           </span>
           <div className="text-[21px] font-bold mt-1.5" style={{ color: 'var(--text-strong)' }}>{group.item}</div>
@@ -599,9 +599,9 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
       <div className="rounded-xl px-4 py-3.5 flex items-center gap-3.5" style={CARD}>
         <ItemSlot url={icon} size={64} />
         <div className="flex-1 min-w-0">
-          <span className="inline-flex items-center gap-2 rounded-full pl-2 pr-3.5 py-1 text-[14px] font-bold"
+          <span className="inline-flex items-center gap-1.5 rounded-full pl-1.5 pr-3 py-0.5 text-[13px] font-bold"
             style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)', color: 'var(--text-muted)' }}>
-            {worldIcon && <img src={worldIcon} alt="" className="w-[22px] h-[22px] object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
+            {worldIcon && <img src={worldIcon} alt="" className="w-[18px] h-[18px] object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
             {group.character}
           </span>
           <div className="text-[21px] font-bold mt-1.5" style={{ color: 'var(--text-strong)' }}>{group.item}</div>
