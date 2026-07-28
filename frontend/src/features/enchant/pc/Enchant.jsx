@@ -814,8 +814,16 @@ export default function Enchant() {
 
   const characterOptions = useMemo(() => [
     { value: null, label: '전체 캐릭터' },
-    ...rawCharacterNames.filter((n) => !excluded.has(n)).sort().map((n) => ({ value: n, label: n })),
-  ], [rawCharacterNames, excluded])
+    ...rawCharacterNames.filter((n) => !excluded.has(n)).sort().map((n) => ({
+      value: n,
+      label: n,
+      hasIconSlot: true,
+      icon: charInfo[n]?.image || undefined,
+      iconScale: 3,
+      iconOffsetY: -3,
+      subIcon: charInfo[n]?.worldIcon || undefined,
+    })),
+  ], [rawCharacterNames, excluded, charInfo])
 
   const sfGroups = useMemo(() => sortGroups(groupStarforce(sfItems), sort), [sfItems, sort])
   const sfSum = useMemo(() => starforceSummary(sfItems), [sfItems])
@@ -893,7 +901,20 @@ export default function Enchant() {
           title="ENCHANT HISTORY"
           titleRight={(
             <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold" style={{ color: '#cfdae4' }}>전체 기간</span>
+              <span
+                className="inline-flex items-center gap-1.5 px-3 h-[38px] rounded-lg text-[13px] font-bold"
+                style={{
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  color: '#cfdae4',
+                }}
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 14 14" fill="none" style={{ color: '#8fd0ff' }}>
+                  <rect x="1.5" y="2.5" width="11" height="10" rx="2" stroke="currentColor" strokeWidth="1.4" />
+                  <path d="M1.5 5.5h11M4.5 1.5v2M9.5 1.5v2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                </svg>
+                전체 기간
+              </span>
               <Select value={charFilter} onChange={setCharFilter} options={characterOptions} className="w-36" />
               <Select value={sort} onChange={setSort} options={SORT_OPTIONS} className="w-36" />
             </div>

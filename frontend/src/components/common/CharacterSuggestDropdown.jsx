@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '../../api/client'
 import { useAuth } from '../../hooks/useAuth'
+import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 
 /**
  * 캐릭터 입력 input 아래 뜨는 드롭다운 (포털 렌더 → 부모 overflow:hidden에도 안 잘림)
@@ -87,7 +88,7 @@ export default function CharacterSuggestDropdown({ open, filter = '', excludeNam
             ...(pos.flipUp ? { bottom: pos.bottom + 4 } : { top: pos.top + 4 }),
           }}
         >
-          <div className="max-h-64 overflow-y-auto">
+          <OverlayScrollbarsComponent style={{ maxHeight: 256 }} options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'hidden', y: 'scroll' } }} defer>
           {isLoading ? (
             <div className="p-4 text-center text-sm" style={{ color: 'var(--text-dim)' }}>불러오는 중...</div>
           ) : error ? (
@@ -138,7 +139,7 @@ export default function CharacterSuggestDropdown({ open, filter = '', excludeNam
               ))}
             </ul>
           )}
-        </div>
+        </OverlayScrollbarsComponent>
         </motion.div>
       )}
     </AnimatePresence>

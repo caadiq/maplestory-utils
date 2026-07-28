@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 
 /**
  * 진행 중인 퀘스트 드롭다운 (보스 초상화 + 이름)
@@ -70,7 +71,7 @@ export default function QuestSelector({ chapters, imageBase, value, onChange }) 
               boxShadow: 'var(--popup-shadow)',
             }}
           >
-            <div className="py-1 max-h-72 overflow-y-auto">
+            <OverlayScrollbarsComponent className="py-1" style={{ maxHeight: 288 }} options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'hidden', y: 'scroll' } }} defer>
           {chapters.map((chapter) => {
             const isSelected = chapter.idx === value
             return (
@@ -102,7 +103,7 @@ export default function QuestSelector({ chapters, imageBase, value, onChange }) 
               </button>
             )
           })}
-          </div>
+          </OverlayScrollbarsComponent>
           </motion.div>
         )}
       </AnimatePresence>
