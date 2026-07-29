@@ -100,7 +100,7 @@ export default function AdminMenuForm() {
   })
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto pt-6">
+    <div className="space-y-6 max-w-2xl mx-auto pt-0">
       <div>
         <h2 className="text-lg font-medium">{isEdit ? '메뉴 항목 편집' : '메뉴 항목 추가'}</h2>
         <p className="text-sm mt-0.5" style={{ color: 'var(--text-dim)' }}>

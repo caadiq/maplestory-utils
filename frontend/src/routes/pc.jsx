@@ -3,7 +3,6 @@ import Layout from '../components/pc/Layout'
 import Home from '../pages/pc/Home'
 import FeaturePage from '../features/FeaturePage'
 import AdminLayout from '../features/admin/pc/AdminLayout'
-import AdminHome from '../features/admin/pc/AdminHome'
 import AdminImages from '../features/admin/pc/AdminImages'
 import AdminChallengerSeasons from '../features/admin/pc/AdminChallengerSeasons'
 import AdminMenuForm from '../features/admin/pc/AdminMenuForm'
@@ -17,7 +16,6 @@ export default function PCRoutes() {
 
         {/* 관리자 */}
         <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminHome />} />
           <Route path="images" element={<AdminImages />} />
           <Route path="challenger-seasons" element={<AdminChallengerSeasons />} />
           <Route path="menus/new" element={<AdminMenuForm />} />

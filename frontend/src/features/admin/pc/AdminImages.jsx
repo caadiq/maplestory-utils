@@ -135,7 +135,7 @@ export default function AdminImages() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pt-6">
+    <div className="space-y-6 pt-0">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <h2 className="text-lg font-medium">이미지 관리</h2>

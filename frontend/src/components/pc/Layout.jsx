@@ -9,7 +9,7 @@ import { useAuth } from '../../hooks/useAuth'
 
 const SITE_NAME = '메이플스토리 유틸리티'
 
-const LayoutContext = createContext({ setFullscreen: () => {} })
+const LayoutContext = createContext({ setFullscreen: () => {}, setWide: () => {} })
 
 export function useLayout() {
   return useContext(LayoutContext)
@@ -172,6 +172,8 @@ function HomeLinkButton() {
 export default function Layout() {
   const location = useLocation()
   const [fullscreen, setFullscreen] = useState(false)
+  // 관리자처럼 사이드바가 있는 화면은 폭 제한 없이 전체를 쓴다
+  const [wide, setWide] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
   const isAdmin = !!useMatch('/admin/*')
   const homeTo = isAdmin ? '/admin' : '/'
@@ -186,7 +188,7 @@ export default function Layout() {
   }, [theme])
 
   return (
-    <LayoutContext.Provider value={{ fullscreen, setFullscreen }}>
+    <LayoutContext.Provider value={{ fullscreen, setFullscreen, wide, setWide }}>
       <div
         className={`min-w-[1280px] flex flex-col ${
           fullscreen ? 'h-dvh' : 'min-h-screen'
@@ -225,7 +227,8 @@ export default function Layout() {
         <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
         {/* fullscreen(계산기)은 1448 — 좌우 패딩 48을 제외한 내부 폭이 1400이라 보스 그리드가 넘치지 않음 */}
         <main className={`flex-1 mx-auto w-full ${
-          fullscreen ? 'max-w-[1448px] min-h-0 px-6 py-4' : 'max-w-[1400px] px-6 pt-4 pb-10'
+          wide ? 'px-5 pt-4 pb-6'
+            : fullscreen ? 'max-w-[1448px] min-h-0 px-6 py-4' : 'max-w-[1400px] px-6 pt-4 pb-10'
         }`}>
           <Outlet />
         </main>
