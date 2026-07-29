@@ -48,22 +48,22 @@ function SymbolRowContent({ symbol, index = 0, dragHandle = null, onEdit, onDele
         {dragHandle ?? <GripIcon />}
       </span>
       <Thumb url={symbol.image_url} />
-      <span className="flex-1 min-w-0 text-[15px] font-bold truncate" style={{ color: 'var(--text-strong)' }}>
+      <span className="flex-[2] min-w-0 text-[15px] font-bold truncate" style={{ color: 'var(--text-strong)' }}>
         {symbol.region}
       </span>
-      <span className="w-[128px] shrink-0">
+      <span className="flex-1 min-w-0">
         <span className="text-[12.5px] font-bold px-2.5 py-1 rounded border" style={badgeStyle}>{symbol.type}</span>
       </span>
-      <span className="w-[76px] shrink-0 text-center text-[15px] font-bold tabular-nums" style={{ color: 'var(--text-strong)' }}>
+      <span className="flex-1 text-center text-[15px] font-bold tabular-nums" style={{ color: 'var(--text-strong)' }}>
         {symbol.max_level}
       </span>
-      <span className="w-[76px] shrink-0 text-center text-[15px] font-bold tabular-nums" style={{ color: 'var(--text-strong)' }}>
+      <span className="flex-1 text-center text-[15px] font-bold tabular-nums" style={{ color: 'var(--text-strong)' }}>
         {symbol.daily_default}
       </span>
-      <span className="w-[76px] shrink-0 text-center text-[15px] font-bold tabular-nums" style={{ color: 'var(--text-strong)' }}>
+      <span className="flex-1 text-center text-[15px] font-bold tabular-nums" style={{ color: 'var(--text-strong)' }}>
         {symbol.weekly_default}
       </span>
-      <span className="flex items-center gap-1.5 shrink-0 ml-2">
+      <span className="flex items-center gap-1.5 shrink-0 w-[136px] justify-end">
         <Button variant="ghost" onClick={onEdit}>수정</Button>
         <Button variant="dangerGhost" onClick={onDelete}>삭제</Button>
       </span>
@@ -181,18 +181,16 @@ export default function SymbolList() {
           onDragEnd={handleDragEnd}
         >
           <Panel
-            title="심볼"
-            right={items.length}
             columns={(
               <>
                 <span className="w-[14px] shrink-0" />
                 <span className="w-[46px] shrink-0" />
-                <span className="flex-1 min-w-0">지역</span>
-                <span className="w-[128px] shrink-0">유형</span>
-                <span className="w-[76px] shrink-0 text-center">만렙</span>
-                <span className="w-[76px] shrink-0 text-center">일퀘</span>
-                <span className="w-[76px] shrink-0 text-center">주간퀘</span>
-                <span className="w-[136px] shrink-0" />
+                <span className="flex-[2] min-w-0">지역</span>
+                <span className="flex-1 min-w-0">유형</span>
+                <span className="flex-1 text-center">만렙</span>
+                <span className="flex-1 text-center">일퀘</span>
+                <span className="flex-1 text-center">주간퀘</span>
+                <span className="w-[136px] shrink-0 text-right" style={{ color: '#cfdae4' }}>{items.length}</span>
               </>
             )}
           >
