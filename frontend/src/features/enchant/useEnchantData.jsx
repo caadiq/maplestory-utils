@@ -4,7 +4,7 @@ import { api } from '../../api/client'
 import { setDynamicItemLevels } from './costs'
 import {
   groupStarforce, starforceSummary, normalizePotential, groupPotential,
-  potentialStats, sortGroups, setInsightLevels, isExcludedItem,
+  potentialStats, sortGroups, isExcludedItem,
 } from './logic'
 
 /**
@@ -134,19 +134,8 @@ export function useEnchantData({ enabled, sort, charFilter }) {
     return starforceSummary(sfItems)
   }, [sfItems, itemLevelDict])
 
-  // 통찰력 성향에 따라 큐브 감정 비용이 무료가 되는 구간이 달라진다
-  const insightMap = useMemo(
-    () => Object.fromEntries(Object.entries(charInfo).map(([n, v]) => [n, v.insight])),
-    [charInfo]
-  )
-  const potGroups = useMemo(() => {
-    setInsightLevels(insightMap)
-    return sortGroups(groupPotential(potRows), sort)
-  }, [potRows, sort, insightMap])
-  const potStat = useMemo(() => {
-    setInsightLevels(insightMap)
-    return potentialStats(potRows)
-  }, [potRows, insightMap])
+  const potGroups = useMemo(() => sortGroups(groupPotential(potRows), sort), [potRows, sort])
+  const potStat = useMemo(() => potentialStats(potRows), [potRows])
 
   const methodIconNames = useMemo(() => {
     const names = new Set()
