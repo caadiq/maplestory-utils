@@ -258,9 +258,12 @@ function GradeUpPanel({ title, rows }) {
 function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
   const [limit, setLimit] = useState(PAGE_SIZE)
   const [allRanges, setAllRanges] = useState(false)
+  // 기본은 2회 이상 시도한 구간만 (없으면 전체) — 나머지는 더보기로 펼침
   const ranges = starRangeStats(group.records)
-  const shownRanges = allRanges ? ranges : ranges.filter((s) => s.tries > 1)
-  const hidden = ranges.length - shownRanges.length
+  const multi = ranges.filter((s) => s.tries >= 2)
+  const baseRanges = multi.length > 0 ? multi : ranges
+  const shownRanges = allRanges ? ranges : baseRanges
+  const hidden = ranges.length - baseRanges.length   // 펼친 뒤에도 '접기'가 남도록 상태와 무관하게 계산
   const rows = group.records.slice(0, limit)
 
   return (
