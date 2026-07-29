@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   DndContext, DragOverlay, closestCenter, PointerSensor, KeyboardSensor,
   useSensor, useSensors,
 } from '@dnd-kit/core'
 import {
-  SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy,
+  SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { api } from '../../../../api/client'
+import ConfirmDialog from '../../../../components/common/ConfirmDialog'
+import { PageHeader, Panel, Row, Button, Thumb, GripIcon, EmptyBox } from '../../../admin/pc/components/ui'
 
 const TYPE_STYLE = {
   '아케인': {
@@ -30,84 +32,74 @@ const TYPE_STYLE = {
   },
 }
 
-function SymbolCardContent({ symbol, dragging = false }) {
+function SymbolRowContent({ symbol, index = 0, dragHandle = null, onEdit, onDelete, dragging = false }) {
   const badgeStyle = TYPE_STYLE[symbol.type] || TYPE_STYLE['아케인']
   return (
-    <div
-      className="flex items-stretch rounded-2xl border"
-      style={{
-        backgroundImage: 'linear-gradient(to bottom right, var(--card-bg-from), var(--card-bg-to))',
-        borderColor: dragging ? 'var(--selected-border)' : 'var(--card-border)',
-        boxShadow: dragging ? '0 12px 32px rgba(16, 185, 129, 0.25)' : 'var(--card-shadow)',
-      }}
+    <Row
+      index={index}
+      className={dragging ? 'rounded-xl' : ''}
+      style={dragging ? {
+        background: 'var(--mpl-card)',
+        border: '1px solid var(--mpl-sky-to)',
+        boxShadow: '0 10px 26px rgba(31,44,61,.22)',
+      } : undefined}
     >
-      <div className="flex items-center px-2 cursor-grab active:cursor-grabbing" style={{ color: 'var(--text-dim)' }}>
-        <svg width="14" height="20" viewBox="0 0 14 20" fill="currentColor">
-          <circle cx="4" cy="4" r="1.5" /><circle cx="10" cy="4" r="1.5" />
-          <circle cx="4" cy="10" r="1.5" /><circle cx="10" cy="10" r="1.5" />
-          <circle cx="4" cy="16" r="1.5" /><circle cx="10" cy="16" r="1.5" />
-        </svg>
-      </div>
-      <div className="flex-1 min-w-0 flex items-start gap-3 p-4 pl-2">
-        <div
-          className="shrink-0 w-14 h-14 rounded-xl border flex items-center justify-center overflow-hidden"
-          style={{
-            backgroundImage: 'linear-gradient(to bottom right, var(--icon-box-from), var(--icon-box-to))',
-            borderColor: 'var(--icon-box-border)',
-          }}
-        >
-          {symbol.image_url ? (
-            <img src={symbol.image_url} alt="" className="w-12 h-12 object-contain" style={{ imageRendering: 'pixelated' }} />
-          ) : (
-            <span className="text-2xl" style={{ color: 'var(--text-dim)' }}>?</span>
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <h3 className="font-medium truncate">{symbol.region}</h3>
-            <span
-              className="text-[10px] font-medium px-1.5 py-0.5 rounded border"
-              style={badgeStyle}
-            >
-              {symbol.type}
-            </span>
-          </div>
-          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums" style={{ color: 'var(--text-dim)' }}>
-            <span>만렙 {symbol.max_level}</span>
-            <span>일퀘 {symbol.daily_default}</span>
-            <span>주간퀘 {symbol.weekly_default}</span>
-          </div>
-        </div>
-      </div>
-    </div>
+      <span className="shrink-0 flex items-center" style={{ color: 'var(--text-dim)' }}>
+        {dragHandle ?? <GripIcon />}
+      </span>
+      <Thumb url={symbol.image_url} />
+      <span className="w-[190px] shrink-0 text-[15px] font-bold truncate" style={{ color: 'var(--text-strong)' }}>
+        {symbol.region}
+      </span>
+      <span className="w-[110px] shrink-0">
+        <span className="text-[12.5px] font-bold px-2.5 py-1 rounded border" style={badgeStyle}>{symbol.type}</span>
+      </span>
+      <span className="flex-1 flex items-center gap-4 text-[13.5px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+        <span>만렙 <b style={{ color: 'var(--text-strong)' }}>{symbol.max_level}</b></span>
+        <span>일퀘 <b style={{ color: 'var(--text-strong)' }}>{symbol.daily_default}</b></span>
+        <span>주간퀘 <b style={{ color: 'var(--text-strong)' }}>{symbol.weekly_default}</b></span>
+      </span>
+      <span className="flex items-center gap-1.5 shrink-0">
+        <Button variant="ghost" onClick={onEdit}>수정</Button>
+        <Button variant="dangerGhost" onClick={onDelete}>삭제</Button>
+      </span>
+    </Row>
   )
 }
 
-function SortableSymbolCard({ symbol }) {
+function SortableSymbolRow({ symbol, index, onEdit, onDelete }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging, setActivatorNodeRef } = useSortable({
     id: symbol.id,
     transition: { duration: 200, easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)' },
   })
-  const style = { transform: CSS.Transform.toString(transform), transition }
+
   return (
-    <div ref={setNodeRef} style={style} className={`relative ${isDragging ? 'opacity-30' : ''}`}>
-      <button
-        type="button"
-        ref={setActivatorNodeRef}
-        {...attributes}
-        {...listeners}
-        className="absolute left-0 top-0 bottom-0 w-8 z-10 cursor-grab active:cursor-grabbing rounded-l-2xl hover:bg-[var(--row-hover-bg)] transition touch-none"
-        aria-label="순서 변경"
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={isDragging ? 'opacity-30' : ''}>
+      <SymbolRowContent
+        symbol={symbol}
+        index={index}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        dragHandle={(
+          <button
+            type="button"
+            ref={setActivatorNodeRef}
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing touch-none p-1 -m-1"
+            aria-label="순서 변경"
+          >
+            <GripIcon />
+          </button>
+        )}
       />
-      <Link to={`symbols/${symbol.id}`} className="block group hover:[&_h3]:text-[var(--accent-hover-text)] [&_h3]:transition">
-        <SymbolCardContent symbol={symbol} />
-      </Link>
     </div>
   )
 }
 
 export default function SymbolList() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const { data: symbols = [], isLoading } = useQuery({
     queryKey: ['admin', 'symbol', 'symbols'],
     queryFn: () => api('/api/admin/symbol/symbols').catch(() => []),
@@ -115,6 +107,7 @@ export default function SymbolList() {
 
   const [items, setItems] = useState([])
   const [activeId, setActiveId] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
   useEffect(() => { setItems(symbols) }, [symbols])
 
   const sensors = useSensors(
@@ -123,10 +116,7 @@ export default function SymbolList() {
   )
 
   const reorderMutation = useMutation({
-    mutationFn: (ids) => api('/api/admin/symbol/symbols/reorder', {
-      method: 'POST',
-      body: { ids },
-    }),
+    mutationFn: (ids) => api('/api/admin/symbol/symbols/reorder', { method: 'POST', body: { ids } }),
     onError: (err) => {
       alert(err.message)
       queryClient.invalidateQueries({ queryKey: ['admin', 'symbol', 'symbols'] })
@@ -134,6 +124,15 @@ export default function SymbolList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['symbol', 'symbols'] })
     },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api(`/api/admin/symbol/symbols/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'symbol', 'symbols'] })
+      queryClient.invalidateQueries({ queryKey: ['symbol', 'symbols'] })
+    },
+    onError: (err) => alert(err.message),
   })
 
   const handleDragEnd = (event) => {
@@ -148,52 +147,27 @@ export default function SymbolList() {
   }
 
   const activeSymbol = items.find((s) => s.id === activeId)
+  const edit = (id) => () => navigate(`symbols/${id}`)
+  const remove = (symbol) => () => setDeleteTarget(symbol)
 
   return (
-    <div className="space-y-6 pt-0">
-      <div className="flex items-end justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-lg font-medium">심볼 관리</h2>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--text-dim)' }}>심볼 정보 및 레벨별 필요 개수/메소를 관리합니다</p>
-        </div>
-        <Link
-          to="symbols/new"
-          className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium hover:bg-[var(--btn-primary-bg-hover)]"
-          style={{
-            background: 'var(--btn-primary-bg)',
-            color: 'var(--btn-primary-text)',
-            boxShadow: 'var(--btn-primary-shadow)',
-          }}
-        >
-          <span className="text-base leading-none">+</span>
-          심볼 추가
-        </Link>
-      </div>
+    <div>
+      <PageHeader title="심볼 관리" description="심볼 정보 및 레벨별 필요 개수/메소를 관리합니다">
+        <Button onClick={() => navigate('symbols/new')}>+ 심볼 추가</Button>
+      </PageHeader>
 
       {isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-24 rounded-2xl animate-pulse" style={{ background: 'var(--skeleton-bg)' }} />
+        <Panel title="심볼">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-[68px] animate-pulse border-b last:border-b-0" style={{ background: 'var(--skeleton-bg)', borderColor: 'var(--mpl-card-line)' }} />
           ))}
-        </div>
+        </Panel>
       ) : items.length === 0 ? (
-        <div
-          className="rounded-2xl border border-dashed p-16 text-center"
-          style={{
-            borderColor: 'var(--dashed-border)',
-            background: 'var(--skeleton-bg)',
-          }}
-        >
-          <div className="text-5xl mb-3 opacity-30">🔮</div>
-          <p className="mb-4" style={{ color: 'var(--text-muted)' }}>등록된 심볼이 없습니다</p>
-          <Link
-            to="symbols/new"
-            className="text-sm hover:text-[var(--accent-hover-text)]"
-            style={{ color: 'var(--accent)' }}
-          >
-            첫 심볼 추가하기 →
-          </Link>
-        </div>
+        <EmptyBox
+          icon="🔮"
+          text="등록된 심볼이 없습니다"
+          action={<Button onClick={() => navigate('symbols/new')}>첫 심볼 추가하기</Button>}
+        />
       ) : (
         <DndContext
           sensors={sensors}
@@ -202,18 +176,30 @@ export default function SymbolList() {
           onDragCancel={() => setActiveId(null)}
           onDragEnd={handleDragEnd}
         >
-          <SortableContext items={items.map((s) => s.id)} strategy={rectSortingStrategy}>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {items.map((s) => (
-                <SortableSymbolCard key={s.id} symbol={s} />
+          <Panel title="심볼" right={items.length}>
+            <SortableContext items={items.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+              {items.map((s, i) => (
+                <SortableSymbolRow key={s.id} symbol={s} index={i} onEdit={edit(s.id)} onDelete={remove(s)} />
               ))}
-            </div>
-          </SortableContext>
+            </SortableContext>
+          </Panel>
+
           <DragOverlay dropAnimation={{ duration: 200, easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)' }}>
-            {activeSymbol ? <SymbolCardContent symbol={activeSymbol} dragging /> : null}
+            {activeSymbol ? <SymbolRowContent symbol={activeSymbol} onEdit={() => {}} onDelete={() => {}} dragging /> : null}
           </DragOverlay>
         </DndContext>
       )}
+
+      <ConfirmDialog
+        open={deleteTarget != null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => { deleteMutation.mutate(deleteTarget.id); setDeleteTarget(null) }}
+        title="심볼 삭제"
+        description={`"${deleteTarget?.region}" 심볼을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`}
+        confirmText="삭제"
+        destructive
+        loading={deleteMutation.isPending}
+      />
     </div>
   )
 }

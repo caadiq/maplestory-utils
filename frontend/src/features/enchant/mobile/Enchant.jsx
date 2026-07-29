@@ -529,7 +529,15 @@ function PotentialStats({ stat, methodIcons }) {
       <MethodPanel methods={stat.methods} methodIcons={methodIcons} />
 
       <div className="rounded-xl overflow-hidden" style={CARD}>
-        <PanelHead title="등급별 재설정" right="잠재 · 에디" />
+        <PanelHead
+          title="등급별 재설정"
+          right={(
+            <span className="flex">
+              <span className="w-[64px] text-right">잠재</span>
+              <span className="w-[64px] text-right">에디</span>
+            </span>
+          )}
+        />
         {grades.map((g) => (
           <div key={g} className="flex items-center px-3 py-2 border-b last:border-b-0 text-[12px]" style={{ borderColor: 'var(--mpl-card-line)' }}>
             <span className="flex-1 font-bold" style={{ color: GRADE_COLOR[g] }}>{g}</span>
