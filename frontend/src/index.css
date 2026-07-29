@@ -295,6 +295,11 @@ html {
   --os-padding-axis: 2px;
 }
 
+/* 스크롤 영역 끝에서 뒤쪽 페이지로 스크롤이 넘어가지 않도록 (드롭다운·표 공통) */
+[data-overlayscrollbars-viewport] {
+  overscroll-behavior: contain;
+}
+
 /* 얇은 스크롤바 (모바일 캐릭터 칩 가로 스크롤 등) */
 .os-thin {
   --os-size: 7px !important;
