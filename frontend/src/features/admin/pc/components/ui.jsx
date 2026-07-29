@@ -26,14 +26,22 @@ export function PageHeader({ title, description, children }) {
   )
 }
 
-/** 슬레이트 헤더가 붙은 패널 */
-export function Panel({ title, right, children, className = '' }) {
+/** 슬레이트 헤더가 붙은 패널 — columns를 주면 그 아래 컬럼명 줄이 붙는다 */
+export function Panel({ title, right, columns, children, className = '' }) {
   return (
     <div className={`rounded-xl overflow-hidden ${className}`} style={PANEL}>
       {title && (
         <div className="flex items-center justify-between px-4 py-2.5 text-[14px] font-bold" style={SLATE_BAR}>
           <span>{title}</span>
           {right != null && <span className="text-[13px] font-semibold" style={{ color: '#cfdae4' }}>{right}</span>}
+        </div>
+      )}
+      {columns && (
+        <div
+          className="flex items-center gap-3 px-4 py-2 text-[12.5px] font-bold border-b"
+          style={{ background: 'var(--mpl-row)', borderColor: 'var(--mpl-card-line)', color: 'var(--text-muted)' }}
+        >
+          {columns}
         </div>
       )}
       {children}

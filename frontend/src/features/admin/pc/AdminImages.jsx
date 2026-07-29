@@ -5,6 +5,7 @@ import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import ImageCard from './components/ImageCard'
 import Pagination from './components/Pagination'
 import UploadModal from './components/UploadModal'
+import { PageHeader, Button, EmptyBox } from './components/ui'
 
 const PAGE_SIZE = 24
 
@@ -135,91 +136,34 @@ export default function AdminImages() {
   }
 
   return (
-    <div className="space-y-6 pt-0">
-      <div className="flex items-end justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-lg font-medium">이미지 관리</h2>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--text-dim)' }}>공용 이미지를 업로드하고 관리합니다</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {selectMode ? (
-            <>
-              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{selectedIds.size}개 선택</span>
-              <button
-                onClick={selectAll}
-                className="rounded-lg border px-3 py-2 text-sm hover:bg-[var(--btn-bg-hover)]"
-                style={{
-                  background: 'var(--btn-bg)',
-                  borderColor: 'var(--btn-border)',
-                  color: 'var(--text-emphasis)',
-                }}
-              >
-                {selectedIds.size === images.length && images.length > 0 ? '전체 해제' : '전체 선택'}
-              </button>
-              <button
-                onClick={requestDelete}
-                disabled={selectedIds.size === 0}
-                className="rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50 hover:bg-[var(--btn-danger-bg-hover)]"
-                style={{
-                  background: 'var(--btn-danger-bg)',
-                  color: 'var(--btn-primary-text)',
-                  boxShadow: 'var(--btn-danger-shadow)',
-                }}
-              >
-                삭제
-              </button>
-              <button
-                onClick={toggleSelectMode}
-                className="rounded-lg border px-3 py-2 text-sm hover:bg-[var(--btn-bg-hover)]"
-                style={{
-                  background: 'var(--btn-bg)',
-                  borderColor: 'var(--btn-border)',
-                  color: 'var(--text-emphasis)',
-                }}
-              >
-                완료
-              </button>
-            </>
-          ) : (
-            <>
-              {images.length > 0 && (
-                <button
-                  onClick={toggleSelectMode}
-                  className="rounded-lg border px-3 py-2 text-sm hover:bg-[var(--danger-bg-hover)]"
-                  style={{
-                    borderColor: 'var(--icon-danger-border)',
-                    color: 'var(--danger-text)',
-                  }}
-                >
-                  삭제
-                </button>
-              )}
-              <button
-                onClick={() => setUploadOpen(true)}
-                className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium hover:bg-[var(--btn-primary-bg-hover)]"
-                style={{
-                  background: 'var(--btn-primary-bg)',
-                  color: 'var(--btn-primary-text)',
-                  boxShadow: 'var(--btn-primary-shadow)',
-                }}
-              >
-                <span className="text-base leading-none">+</span>
-                이미지 업로드
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+    <div>
+      <PageHeader title="이미지 관리" description="공용 이미지를 업로드하고 관리합니다">
+        {selectMode ? (
+          <>
+            <span className="text-[13px] mr-1" style={{ color: 'var(--text-muted)' }}>{selectedIds.size}개 선택</span>
+            <Button variant="ghost" onClick={selectAll}>
+              {selectedIds.size === images.length && images.length > 0 ? '전체 해제' : '전체 선택'}
+            </Button>
+            <Button variant="danger" onClick={requestDelete} disabled={selectedIds.size === 0}>삭제</Button>
+            <Button variant="ghost" onClick={toggleSelectMode}>완료</Button>
+          </>
+        ) : (
+          <>
+            {images.length > 0 && <Button variant="dangerGhost" onClick={toggleSelectMode}>삭제</Button>}
+            <Button onClick={() => setUploadOpen(true)}>+ 이미지 업로드</Button>
+          </>
+        )}
+      </PageHeader>
 
       {/* 검색 */}
       {images.length > 0 && (
-        <div className="relative">
+        <div className="relative mb-3">
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="이미지 이름으로 검색..."
-            className="w-full rounded-lg border pl-10 pr-4 py-2.5 text-sm outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
+            className="w-full rounded-xl border pl-10 pr-4 py-2.5 text-[14px] outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
             style={{
               background: 'var(--input-bg)',
               borderColor: 'var(--input-border)',
@@ -232,7 +176,7 @@ export default function AdminImages() {
 
       {/* 이미지 그리드 */}
       {isLoading ? (
-        <div className="grid gap-3 grid-cols-3 sm:grid-cols-4 lg:grid-cols-6">
+        <div className="grid gap-2.5 grid-cols-4 sm:grid-cols-5 lg:grid-cols-7">
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
@@ -242,30 +186,14 @@ export default function AdminImages() {
           ))}
         </div>
       ) : images.length === 0 ? (
-        <div
-          className="rounded-2xl border border-dashed p-16 text-center"
-          style={{
-            borderColor: 'var(--dashed-border)',
-            background: 'var(--skeleton-bg)',
-          }}
-        >
-          <div className="text-5xl mb-3 opacity-30">🖼️</div>
-          <p className="mb-4" style={{ color: 'var(--text-muted)' }}>
-            {debouncedSearch ? '검색 결과가 없습니다' : '업로드된 이미지가 없습니다'}
-          </p>
-          {!debouncedSearch && (
-            <button
-              onClick={() => setUploadOpen(true)}
-              className="text-sm hover:text-[var(--accent-hover-text)]"
-              style={{ color: 'var(--accent)' }}
-            >
-              첫 이미지 업로드하기 →
-            </button>
-          )}
-        </div>
+        <EmptyBox
+          icon="🖼️"
+          text={debouncedSearch ? '검색 결과가 없습니다' : '업로드된 이미지가 없습니다'}
+          action={!debouncedSearch ? <Button onClick={() => setUploadOpen(true)}>첫 이미지 업로드하기</Button> : null}
+        />
       ) : (
         <>
-          <div className="grid gap-3 grid-cols-3 sm:grid-cols-4 lg:grid-cols-6">
+          <div className="grid gap-2.5 grid-cols-4 sm:grid-cols-5 lg:grid-cols-7">
             {images.map((image) => (
               <ImageCard
                 key={image.id}
