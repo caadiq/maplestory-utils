@@ -60,7 +60,7 @@ function MesoRow({ label, value }) {
   return (
     <div className="rounded-xl px-3 py-2.5 flex items-center justify-between" style={CARD}>
       <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{label}</span>
-      <span className="text-[19px] font-bold tabular-nums" style={{ color: 'var(--accent-bright)', letterSpacing: '-.3px' }}>{value}</span>
+      <span className="text-[17px] font-bold tabular-nums" style={{ color: 'var(--accent-bright)', letterSpacing: '-.3px' }}>{value}</span>
     </div>
   )
 }
@@ -72,7 +72,7 @@ function StatBox({ label, value, color }) {
       <div className="text-[12.5px] font-bold" style={{ color: 'var(--text-muted)' }}>{label}</div>
       <div
         className="font-bold tabular-nums mt-0.5 whitespace-nowrap"
-        style={{ color: color || 'var(--text-strong)', fontSize: len > 9 ? 13 : len > 6 ? 15 : 17 }}
+        style={{ color: color || 'var(--text-strong)', fontSize: len > 9 ? 12.5 : len > 6 ? 14 : 16 }}
       >
         {value}
       </div>
@@ -105,9 +105,9 @@ function ItemCard({ onClick, icon, worldIcon, character, name, sub, cost, footer
       </div>
       <div className="px-2 pt-2.5 pb-2 flex flex-col items-center text-center flex-1">
         <ItemSlot url={icon} />
-        <div className="text-[13px] font-bold leading-tight mt-1.5" style={{ color: 'var(--text-strong)' }}>{name}</div>
+        <div className="text-[12.5px] font-bold leading-tight mt-1.5" style={{ color: 'var(--text-strong)' }}>{name}</div>
         <div className="text-[12.5px] mt-1" style={{ color: 'var(--text-dim)' }}>{sub}</div>
-        <div className="text-[16px] font-bold tabular-nums mt-1.5" style={{ color: 'var(--accent-bright)', letterSpacing: '-.3px' }}>{cost}</div>
+        <div className="text-[15px] font-bold tabular-nums mt-1.5" style={{ color: 'var(--accent-bright)', letterSpacing: '-.3px' }}>{cost}</div>
         {footer}
       </div>
     </div>
@@ -130,7 +130,7 @@ function ResultStrip({ success, fail, destroy }) {
           style={i > 0 ? { borderLeft: '1px solid var(--mpl-card-line)' } : undefined}
         >
           <span className="text-[12.5px] font-bold" style={{ color: 'var(--text-muted)' }}>{c.label}</span>
-          <span className="text-[15px] font-bold tabular-nums leading-none" style={{ color: c.color }}>{c.value.toLocaleString()}</span>
+          <span className="text-[14px] font-bold tabular-nums leading-none" style={{ color: c.color }}>{c.value.toLocaleString()}</span>
         </div>
       ))}
     </div>
@@ -176,7 +176,7 @@ function NamePlate({ icon, worldIcon, character, name, sub }) {
           {worldIcon && <img src={worldIcon} alt="" className="w-[15px] h-[15px] object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
           {character}
         </span>
-        <div className="text-[16px] font-bold mt-0.5 leading-tight" style={{ color: 'var(--text-strong)' }}>{name}</div>
+        <div className="text-[15px] font-bold mt-0.5 leading-tight" style={{ color: 'var(--text-strong)' }}>{name}</div>
         <div className="mt-0.5">{sub}</div>
       </div>
     </div>
@@ -215,7 +215,7 @@ function MoreButton({ shown, total, onMore }) {
     <button
       type="button"
       onClick={onMore}
-      className="w-full py-2.5 text-[13px] font-bold"
+      className="w-full py-2.5 text-[12.5px] font-bold"
       style={{ background: 'var(--mpl-row)', color: 'var(--text-muted)' }}
     >
       더보기 ▼
@@ -237,7 +237,7 @@ function GradeUpPanel({ title, rows }) {
     <div className="rounded-xl overflow-hidden" style={CARD}>
       <PanelHead title={title} right="성공 / 시도" />
       {rows.map((r) => (
-        <div key={r.from} className="flex items-center px-3 py-2 border-b last:border-b-0 text-[13px]" style={{ borderColor: 'var(--mpl-card-line)' }}>
+        <div key={r.from} className="flex items-center px-3 py-2 border-b last:border-b-0 text-[12.5px]" style={{ borderColor: 'var(--mpl-card-line)' }}>
           <span className="flex-1 font-bold">
             <span style={{ color: GRADE_COLOR[r.from] }}>{r.from}</span>
             <span style={{ color: 'var(--text-dim)' }}> → </span>
@@ -277,7 +277,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
         character={group.character}
         name={group.item}
         sub={(
-          <span className="text-[14px] font-bold tabular-nums">
+          <span className="text-[13.5px] font-bold tabular-nums">
             <span style={{ color: '#c9a227' }}>★{group.startStar}</span>
             <span style={{ color: 'var(--text-dim)' }}> → </span>
             {group.destroyed
@@ -299,7 +299,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
         <div className="rounded-xl overflow-hidden" style={CARD}>
           <PanelHead title="구간별 성공률" right="시도 많은 순" />
           {shownRanges.map((s) => (
-            <div key={s.star} className="flex items-center gap-2 px-3 py-2 border-b last:border-b-0 text-[13px]" style={{ borderColor: 'var(--mpl-card-line)' }}>
+            <div key={s.star} className="flex items-center gap-2 px-3 py-2 border-b last:border-b-0 text-[12.5px]" style={{ borderColor: 'var(--mpl-card-line)' }}>
               <span className="w-[74px] shrink-0 font-bold tabular-nums" style={{ color: '#c9a227' }}>★{s.star}→★{s.star + 1}</span>
               <span className="flex-1 h-[8px] rounded-full overflow-hidden" style={{ background: '#e4ebf1', boxShadow: 'inset 0 1px 2px rgba(31,44,61,.12)' }}>
                 <span className="block h-full rounded-full" style={{ width: `${s.rate}%`, background: 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))' }} />
@@ -339,7 +339,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
               }}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="font-bold tabular-nums text-[14px]">
+                <span className="font-bold tabular-nums text-[13.5px]">
                   {r.before_starforce_count}성 <span style={{ color: 'var(--text-dim)' }}>→</span>{' '}
                   {res === 'destroy'
                     ? <span style={{ color: 'var(--mpl-red-to)' }}>파괴</span>
@@ -359,7 +359,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
                   <span className="block" style={{ color: 'var(--text-muted)' }}>{date}</span>
                   <span className="block mt-0.5" style={{ color: 'var(--text-dim)' }}>{time}</span>
                 </span>
-                <span className="text-[13px] tabular-nums whitespace-nowrap">
+                <span className="text-[12.5px] tabular-nums whitespace-nowrap">
                   {cost == null ? <span style={{ color: 'var(--text-dim)' }}>-</span> : (
                     <>
                       {cost.final !== cost.base && <span className="line-through mr-1" style={{ color: 'var(--text-dim)' }}>{formatMesoShort(cost.base)}</span>}
@@ -430,7 +430,7 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
                   ? <img src={mIcon} alt="" className="w-[26px] h-[26px] object-contain shrink-0" style={{ imageRendering: 'pixelated' }} draggable={false} />
                   : <span className="w-[26px] h-[26px] rounded flex items-center justify-center text-[12.5px] shrink-0" style={{ background: 'var(--mpl-row)', color: 'var(--text-dim)' }}>?</span>}
                 <span className="flex-1 min-w-0 text-[12.5px] font-bold truncate" style={{ color: 'var(--text-strong)' }}>{r.methodName}</span>
-                <span className="text-[13px] font-bold tabular-nums shrink-0" style={{ color: 'var(--accent-bright)' }}>
+                <span className="text-[12.5px] font-bold tabular-nums shrink-0" style={{ color: 'var(--accent-bright)' }}>
                   {cost == null ? '-' : formatKoreanMeso(cost)}
                 </span>
               </div>
@@ -489,7 +489,7 @@ function PotentialStats({ stat, methodIcons }) {
       <div className="rounded-xl overflow-hidden" style={CARD}>
         <PanelHead title="등급별 재설정" right="잠재 · 에디" />
         {grades.map((g) => (
-          <div key={g} className="flex items-center px-3 py-2 border-b last:border-b-0 text-[13px]" style={{ borderColor: 'var(--mpl-card-line)' }}>
+          <div key={g} className="flex items-center px-3 py-2 border-b last:border-b-0 text-[12.5px]" style={{ borderColor: 'var(--mpl-card-line)' }}>
             <span className="flex-1 font-bold" style={{ color: GRADE_COLOR[g] }}>{g}</span>
             <span className="w-[64px] text-right font-bold tabular-nums">{(stat.resetByGrade.potential[g] || 0).toLocaleString()}</span>
             <span className="w-[64px] text-right font-bold tabular-nums" style={{ color: 'var(--accent-bright)' }}>{(stat.resetByGrade.additional[g] || 0).toLocaleString()}</span>
