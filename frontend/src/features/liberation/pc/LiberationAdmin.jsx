@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import FormField, { formInputClass, formInputStyle } from '../../../components/common/FormField'
 import DatePicker from '../../../components/common/DatePicker'
-import { PageHeader } from '../../admin/pc/components/ui'
+import { PageHeader, Panel, Button } from '../../admin/pc/components/ui'
 import ImagePicker from '../../admin/pc/components/ImagePicker'
 
 export default function LiberationAdmin() {
@@ -62,21 +62,17 @@ export default function LiberationAdmin() {
     saveMutation.mutate()
   }
 
-  const panelStyle = {
-    background: 'var(--panel-bg)',
-    borderColor: 'var(--panel-border)',
-    boxShadow: 'var(--panel-shadow)',
-  }
 
   return (
-    <div className="space-y-5 max-w-[780px]">
+    <div className="space-y-5 max-w-[780px] mx-auto">
       <PageHeader
         title="해방 날짜 계산기"
         description="해방 계산기에 표시되는 제네시스 패스 시즌·배수·기간을 설정합니다"
       />
 
-      <div className="rounded-2xl border p-6 space-y-5" style={panelStyle}>
-        <p className="text-xs leading-relaxed" style={{ color: 'var(--text-dim)' }}>
+      <Panel title="제네시스 패스 설정">
+        <div className="p-5 space-y-5">
+        <p className="text-[13px] leading-relaxed px-3 py-2.5 rounded-lg" style={{ color: 'var(--text-muted)', background: 'var(--mpl-row)' }}>
           오늘 날짜가 시작일~종료일 사이일 때만 해방 계산기에 패스 카드가 자동으로 표시됩니다.
           시즌이 없을 때는 두 날짜를 비워두세요.
         </p>
@@ -107,22 +103,17 @@ export default function LiberationAdmin() {
             <div
               className="shrink-0 w-16 h-16 rounded-xl border flex items-center justify-center overflow-hidden"
               style={{
-                borderColor: 'rgba(252,211,77,0.18)',
-                background: 'radial-gradient(circle at 50% 45%, rgba(252,211,77,0.12), rgba(2,6,23,0.6))',
+                borderColor: 'var(--mpl-card-line)',
+                background: 'linear-gradient(180deg, #f4f7fa, #e6ecf2)',
               }}
             >
               {image?.url
                 ? <img src={image.url} alt={image.name} className="max-w-[52px] max-h-[52px] object-contain" style={{ imageRendering: 'pixelated' }} />
                 : <span className="text-[10px]" style={{ color: 'var(--text-dim)' }}>없음</span>}
             </div>
-            <button
-              type="button"
-              onClick={() => setPickerOpen(true)}
-              className="rounded-lg border px-4 py-2 text-sm hover:bg-[var(--btn-bg-hover)]"
-              style={{ borderColor: 'var(--btn-border)', background: 'var(--btn-bg)', color: 'var(--text-emphasis)' }}
-            >
+            <Button variant="ghost" onClick={() => setPickerOpen(true)}>
               {image ? '이미지 변경' : '이미지 선택'}
-            </button>
+            </Button>
             {image && (
               <span className="text-sm truncate" style={{ color: 'var(--text-muted)' }}>{image.name}</span>
             )}
@@ -135,19 +126,14 @@ export default function LiberationAdmin() {
           </div>
         )}
 
-        <div className="flex items-center justify-end gap-3 pt-2">
-          {saved && <span className="text-sm" style={{ color: 'var(--accent-bright)' }}>저장되었습니다</span>}
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={saveMutation.isPending}
-            className="px-5 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50"
-            style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)' }}
-          >
+        <div className="flex items-center justify-end gap-3 pt-1">
+          {saved && <span className="text-[13px]" style={{ color: 'var(--accent-bright)' }}>저장되었습니다</span>}
+          <Button onClick={handleSubmit} disabled={saveMutation.isPending}>
             {saveMutation.isPending ? '저장 중...' : '저장'}
-          </button>
+          </Button>
         </div>
-      </div>
+        </div>
+      </Panel>
 
       <ImagePicker
         open={pickerOpen}

@@ -173,7 +173,7 @@ export default function SymbolForm() {
   }
 
   return (
-    <div className="space-y-5 max-w-[780px]">
+    <div className="space-y-5 max-w-[780px] mx-auto">
       <div>
         <h2 className="text-[20px] font-bold" style={{ color: 'var(--text-strong)' }}>{isEdit ? '심볼 편집' : '심볼 추가'}</h2>
         <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>심볼 정보와 레벨별 필요 개수/메소를 입력합니다</p>
