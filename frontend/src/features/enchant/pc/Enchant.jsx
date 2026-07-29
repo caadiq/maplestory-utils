@@ -4,10 +4,10 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../../api/client'
 import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../../hooks/useAuth'
 import { useEnchantData } from '../useEnchantData'
 import { useLayout } from '../../../components/pc/Layout'
-import { useBackClose } from '../../../hooks/useBackClose'
 import MapleWindow, { MapleWindowTab } from '../../../components/pc/MapleWindow'
 import PageLoader from '../../../components/common/PageLoader'
 import Select from '../../../components/common/Select'
@@ -960,11 +960,21 @@ export default function Enchant() {
     return () => setFullscreen(false)
   }, [setFullscreen])
 
-  const [tab, setTab] = useState('starforce')
+  // 탭·상세 아이템을 URL에 담아 새로고침해도 보던 화면이 유지되게 한다
+  const [params, setParams] = useSearchParams()
+  const tab = params.get('tab') === 'potential' ? 'potential' : 'starforce'
+  const detailKey = params.get('item')
   const [sort, setSort] = useState('cost')
   const [charFilter, setCharFilter] = useState(null)
-  const [detailKey, setDetailKey] = useState(null)
-  useBackClose(detailKey != null, () => setDetailKey(null))
+
+  const setTab = (next) => setParams(next === 'starforce' ? {} : { tab: next }, { replace: true })
+  const setDetailKey = (key) => {
+    const q = {}
+    if (tab !== 'starforce') q.tab = tab
+    if (key) q.item = key
+    // 상세 진입만 히스토리에 남겨 뒤로가기로 목록에 돌아온다
+    setParams(q, { replace: !key })
+  }
 
   // 데이터 로딩·가공은 모바일과 공유
   const {
@@ -1031,7 +1041,7 @@ export default function Enchant() {
             { key: 'starforce', label: '스타포스', icon: tabIcons.starforce },
             { key: 'potential', label: '잠재능력', icon: tabIcons.potential },
           ].map((t) => (
-            <MapleWindowTab key={t.key} active={tab === t.key} onClick={() => { setTab(t.key); setDetailKey(null) }}>
+            <MapleWindowTab key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>
               {t.icon && <GameIcon url={t.icon} size={22} />}
               {t.label}
             </MapleWindowTab>
