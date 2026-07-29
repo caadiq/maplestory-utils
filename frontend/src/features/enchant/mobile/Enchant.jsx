@@ -1,6 +1,6 @@
-import { useState, useLayoutEffect } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../../hooks/useAuth'
-import { useBackClose } from '../../../hooks/useBackClose'
 import MapleWindow, { MapleWindowTab } from '../../../components/pc/MapleWindow'
 import PageLoader from '../../../components/common/PageLoader'
 import Select from '../../../components/common/Select'
@@ -209,17 +209,32 @@ function DetailBar({ index, total, onPrev, onNext }) {
   )
 }
 
-function MoreButton({ shown, total, onMore }) {
-  if (shown >= total) return null
+/** 바닥이 보이면 다음 묶음을 이어 붙이는 무한 스크롤 */
+function useInfiniteRows(total, step = PAGE_SIZE) {
+  const [limit, setLimit] = useState(step)
+  const sentinelRef = useRef(null)
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el || limit >= total) return
+    const io = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setLimit((v) => Math.min(v + step, total)) },
+      { rootMargin: '300px' }
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [limit, total, step])
+
+  return { limit, sentinelRef, hasMore: limit < total }
+}
+
+/** 무한 스크롤 감지용 바닥 표시 */
+function LoadMoreSentinel({ hasMore, sentinelRef }) {
+  if (!hasMore) return null
   return (
-    <button
-      type="button"
-      onClick={onMore}
-      className="w-full py-2.5 text-[12px] font-bold"
-      style={{ background: 'var(--mpl-row)', color: 'var(--text-muted)' }}
-    >
-      더보기 ▼
-    </button>
+    <div ref={sentinelRef} className="py-3 flex items-center justify-center">
+      <span className="w-5 h-5 rounded-full animate-spin" style={{ border: '2px solid var(--accent)', borderTopColor: 'transparent' }} />
+    </div>
   )
 }
 
@@ -256,8 +271,8 @@ function GradeUpPanel({ title, rows }) {
 // ─────────── 스타포스 상세 ───────────
 
 function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
-  const [limit, setLimit] = useState(PAGE_SIZE)
   const [allRanges, setAllRanges] = useState(false)
+  const { limit, sentinelRef, hasMore } = useInfiniteRows(group.records.length)
   // 기본은 2회 이상 시도한 구간만 (없으면 전체) — 나머지는 더보기로 펼침
   const ranges = starRangeStats(group.records)
   const multi = ranges.filter((s) => s.tries >= 2)
@@ -376,7 +391,7 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
             </div>
           )
         })}
-        <MoreButton shown={rows.length} total={group.records.length} onMore={() => setLimit((v) => v + PAGE_SIZE)} />
+        <LoadMoreSentinel hasMore={hasMore} sentinelRef={sentinelRef} />
       </div>
     </MapleWindow>
   )
@@ -390,7 +405,7 @@ function methodIconName(r) {
 }
 
 function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
-  const [limit, setLimit] = useState(PAGE_SIZE)
+  const { limit, sentinelRef, hasMore } = useInfiniteRows(group.records.length)
   const stat = potentialStats(group.records)
   const rows = group.records.slice(0, limit)
 
@@ -456,7 +471,7 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
             </div>
           )
         })}
-        <MoreButton shown={rows.length} total={group.records.length} onMore={() => setLimit((v) => v + PAGE_SIZE)} />
+        <LoadMoreSentinel hasMore={hasMore} sentinelRef={sentinelRef} />
       </div>
     </MapleWindow>
   )
@@ -509,11 +524,21 @@ function PotentialStats({ stat, methodIcons }) {
 
 export default function Enchant() {
   const { user, isLoading: authLoading } = useAuth()
-  const [tab, setTab] = useState('starforce')
+  // 탭·상세 아이템을 URL에 담아 새로고침해도 보던 화면이 유지되게 한다
+  const [params, setParams] = useSearchParams()
+  const tab = params.get('tab') === 'potential' ? 'potential' : 'starforce'
+  const detailKey = params.get('item')
   const [sort, setSort] = useState('cost')
   const [charFilter, setCharFilter] = useState(null)
-  const [detailKey, setDetailKey] = useState(null)
-  useBackClose(detailKey != null, () => setDetailKey(null))
+
+  const setTab = (next) => setParams(next === 'starforce' ? {} : { tab: next }, { replace: true })
+  const setDetailKey = (key) => {
+    const q = {}
+    if (tab !== 'starforce') q.tab = tab
+    if (key) q.item = key
+    // 상세 진입만 히스토리에 남겨 뒤로가기로 목록에 돌아온다
+    setParams(q, { replace: !key })
+  }
   // 목록 ↔ 상세 전환 시 이전 스크롤 위치가 남지 않도록
   useLayoutEffect(() => { window.scrollTo(0, 0) }, [detailKey])
 
@@ -559,7 +584,7 @@ export default function Enchant() {
             { key: 'starforce', label: '스타포스', icon: tabIcons.starforce },
             { key: 'potential', label: '잠재능력', icon: tabIcons.potential },
           ].map((t) => (
-            <MapleWindowTab key={t.key} active={tab === t.key} onClick={() => { setTab(t.key); setDetailKey(null) }}>
+            <MapleWindowTab key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>
               {t.icon && <img src={t.icon} alt="" className="w-[15px] h-[15px] object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />}
               {t.label}
             </MapleWindowTab>
