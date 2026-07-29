@@ -539,11 +539,11 @@ function PotentialStatsPanel({ stat, methodIcons, compact = false }) {
           </ValueTooltip>
         </div>
         <div className="rounded-xl px-4 py-3" style={box}>
-          <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>잠재 재설정</div>
+          <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>잠재능력 재설정</div>
           <div className="text-[22px] font-bold tabular-nums mt-0.5">{stat.countByKind.potential.toLocaleString()}회</div>
         </div>
         <div className="rounded-xl px-4 py-3" style={box}>
-          <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>에디셔널 재설정</div>
+          <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>에디셔널 잠재능력 재설정</div>
           <div className="text-[22px] font-bold tabular-nums mt-0.5">{stat.countByKind.additional.toLocaleString()}회</div>
         </div>
       </div>
