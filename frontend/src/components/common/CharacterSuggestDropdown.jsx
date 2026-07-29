@@ -1,10 +1,11 @@
-import { useMemo, useState, useLayoutEffect, useEffect } from 'react'
+import { useMemo, useState, useLayoutEffect, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '../../api/client'
 import { useAuth } from '../../hooks/useAuth'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
+import { useScrollChainBlock } from '../../hooks/useScrollLock'
 
 /**
  * 캐릭터 입력 input 아래 뜨는 드롭다운 (포털 렌더 → 부모 overflow:hidden에도 안 잘림)
@@ -15,6 +16,8 @@ import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 export default function CharacterSuggestDropdown({ open, filter = '', excludeNames = [], onSelect, anchorRef }) {
   const { user } = useAuth()
   const [pos, setPos] = useState({ top: 0, bottom: 0, left: 0, width: 0, flipUp: false })
+  const popupRef = useRef(null)
+  useScrollChainBlock(popupRef, open)
 
   const { data = [], isLoading, error } = useQuery({
     queryKey: ['me', 'characters'],
@@ -78,6 +81,7 @@ export default function CharacterSuggestDropdown({ open, filter = '', excludeNam
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: pos.flipUp ? 4 : -4 }}
           transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+          ref={popupRef}
           className="fixed z-[100] rounded-lg border overflow-hidden"
           style={{
             background: 'var(--popup-bg)',
