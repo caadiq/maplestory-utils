@@ -26,22 +26,24 @@ export function PageHeader({ title, description, children }) {
   )
 }
 
-/** 슬레이트 헤더가 붙은 패널 — columns를 주면 그 아래 컬럼명 줄이 붙는다 */
+/**
+ * 패널 — columns를 주면 슬레이트 바가 곧 컬럼 헤더가 된다 (장비 강화 기록 표와 같은 형태).
+ * title만 주면 제목 바로 쓰인다.
+ */
 export function Panel({ title, right, columns, children, className = '' }) {
   return (
     <div className={`rounded-xl overflow-hidden ${className}`} style={PANEL}>
-      {title && (
-        <div className="flex items-center justify-between px-4 py-2.5 text-[14px] font-bold" style={SLATE_BAR}>
-          <span>{title}</span>
-          {right != null && <span className="text-[13px] font-semibold" style={{ color: '#cfdae4' }}>{right}</span>}
-        </div>
-      )}
-      {columns && (
+      {(title || columns) && (
         <div
-          className="flex items-center gap-3 px-4 py-2 text-[12.5px] font-bold border-b"
-          style={{ background: 'var(--mpl-row)', borderColor: 'var(--mpl-card-line)', color: 'var(--text-muted)' }}
+          className="flex items-center gap-3 px-4 py-2.5 text-[13px] font-bold"
+          style={SLATE_BAR}
         >
-          {columns}
+          {columns ?? (
+            <>
+              <span className="flex-1">{title}</span>
+              {right != null && <span className="text-[13px] font-semibold" style={{ color: '#cfdae4' }}>{right}</span>}
+            </>
+          )}
         </div>
       )}
       {children}

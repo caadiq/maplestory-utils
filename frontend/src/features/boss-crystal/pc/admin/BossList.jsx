@@ -39,7 +39,7 @@ function BossRowContent({ boss, index = 0, dragHandle = null, onEdit, onDelete, 
         {dragHandle ?? <GripIcon />}
       </span>
       <Thumb url={boss.image_url} />
-      <span className="w-[210px] shrink-0 flex items-center gap-1.5 min-w-0">
+      <span className="flex-[2] flex items-center gap-1.5 min-w-0">
         <span className="text-[15px] font-bold truncate" style={{ color: 'var(--text-strong)' }}>{boss.name}</span>
         {boss.season && (
           <span
@@ -50,10 +50,10 @@ function BossRowContent({ boss, index = 0, dragHandle = null, onEdit, onDelete, 
           </span>
         )}
       </span>
-      <span className="w-[84px] shrink-0 text-[13.5px]" style={{ color: 'var(--text-muted)' }}>
+      <span className="flex-1 text-[13.5px]" style={{ color: 'var(--text-muted)' }}>
         최대 {boss.max_party_size}인
       </span>
-      <span className="flex-1 flex flex-wrap items-center gap-1 min-w-0">
+      <span className="flex-[2] flex flex-wrap items-center gap-1 min-w-0">
         {used.map((d) => {
           const bd = boss.difficulties.find((x) => x.difficulty === d.key)
           return (
@@ -65,10 +65,10 @@ function BossRowContent({ boss, index = 0, dragHandle = null, onEdit, onDelete, 
           )
         })}
       </span>
-      <span className="w-[124px] shrink-0 text-right text-[15px] font-bold tabular-nums" style={{ color: 'var(--accent-bright)' }}>
+      <span className="flex-1 text-right text-[15px] font-bold tabular-nums" style={{ color: 'var(--accent-bright)' }}>
         {top ? formatMeso(top.crystal_price) : '-'}
       </span>
-      <span className="flex items-center gap-1.5 shrink-0">
+      <span className="flex items-center gap-1.5 shrink-0 w-[136px] justify-end">
         <Button variant="ghost" onClick={onEdit}>수정</Button>
         <Button variant="dangerGhost" onClick={onDelete}>삭제</Button>
       </span>
@@ -193,20 +193,18 @@ export default function BossList() {
         >
           {seasonItems.length > 0 && (
             <Panel
-              title="시즌보스"
-              right={seasonItems.length}
+              className="mb-3"
               columns={(
                 <>
                   <span className="w-[14px] shrink-0" />
                   <span className="w-[46px] shrink-0" />
-                  <span className="w-[210px] shrink-0">보스</span>
-                  <span className="w-[84px] shrink-0">인원</span>
-                  <span className="flex-1">난이도</span>
-                  <span className="w-[124px] shrink-0 text-right">결정 가격</span>
-                  <span className="w-[124px] shrink-0" />
+                  <span className="flex-[2] min-w-0">시즌보스</span>
+                  <span className="flex-1">인원</span>
+                  <span className="flex-[2] min-w-0">난이도</span>
+                  <span className="flex-1 text-right">결정 가격</span>
+                  <span className="w-[136px] shrink-0 text-right" style={{ color: '#cfdae4' }}>{seasonItems.length}</span>
                 </>
               )}
-            className="mb-3"
             >
               {seasonItems.map((boss, i) => (
                 <BossRowContent
@@ -223,17 +221,15 @@ export default function BossList() {
           )}
 
           <Panel
-            title="일반 보스"
-            right={normalItems.length}
             columns={(
               <>
                 <span className="w-[14px] shrink-0" />
                 <span className="w-[46px] shrink-0" />
-                <span className="w-[210px] shrink-0">보스</span>
-                <span className="w-[84px] shrink-0">인원</span>
-                <span className="flex-1">난이도</span>
-                <span className="w-[124px] shrink-0 text-right">결정 가격</span>
-                <span className="w-[124px] shrink-0" />
+                <span className="flex-[2] min-w-0">일반 보스</span>
+                <span className="flex-1">인원</span>
+                <span className="flex-[2] min-w-0">난이도</span>
+                <span className="flex-1 text-right">결정 가격</span>
+                <span className="w-[136px] shrink-0 text-right" style={{ color: '#cfdae4' }}>{normalItems.length}</span>
               </>
             )}
           >
