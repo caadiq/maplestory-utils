@@ -18,7 +18,7 @@ export default function AdminFeaturePage() {
 
   if (!Component) {
     return (
-      <div className="space-y-4 max-w-5xl mx-auto pt-6">
+      <div className="space-y-4 pt-0">
         {menu && (
           <div>
             <h2 className="text-lg font-medium">{menu.title}</h2>

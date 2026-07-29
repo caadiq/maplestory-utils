@@ -120,7 +120,7 @@ export default function AdminChallengerSeasons() {
   })
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pt-6">
+    <div className="max-w-2xl mx-auto space-y-6 pt-0">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">챌린저스 시즌 관리</h1>
