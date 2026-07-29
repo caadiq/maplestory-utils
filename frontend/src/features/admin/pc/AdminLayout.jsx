@@ -132,8 +132,11 @@ export default function AdminLayout() {
         ))}
       </nav>
 
-      <div className="flex-1 min-w-0 px-7 py-6" style={{ background: 'var(--mpl-panel)' }}>
-        <Outlet />
+      <div className="flex-1 min-w-0 px-10 py-9" style={{ background: 'var(--mpl-panel)' }}>
+        {/* 화면이 넓어져도 본문은 늘어나지 않고 가운데에 머문다 */}
+        <div className="mx-auto w-full max-w-[1180px]">
+          <Outlet />
+        </div>
       </div>
     </div>
   )
