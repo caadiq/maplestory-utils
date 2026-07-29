@@ -14,11 +14,11 @@ export const SLATE_BAR = {
 /** 페이지 상단 — 제목·설명 + 우측 액션 */
 export function PageHeader({ title, description, children }) {
   return (
-    <div className="flex items-end justify-between gap-4 flex-wrap mb-3">
+    <div className="flex items-end justify-between gap-4 flex-wrap mb-4">
       <div>
-        <h2 className="text-[17px] font-bold" style={{ color: 'var(--text-strong)' }}>{title}</h2>
+        <h2 className="text-[20px] font-bold" style={{ color: 'var(--text-strong)' }}>{title}</h2>
         {description && (
-          <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{description}</p>
+          <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>{description}</p>
         )}
       </div>
       {children && <div className="flex items-center gap-1.5">{children}</div>}
@@ -31,9 +31,9 @@ export function Panel({ title, right, children, className = '' }) {
   return (
     <div className={`rounded-xl overflow-hidden ${className}`} style={PANEL}>
       {title && (
-        <div className="flex items-center justify-between px-3.5 py-2 text-[13px] font-bold" style={SLATE_BAR}>
+        <div className="flex items-center justify-between px-4 py-2.5 text-[14px] font-bold" style={SLATE_BAR}>
           <span>{title}</span>
-          {right != null && <span className="text-[12.5px] font-semibold" style={{ color: '#cfdae4' }}>{right}</span>}
+          {right != null && <span className="text-[13px] font-semibold" style={{ color: '#cfdae4' }}>{right}</span>}
         </div>
       )}
       {children}
@@ -42,10 +42,10 @@ export function Panel({ title, right, children, className = '' }) {
 }
 
 /** 패널 안의 한 줄 — 홀짝 배경으로 구분 */
-export function Row({ index = 0, children, className = '', ...rest }) {
+export function Row({ index = 0, divider = true, children, className = '', ...rest }) {
   return (
     <div
-      className={`flex items-center gap-2.5 px-3 py-2 border-b last:border-b-0 ${className}`}
+      className={`flex items-center gap-3 px-4 py-3 ${divider ? 'border-b last:border-b-0' : ''} ${className}`}
       style={{
         borderColor: 'var(--mpl-card-line)',
         background: index % 2 === 1 ? 'var(--mpl-row)' : 'var(--mpl-card)',
@@ -83,7 +83,7 @@ const BTN_STYLE = {
 }
 
 export function Button({ variant = 'primary', size = 'md', className = '', style, ...rest }) {
-  const pad = size === 'sm' ? 'px-2.5 py-1 text-[12.5px]' : 'px-3.5 py-2 text-[13px]'
+  const pad = size === 'sm' ? 'px-3 py-1.5 text-[13px]' : 'px-4 py-2.5 text-[14px]'
   return (
     <button
       type="button"
@@ -95,7 +95,7 @@ export function Button({ variant = 'primary', size = 'md', className = '', style
 }
 
 /** 아이콘 썸네일 (보스·심볼 등) */
-export function Thumb({ url, size = 38, rounded = 8 }) {
+export function Thumb({ url, size = 46, rounded = 10 }) {
   return (
     <span
       className="flex items-center justify-center shrink-0 overflow-hidden"
@@ -117,7 +117,7 @@ export function Thumb({ url, size = 38, rounded = 8 }) {
 /** 드래그 핸들 점 6개 */
 export function GripIcon({ className = '' }) {
   return (
-    <svg width="12" height="18" viewBox="0 0 14 20" fill="currentColor" className={className}>
+    <svg width="14" height="20" viewBox="0 0 14 20" fill="currentColor" className={className}>
       <circle cx="4" cy="4" r="1.5" /><circle cx="10" cy="4" r="1.5" />
       <circle cx="4" cy="10" r="1.5" /><circle cx="10" cy="10" r="1.5" />
       <circle cx="4" cy="16" r="1.5" /><circle cx="10" cy="16" r="1.5" />
