@@ -452,8 +452,8 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
 
       <MesoRow label="사용 메소" value={group.totalCost != null ? formatMesoShort(group.totalCost) : '-'} />
       <div className="grid grid-cols-3 gap-1.5">
-        <StatBox label="잠재 재설정" value={stat.countByKind.potential.toLocaleString()} />
-        <StatBox label="에디 재설정" value={stat.countByKind.additional.toLocaleString()} />
+        <StatBox label="잠재능력" value={stat.countByKind.potential.toLocaleString()} />
+        <StatBox label="에디셔널 잠재능력" value={stat.countByKind.additional.toLocaleString()} />
         <StatBox label="등급업" value={group.gradeUps.toLocaleString()} color="#4e9e20" />
       </div>
 
@@ -520,10 +520,10 @@ function PotentialStats({ stat, methodIcons }) {
   return (
     <>
       <MesoRow label="누적 재설정" value={formatMesoShort(stat.resetCost)} />
-      <div className="grid grid-cols-3 gap-1.5">
-        <StatBox label="감정 비용" value={formatMesoShort(stat.feeCost)} color="var(--accent-bright)" />
-        <StatBox label="잠재 재설정" value={stat.countByKind.potential.toLocaleString()} />
-        <StatBox label="에디 재설정" value={stat.countByKind.additional.toLocaleString()} />
+      <MesoRow label="감정 비용" value={formatMesoShort(stat.feeCost)} />
+      <div className="grid grid-cols-2 gap-1.5">
+        <StatBox label="잠재능력" value={stat.countByKind.potential.toLocaleString()} />
+        <StatBox label="에디셔널 잠재능력" value={stat.countByKind.additional.toLocaleString()} />
       </div>
 
       <MethodPanel methods={stat.methods} methodIcons={methodIcons} />
