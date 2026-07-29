@@ -246,6 +246,26 @@ function EmptyBox({ text }) {
   )
 }
 
+/** 수단별 사용량 (재설정 횟수 / 큐브 개수) */
+function MethodPanel({ methods, methodIcons }) {
+  if (!methods?.length) return null
+  return (
+    <div className="rounded-xl overflow-hidden" style={CARD}>
+      <PanelHead title="재설정 횟수 / 큐브 개수" />
+      <div className="grid grid-cols-5 gap-x-1 gap-y-2.5 p-2.5">
+        {methods.map((m) => (
+          <div key={m.iconName} className="flex flex-col items-center gap-0.5">
+            {methodIcons[m.iconName]
+              ? <img src={methodIcons[m.iconName]} alt="" className="w-7 h-7 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
+              : <span className="w-7 h-7 rounded flex items-center justify-center text-[12px]" style={{ background: 'var(--mpl-row)', color: 'var(--text-dim)' }}>?</span>}
+            <span className="text-[12px] font-bold tabular-nums" style={{ color: 'var(--accent-bright)' }}>{m.count.toLocaleString()}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function GradeUpPanel({ title, rows }) {
   if (!rows?.length) return null
   return (
@@ -432,11 +452,12 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
 
       <MesoRow label="사용 메소" value={group.totalCost != null ? formatMesoShort(group.totalCost) : '-'} />
       <div className="grid grid-cols-3 gap-1.5">
-        <StatBox label="재설정" value={group.tries.toLocaleString()} />
+        <StatBox label="잠재 재설정" value={stat.countByKind.potential.toLocaleString()} />
+        <StatBox label="에디 재설정" value={stat.countByKind.additional.toLocaleString()} />
         <StatBox label="등급업" value={group.gradeUps.toLocaleString()} color="#4e9e20" />
-        <StatBox label="미라클" value={stat.miracle.toLocaleString()} />
       </div>
 
+      <MethodPanel methods={stat.methods} methodIcons={methodIcons} />
       <GradeUpPanel title="잠재능력 등급업" rows={stat.upgradeRates.potential} />
       <GradeUpPanel title="에디셔널 잠재능력 등급업" rows={stat.upgradeRates.additional} />
 
@@ -501,25 +522,11 @@ function PotentialStats({ stat, methodIcons }) {
       <MesoRow label="누적 재설정" value={formatMesoShort(stat.resetCost)} />
       <div className="grid grid-cols-3 gap-1.5">
         <StatBox label="감정 비용" value={formatMesoShort(stat.feeCost)} color="var(--accent-bright)" />
-        <StatBox label="총 재설정" value={stat.total.toLocaleString()} />
-        <StatBox label="미라클" value={stat.miracle.toLocaleString()} />
+        <StatBox label="잠재 재설정" value={stat.countByKind.potential.toLocaleString()} />
+        <StatBox label="에디 재설정" value={stat.countByKind.additional.toLocaleString()} />
       </div>
 
-      {stat.methods.length > 0 && (
-        <div className="rounded-xl overflow-hidden" style={CARD}>
-          <PanelHead title="재설정 횟수 / 큐브 개수" />
-          <div className="grid grid-cols-5 gap-x-1 gap-y-2.5 p-2.5">
-            {stat.methods.map((m) => (
-              <div key={m.iconName} className="flex flex-col items-center gap-0.5">
-                {methodIcons[m.iconName]
-                  ? <img src={methodIcons[m.iconName]} alt="" className="w-7 h-7 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
-                  : <span className="w-7 h-7 rounded flex items-center justify-center text-[12px]" style={{ background: 'var(--mpl-row)', color: 'var(--text-dim)' }}>?</span>}
-                <span className="text-[12px] font-bold tabular-nums" style={{ color: 'var(--accent-bright)' }}>{m.count.toLocaleString()}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <MethodPanel methods={stat.methods} methodIcons={methodIcons} />
 
       <div className="rounded-xl overflow-hidden" style={CARD}>
         <PanelHead title="등급별 재설정" right="잠재 · 에디" />

@@ -424,9 +424,11 @@ export function potentialStats(rows) {
   let resetCost = 0
   let feeCost = 0
   let miracle = 0
+  const countByKind = { potential: 0, additional: 0 }
 
   for (const r of rows) {
     const kind = r.kind === 'additional' ? 'additional' : 'potential'
+    countByKind[kind] += 1
     const grade = kind === 'additional' ? r.additional_potential_option_grade : r.potential_option_grade
     if (grade && resetByGrade[kind][grade] != null) resetByGrade[kind][grade] += 1
 
@@ -467,6 +469,7 @@ export function potentialStats(rows) {
 
   return {
     total: rows.length,
+    countByKind,
     resetCost,
     feeCost,
     totalCost: resetCost + feeCost,
