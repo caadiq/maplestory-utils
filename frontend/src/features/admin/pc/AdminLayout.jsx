@@ -69,7 +69,7 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-120px)] rounded-2xl overflow-hidden" style={{ boxShadow: '0 4px 16px rgba(31,44,61,.12)' }}>
+    <div className="flex min-h-[calc(100vh-56px)]">
       <nav
         className="w-[248px] shrink-0 px-3 py-4"
         style={{ background: 'linear-gradient(180deg, var(--mpl-navy-from), #253546)' }}

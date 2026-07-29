@@ -227,7 +227,7 @@ export default function Layout() {
         <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
         {/* fullscreen(계산기)은 1448 — 좌우 패딩 48을 제외한 내부 폭이 1400이라 보스 그리드가 넘치지 않음 */}
         <main className={`flex-1 mx-auto w-full ${
-          wide ? 'px-5 pt-4 pb-6'
+          wide ? ''
             : fullscreen ? 'max-w-[1448px] min-h-0 px-6 py-4' : 'max-w-[1400px] px-6 pt-4 pb-10'
         }`}>
           <Outlet />
