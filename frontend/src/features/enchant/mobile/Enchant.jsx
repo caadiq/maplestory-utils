@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, memo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../../hooks/useAuth'
 import MapleWindow, { MapleWindowTab } from '../../../components/pc/MapleWindow'
@@ -32,7 +32,7 @@ const EDGE = {
   destroy: 'var(--mpl-red-to)',
 }
 
-const PAGE_SIZE = 40
+const PAGE_SIZE = 20
 
 // ─────────── 공용 조각 ───────────
 
@@ -219,7 +219,7 @@ function useInfiniteRows(total, step = PAGE_SIZE) {
     if (!el || limit >= total) return
     const io = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) setLimit((v) => Math.min(v + step, total)) },
-      { rootMargin: '300px' }
+      { rootMargin: '1200px' }
     )
     io.observe(el)
     return () => io.disconnect()
@@ -340,20 +340,30 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
 
       <div className="rounded-xl overflow-hidden" style={CARD}>
         <PanelHead title="강화 내역" right={`${group.records.length.toLocaleString()}회`} />
-        {rows.map((r) => {
-          const { date, time } = formatDateParts(r.date_create)
-          const res = sfResult(r)
-          const drop = isDrop(r)
-          const kind = drop ? 'drop' : res
-          const cost = sfCost(r)
-          return (
+        {rows.map((r) => <SfLogRow key={r.id} r={r} />)}
+        <LoadMoreSentinel hasMore={hasMore} sentinelRef={sentinelRef} />
+      </div>
+    </MapleWindow>
+  )
+}
+
+/** 강화 내역 한 줄 — 목록이 늘어나도 기존 행은 다시 그리지 않는다 */
+const SfLogRow = memo(function SfLogRow({ r }) {
+  const { date, time } = formatDateParts(r.date_create)
+  const res = sfResult(r)
+  const drop = isDrop(r)
+  const kind = drop ? 'drop' : res
+  const cost = sfCost(r)
+  return (
             <div
-              key={r.id}
               className="px-3 py-2.5 border-b last:border-b-0"
               style={{
                 borderColor: 'var(--mpl-card-line)',
                 background: res === 'destroy' ? 'var(--mpl-row-danger, #fdf1ef)' : undefined,
                 boxShadow: `inset 3px 0 0 ${EDGE[kind]}`,
+                // 화면 밖 행은 그리지 않아 새 묶음이 붙을 때 끊기지 않는다
+                contentVisibility: 'auto',
+                containIntrinsicSize: '0 62px',
               }}
             >
               <div className="flex items-center justify-between gap-2">
@@ -389,13 +399,8 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
                 </span>
               </div>
             </div>
-          )
-        })}
-        <LoadMoreSentinel hasMore={hasMore} sentinelRef={sentinelRef} />
-      </div>
-    </MapleWindow>
   )
-}
+})
 
 // ─────────── 잠재능력 상세 ───────────
 
@@ -437,14 +442,29 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
 
       <div className="rounded-xl overflow-hidden" style={CARD}>
         <PanelHead title="재설정 내역" right={`${group.records.length.toLocaleString()}회`} />
-        {rows.map((r) => {
-          const { date, time } = formatDateParts(r.date_create)
-          const mIcon = methodIcons[methodIconName(r)]
-          const cost = potentialCost(r)
-          const before = r.kind === 'additional' ? r.before_additional_potential_option : r.before_potential_option
-          const after = r.kind === 'additional' ? r.after_additional_potential_option : r.after_potential_option
-          return (
-            <div key={r.id} className="px-3 py-2.5 border-b last:border-b-0" style={{ borderColor: 'var(--mpl-card-line)' }}>
+        {rows.map((r) => <PotLogRow key={r.id} r={r} methodIcons={methodIcons} />)}
+        <LoadMoreSentinel hasMore={hasMore} sentinelRef={sentinelRef} />
+      </div>
+    </MapleWindow>
+  )
+}
+
+/** 재설정 내역 한 줄 — 목록이 늘어나도 기존 행은 다시 그리지 않는다 */
+const PotLogRow = memo(function PotLogRow({ r, methodIcons }) {
+  const { date, time } = formatDateParts(r.date_create)
+  const mIcon = methodIcons[methodIconName(r)]
+  const cost = potentialCost(r)
+  const before = r.kind === 'additional' ? r.before_additional_potential_option : r.before_potential_option
+  const after = r.kind === 'additional' ? r.after_additional_potential_option : r.after_potential_option
+  return (
+            <div
+              className="px-3 py-2.5 border-b last:border-b-0"
+              style={{
+                borderColor: 'var(--mpl-card-line)',
+                contentVisibility: 'auto',
+                containIntrinsicSize: '0 148px',
+              }}
+            >
               <div className="flex items-center gap-2">
                 {mIcon
                   ? <img src={mIcon} alt="" className="w-[26px] h-[26px] object-contain shrink-0" style={{ imageRendering: 'pixelated' }} draggable={false} />
@@ -469,13 +489,8 @@ function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {
               </div>
               <div className="text-[12px] mt-1.5" style={{ color: 'var(--text-dim)' }}>{date} · {time}</div>
             </div>
-          )
-        })}
-        <LoadMoreSentinel hasMore={hasMore} sentinelRef={sentinelRef} />
-      </div>
-    </MapleWindow>
   )
-}
+})
 
 // ─────────── 잠재 목록 통계 ───────────
 
