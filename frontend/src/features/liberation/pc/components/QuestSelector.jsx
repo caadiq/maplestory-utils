@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
+import { useScrollChainBlock } from '../../../../hooks/useScrollLock'
 
 /**
  * 진행 중인 퀘스트 드롭다운 (보스 초상화 + 이름)
@@ -10,6 +11,8 @@ import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 export default function QuestSelector({ chapters, imageBase, value, onChange }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
+  const popupRef = useRef(null)
+  useScrollChainBlock(popupRef, open)
 
   useEffect(() => {
     if (!open) return
@@ -64,6 +67,7 @@ export default function QuestSelector({ chapters, imageBase, value, onChange }) 
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.15 }}
+            ref={popupRef}
             className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border overflow-hidden origin-top"
             style={{
               background: 'var(--popup-bg)',

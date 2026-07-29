@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
+import { useScrollChainBlock } from '../../hooks/useScrollLock'
 
 /**
  * 커스텀 드롭다운 셀렉트 (포털로 렌더링 → 부모 overflow:hidden에도 잘림 없음)
@@ -52,6 +53,8 @@ export default function Select({ value, onChange, options, disabled, className =
   }, [open])
 
   const selected = options.find((o) => o.value === value)
+
+  useScrollChainBlock(popupRef, open)
 
   const popup = (
     <AnimatePresence>
