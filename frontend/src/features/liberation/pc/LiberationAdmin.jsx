@@ -3,9 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import FormField, { formInputClass, formInputStyle } from '../../../components/common/FormField'
 import DatePicker from '../../../components/common/DatePicker'
+import { PageHeader } from '../../admin/pc/components/ui'
 import ImagePicker from '../../admin/pc/components/ImagePicker'
 
-export default function GenesisPassAdmin() {
+export default function LiberationAdmin() {
   const queryClient = useQueryClient()
 
   const [startDate, setStartDate] = useState('')
@@ -68,13 +69,11 @@ export default function GenesisPassAdmin() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pt-6">
-      <div>
-        <h2 className="text-lg font-medium">제네시스 패스</h2>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--text-dim)' }}>
-          해방 계산기에 표시되는 제네시스 패스 시즌·배수·기간을 설정합니다.
-        </p>
-      </div>
+    <div className="space-y-5 max-w-[780px]">
+      <PageHeader
+        title="해방 날짜 계산기"
+        description="해방 계산기에 표시되는 제네시스 패스 시즌·배수·기간을 설정합니다"
+      />
 
       <div className="rounded-2xl border p-6 space-y-5" style={panelStyle}>
         <p className="text-xs leading-relaxed" style={{ color: 'var(--text-dim)' }}>

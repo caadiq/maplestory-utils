@@ -8,7 +8,6 @@ import { useLayout } from '../../../components/pc/Layout'
 const RESOURCE_ITEMS = [
   { to: '/admin/images', label: '이미지', icon: '🖼' },
   { to: '/admin/challenger-seasons', label: '챌린저스 시즌', icon: '🏆' },
-  { to: '/admin/genesis-pass', label: '제네시스 패스', icon: '🎫' },
 ]
 
 const NAV_BASE = 'group flex items-center gap-2.5 pl-3 pr-2.5 py-2.5 rounded-lg text-[14px] transition'
