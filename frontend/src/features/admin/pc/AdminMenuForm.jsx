@@ -100,10 +100,10 @@ export default function AdminMenuForm() {
   })
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto pt-0">
+    <div className="space-y-5 max-w-[780px]">
       <div>
-        <h2 className="text-lg font-medium">{isEdit ? '메뉴 항목 편집' : '메뉴 항목 추가'}</h2>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--text-dim)' }}>
+        <h2 className="text-[20px] font-bold" style={{ color: 'var(--text-strong)' }}>{isEdit ? '메뉴 항목 편집' : '메뉴 항목 추가'}</h2>
+        <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>
           홈 화면에 표시되는 카드의 정보를 설정합니다
         </p>
       </div>
