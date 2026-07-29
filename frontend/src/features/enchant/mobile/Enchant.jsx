@@ -359,11 +359,13 @@ function StarforceDetail({ group, icon, worldIcon, onBack, nav }) {
                   <span className="block" style={{ color: 'var(--text-muted)' }}>{date}</span>
                   <span className="block mt-0.5" style={{ color: 'var(--text-dim)' }}>{time}</span>
                 </span>
-                <span className="text-[12px] tabular-nums whitespace-nowrap">
+                <span className="text-[12px] tabular-nums whitespace-nowrap text-right leading-tight shrink-0">
                   {cost == null ? <span style={{ color: 'var(--text-dim)' }}>-</span> : (
                     <>
-                      {cost.final !== cost.base && <span className="line-through mr-1" style={{ color: 'var(--text-dim)' }}>{formatMesoShort(cost.base)}</span>}
-                      <span className="font-bold" style={{ color: 'var(--accent-bright)' }}>{formatKoreanMeso(cost.final)}</span>
+                      {cost.final !== cost.base && (
+                        <span className="block line-through" style={{ color: 'var(--text-dim)' }}>{formatKoreanMeso(cost.base)}</span>
+                      )}
+                      <span className="block font-bold mt-0.5" style={{ color: 'var(--accent-bright)' }}>{formatKoreanMeso(cost.final)}</span>
                     </>
                   )}
                 </span>
