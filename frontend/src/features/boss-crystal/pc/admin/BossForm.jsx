@@ -171,7 +171,7 @@ export default function BossForm() {
   const displayImage = imagePreview || existingImageUrl
 
   return (
-    <div className="space-y-5 max-w-[780px]">
+    <div className="space-y-5 max-w-[780px] mx-auto">
       <div>
         <h2 className="text-[20px] font-bold" style={{ color: 'var(--text-strong)' }}>{isEdit ? '보스 편집' : '보스 추가'}</h2>
         <p className="text-[14px] mt-1" style={{ color: 'var(--text-muted)' }}>보스 이름과 난이도별 결정 정보를 입력합니다</p>
