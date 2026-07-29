@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import Modal from '../../../components/common/Modal'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
+import { PageHeader, Panel, Row, Button, EmptyBox } from './components/ui'
 import DatePicker from '../../../components/common/DatePicker'
 import FormField, { formInputClass, formInputStyle } from '../../../components/common/FormField'
 
@@ -120,72 +121,61 @@ export default function AdminChallengerSeasons() {
   })
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pt-0">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">챌린저스 시즌 관리</h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-dim)' }}>
-            시즌 기간을 등록하면 그 기간에 해당 시즌의 시즌보스가 챌린저스 월드 캐릭터에게 노출됩니다
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => { setEditing(null); setSaveError(''); setModalOpen(true) }}
-          className="rounded-lg px-4 py-2 text-sm font-medium"
-          style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)', boxShadow: 'var(--btn-primary-shadow)' }}
-        >
-          + 시즌 추가
-        </button>
-      </div>
+    <div>
+      <PageHeader
+        title="챌린저스 시즌 관리"
+        description="시즌 기간을 등록하면 그 기간에 해당 시즌의 시즌보스가 챌린저스 월드 캐릭터에게 노출됩니다"
+      >
+        <Button onClick={() => { setEditing(null); setSaveError(''); setModalOpen(true) }}>+ 시즌 추가</Button>
+      </PageHeader>
 
       {isLoading ? (
-        <div className="h-24 rounded-2xl animate-pulse" style={{ background: 'var(--skeleton-bg)' }} />
+        <Panel>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-[62px] animate-pulse border-b last:border-b-0" style={{ background: 'var(--skeleton-bg)', borderColor: 'var(--mpl-card-line)' }} />
+          ))}
+        </Panel>
       ) : seasons.length === 0 ? (
-        <div
-          className="rounded-2xl border border-dashed p-12 text-center text-sm"
-          style={{ borderColor: 'var(--dashed-border)', color: 'var(--text-dim)' }}
-        >
-          등록된 시즌이 없습니다
-        </div>
+        <EmptyBox
+          icon="🏆"
+          text="등록된 시즌이 없습니다"
+          action={<Button onClick={() => { setEditing(null); setSaveError(''); setModalOpen(true) }}>첫 시즌 추가하기</Button>}
+        />
       ) : (
-        <div className="space-y-2">
-          {seasons.map((s) => (
-            <div
-              key={s.id}
-              className="flex items-center gap-4 rounded-xl border px-5 py-4"
-              style={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)' }}
-            >
-              <span className="text-base font-semibold">챌린저스 {s.season_number}시즌</span>
-              {isActive(s) && (
-                <span
-                  className="rounded-full px-2.5 py-0.5 text-xs font-bold"
-                  style={{ background: 'var(--selected-bg)', color: 'var(--accent-bright)', border: '1px solid var(--selected-border)' }}
-                >
-                  진행 중
+        <Panel
+          columns={(
+            <>
+              <span className="flex-[2] min-w-0">시즌</span>
+              <span className="flex-[3] min-w-0">기간</span>
+              <span className="w-[136px] shrink-0 text-right" style={{ color: '#cfdae4' }}>{seasons.length}</span>
+            </>
+          )}
+        >
+          {seasons.map((s, i) => (
+            <Row key={s.id} index={i}>
+              <span className="flex-[2] min-w-0 flex items-center gap-2">
+                <span className="text-[15px] font-bold" style={{ color: 'var(--text-strong)' }}>
+                  챌린저스 {s.season_number}시즌
                 </span>
-              )}
-              <span className="flex-1 text-sm tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                {isActive(s) && (
+                  <span
+                    className="rounded px-2 py-0.5 text-[12px] font-bold shrink-0"
+                    style={{ background: 'linear-gradient(180deg, var(--mpl-lime-from), var(--mpl-lime-to))', color: '#fff' }}
+                  >
+                    진행 중
+                  </span>
+                )}
+              </span>
+              <span className="flex-[3] min-w-0 text-[14px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
                 {formatPeriod(s)}
               </span>
-              <button
-                type="button"
-                onClick={() => { setEditing(s); setSaveError(''); setModalOpen(true) }}
-                className="rounded-lg px-3 py-1.5 text-sm"
-                style={{ background: 'var(--btn-bg)', border: '1px solid var(--btn-border)' }}
-              >
-                수정
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(s)}
-                className="rounded-lg px-3 py-1.5 text-sm"
-                style={{ background: 'var(--btn-bg)', border: '1px solid var(--btn-border)', color: 'var(--danger-text)' }}
-              >
-                삭제
-              </button>
-            </div>
+              <span className="flex items-center gap-1.5 shrink-0 w-[136px] justify-end">
+                <Button variant="ghost" onClick={() => { setEditing(s); setSaveError(''); setModalOpen(true) }}>수정</Button>
+                <Button variant="dangerGhost" onClick={() => setConfirmDelete(s)}>삭제</Button>
+              </span>
+            </Row>
           ))}
-        </div>
+        </Panel>
       )}
 
       <SeasonModal
