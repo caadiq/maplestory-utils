@@ -12,11 +12,12 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { api } from '../../../../api/client'
 import Tooltip from '../../../../components/common/Tooltip'
+import ConfirmDialog from '../../../../components/common/ConfirmDialog'
 import { PageHeader, Panel, Row, Button, Thumb, GripIcon, EmptyBox } from '../../../admin/pc/components/ui'
 import { DIFFICULTIES, formatMeso, getDifficultyBadgeStyle } from './constants'
 
 /** 한 행의 내용 — 드래그 오버레이에서도 같은 모양을 쓴다 */
-function BossRowContent({ boss, index = 0, dragHandle = null, onEdit, dragging = false, divider = true }) {
+function BossRowContent({ boss, index = 0, dragHandle = null, onEdit, onDelete, dragging = false, divider = true }) {
   const used = DIFFICULTIES.filter((d) => boss.difficulties?.some((bd) => bd.difficulty === d.key))
   const top = boss.difficulties?.reduce(
     (max, bd) => (bd.crystal_price > (max?.crystal_price ?? -1) ? bd : max),
@@ -67,12 +68,15 @@ function BossRowContent({ boss, index = 0, dragHandle = null, onEdit, dragging =
       <span className="w-[124px] shrink-0 text-right text-[15px] font-bold tabular-nums" style={{ color: 'var(--accent-bright)' }}>
         {top ? formatMeso(top.crystal_price) : '-'}
       </span>
-      <Button variant="ghost" onClick={onEdit}>수정</Button>
+      <span className="flex items-center gap-1.5 shrink-0">
+        <Button variant="ghost" onClick={onEdit}>수정</Button>
+        <Button variant="dangerGhost" onClick={onDelete}>삭제</Button>
+      </span>
     </Row>
   )
 }
 
-function SortableBossRow({ boss, index, onEdit }) {
+function SortableBossRow({ boss, index, onEdit, onDelete }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging, setActivatorNodeRef } = useSortable({
     id: boss.id,
     transition: { duration: 200, easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)' },
@@ -84,6 +88,7 @@ function SortableBossRow({ boss, index, onEdit }) {
         boss={boss}
         index={index}
         onEdit={onEdit}
+        onDelete={onDelete}
         dragHandle={(
           <button
             type="button"
@@ -111,6 +116,7 @@ export default function BossList() {
 
   const [items, setItems] = useState([])
   const [activeId, setActiveId] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   useEffect(() => { setItems(bosses) }, [bosses])
 
@@ -128,6 +134,15 @@ export default function BossList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['boss-crystal'] })
     },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api(`/api/admin/boss-crystal/bosses/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'boss-crystal', 'bosses'] })
+      queryClient.invalidateQueries({ queryKey: ['boss-crystal'] })
+    },
+    onError: (err) => alert(err.message),
   })
 
   const handleDragEnd = (event) => {
@@ -148,6 +163,7 @@ export default function BossList() {
   const seasonItems = items.filter((b) => b.season)
   const normalItems = items.filter((b) => !b.season)
   const edit = (id) => () => navigate(`bosses/${id}`)
+  const remove = (boss) => () => setDeleteTarget(boss)
 
   return (
     <div>
@@ -178,7 +194,15 @@ export default function BossList() {
           {seasonItems.length > 0 && (
             <Panel title="시즌보스" right={seasonItems.length} className="mb-3">
               {seasonItems.map((boss, i) => (
-                <BossRowContent key={boss.id} boss={boss} index={i} onEdit={edit(boss.id)} divider={false} dragHandle={<span className="w-3.5" />} />
+                <BossRowContent
+                  key={boss.id}
+                  boss={boss}
+                  index={i}
+                  onEdit={edit(boss.id)}
+                  onDelete={remove(boss)}
+                  divider={false}
+                  dragHandle={<span className="w-3.5" />}
+                />
               ))}
             </Panel>
           )}
@@ -186,16 +210,27 @@ export default function BossList() {
           <Panel title="일반 보스" right={normalItems.length}>
             <SortableContext items={normalItems.map((b) => b.id)} strategy={verticalListSortingStrategy}>
               {normalItems.map((boss, i) => (
-                <SortableBossRow key={boss.id} boss={boss} index={i} onEdit={edit(boss.id)} />
+                <SortableBossRow key={boss.id} boss={boss} index={i} onEdit={edit(boss.id)} onDelete={remove(boss)} />
               ))}
             </SortableContext>
           </Panel>
 
           <DragOverlay dropAnimation={{ duration: 200, easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)' }}>
-            {activeBoss ? <BossRowContent boss={activeBoss} onEdit={() => {}} dragging /> : null}
+            {activeBoss ? <BossRowContent boss={activeBoss} onEdit={() => {}} onDelete={() => {}} dragging /> : null}
           </DragOverlay>
         </DndContext>
       )}
+
+      <ConfirmDialog
+        open={deleteTarget != null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => { deleteMutation.mutate(deleteTarget.id); setDeleteTarget(null) }}
+        title="보스 삭제"
+        description={`"${deleteTarget?.name}" 보스를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`}
+        confirmText="삭제"
+        destructive
+        loading={deleteMutation.isPending}
+      />
     </div>
   )
 }
