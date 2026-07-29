@@ -1,5 +1,5 @@
 // 장비 강화 기록 공용 로직 (PC·모바일 공유)
-import { starforceCost, cubeFee, potentialResetCost, guaranteeCeiling, insightFreeLevel } from './costs'
+import { starforceCost, cubeFee, potentialResetCost, guaranteeCeiling } from './costs'
 
 /** KST 기준 오늘 YYYY-MM-DD */
 export function todayKST() {
@@ -244,19 +244,12 @@ export function normalizePotential(cubeItems, potentialItems) {
 }
 
 /** 재설정 1회 비용 (계산 불가 시 null) */
-// 캐릭터명 → 통찰력 레벨 (계정 성향 조회 결과 주입)
-let insightLevels = {}
-
-export function setInsightLevels(map) {
-  insightLevels = map || {}
-}
-
 export function potentialCost(row) {
   if (row.method === 'meso') {
     const grade = row.kind === 'additional' ? row.additional_potential_option_grade : row.potential_option_grade
     return potentialResetCost(row.kind, grade, row.item_level)
   }
-  return cubeFee(row.cube_type, row.item_level, insightFreeLevel(insightLevels[row.character_name]))
+  return cubeFee(row.cube_type, row.item_level)
 }
 
 /** 등급업 여부 */
