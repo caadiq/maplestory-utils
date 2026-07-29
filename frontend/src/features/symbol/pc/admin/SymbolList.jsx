@@ -48,18 +48,22 @@ function SymbolRowContent({ symbol, index = 0, dragHandle = null, onEdit, onDele
         {dragHandle ?? <GripIcon />}
       </span>
       <Thumb url={symbol.image_url} />
-      <span className="w-[190px] shrink-0 text-[15px] font-bold truncate" style={{ color: 'var(--text-strong)' }}>
+      <span className="flex-1 min-w-0 text-[15px] font-bold truncate" style={{ color: 'var(--text-strong)' }}>
         {symbol.region}
       </span>
-      <span className="w-[110px] shrink-0">
+      <span className="w-[128px] shrink-0">
         <span className="text-[12.5px] font-bold px-2.5 py-1 rounded border" style={badgeStyle}>{symbol.type}</span>
       </span>
-      <span className="flex-1 flex items-center gap-4 text-[13.5px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
-        <span>만렙 <b style={{ color: 'var(--text-strong)' }}>{symbol.max_level}</b></span>
-        <span>일퀘 <b style={{ color: 'var(--text-strong)' }}>{symbol.daily_default}</b></span>
-        <span>주간퀘 <b style={{ color: 'var(--text-strong)' }}>{symbol.weekly_default}</b></span>
+      <span className="w-[76px] shrink-0 text-center text-[15px] font-bold tabular-nums" style={{ color: 'var(--text-strong)' }}>
+        {symbol.max_level}
       </span>
-      <span className="flex items-center gap-1.5 shrink-0">
+      <span className="w-[76px] shrink-0 text-center text-[15px] font-bold tabular-nums" style={{ color: 'var(--text-strong)' }}>
+        {symbol.daily_default}
+      </span>
+      <span className="w-[76px] shrink-0 text-center text-[15px] font-bold tabular-nums" style={{ color: 'var(--text-strong)' }}>
+        {symbol.weekly_default}
+      </span>
+      <span className="flex items-center gap-1.5 shrink-0 ml-2">
         <Button variant="ghost" onClick={onEdit}>수정</Button>
         <Button variant="dangerGhost" onClick={onDelete}>삭제</Button>
       </span>
@@ -176,7 +180,22 @@ export default function SymbolList() {
           onDragCancel={() => setActiveId(null)}
           onDragEnd={handleDragEnd}
         >
-          <Panel title="심볼" right={items.length}>
+          <Panel
+            title="심볼"
+            right={items.length}
+            columns={(
+              <>
+                <span className="w-[14px] shrink-0" />
+                <span className="w-[46px] shrink-0" />
+                <span className="flex-1 min-w-0">지역</span>
+                <span className="w-[128px] shrink-0">유형</span>
+                <span className="w-[76px] shrink-0 text-center">만렙</span>
+                <span className="w-[76px] shrink-0 text-center">일퀘</span>
+                <span className="w-[76px] shrink-0 text-center">주간퀘</span>
+                <span className="w-[136px] shrink-0" />
+              </>
+            )}
+          >
             <SortableContext items={items.map((s) => s.id)} strategy={verticalListSortingStrategy}>
               {items.map((s, i) => (
                 <SortableSymbolRow key={s.id} symbol={s} index={i} onEdit={edit(s.id)} onDelete={remove(s)} />

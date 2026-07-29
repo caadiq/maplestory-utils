@@ -192,7 +192,22 @@ export default function BossList() {
           onDragEnd={handleDragEnd}
         >
           {seasonItems.length > 0 && (
-            <Panel title="시즌보스" right={seasonItems.length} className="mb-3">
+            <Panel
+              title="시즌보스"
+              right={seasonItems.length}
+              columns={(
+                <>
+                  <span className="w-[14px] shrink-0" />
+                  <span className="w-[46px] shrink-0" />
+                  <span className="w-[210px] shrink-0">보스</span>
+                  <span className="w-[84px] shrink-0">인원</span>
+                  <span className="flex-1">난이도</span>
+                  <span className="w-[124px] shrink-0 text-right">결정 가격</span>
+                  <span className="w-[124px] shrink-0" />
+                </>
+              )}
+            className="mb-3"
+            >
               {seasonItems.map((boss, i) => (
                 <BossRowContent
                   key={boss.id}
@@ -207,7 +222,21 @@ export default function BossList() {
             </Panel>
           )}
 
-          <Panel title="일반 보스" right={normalItems.length}>
+          <Panel
+            title="일반 보스"
+            right={normalItems.length}
+            columns={(
+              <>
+                <span className="w-[14px] shrink-0" />
+                <span className="w-[46px] shrink-0" />
+                <span className="w-[210px] shrink-0">보스</span>
+                <span className="w-[84px] shrink-0">인원</span>
+                <span className="flex-1">난이도</span>
+                <span className="w-[124px] shrink-0 text-right">결정 가격</span>
+                <span className="w-[124px] shrink-0" />
+              </>
+            )}
+          >
             <SortableContext items={normalItems.map((b) => b.id)} strategy={verticalListSortingStrategy}>
               {normalItems.map((boss, i) => (
                 <SortableBossRow key={boss.id} boss={boss} index={i} onEdit={edit(boss.id)} onDelete={remove(boss)} />
