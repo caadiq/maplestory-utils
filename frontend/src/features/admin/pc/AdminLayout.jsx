@@ -43,7 +43,7 @@ export default function AdminLayout() {
     return () => setWide(false)
   }, [setWide])
 
-  const { data: menus = [] } = useQuery({
+  const { data: menus = [], isLoading: menusLoading } = useQuery({
     queryKey: ['admin', 'menus'],
     queryFn: () => api('/api/admin/menus').catch(() => []),
     enabled: !!user?.is_admin,
@@ -61,6 +61,14 @@ export default function AdminLayout() {
 
   // 대시보드 없이 첫 기능으로 바로 들어간다 (사이드바가 이동을 담당)
   if (pathname === '/admin' || pathname === '/admin/') {
+    // 메뉴를 받기 전에 폴백으로 튀지 않도록 대기
+    if (menusLoading) {
+      return (
+        <div className="flex items-center justify-center pt-20">
+          <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
+        </div>
+      )
+    }
     const slug = (menus[0]?.url || '').replace(/^\/+/, '').split('/')[0]
     if (slug) return <Navigate to={`/admin/${slug}`} replace />
     if (menus.length > 0) return <Navigate to={`/admin/menus/${menus[0].id}`} replace />
