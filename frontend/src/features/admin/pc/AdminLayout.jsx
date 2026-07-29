@@ -71,8 +71,11 @@ export default function AdminLayout() {
   return (
     <div className="flex min-h-[calc(100vh-56px)]">
       <nav
-        className="w-[248px] shrink-0 px-3 py-4"
-        style={{ background: 'linear-gradient(180deg, var(--mpl-navy-from), #253546)' }}
+        className="w-[248px] shrink-0 px-3 py-4 sticky top-[60px] self-start overflow-y-auto"
+        style={{
+          background: 'linear-gradient(180deg, var(--mpl-navy-from), #253546)',
+          height: 'calc(100vh - 60px)',   // 본문만 스크롤되도록 사이드바는 고정
+        }}
       >
         <GroupLabel
           action={(
