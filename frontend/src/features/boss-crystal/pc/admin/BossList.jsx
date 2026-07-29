@@ -16,7 +16,7 @@ import { PageHeader, Panel, Row, Button, Thumb, GripIcon, EmptyBox } from '../..
 import { DIFFICULTIES, formatMeso, getDifficultyBadgeStyle } from './constants'
 
 /** 한 행의 내용 — 드래그 오버레이에서도 같은 모양을 쓴다 */
-function BossRowContent({ boss, index = 0, dragHandle = null, onEdit, dragging = false }) {
+function BossRowContent({ boss, index = 0, dragHandle = null, onEdit, dragging = false, divider = true }) {
   const used = DIFFICULTIES.filter((d) => boss.difficulties?.some((bd) => bd.difficulty === d.key))
   const top = boss.difficulties?.reduce(
     (max, bd) => (bd.crystal_price > (max?.crystal_price ?? -1) ? bd : max),
@@ -26,6 +26,7 @@ function BossRowContent({ boss, index = 0, dragHandle = null, onEdit, dragging =
   return (
     <Row
       index={index}
+      divider={divider}
       className={dragging ? 'rounded-xl' : ''}
       style={dragging ? {
         background: 'var(--mpl-card)',
@@ -37,18 +38,18 @@ function BossRowContent({ boss, index = 0, dragHandle = null, onEdit, dragging =
         {dragHandle ?? <GripIcon />}
       </span>
       <Thumb url={boss.image_url} />
-      <span className="w-[190px] shrink-0 flex items-center gap-1.5 min-w-0">
-        <span className="text-[14px] font-bold truncate" style={{ color: 'var(--text-strong)' }}>{boss.name}</span>
+      <span className="w-[210px] shrink-0 flex items-center gap-1.5 min-w-0">
+        <span className="text-[15px] font-bold truncate" style={{ color: 'var(--text-strong)' }}>{boss.name}</span>
         {boss.season && (
           <span
-            className="shrink-0 rounded px-1.5 py-0.5 text-[12px] font-bold"
+            className="shrink-0 rounded px-2 py-0.5 text-[12.5px] font-bold"
             style={{ background: 'linear-gradient(180deg, #f7dcab, #eec584)', color: '#6b4b00' }}
           >
             {boss.season.season_number}시즌
           </span>
         )}
       </span>
-      <span className="w-[74px] shrink-0 text-[13px]" style={{ color: 'var(--text-muted)' }}>
+      <span className="w-[84px] shrink-0 text-[13.5px]" style={{ color: 'var(--text-muted)' }}>
         최대 {boss.max_party_size}인
       </span>
       <span className="flex-1 flex flex-wrap items-center gap-1 min-w-0">
@@ -56,17 +57,17 @@ function BossRowContent({ boss, index = 0, dragHandle = null, onEdit, dragging =
           const bd = boss.difficulties.find((x) => x.difficulty === d.key)
           return (
             <Tooltip key={d.key} text={`${d.label} · ${formatMeso(bd.crystal_price)}`}>
-              <span className="text-[12px] font-bold px-2 py-0.5 rounded border" style={getDifficultyBadgeStyle(d.key)}>
+              <span className="text-[12.5px] font-bold px-2.5 py-1 rounded border" style={getDifficultyBadgeStyle(d.key)}>
                 {d.label}
               </span>
             </Tooltip>
           )
         })}
       </span>
-      <span className="w-[104px] shrink-0 text-right text-[13.5px] font-bold tabular-nums" style={{ color: 'var(--accent-bright)' }}>
+      <span className="w-[124px] shrink-0 text-right text-[15px] font-bold tabular-nums" style={{ color: 'var(--accent-bright)' }}>
         {top ? formatMeso(top.crystal_price) : '-'}
       </span>
-      <Button variant="ghost" size="sm" onClick={onEdit}>수정</Button>
+      <Button variant="ghost" onClick={onEdit}>수정</Button>
     </Row>
   )
 }
@@ -157,7 +158,7 @@ export default function BossList() {
       {isLoading ? (
         <Panel title="보스">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-[54px] animate-pulse border-b last:border-b-0" style={{ background: 'var(--skeleton-bg)', borderColor: 'var(--mpl-card-line)' }} />
+            <div key={i} className="h-[68px] animate-pulse border-b last:border-b-0" style={{ background: 'var(--skeleton-bg)', borderColor: 'var(--mpl-card-line)' }} />
           ))}
         </Panel>
       ) : items.length === 0 ? (
@@ -177,7 +178,7 @@ export default function BossList() {
           {seasonItems.length > 0 && (
             <Panel title="시즌보스" right={seasonItems.length} className="mb-3">
               {seasonItems.map((boss, i) => (
-                <BossRowContent key={boss.id} boss={boss} index={i} onEdit={edit(boss.id)} dragHandle={<span className="w-3" />} />
+                <BossRowContent key={boss.id} boss={boss} index={i} onEdit={edit(boss.id)} divider={false} dragHandle={<span className="w-3.5" />} />
               ))}
             </Panel>
           )}

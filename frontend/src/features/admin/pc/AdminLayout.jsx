@@ -132,7 +132,7 @@ export default function AdminLayout() {
         ))}
       </nav>
 
-      <div className="flex-1 min-w-0 p-4" style={{ background: 'var(--mpl-panel)' }}>
+      <div className="flex-1 min-w-0 px-7 py-6" style={{ background: 'var(--mpl-panel)' }}>
         <Outlet />
       </div>
     </div>
