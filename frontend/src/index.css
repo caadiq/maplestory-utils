@@ -390,3 +390,9 @@ input[type="number"] {
 *::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+
+/* 야누스 알림 시점 입력 — 스피너가 뜨면 폭이 흔들려서 숨긴다 */
+.janus-num::-webkit-outer-spin-button,
+.janus-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.janus-num { -moz-appearance: textfield; appearance: textfield; }
