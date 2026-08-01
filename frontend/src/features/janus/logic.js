@@ -187,20 +187,20 @@ export function findMatches(gray, w, h, tpl, tw, th) {
 
 const TEMPLATE_KEY = 'maple.janus.template'
 
+/** { rgba, tw, th, rw, rh } — 지정한 순간의 아이콘 픽셀과 영역 비율 */
 export function saveTemplate(tpl) {
   try {
-    localStorage.setItem(TEMPLATE_KEY, JSON.stringify({ ...tpl, vec: Array.from(tpl.vec) }))
+    localStorage.setItem(TEMPLATE_KEY, JSON.stringify(tpl))
   } catch {
-    // 저장 실패해도 이번 세션 동작에는 지장 없음
+    // 용량 초과 등 — 저장 못 해도 이번 세션 동작에는 지장 없다
   }
 }
 
 export function loadTemplate() {
   try {
     const raw = localStorage.getItem(TEMPLATE_KEY)
-    if (!raw) return null
-    const t = JSON.parse(raw)
-    return { ...t, vec: Float32Array.from(t.vec) }
+    const t = raw && JSON.parse(raw)
+    return t?.rgba?.length ? t : null
   } catch {
     return null
   }
