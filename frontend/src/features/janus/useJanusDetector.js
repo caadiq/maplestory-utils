@@ -52,6 +52,7 @@ export function useJanusDetector({ onInstall, minGapMs = 0 }) {
   const dipSinceRef = useRef(null)   // "확실히 밝음"에서 처음 벗어난 시각 (진짜 설치 순간에 가깝다)
   const latencyRef = useRef(0)       // 화면 공유 파이프라인 지연(ms)
   const templateRef = useRef(null)   // 지정할 때 기억한 아이콘 모양
+  const darkSavedRef = useRef(false) // 쿨타임 중 모습을 이번 세션에 저장했는지
   const builtinIconRef = useRef(null) // icon/ 폴더의 원본 (있을 때만)
   const matchRef = useRef(null)
   const glyphRef = useRef(null)
@@ -210,14 +211,20 @@ export function useJanusDetector({ onInstall, minGapMs = 0 }) {
     const saved = loadTemplate()
     let source = null
     let sizes = []
+    const extraSources = []
     if (saved) {
-      const tc = document.createElement('canvas')
-      tc.width = saved.tw
-      tc.height = saved.th
-      tc.getContext('2d').putImageData(
-        new ImageData(new Uint8ClampedArray(saved.rgba), saved.tw, saved.th), 0, 0,
-      )
-      source = { el: tc, w: saved.tw, h: saved.th }
+      const toCanvas = (rgba) => {
+        const tc = document.createElement('canvas')
+        tc.width = saved.tw
+        tc.height = saved.th
+        tc.getContext('2d').putImageData(
+          new ImageData(new Uint8ClampedArray(rgba), saved.tw, saved.th), 0, 0,
+        )
+        return { el: tc, w: saved.tw, h: saved.th }
+      }
+      source = toCanvas(saved.rgba)
+      // 쿨타임 중 모습도 저장돼 있으면 같이 훑는다
+      if (saved.darkRgba?.length) extraSources.push(toCanvas(saved.darkRgba))
       sizes = [{ w: Math.round(saved.rw * vw), h: Math.round(saved.rh * vh) }]
     } else {
       const img = builtinIconRef.current
@@ -226,22 +233,26 @@ export function useJanusDetector({ onInstall, minGapMs = 0 }) {
       sizes = LOCATE.builtinSizes.map((n) => ({ w: n, h: Math.round(n * (img.naturalHeight / img.naturalWidth)) }))
     }
 
+    const allSources = [source, ...extraSources]
+
     // 1단계 — 대표 크기 몇 개로 줄인 화면을 훑어 자리만 추린다
     const aspect = source.h / source.w
     const probes = saved
       ? [sizes[0]]
       : LOCATE.coarseSizes.map((n) => ({ w: n, h: Math.round(n * aspect) }))
     const spots = []
-    for (const probe of probes) {
-      const ctw = Math.max(6, Math.round(probe.w * ratio))
-      const cth = Math.max(6, Math.round(probe.h * ratio))
-      const coarseTpl = templateAt(source.el, source.w, source.h, ctw, cth)
-      if (!coarseTpl) continue
-      for (const hit of findMatches(coarse.gray, coarse.w, coarse.h, coarseTpl, ctw, cth, {
-        step: 3, minScore: LOCATE.coarseScore,
-      }).slice(0, LOCATE.coarseKeep)) {
-        if (spots.some((sp) => Math.abs(sp.x - hit.x) < LOCATE.mergeDistance && Math.abs(sp.y - hit.y) < LOCATE.mergeDistance)) continue
-        spots.push(hit)
+    for (const src of allSources) {
+      for (const probe of probes) {
+        const ctw = Math.max(6, Math.round(probe.w * ratio))
+        const cth = Math.max(6, Math.round(probe.h * ratio))
+        const coarseTpl = templateAt(src.el, src.w, src.h, ctw, cth)
+        if (!coarseTpl) continue
+        for (const hit of findMatches(coarse.gray, coarse.w, coarse.h, coarseTpl, ctw, cth, {
+          step: 3, minScore: LOCATE.coarseScore,
+        }).slice(0, LOCATE.coarseKeep)) {
+          if (spots.some((sp) => Math.abs(sp.x - hit.x) < LOCATE.mergeDistance && Math.abs(sp.y - hit.y) < LOCATE.mergeDistance)) continue
+          spots.push(hit)
+        }
       }
     }
 
@@ -251,8 +262,9 @@ export function useJanusDetector({ onInstall, minGapMs = 0 }) {
       const cx = Math.round(spot.x / ratio)
       const cy = Math.round(spot.y / ratio)
       const r = LOCATE.refineRadius
-      for (const size of sizes) {
-        const fullTpl = templateAt(source.el, source.w, source.h, size.w, size.h)
+      for (const src of allSources) {
+        for (const size of sizes) {
+        const fullTpl = templateAt(src.el, src.w, src.h, size.w, size.h)
         if (!fullTpl) continue
         const best = findMatches(full.gray, full.w, full.h, fullTpl, size.w, size.h, {
           step: 1,
@@ -263,6 +275,7 @@ export function useJanusDetector({ onInstall, minGapMs = 0 }) {
           merge: false,
         })[0]
         if (best) results.push({ score: best.score, x: best.x, y: best.y, size })
+        }
       }
     }
 
@@ -270,7 +283,8 @@ export function useJanusDetector({ onInstall, minGapMs = 0 }) {
     results.sort((a, b) => b.score - a.score)
     const merged = []
     for (const c of results) {
-      if (merged.some((m) => Math.abs(m.x - c.x) < c.size.w * 0.7 && Math.abs(m.y - c.y) < c.size.h * 0.7)) continue
+      // 같은 자리를 두 모습(사용 가능 / 쿨타임 중)으로 각각 잡으면 중복이므로 하나로 합친다
+      if (merged.some((m) => Math.abs(m.x - c.x) < c.size.w && Math.abs(m.y - c.y) < c.size.h)) continue
       merged.push(c)
       if (merged.length >= LOCATE.maxCandidates) break
     }
@@ -388,6 +402,20 @@ export function useJanusDetector({ onInstall, minGapMs = 0 }) {
       }
 
       const luma = meanLuma(pixels)
+
+      /*
+       * 쿨타임이 도는 중의 모습도 한 번 저장해둔다.
+       * 어두워진 데다 숫자까지 얹혀 "사용 가능" 상태와 모양이 꽤 달라서,
+       * 이게 없으면 쿨타임 도는 중에 화면 공유를 시작했을 때 자동으로 못 찾는다.
+       */
+      if (!darkSavedRef.current && stateRef.current === 'dark' && lastInstallRef.current
+        && now - lastInstallRef.current > 3000 && now - lastInstallRef.current < 40000) {
+        const saved = loadTemplate()
+        if (saved) {
+          saveTemplate({ ...saved, darkRgba: Array.from(pixels) })
+          darkSavedRef.current = true
+        }
+      }
 
       if (baselineRef.current == null) {
         baselineRef.current = luma
