@@ -118,19 +118,34 @@ export function shapeSimilarity(a, b) {
 
 /** 저장해둔 모양을 화면 전체에서 찾을 때 쓰는 값들 */
 export const LOCATE = {
-  /** 탐색용으로 줄이는 화면 가로 크기 — 작을수록 빠르고 거칠다 */
+  /**
+   * 1단계로 훑을 때 줄이는 화면 가로 크기.
+   * 여기서는 자리만 대충 찾고, 진짜 판정은 원본 해상도에서 다시 한다.
+   * (줄인 화면에서는 아이콘이 15px 남짓이라 세부가 뭉개져 그것만으로는 못 믿는다)
+   */
   frameWidth: 640,
-  /** 후보로 인정할 최소 일치도 */
-  minScore: 0.7,
+  /** 1단계 통과선 — 놓치는 것보다 후보가 조금 많은 편이 낫다 */
+  coarseScore: 0.45,
+  /** 2단계(원본 해상도) 통과선 */
+  minScore: 0.62,
+  /** 2단계에서 후보 주변을 살펴볼 반경(px) */
+  refineRadius: 8,
   /** 이 거리(px, 축소 화면 기준) 안의 후보는 같은 것으로 본다 */
   mergeDistance: 12,
   /** 최대 후보 수 */
   maxCandidates: 6,
+  /** 1단계에서 2단계로 넘길 후보 수 */
+  coarseKeep: 12,
   /**
    * 내장 원본으로 찾을 때 훑어볼 아이콘 크기(원본 화면 기준 px).
    * 화면 배율·해상도에 따라 실제 크기가 달라져서 몇 가지를 시도한다.
    */
-  builtinSizes: [24, 28, 32, 36, 40, 46],
+  builtinSizes: [22, 24, 26, 28, 30, 32, 34, 36, 40, 44, 48],
+  /**
+   * 1단계로 훑을 대표 크기들. 크기가 20%쯤 달라도 걸리므로 셋이면 22~48px을 덮는다.
+   * (하나만 쓰면 화면 배율이 큰 환경에서 아예 후보가 안 잡힌다)
+   */
+  coarseSizes: [26, 36, 46],
 }
 
 /**
@@ -139,12 +154,18 @@ export const LOCATE = {
  *
  * gray: 축소 화면의 밝기 배열(w*h), tpl: 정규화된 템플릿(tw*th)
  */
-export function findMatches(gray, w, h, tpl, tw, th) {
+export function findMatches(gray, w, h, tpl, tw, th, opts = {}) {
+  const { step = 2, minScore = LOCATE.minScore, bounds = null, merge = true } = opts
+  const x0 = Math.max(0, bounds?.x0 ?? 0)
+  const y0 = Math.max(0, bounds?.y0 ?? 0)
+  const x1 = Math.min(w - tw, bounds?.x1 ?? w - tw)
+  const y1 = Math.min(h - th, bounds?.y1 ?? h - th)
+
   const found = []
-  const step = 2
-  for (let y = 0; y + th <= h; y += step) {
-    for (let x = 0; x + tw <= w; x += step) {
-      // 창 안의 평균과 표준편차
+  const n = tw * th
+  const invN = 1 / n
+  for (let y = y0; y <= y1; y += step) {
+    for (let x = x0; x <= x1; x += step) {
       let sum = 0
       let sqSum = 0
       for (let j = 0; j < th; j++) {
@@ -155,11 +176,10 @@ export function findMatches(gray, w, h, tpl, tw, th) {
           sqSum += v * v
         }
       }
-      const n = tw * th
-      const mean = sum / n
-      const variance = sqSum / n - mean * mean
+      const mean = sum * invN
+      const variance = sqSum * invN - mean * mean
       if (variance < 25) continue // 거의 단색 — 아이콘일 리 없다
-      const inv = 1 / (Math.sqrt(variance) * n ** 0.5)
+      const inv = 1 / (Math.sqrt(variance) * Math.sqrt(n))
 
       let dot = 0
       for (let j = 0; j < th; j++) {
@@ -168,17 +188,18 @@ export function findMatches(gray, w, h, tpl, tw, th) {
         for (let i = 0; i < tw; i++) dot += (gray[row + i] - mean) * tpl[trow + i]
       }
       const score = dot * inv
-      if (score >= LOCATE.minScore) found.push({ x, y, score })
+      if (score >= minScore) found.push({ x, y, score })
     }
   }
 
-  // 가까이 붙은 후보는 같은 아이콘이므로 가장 점수 높은 것만 남긴다
   found.sort((a, b) => b.score - a.score)
+  if (!merge) return found
+
+  // 가까이 붙은 후보는 같은 아이콘이므로 가장 점수 높은 것만 남긴다
   const merged = []
   for (const c of found) {
     if (merged.some((m) => Math.abs(m.x - c.x) < LOCATE.mergeDistance && Math.abs(m.y - c.y) < LOCATE.mergeDistance)) continue
     merged.push(c)
-    if (merged.length >= LOCATE.maxCandidates) break
   }
   return merged
 }
