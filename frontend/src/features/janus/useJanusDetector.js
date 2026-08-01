@@ -135,37 +135,45 @@ export function useJanusDetector({ onInstall }) {
   }, [region])
 
   /**
-   * 화면 전체에서 아이콘 모양을 찾는다.
-   * 직접 지정한 적이 있으면 그 모양을(사용자 화면의 실물이라 가장 정확),
-   * 없으면 icon/ 폴더의 원본을 여러 크기로 훑는다.
+   * 화면 전체에서 아이콘 자리를 찾는다.
    * 브라우저가 화면 공유 권한을 기억하지 않아 매번 창을 다시 고르는데,
    * 그때마다 아이콘까지 다시 집는 건 번거로워서 자동으로 찾아준다.
+   *
+   * 직접 지정한 적이 있으면 그 모양을(사용자 화면의 실물이라 가장 정확),
+   * 없으면 icon/ 폴더의 원본을 여러 크기로 훑는다.
+   *
+   * 줄인 화면에서 자리만 추린 뒤 원본 해상도에서 다시 확인하는 2단계다.
+   * 줄인 화면에서는 아이콘이 15px 남짓이라 세부가 뭉개져 그것만으로는 판정을 못 믿는다.
    */
   const locate = useCallback(() => {
     const video = videoRef.current
     if (!video?.videoWidth) return null
 
-    const scale = LOCATE.frameWidth / video.videoWidth
-    const w = LOCATE.frameWidth
-    const h = Math.round(video.videoHeight * scale)
+    const vw = video.videoWidth
+    const vh = video.videoHeight
 
-    const canvas = document.createElement('canvas')
-    canvas.width = w
-    canvas.height = h
-    const c = canvas.getContext('2d', { willReadFrequently: true })
-    try {
-      c.drawImage(video, 0, 0, w, h)
-    } catch {
-      return null
-    }
-    const px = c.getImageData(0, 0, w, h).data
-    const gray = new Float32Array(w * h)
-    for (let i = 0; i < gray.length; i++) {
-      const p = i * 4
-      gray[i] = 0.299 * px[p] + 0.587 * px[p + 1] + 0.114 * px[p + 2]
+    /** 화면을 주어진 폭으로 줄여 밝기 배열로 만든다 */
+    const grabFrame = (w) => {
+      const h = Math.round(vh * (w / vw))
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const c = canvas.getContext('2d', { willReadFrequently: true })
+      try {
+        c.drawImage(video, 0, 0, w, h)
+      } catch {
+        return null
+      }
+      const px = c.getImageData(0, 0, w, h).data
+      const gray = new Float32Array(w * h)
+      for (let i = 0; i < gray.length; i++) {
+        const p = i * 4
+        gray[i] = 0.299 * px[p] + 0.587 * px[p + 1] + 0.114 * px[p + 2]
+      }
+      return { gray, w, h }
     }
 
-    /** source(캔버스나 이미지)를 tw×th로 줄여 모양 벡터를 만든다 */
+    /** source를 tw×th로 줄여 모양 벡터를 만든다 */
     const templateAt = (source, sw, sh, tw, th) => {
       const t = document.createElement('canvas')
       t.width = tw
@@ -175,39 +183,81 @@ export function useJanusDetector({ onInstall }) {
       return toShapeVector(tctx.getImageData(0, 0, tw, th).data)
     }
 
-    const scan = (vec, tw, th) => (vec
-      ? findMatches(gray, w, h, vec, tw, th).map((hit) => ({
-        score: hit.score,
-        region: { x: hit.x / w, y: hit.y / h, w: tw / w, h: th / h },
-      }))
-      : [])
+    const coarse = grabFrame(LOCATE.frameWidth)
+    const full = grabFrame(vw)
+    if (!coarse || !full) return null
+    const ratio = LOCATE.frameWidth / vw
 
     const saved = loadTemplate()
+    let source = null
+    let sizes = []
     if (saved) {
-      // 직접 지정한 모양 — 크기까지 알고 있으니 한 번만 훑으면 된다
       const tc = document.createElement('canvas')
       tc.width = saved.tw
       tc.height = saved.th
       tc.getContext('2d').putImageData(
         new ImageData(new Uint8ClampedArray(saved.rgba), saved.tw, saved.th), 0, 0,
       )
-      const tw = Math.max(6, Math.round(saved.rw * video.videoWidth * scale))
-      const th = Math.max(6, Math.round(saved.rh * video.videoHeight * scale))
-      return scan(templateAt(tc, saved.tw, saved.th, tw, th), tw, th)
+      source = { el: tc, w: saved.tw, h: saved.th }
+      sizes = [{ w: Math.round(saved.rw * vw), h: Math.round(saved.rh * vh) }]
+    } else {
+      const img = builtinIconRef.current
+      if (!img?.complete || !img.naturalWidth) return null
+      source = { el: img, w: img.naturalWidth, h: img.naturalHeight }
+      sizes = LOCATE.builtinSizes.map((n) => ({ w: n, h: Math.round(n * (img.naturalHeight / img.naturalWidth)) }))
     }
 
-    // 내장 원본 — 화면 배율을 모르니 몇 가지 크기로 훑어 가장 잘 맞는 것을 쓴다
-    const img = builtinIconRef.current
-    if (!img?.complete || !img.naturalWidth) return null
-    let best = []
-    for (const size of LOCATE.builtinSizes) {
-      const tw = Math.round(size * scale)
-      const th = Math.round(size * scale * (img.naturalHeight / img.naturalWidth))
-      if (tw < 6 || th < 6) continue
-      const hits = scan(templateAt(img, img.naturalWidth, img.naturalHeight, tw, th), tw, th)
-      if (hits.length && (!best.length || hits[0].score > best[0].score)) best = hits
+    // 1단계 — 대표 크기 몇 개로 줄인 화면을 훑어 자리만 추린다
+    const aspect = source.h / source.w
+    const probes = saved
+      ? [sizes[0]]
+      : LOCATE.coarseSizes.map((n) => ({ w: n, h: Math.round(n * aspect) }))
+    const spots = []
+    for (const probe of probes) {
+      const ctw = Math.max(6, Math.round(probe.w * ratio))
+      const cth = Math.max(6, Math.round(probe.h * ratio))
+      const coarseTpl = templateAt(source.el, source.w, source.h, ctw, cth)
+      if (!coarseTpl) continue
+      for (const hit of findMatches(coarse.gray, coarse.w, coarse.h, coarseTpl, ctw, cth, {
+        step: 3, minScore: LOCATE.coarseScore,
+      }).slice(0, LOCATE.coarseKeep)) {
+        if (spots.some((sp) => Math.abs(sp.x - hit.x) < LOCATE.mergeDistance && Math.abs(sp.y - hit.y) < LOCATE.mergeDistance)) continue
+        spots.push(hit)
+      }
     }
-    return best
+
+    // 2단계 — 후보 주변을 원본 해상도에서, 여러 크기로 촘촘히 다시 본다
+    const results = []
+    for (const spot of spots) {
+      const cx = Math.round(spot.x / ratio)
+      const cy = Math.round(spot.y / ratio)
+      const r = LOCATE.refineRadius
+      for (const size of sizes) {
+        const fullTpl = templateAt(source.el, source.w, source.h, size.w, size.h)
+        if (!fullTpl) continue
+        const best = findMatches(full.gray, full.w, full.h, fullTpl, size.w, size.h, {
+          step: 1,
+          minScore: LOCATE.minScore,
+          bounds: { x0: cx - r, y0: cy - r, x1: cx + r, y1: cy + r },
+          merge: false,
+        })[0]
+        if (best) results.push({ score: best.score, x: best.x, y: best.y, size })
+      }
+    }
+
+    // 같은 자리를 여러 크기로 잡았을 수 있으니 한 번 더 합친다
+    results.sort((a, b) => b.score - a.score)
+    const merged = []
+    for (const c of results) {
+      if (merged.some((m) => Math.abs(m.x - c.x) < c.size.w * 0.7 && Math.abs(m.y - c.y) < c.size.h * 0.7)) continue
+      merged.push(c)
+      if (merged.length >= LOCATE.maxCandidates) break
+    }
+
+    return merged.map((c) => ({
+      score: c.score,
+      region: { x: c.x / vw, y: c.y / vh, w: c.size.w / vw, h: c.size.h / vh },
+    }))
   }, [])
 
   useEffect(() => {
