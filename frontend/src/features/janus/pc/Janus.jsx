@@ -69,7 +69,7 @@ export default function Janus() {
   const gapMsRef = useRef(5000)
 
   const {
-    stream, region, setRegion, install, stale, error, match, glyphs, iconLost,
+    stream, region, setRegion, install, stale, error, iconLost,
     videoRef, start, stop, resetCycle, locate, hasTemplate, log,
   } = useJanusDetector({ onInstall: handleInstall, minGapMs: gapMsRef.current })
 
@@ -248,93 +248,63 @@ export default function Janus() {
 
       {/* 설정 */}
       <div className="rounded-[11px] overflow-hidden" style={CARD}>
-        <div className="px-3.5 py-2 text-[12.5px] font-extrabold" style={SLATE_BAR}>⚙️ 설정</div>
+        <div className="px-4 py-2.5 text-[13.5px] font-extrabold" style={SLATE_BAR}>⚙️ 설정</div>
 
         <SettingRow name="스킬 레벨" desc="레벨로 지속시간이 정해집니다">
-          <Select
-            showSub
-            options={LEVEL_TIERS}
-            value={tierForLevel(settings.level)}
-            onChange={(v) => set({ level: v })}
-          />
+          <div className="w-[168px]">
+            <Select
+              showSub
+              options={LEVEL_TIERS}
+              value={tierForLevel(settings.level)}
+              onChange={(v) => set({ level: v })}
+            />
+          </div>
         </SettingRow>
 
         <SettingRow
           name="알림 시점"
           desc={<>젠 주기 × 젠 수로 잡으세요 — 지금 설정이면 <b style={{ color: 'var(--text-muted)' }}>설치 후 {alarmAtSec}초</b>에 알립니다</>}
         >
-          <div
-            className="flex items-center gap-2 rounded-[9px] px-3 py-2"
-            style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
-          >
-            <input
-              type="number" min={1} max={Math.max(1, durationSec - 1)}
-              value={settings.offsetSec}
-              onChange={(e) => set({ offsetSec: Math.max(1, Number(e.target.value) || 1) })}
-              className="janus-num flex-1 min-w-0 text-[13.5px] font-semibold tabular-nums bg-transparent outline-none"
-              style={{ color: 'var(--text-strong)' }}
-            />
-            <span className="text-[12.5px] font-bold shrink-0" style={{ color: 'var(--text-dim)' }}>초 전</span>
-          </div>
+          <NumberField
+            value={settings.offsetSec}
+            min={1}
+            max={Math.max(1, durationSec - 1)}
+            unit="초 전"
+            width={104}
+            onChange={(v) => set({ offsetSec: Math.max(1, v || 1) })}
+          />
         </SettingRow>
 
         <SettingRow
           name="타이머 보정"
           desc={<>인게임 지속시간과 견줘 맞추세요 — 웹 타이머가 <b style={{ color: 'var(--text-muted)' }}>느리면 음수</b>, 빠르면 양수</>}
         >
-          <div
-            className="flex items-center gap-2 rounded-[9px] px-3 py-2"
-            style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
-          >
-            <input
-              type="number" min={-5} max={5} step={0.1}
-              value={settings.trimSec}
-              onChange={(e) => set({ trimSec: Math.max(-5, Math.min(5, Number(e.target.value) || 0)) })}
-              className="janus-num flex-1 min-w-0 text-[13.5px] font-semibold tabular-nums bg-transparent outline-none"
-              style={{ color: 'var(--text-strong)' }}
-            />
-            <span className="text-[12.5px] font-bold shrink-0" style={{ color: 'var(--text-dim)' }}>초</span>
-          </div>
+          <NumberField
+            value={settings.trimSec}
+            min={-5}
+            max={5}
+            step={0.1}
+            unit="초"
+            width={92}
+            onChange={(v) => set({ trimSec: Math.max(-5, Math.min(5, v || 0)) })}
+          />
         </SettingRow>
 
         <SettingRow name="알림 소리" desc="백그라운드 탭에서도 정확한 시각에 울립니다">
-          <div className="flex gap-2 items-center">
-            <div className="flex-1 min-w-0">
-              <Select options={SOUND_OPTIONS} value={soundValue} onChange={(v) => set({ sound: v })} />
-            </div>
-            <IconButton tone="tan" label="소리 테스트" size={34} onClick={handleTest}><BellIcon /></IconButton>
+          <div className="w-[150px]">
+            <Select options={SOUND_OPTIONS} value={soundValue} onChange={(v) => set({ sound: v })} />
           </div>
+          <IconButton tone="tan" label="소리 테스트" size={36} onClick={handleTest}><BellIcon /></IconButton>
+          <input
+            type="range" min={0} max={100} value={Math.round(settings.volume * 100)}
+            onChange={(e) => set({ volume: Number(e.target.value) / 100 })}
+            className="janus-range w-[112px]"
+            aria-label="소리 크기"
+          />
+          <span className="text-[13px] font-bold tabular-nums w-[38px] text-right" style={{ color: 'var(--text-muted)' }}>
+            {Math.round(settings.volume * 100)}%
+          </span>
         </SettingRow>
-
-        <SettingRow name="소리 크기" desc="테스트 버튼으로 들어보면서 맞추세요">
-          <div className="flex items-center gap-2.5">
-            <input
-              type="range" min={0} max={100} value={Math.round(settings.volume * 100)}
-              onChange={(e) => set({ volume: Number(e.target.value) / 100 })}
-              className="janus-range flex-1 min-w-0"
-            />
-            <span className="text-[12.5px] font-bold tabular-nums w-[34px] text-right" style={{ color: 'var(--text-muted)' }}>
-              {Math.round(settings.volume * 100)}%
-            </span>
-          </div>
-        </SettingRow>
-
-        {match != null && (
-          <SettingRow
-            name="아이콘 인식"
-            desc="왼쪽은 지정한 모양과의 일치도, 오른쪽은 쿨타임 숫자로 보이는 밝은 점의 비율입니다"
-          >
-            <div className="flex items-center gap-3 text-[13.5px] font-extrabold tabular-nums">
-              <span style={{ color: match >= DETECT.matchThreshold ? 'var(--ok-text)' : 'var(--warning-text)' }}>
-                {Math.round(match * 100)}%
-              </span>
-              <span style={{ color: 'var(--text-dim)' }}>·</span>
-              <span style={{ color: (glyphs ?? 0) >= DETECT.glyphMinRatio ? 'var(--accent-label)' : 'var(--text-dim)' }}>
-                숫자 {Math.round((glyphs ?? 0) * 100)}%
-              </span>
-            </div>
-          </SettingRow>
-        )}
       </div>
       </div>
 
@@ -462,10 +432,30 @@ function Badge({ tone, children }) {
 /** 설정 한 줄 — 이름 / 설명 / 컨트롤 */
 function SettingRow({ name, desc, children }) {
   return (
-    <div className="flex items-center gap-3.5 px-3.5 py-2.5" style={{ borderTop: '1px solid var(--mpl-card-line)' }}>
-      <span className="w-[92px] shrink-0 text-[13px] font-bold" style={{ color: 'var(--text-emphasis)' }}>{name}</span>
-      <span className="flex-1 min-w-0 text-[12.5px]" style={{ color: 'var(--text-dim)' }}>{desc}</span>
-      <span className="w-[196px] shrink-0">{children}</span>
+    <div className="flex items-center gap-4 px-4 py-3" style={{ borderTop: '1px solid var(--mpl-card-line)' }}>
+      <span className="w-[104px] shrink-0 text-[14px] font-bold" style={{ color: 'var(--text-emphasis)' }}>{name}</span>
+      <span className="flex-1 min-w-0 text-[13px]" style={{ color: 'var(--text-dim)' }}>{desc}</span>
+      {/* 컨트롤 폭은 항목마다 다르다 — 굳이 맞추면 짧은 입력칸이 쓸데없이 늘어난다 */}
+      <span className="shrink-0 flex items-center gap-2.5">{children}</span>
+    </div>
+  )
+}
+
+/** 숫자 + 단위 입력칸 */
+function NumberField({ value, min, max, step, unit, width, onChange }) {
+  return (
+    <div
+      className="flex items-center gap-1.5 rounded-[9px] px-3 py-2"
+      style={{ width, background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
+    >
+      <input
+        type="number" min={min} max={max} step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="janus-num flex-1 min-w-0 text-[14px] font-semibold tabular-nums bg-transparent outline-none"
+        style={{ color: 'var(--text-strong)' }}
+      />
+      <span className="text-[13px] font-bold shrink-0" style={{ color: 'var(--text-dim)' }}>{unit}</span>
     </div>
   )
 }
