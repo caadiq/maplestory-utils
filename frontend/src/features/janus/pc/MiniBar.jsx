@@ -5,10 +5,9 @@ import { formatSeconds } from '../logic'
  * 배경은 게임창 몸체색이 아니라 카드색(라이트에서 흰색) — 작은 바에서 회청색은 답답해서.
  */
 export default function MiniBar({
-  status, remainingMs, durationRemainingMs, alarmInMs, progress,
+  active, remainingMs, alarmInMs, progress,
   cycleIndex, onTest, onReset, onSettings, compact = false,
 }) {
-  const cooling = status === 'cooling'
 
   return (
     <div
@@ -29,11 +28,11 @@ export default function MiniBar({
         <span className="flex-1" />
         <span
           className="text-[11px] font-extrabold px-1.5 py-0.5 rounded border"
-          style={cooling
+          style={active
             ? { color: '#b6e77c', background: 'rgba(159,212,94,.16)', borderColor: 'rgba(159,212,94,.42)' }
             : { color: '#cfdae4', background: 'rgba(207,218,228,.12)', borderColor: 'rgba(207,218,228,.3)' }}
         >
-          {cooling ? `● 사이클 ${cycleIndex}` : '대기 중'}
+          {active ? `● 사이클 ${cycleIndex}` : '설치 대기'}
         </span>
       </div>
 
@@ -54,16 +53,12 @@ export default function MiniBar({
           )}
           <div className="pb-1.5">
             <div className="text-[11.5px] font-extrabold tracking-wide" style={{ color: 'var(--accent-label)' }}>
-              {remainingMs == null ? (cooling ? '쿨타임 측정 중' : '설치 대기 중') : '쿨타임 남음'}
+              {remainingMs == null ? '설치 대기 중' : '사라지기까지'}
             </div>
             <div className="text-[12px] font-bold mt-0.5" style={{ color: 'var(--text-muted)' }}>
-              {durationRemainingMs > 0 && (
-                <>지속 <b className="tabular-nums" style={{ color: 'var(--ok-text)' }}>{formatSeconds(durationRemainingMs)}초</b></>
-              )}
-              {alarmInMs != null && alarmInMs > 0 && (
-                <> · 알림 <b className="tabular-nums" style={{ color: 'var(--warning-text)' }}>{formatSeconds(alarmInMs)}초</b> 뒤</>
-              )}
-              {durationRemainingMs <= 0 && alarmInMs == null && '아이콘이 어두워지면 시작합니다'}
+              {alarmInMs != null && alarmInMs > 0
+                ? <>알림 <b className="tabular-nums" style={{ color: 'var(--warning-text)' }}>{formatSeconds(alarmInMs)}초</b> 뒤</>
+                : '아이콘이 어두워지면 시작합니다'}
             </div>
           </div>
         </div>

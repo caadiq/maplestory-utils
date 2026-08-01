@@ -1,11 +1,11 @@
 /**
- * 야누스 쿨타임 알림 — 순수 로직
+ * 야누스 알림 — 순수 로직
  *
- * 감지는 "퀵슬롯 야누스 아이콘의 밝기"만 본다.
- *  - 밝음 → 어두움 : 설치(사용). 사이클 시작
- *  - 어두움 → 밝음 : 쿨타임 종료. 이 구간 길이가 곧 실측 쿨타임
- * 쿨타임 숫자(OCR)는 쓰지 않는다. 어두운 구간을 재면 총 쿨타임이 그대로 나오기 때문에
- * 사이클마다 자동으로 재학습되고, 날마다 타이밍이 어긋나는 문제도 같이 해결된다.
+ * 퀵슬롯 야누스 아이콘이 어두워지는 순간(= 설치)만 감지하고,
+ * 그 뒤로는 스킬 레벨로 정해지는 지속시간을 타이머로 센다.
+ *
+ * 쿨타임은 보지 않는다. 지속시간(30렙 2분)보다 쿨타임이 짧아서 야누스가 사라지기 전에
+ * 이미 쿨이 돌아와 있고, 실제로 필요한 알림은 "지속시간이 끝나기 전"이기 때문이다.
  */
 
 /** 스킬 레벨 → 지속시간(초). 사이 레벨은 선형 보간 */
@@ -42,24 +42,21 @@ export const DETECT = {
   /** 다시 이 비율 위로 올라오면 "밝음" (히스테리시스 — 경계에서 떨리는 것 방지) */
   brightRatio: 0.88,
   /**
-   * 전환을 확정하기까지 그 상태가 유지돼야 하는 시간(ms). 방향마다 다르다.
+   * 전환을 확정하기까지 그 상태가 유지돼야 하는 시간(ms).
    *
-   * 어두워짐(설치)은 길게 본다 — 쿨타임이 끝날 때의 번쩍임처럼 순간적인 변화를
-   * 설치로 오인하는 것이 실제로 발생한 오작동이기 때문.
-   * 밝아짐(쿨타임 종료)은 짧게 본다 — 길게 잡으면 쿨이 돌자마자 바로 재설치했을 때
-   * 밝은 구간이 확정되기 전에 다시 어두워져서 두 사이클이 하나로 합쳐진다.
+   * 게임 아이콘은 쿨타임 막바지 약 5초 동안 숫자가 사라지고 깜빡인다.
+   * 그 깜빡임을 상태 전환으로 받아들이지 않으려면 확정 시간이 깜빡임 한 주기보다 길어야 한다.
+   * 재설치는 쿨이 돈 직후가 아니라 지속시간이 끝나갈 때 하므로 넉넉히 잡아도 설치를 놓치지 않는다.
    *
    * 확정이 늦어져도 시각은 "처음 넘어간 순간"으로 소급하므로 타이머 정확도는 그대로다.
    */
   confirmDarkMs: 1200,
-  confirmBrightMs: 250,
-  /** 이 시간(ms)보다 짧은 어두움은 쿨타임이 아니라 이펙트로 보고 버린다 */
-  minCooldownMs: 3000,
+  confirmBrightMs: 1500,
   /** 프레임이 이 시간(ms) 이상 안 들어오면 인식 실패로 경고 */
   staleWarnMs: 3000,
   /**
    * 기준 밝기를 갱신할 때 받아들일 범위(기준 대비).
-   * 쿨타임 종료 연출로 확 밝아진 값까지 기준에 섞이면 기준선이 올라가고,
+   * 쿨타임이 끝날 때의 연출로 확 밝아진 값까지 기준에 섞이면 기준선이 올라가고,
    * 원래 밝기로 돌아왔을 때 "어두워졌다"고 잘못 판단하게 된다.
    */
   baselineAcceptLow: 0.85,
@@ -75,35 +72,6 @@ export function meanLuma(data) {
     sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]
   }
   return px ? sum / px : 0
-}
-
-/* ── 쿨타임 학습 ──────────────────────────────────────────── */
-
-/**
- * 새 측정값이 기존 추정과 너무 동떨어지면 표본에 넣지 않는다.
- * 렉이나 순간적인 오인식으로 나온 값 하나가 추정을 통째로 망가뜨리는 걸 막는다.
- */
-export function isOutlier(ms, estimate) {
-  if (estimate == null) return false
-  return ms < estimate * 0.6 || ms > estimate * 1.6
-}
-
-/**
- * 최근 측정값들로 총 쿨타임을 추정한다.
- * 중앙값을 쓴다 — 렉으로 한 번 크게 튄 값이 평균을 끌고 가지 않게.
- */
-export function estimateCooldown(samples) {
-  if (!samples.length) return null
-  const sorted = [...samples].sort((a, b) => a - b)
-  const mid = Math.floor(sorted.length / 2)
-  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
-}
-
-/** 측정값들이 얼마나 흩어져 있는지(초) — 평균 오차 표시용 */
-export function cooldownSpread(samples, estimate) {
-  if (samples.length < 2 || estimate == null) return null
-  const dev = samples.reduce((s, v) => s + Math.abs(v - estimate), 0) / samples.length
-  return dev / 1000
 }
 
 /* ── 표시 ─────────────────────────────────────────────────── */
@@ -138,17 +106,18 @@ export const STORAGE_KEY = 'maple.janus.settings'
 
 export const DEFAULT_SETTINGS = {
   level: 30,
-  /** 쿨타임 종료 몇 초 전에 알릴지 */
-  offsetSec: 12,
+  /**
+   * 지속시간이 끝나기 몇 초 전에 알릴지.
+   * 사냥터마다 젠 주기가 달라서 고정 프리셋 대신 직접 입력받는다.
+   * (야누스가 끊기지 않으려면 몬스터를 잡자마자 다시 깔아야 해서 보통 2젠 전쯤)
+   */
+  offsetSec: 14,
   sound: 'bell',
   volume: 0.7,
-  /** 학습 전에 쓸 총 쿨타임(초). null이면 첫 사이클은 측정만 하고 알리지 않는다 */
-  manualCooldownSec: null,
   titleBlink: true,
   browserNotify: false,
-  notifyDurationEnd: true,
-  /** 미니바(HUD) 표시 여부 */
-  hudVisible: true,
+  /** 지속시간이 실제로 끝날 때도 한 번 더 알릴지 */
+  notifyDurationEnd: false,
 }
 
 export function loadSettings() {
@@ -168,8 +137,6 @@ export function saveSettings(settings) {
     // 사파리 프라이빗 모드 등 — 저장 실패해도 동작에는 지장 없음
   }
 }
-
-export const OFFSET_PRESETS = [5, 12, 20]
 
 export const SOUND_OPTIONS = [
   { value: 'bell', label: '벨' },
