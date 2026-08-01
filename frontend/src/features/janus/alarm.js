@@ -4,8 +4,10 @@
  * setTimeout은 백그라운드 탭에서 1초 단위로 뭉개져서 알림이 밀린다.
  * AudioContext는 오디오 하드웨어 시계로 돌아가서 탭이 가려져도 예약 시각이 지켜진다.
  *
- * 소리는 전부 오실레이터로 합성한다 — 음원 파일을 받아오지 않으므로
- * 네트워크가 끊겨 있어도 울리고, 예약 시각도 정확하다.
+ * 소리는 두 갈래다.
+ *  - 합성음: 오실레이터로 그 자리에서 만든다. 파일이 없어 항상 즉시 준비된다.
+ *  - 파일음: public/sounds/janus/ 의 음원. 미리 받아 디코딩해두고 같은 방식으로 예약한다.
+ * 둘 다 AudioContext 시계에 얹으므로 예약 정확도는 같다.
  */
 
 let ctx = null
@@ -78,7 +80,15 @@ const SOUNDS = {
   ],
 }
 
-export const SOUND_OPTIONS = [
+/**
+ * 음원 파일로 된 소리. public/sounds/janus/ 에 파일을 넣고 여기 한 줄 추가하면 목록에 뜬다.
+ * 라이선스는 넣는 사람이 확인할 것 (같은 폴더 README 참고).
+ */
+export const FILE_SOUNDS = [
+  // { value: 'ding', label: '딩', file: 'ding.mp3' },
+]
+
+const SYNTH_OPTIONS = [
   { value: 'ppyorong', label: '뾰롱' },
   { value: 'bell', label: '벨' },
   { value: 'chime', label: '차임' },
@@ -89,6 +99,37 @@ export const SOUND_OPTIONS = [
   { value: 'drop', label: '물방울' },
   { value: 'siren', label: '경보' },
 ]
+
+export const SOUND_OPTIONS = [...SYNTH_OPTIONS, ...FILE_SOUNDS.map(({ value, label }) => ({ value, label }))]
+
+/* ── 파일음 ───────────────────────────────────────────────── */
+
+const buffers = new Map()
+
+/** 미리 받아 디코딩해둔다 — 알림 시각에 네트워크를 기다리지 않도록 */
+export async function preloadFileSounds() {
+  const audio = ensureAudio()
+  if (!audio) return
+  await Promise.all(FILE_SOUNDS.map(async ({ value, file }) => {
+    if (buffers.has(value)) return
+    try {
+      const res = await fetch(`/sounds/janus/${file}`)
+      buffers.set(value, await audio.decodeAudioData(await res.arrayBuffer()))
+    } catch {
+      buffers.set(value, null) // 실패하면 합성음으로 대체된다
+    }
+  }))
+}
+
+function scheduleBuffer(audio, buffer, volume, delaySec) {
+  const src = audio.createBufferSource()
+  const gain = audio.createGain()
+  src.buffer = buffer
+  gain.gain.value = volume
+  src.connect(gain).connect(audio.destination)
+  src.start(audio.currentTime + Math.max(0, delaySec))
+  return src
+}
 
 /** 오실레이터 하나를 예약한다 */
 function scheduleOsc(audio, note, base, volume, detuneCents = 0) {
@@ -120,6 +161,12 @@ function scheduleOsc(audio, note, base, volume, detuneCents = 0) {
 export function scheduleSound(kind, volume, delaySec) {
   const audio = ensureAudio()
   if (!audio) return () => {}
+
+  const buffer = buffers.get(kind)
+  if (buffer) {
+    const src = scheduleBuffer(audio, buffer, volume, delaySec)
+    return () => { try { src.stop(); src.disconnect() } catch { /* 이미 끝남 */ } }
+  }
 
   const notes = SOUNDS[kind] || SOUNDS.ppyorong
   const base = audio.currentTime + Math.max(0, delaySec)

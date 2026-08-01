@@ -11,7 +11,7 @@ import {
   loadSettings, saveSettings, durationForLevel, formatSeconds, formatClock,
   LEVEL_TIERS, tierForLevel,
 } from '../logic'
-import { ensureAudio, scheduleSound, playSound, SOUND_OPTIONS } from '../alarm'
+import { ensureAudio, scheduleSound, playSound, preloadFileSounds, SOUND_OPTIONS } from '../alarm'
 
 const CARD = { background: 'var(--mpl-card)', border: '1px solid var(--mpl-card-line)' }
 const SLATE_BAR = {
@@ -76,6 +76,7 @@ export default function Janus() {
 
   const handleStart = async () => {
     ensureAudio() // 사용자 제스처 안에서 오디오를 깨워둔다 (예약이 안 울리는 걸 방지)
+    preloadFileSounds() // 음원 파일을 미리 받아둔다 — 알림 시각에 네트워크를 기다리지 않도록
     const ok = await start()
     if (ok && !region) setPicking(true)
   }
