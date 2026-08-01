@@ -81,7 +81,11 @@ export default function Janus() {
     if (ok && !region) setPicking(true)
   }
 
-  const handleTest = () => playSound(settings.sound, settings.volume)
+  const handleTest = async () => {
+    // 파일 소리를 아직 못 받았을 수 있다 — 받아두고 눌러야 엉뚱한 소리가 나지 않는다
+    await preloadFileSounds()
+    playSound(settings.sound, settings.volume)
+  }
 
   useEffect(() => () => clearScheduled(), [clearScheduled])
 
