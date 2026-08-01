@@ -2,14 +2,14 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import MapleWindow from '../../../components/pc/MapleWindow'
 import Select from '../../../components/common/Select'
-import { RefreshIcon, PipIcon, CropIcon, StopIcon, GearIcon, BellIcon, IconButton } from './icons'
+import { RefreshIcon, PipIcon, CropIcon, StopIcon, BellIcon, IconButton } from './icons'
 import { useJanusDetector } from '../useJanusDetector'
 import { usePipWindow } from '../usePipWindow'
 import RegionPicker from './RegionPicker'
 import RegionPickerModal from './RegionPickerModal'
 import MiniBar from './MiniBar'
 import {
-  loadSettings, saveSettings, durationForLevel, formatSeconds,
+  DETECT, loadSettings, saveSettings, durationForLevel, formatSeconds,
   LEVEL_TIERS, tierForLevel,
 } from '../logic'
 import { ensureAudio, scheduleSound, playSound, preloadSounds, resolveSound, SOUND_OPTIONS } from '../alarm'
@@ -24,7 +24,6 @@ const SLATE_BAR = {
 export default function Janus() {
   const [settings, setSettings] = useState(loadSettings)
   const [picking, setPicking] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
 
   const set = useCallback((patch) => {
     setSettings((prev) => {
@@ -60,7 +59,7 @@ export default function Janus() {
   }, [scheduleFor, settings])
 
   const {
-    stream, region, setRegion, install, stale, error,
+    stream, region, setRegion, install, stale, error, match, iconLost,
     videoRef, start, stop, resetCycle, log,
   } = useJanusDetector({ onInstall: handleInstall })
 
@@ -111,11 +110,12 @@ export default function Janus() {
         </div>
       )}
     >
+      <div className="flex flex-col gap-3">
       <div className="rounded-[11px] overflow-hidden relative" style={CARD}>
         {stream ? (
           <RegionPicker videoRef={videoRef} stream={stream} region={region} />
         ) : (
-          <Intro onStart={handleStart} onSettings={() => setShowSettings(true)} error={error} />
+          <Intro onStart={handleStart} error={error} />
         )}
 
         {stream && (
@@ -157,7 +157,6 @@ export default function Janus() {
                 backdropFilter: 'blur(4px)',
               }}
             >
-              <IconButton tone="slate" label="설정" onClick={() => setShowSettings(true)}><GearIcon /></IconButton>
               <IconButton tone="slate" label="초기화" onClick={resetCycle}><RefreshIcon /></IconButton>
               {pip.supported && (
                 <IconButton
@@ -194,19 +193,85 @@ export default function Janus() {
             퀵슬롯의 야누스 아이콘을 지정해 주세요
           </div>
         )}
+
+        {stream && region && (stale || iconLost) && (
+          <div
+            className="absolute left-0 right-0 top-0 px-3 py-2 text-[12.5px] font-bold"
+            style={{ background: 'rgba(10,16,22,.85)', color: '#ffcb6b' }}
+          >
+            {stale
+              ? '⚠ 화면이 갱신되지 않습니다 — 게임 창이 최소화됐거나 가려졌는지 확인해 주세요'
+              : '⚠ 야누스 아이콘이 보이지 않습니다 — 가려졌거나 퀵슬롯이 이동했다면 영역을 다시 지정해 주세요'}
+          </div>
+        )}
       </div>
 
-      {showSettings && (
-        <SettingsDialog
-          settings={settings}
-          soundValue={soundValue}
-          durationSec={durationSec}
-          alarmAtSec={alarmAtSec}
-          onChange={set}
-          onTest={handleTest}
-          onClose={() => setShowSettings(false)}
-        />
-      )}
+      {/* 설정 */}
+      <div className="rounded-[11px] overflow-hidden" style={CARD}>
+        <div className="px-3.5 py-2 text-[12.5px] font-extrabold" style={SLATE_BAR}>⚙️ 설정</div>
+
+        <SettingRow name="스킬 레벨" desc="레벨로 지속시간이 정해집니다">
+          <Select
+            showSub
+            options={LEVEL_TIERS}
+            value={tierForLevel(settings.level)}
+            onChange={(v) => set({ level: v })}
+          />
+        </SettingRow>
+
+        <SettingRow
+          name="알림 시점"
+          desc={<>젠 주기 × 젠 수로 잡으세요 — 지금 설정이면 <b style={{ color: 'var(--text-muted)' }}>설치 후 {alarmAtSec}초</b>에 알립니다</>}
+        >
+          <div
+            className="flex items-center gap-2 rounded-[9px] px-3 py-2"
+            style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
+          >
+            <input
+              type="number" min={1} max={Math.max(1, durationSec - 1)}
+              value={settings.offsetSec}
+              onChange={(e) => set({ offsetSec: Math.max(1, Number(e.target.value) || 1) })}
+              className="janus-num flex-1 min-w-0 text-[13.5px] font-semibold tabular-nums bg-transparent outline-none"
+              style={{ color: 'var(--text-strong)' }}
+            />
+            <span className="text-[12.5px] font-bold shrink-0" style={{ color: 'var(--text-dim)' }}>초 전</span>
+          </div>
+        </SettingRow>
+
+        <SettingRow name="알림 소리" desc="백그라운드 탭에서도 정확한 시각에 울립니다">
+          <div className="flex gap-2 items-center">
+            <div className="flex-1 min-w-0">
+              <Select options={SOUND_OPTIONS} value={soundValue} onChange={(v) => set({ sound: v })} />
+            </div>
+            <IconButton tone="tan" label="소리 테스트" size={34} onClick={handleTest}><BellIcon /></IconButton>
+          </div>
+        </SettingRow>
+
+        <SettingRow name="소리 크기" desc="테스트 버튼으로 들어보면서 맞추세요">
+          <div className="flex items-center gap-2.5">
+            <input
+              type="range" min={0} max={100} value={Math.round(settings.volume * 100)}
+              onChange={(e) => set({ volume: Number(e.target.value) / 100 })}
+              className="janus-range flex-1 min-w-0"
+            />
+            <span className="text-[12.5px] font-bold tabular-nums w-[34px] text-right" style={{ color: 'var(--text-muted)' }}>
+              {Math.round(settings.volume * 100)}%
+            </span>
+          </div>
+        </SettingRow>
+
+        {match != null && (
+          <SettingRow name="아이콘 인식" desc="지정한 모양과 지금 화면이 얼마나 닮았는지 — 낮으면 영역을 다시 지정하세요">
+            <span
+              className="text-[13.5px] font-extrabold tabular-nums"
+              style={{ color: match >= DETECT.matchThreshold ? 'var(--ok-text)' : 'var(--warning-text)' }}
+            >
+              {Math.round(match * 100)}%
+            </span>
+          </SettingRow>
+        )}
+      </div>
+      </div>
 
       {picking && (
         <RegionPickerModal
@@ -235,7 +300,7 @@ export default function Janus() {
 
 /* ── 화면 공유 전 안내 (창 안에 그대로 들어간다) ─────────── */
 
-function Intro({ onStart, onSettings, error }) {
+function Intro({ onStart, error }) {
   return (
     <div
       className="w-full flex flex-col items-center justify-center text-center gap-4 px-6"
@@ -267,7 +332,6 @@ function Intro({ onStart, onSettings, error }) {
         >
           🖥️ 화면 공유 시작
         </button>
-        <IconButton tone="slate" label="설정" onClick={onSettings}><GearIcon /></IconButton>
       </div>
 
       {error && <p className="text-[12.5px]" style={{ color: '#ef8078' }}>{error}</p>}
@@ -280,85 +344,6 @@ function Intro({ onStart, onSettings, error }) {
 }
 
 /* ── 설정 ─────────────────────────────────────────────────── */
-
-function SettingsDialog({ settings, soundValue, durationSec, alarmAtSec, onChange, onTest, onClose }) {
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 grid place-items-center p-6"
-      style={{ background: 'var(--dialog-backdrop)' }}
-      onClick={onClose}
-    >
-      <div
-        className="w-[620px] max-w-full rounded-xl overflow-hidden"
-        style={{ background: 'var(--mpl-card)', border: '1px solid var(--mpl-card-line)', boxShadow: 'var(--popup-shadow)' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-4 py-2.5 text-[13px] font-extrabold flex items-center" style={SLATE_BAR}>
-          ⚙️ 설정
-          <span className="flex-1" />
-          <button type="button" onClick={onClose} aria-label="닫기" style={{ color: '#dbe4ec' }}>✕</button>
-        </div>
-
-        <SettingRow name="스킬 레벨" desc="레벨로 지속시간이 정해집니다">
-          <Select
-            showSub
-            options={LEVEL_TIERS}
-            value={tierForLevel(settings.level)}
-            onChange={(v) => onChange({ level: v })}
-          />
-        </SettingRow>
-
-        <SettingRow
-          name="알림 시점"
-          desc={<>젠 주기 × 젠 수로 잡으세요 — 지금 설정이면 <b style={{ color: 'var(--text-muted)' }}>설치 후 {alarmAtSec}초</b>에 알립니다</>}
-        >
-          <div
-            className="flex items-center gap-2 rounded-[9px] px-3 py-2"
-            style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
-          >
-            <input
-              type="number" min={1} max={Math.max(1, durationSec - 1)}
-              value={settings.offsetSec}
-              onChange={(e) => onChange({ offsetSec: Math.max(1, Number(e.target.value) || 1) })}
-              className="janus-num flex-1 min-w-0 text-[13.5px] font-semibold tabular-nums bg-transparent outline-none"
-              style={{ color: 'var(--text-strong)' }}
-            />
-            <span className="text-[12.5px] font-bold shrink-0" style={{ color: 'var(--text-dim)' }}>초 전</span>
-          </div>
-        </SettingRow>
-
-        <SettingRow name="알림 소리" desc="백그라운드 탭에서도 정확한 시각에 울립니다">
-          <div className="flex gap-2 items-center">
-            <div className="flex-1 min-w-0">
-              <Select options={SOUND_OPTIONS} value={soundValue} onChange={(v) => onChange({ sound: v })} />
-            </div>
-            <IconButton tone="tan" label="소리 테스트" size={34} onClick={onTest}><BellIcon /></IconButton>
-          </div>
-        </SettingRow>
-
-        <SettingRow name="소리 크기" desc="테스트 버튼으로 들어보면서 맞추세요">
-          <div className="flex items-center gap-2.5">
-            <input
-              type="range" min={0} max={100} value={Math.round(settings.volume * 100)}
-              onChange={(e) => onChange({ volume: Number(e.target.value) / 100 })}
-              className="janus-range flex-1 min-w-0"
-            />
-            <span className="text-[12.5px] font-bold tabular-nums w-[34px] text-right" style={{ color: 'var(--text-muted)' }}>
-              {Math.round(settings.volume * 100)}%
-            </span>
-          </div>
-        </SettingRow>
-      </div>
-    </div>,
-    document.body
-  )
-}
 
 /* ── 작은 조각들 ──────────────────────────────────────────── */
 

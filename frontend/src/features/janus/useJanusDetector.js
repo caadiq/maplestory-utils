@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { DETECT, meanLuma } from './logic'
+import { DETECT, meanLuma, toShapeVector, shapeSimilarity } from './logic'
 
 /**
  * 화면 공유 → 지정 영역 밝기 샘플링 → **설치 감지만** 한다.
@@ -24,6 +24,8 @@ export function useJanusDetector({ onInstall }) {
   const [iconDark, setIconDark] = useState(false)
   const [logs, setLogs] = useState([])
   const [stale, setStale] = useState(false)
+  const [match, setMatch] = useState(null)     // 아이콘 일치도 (진단용)
+  const [iconLost, setIconLost] = useState(false)
   const [level, setLevel] = useState(null)
   const [error, setError] = useState(null)
   const [, setTick] = useState(0)
@@ -37,6 +39,9 @@ export function useJanusDetector({ onInstall }) {
   const rawSinceRef = useRef(0)      // 그 즉시 상태가 시작된 시각
   const dipSinceRef = useRef(null)   // "확실히 밝음"에서 처음 벗어난 시각 (진짜 설치 순간에 가깝다)
   const latencyRef = useRef(0)       // 화면 공유 파이프라인 지연(ms)
+  const templateRef = useRef(null)   // 지정할 때 기억한 아이콘 모양
+  const matchRef = useRef(null)
+  const lostSinceRef = useRef(null)
   const levelRef = useRef(null)
   const indexRef = useRef(0)
   const lastFrameRef = useRef(0)
@@ -102,7 +107,13 @@ export function useJanusDetector({ onInstall }) {
 
   /* ── 감지 루프 ──────────────────────────────────────────── */
 
-  useEffect(() => { regionRef.current = region }, [region])
+  useEffect(() => {
+    regionRef.current = region
+    // 영역을 다시 지정하면 기준 모양도 새로 잡는다
+    templateRef.current = null
+    baselineRef.current = null
+    lostSinceRef.current = null
+  }, [region])
 
   useEffect(() => {
     if (!stream || !region) return
@@ -155,8 +166,30 @@ export function useJanusDetector({ onInstall }) {
       } catch {
         return // 프레임이 아직 준비 안 됨
       }
-      const luma = meanLuma(ctx.getImageData(0, 0, 24, 24).data)
+      const pixels = ctx.getImageData(0, 0, 24, 24).data
       const now = Date.now()
+
+      // 지정 직후 첫 프레임을 기준 모양으로 기억한다
+      if (!templateRef.current) {
+        templateRef.current = toShapeVector(pixels)
+        return
+      }
+
+      // 밝기를 보기 전에 "이게 야누스 아이콘이 맞는지"부터 확인한다.
+      // 다른 창에 가려지거나 퀵슬롯이 잠깐 사라지면 모양이 통째로 달라지는데,
+      // 밝기만 보면 그걸 "어두워졌다"로 읽어 설치로 오인한다.
+      const shape = toShapeVector(pixels)
+      const similarity = shapeSimilarity(shape, templateRef.current)
+      matchRef.current = similarity
+
+      if (similarity < DETECT.matchThreshold) {
+        // 못 알아보는 동안에는 상태를 건드리지 않고 그대로 얼려둔다
+        if (lostSinceRef.current == null) lostSinceRef.current = now
+        return
+      }
+      lostSinceRef.current = null
+
+      const luma = meanLuma(pixels)
 
       if (baselineRef.current == null) {
         baselineRef.current = luma
@@ -235,6 +268,8 @@ export function useJanusDetector({ onInstall }) {
     const ui = setInterval(() => {
       setTick((t) => t + 1)
       setLevel(levelRef.current)
+      setMatch(matchRef.current)
+      setIconLost(lostSinceRef.current != null && Date.now() - lostSinceRef.current > DETECT.lostWarnMs)
     }, 100)
 
     return () => {
@@ -250,7 +285,7 @@ export function useJanusDetector({ onInstall }) {
 
   return {
     stream, region, setRegion,
-    install, iconDark, logs, error, level,
+    install, iconDark, logs, error, level, match, iconLost,
     // 공유가 끊기면 경고도 같이 내린다
     stale: stream ? stale : false,
     videoRef,
