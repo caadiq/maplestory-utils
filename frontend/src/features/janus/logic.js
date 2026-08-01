@@ -257,7 +257,12 @@ export function findMatches(gray, w, h, tpl, tw, th, opts = {}) {
 
 const TEMPLATE_KEY = 'maple.janus.template'
 
-/** { rgba, tw, th, rw, rh } — 지정한 순간의 아이콘 픽셀과 영역 비율 */
+/**
+ * { rgba, darkRgba?, tw, th, rw, rh }
+ *   rgba     — 지정한 순간(사용 가능 상태)의 아이콘 픽셀
+ *   darkRgba — 쿨타임이 도는 중의 모습. 어두워진 데다 숫자까지 겹쳐 모양이 꽤 달라서,
+ *              이게 없으면 쿨타임 중에 화면 공유를 시작했을 때 아이콘을 못 찾는다.
+ */
 export function saveTemplate(tpl) {
   try {
     localStorage.setItem(TEMPLATE_KEY, JSON.stringify(tpl))

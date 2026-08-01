@@ -263,7 +263,7 @@ export default function Janus() {
 
         <SettingRow
           name="알림 시점"
-          desc={<>젠 주기 × 젠 수로 잡으세요 — 지금 설정이면 <b style={{ color: 'var(--text-muted)' }}>설치 후 {alarmAtSec}초</b>에 알립니다</>}
+          desc={<>지속시간이 <b style={{ color: 'var(--text-muted)' }}>{settings.offsetSec}초</b> 남았을 때 알립니다 — 젠 주기 × 젠 수로 잡으세요</>}
         >
           <NumberField
             value={settings.offsetSec}
