@@ -309,6 +309,12 @@ export const DEFAULT_SETTINGS = {
   offsetSec: 14,
   /** 목록에 없는 값이면 첫 번째 소리로 대체된다 (alarm.js resolveSound) */
   sound: null,
+  /**
+   * 타이머 보정(초). 감지한 설치 시각을 이만큼 옮긴다.
+   * 화면 공유 지연, 아이콘이 어두워지기까지의 시차처럼 환경마다 다른 요인이 있어
+   * 인게임 지속시간과 견줘 직접 맞출 수 있게 열어둔다. 음수면 타이머가 그만큼 앞당겨진다.
+   */
+  trimSec: 0,
   volume: 0.7,
 }
 

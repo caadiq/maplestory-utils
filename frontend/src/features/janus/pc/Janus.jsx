@@ -58,17 +58,15 @@ export default function Janus() {
   }, [clearScheduled])
 
   const handleInstall = useCallback((next) => {
-    scheduleFor(settings, next.at)
+    scheduleFor(settings, next.at + settings.trimSec * 1000)
   }, [scheduleFor, settings])
 
   /*
-   * 다음 설치는 알림이 울린 뒤에 한다. 그 전에 잡히는 "설치"는 전부 오검출이다.
-   * 특히 쿨타임 막바지 깜빡임이 밝음 → 어두움으로 읽히면 새 설치가 되는데,
-   * 그 시점은 알림보다 앞이라 여기서 걸린다. (3초는 미리 까는 경우를 위한 여유)
+   * 아주 짧은 간격의 재감지만 막는다.
+   * 처음엔 "재설치는 알림 이후"라고 보고 길게 잠갔는데, 쿨이 돌면 바로 다시 까는 경우가 있어
+   * 진짜 설치까지 막혔다. 깜빡임은 밝아짐 확정 시간(2.2초)으로 걸러진다.
    */
-  const gapMsRef = useRef(0)
-  gapMsRef.current = Math.max(0,
-    ((durationForLevel(settings.level) || 0) - settings.offsetSec - 3) * 1000)
+  const gapMsRef = useRef(5000)
 
   const {
     stream, region, setRegion, install, stale, error, match, glyphs, iconLost,
@@ -81,7 +79,9 @@ export default function Janus() {
   const durationSec = durationForLevel(settings.level)
   const durationMs = durationSec * 1000
   const alarmAtSec = Math.max(0, durationSec - settings.offsetSec)
-  const elapsed = install ? Date.now() - install.at : 0
+  // 보정을 적용한 설치 시각 — 표시와 알림이 함께 움직여야 한다
+  const installedAt = install ? install.at + settings.trimSec * 1000 : 0
+  const elapsed = install ? Date.now() - installedAt : 0
   const active = Boolean(install) && elapsed < durationMs
   const alarmInMs = active ? alarmAtSec * 1000 - elapsed : null
   const progress = active ? elapsed / durationMs : 0
@@ -133,9 +133,9 @@ export default function Janus() {
 
   // 설정을 바꾸면 진행 중인 예약도 새 값으로 다시 잡는다
   useEffect(() => {
-    if (active && install) scheduleFor(settings, install.at)
+    if (active && install) scheduleFor(settings, installedAt)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.offsetSec, settings.sound, settings.volume, settings.level])
+  }, [settings.offsetSec, settings.sound, settings.volume, settings.level, settings.trimSec])
 
   /* ── 감시 중 ────────────────────────────────────────────── */
 
@@ -275,6 +275,25 @@ export default function Janus() {
               style={{ color: 'var(--text-strong)' }}
             />
             <span className="text-[12.5px] font-bold shrink-0" style={{ color: 'var(--text-dim)' }}>초 전</span>
+          </div>
+        </SettingRow>
+
+        <SettingRow
+          name="타이머 보정"
+          desc={<>인게임 지속시간과 견줘 맞추세요 — 웹 타이머가 <b style={{ color: 'var(--text-muted)' }}>느리면 음수</b>, 빠르면 양수</>}
+        >
+          <div
+            className="flex items-center gap-2 rounded-[9px] px-3 py-2"
+            style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
+          >
+            <input
+              type="number" min={-5} max={5} step={0.1}
+              value={settings.trimSec}
+              onChange={(e) => set({ trimSec: Math.max(-5, Math.min(5, Number(e.target.value) || 0)) })}
+              className="janus-num flex-1 min-w-0 text-[13.5px] font-semibold tabular-nums bg-transparent outline-none"
+              style={{ color: 'var(--text-strong)' }}
+            />
+            <span className="text-[12.5px] font-bold shrink-0" style={{ color: 'var(--text-dim)' }}>초</span>
           </div>
         </SettingRow>
 
