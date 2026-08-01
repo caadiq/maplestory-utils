@@ -44,6 +44,7 @@ export function useJanusDetector({ onInstall }) {
   const canvasRef = useRef(null)
   const regionRef = useRef(null)
   const baselineRef = useRef(null)   // "밝음" 기준 휘도
+  const ctxBaseRef = useRef(null)    // 주변 영역의 기준 휘도
   const stateRef = useRef('bright')  // 확정된 상태: bright | dark
   const rawRef = useRef('bright')    // 임계선만 적용한 즉시 상태
   const rawSinceRef = useRef(0)      // 그 즉시 상태가 시작된 시각
@@ -104,6 +105,7 @@ export function useJanusDetector({ onInstall }) {
     rawRef.current = 'bright'
     dipSinceRef.current = null
     baselineRef.current = null
+    ctxBaseRef.current = null
     setIconDark(false)
   }
 
@@ -137,6 +139,7 @@ export function useJanusDetector({ onInstall }) {
     // 영역을 다시 지정하면 기준 모양도 새로 잡는다
     templateRef.current = null
     baselineRef.current = null
+    ctxBaseRef.current = null
     lostSinceRef.current = null
   }, [region])
 
@@ -171,10 +174,11 @@ export function useJanusDetector({ onInstall }) {
         return null
       }
       const px = c.getImageData(0, 0, w, h).data
+      // 밝기가 아니라 자주색 성분으로 찾는다 (아이콘 위 단축키 글자에 덜 흔들린다)
       const gray = new Float32Array(w * h)
       for (let i = 0; i < gray.length; i++) {
         const p = i * 4
-        gray[i] = 0.299 * px[p] + 0.587 * px[p + 1] + 0.114 * px[p + 2]
+        gray[i] = (px[p] + px[p + 2]) / 2 - px[p + 1]
       }
       return { gray, w, h }
     }
@@ -186,7 +190,7 @@ export function useJanusDetector({ onInstall }) {
       t.height = th
       const tctx = t.getContext('2d', { willReadFrequently: true })
       tctx.drawImage(source, 0, 0, sw, sh, 0, 0, tw, th)
-      return toShapeVector(tctx.getImageData(0, 0, tw, th).data)
+      return toShapeVector(tctx.getImageData(0, 0, tw, th).data, 'chroma')
     }
 
     const coarse = grabFrame(LOCATE.frameWidth)
@@ -281,6 +285,12 @@ export function useJanusDetector({ onInstall }) {
     canvas.height = 24
     const ctx = canvas.getContext('2d', { willReadFrequently: true })
 
+    // 주변 밝기를 재는 별도 캔버스 (아이콘만 어두워진 건지 화면이 어두워진 건지 가른다)
+    const ctxCanvas = document.createElement('canvas')
+    ctxCanvas.width = 16
+    ctxCanvas.height = 16
+    const ctxCtx = ctxCanvas.getContext('2d', { willReadFrequently: true })
+
     let alive = true
 
     // 프레임이 실제로 갱신되는지 별도로 센다 (게임 창이 최소화되면 멈춘다)
@@ -344,6 +354,30 @@ export function useJanusDetector({ onInstall }) {
       }
       lostSinceRef.current = null
 
+      // 아이콘 주변까지 넓게 한 번 더 본다
+      const cw = sw * DETECT.contextScale
+      const ch = sh * DETECT.contextScale
+      const cx = Math.max(0, Math.min(vw - cw, sx + sw / 2 - cw / 2))
+      const cy = Math.max(0, Math.min(vh - ch, sy + sh / 2 - ch / 2))
+      try {
+        ctxCtx.drawImage(video, cx, cy, cw, ch, 0, 0, 16, 16)
+      } catch {
+        return
+      }
+      const ctxLuma = meanLuma(ctxCtx.getImageData(0, 0, 16, 16).data)
+      if (ctxBaseRef.current == null) ctxBaseRef.current = ctxLuma
+      const ctxRatio = ctxBaseRef.current > 1 ? ctxLuma / ctxBaseRef.current : 1
+
+      // 주변까지 함께 어두워졌다 — 맵 이동 같은 화면 전체 변화이므로 판단을 쉰다
+      if (ctxRatio < DETECT.contextBlackout) {
+        if (lostSinceRef.current == null) lostSinceRef.current = now
+        return
+      }
+      // 주변 밝기가 평소 범위일 때만 기준을 따라간다
+      if (ctxRatio > 0.8 && ctxRatio < 1.25) {
+        ctxBaseRef.current = ctxBaseRef.current * 0.98 + ctxLuma * 0.02
+      }
+
       const luma = meanLuma(pixels)
 
       if (baselineRef.current == null) {
@@ -351,7 +385,8 @@ export function useJanusDetector({ onInstall }) {
         rawSinceRef.current = now
         return
       }
-      const base = baselineRef.current
+      // 주변이 어두워진 만큼은 빼고 본다 — 그래야 "아이콘만" 어두워진 것을 잡는다
+      const base = baselineRef.current * ctxRatio
       levelRef.current = { luma, base }
 
       // 히스테리시스 — 경계에서 떨리는 것 방지
@@ -385,7 +420,9 @@ export function useJanusDetector({ onInstall }) {
           luma > base * DETECT.brightRatio &&
           luma < base * DETECT.baselineAcceptHigh
         ) {
-          baselineRef.current = base * 0.98 + luma * 0.02
+          // 주변 보정을 되돌린 값으로 저장해야 기준이 흔들리지 않는다
+          const raw0 = luma / (ctxRatio || 1)
+          baselineRef.current = baselineRef.current * 0.98 + raw0 * 0.02
         }
         return
       }
