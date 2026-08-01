@@ -22,12 +22,19 @@ export default function CandidatePicker({ videoRef, candidates, onPick, onManual
       const sw = c.region.w * video.videoWidth
       const sh = c.region.h * video.videoHeight
       // 주변을 조금 넓게 잘라 어디인지 알아보기 쉽게
-      const pad = Math.max(sw, sh) * 0.9
+      const pad = Math.max(sw, sh) * 0.5
+      const cropW = sw + pad * 2
+      const cropH = sh + pad * 2
       try {
-        ctx.drawImage(video, sx - pad, sy - pad, sw + pad * 2, sh + pad * 2, 0, 0, canvas.width, canvas.height)
+        ctx.drawImage(video, sx - pad, sy - pad, cropW, cropH, 0, 0, canvas.width, canvas.height)
       } catch {
         // 프레임 준비 전
       }
+      // 찾은 자리를 정확히 표시 — 주변까지 잘라 보여주므로 어느 칸인지 알려줘야 한다
+      const k = canvas.width / cropW
+      ctx.strokeStyle = '#ffe437'
+      ctx.lineWidth = 2
+      ctx.strokeRect(pad * k, pad * k, sw * k, sh * k)
     })
   }, [candidates, videoRef])
 

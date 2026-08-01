@@ -72,6 +72,15 @@ export const DETECT = {
   /** 이 시간(ms) 이상 못 알아보면 화면에 알린다 */
   lostWarnMs: 1500,
   /**
+   * 아이콘 주변을 함께 보는 범위 (아이콘 크기의 배수).
+   * 맵을 이동하면 화면 전체가 잠깐 까매지는데, 이때 아이콘도 같이 어두워진다.
+   * 모양은 그대로라 상호상관으로는 걸러지지 않는다(밝기에 불변이므로).
+   * 그래서 "아이콘만 어두워졌는지"를 주변과 견줘서 판단한다.
+   */
+  contextScale: 3,
+  /** 주변까지 이 정도로 어두워졌으면 화면 자체가 어두워진 것 — 판단을 쉰다 */
+  contextBlackout: 0.5,
+  /**
    * 기준 밝기 갱신의 위쪽 한계(기준 대비).
    * 쿨타임이 끝날 때의 연출로 확 밝아진 값까지 섞이면 기준선이 올라가고,
    * 원래 밝기로 돌아왔을 때 "어두워졌다"고 잘못 판단하게 된다.
@@ -81,17 +90,26 @@ export const DETECT = {
 }
 
 /**
- * 픽셀 배열 → 밝기 벡터를 평균 0, 길이 1로 정규화.
+ * 픽셀 배열 → 특징 벡터를 평균 0, 길이 1로 정규화.
+ *
+ * channel:
+ *   luma   — 밝기. 설치 여부(어두워짐) 판정에 쓴다.
+ *   chroma — 자주색 성분 (R+B)/2 − G. 화면에서 아이콘 자리를 찾을 때 쓴다.
+ *     퀵슬롯 아이콘 위에는 단축키 글자와 숫자가 흰색·노란색으로 얹혀 밝기가 크게 흐트러진다.
+ *     실측하면 밝기로는 0.16~0.33(잡음 수준)이지만 자주색 성분으로는 0.65~0.78이 나온다.
+ *
  * 이렇게 두면 두 벡터의 내적이 곧 정규화 상호상관(NCC)이라,
  * 전체가 어두워지거나 밝아지는 변화에는 흔들리지 않고 "모양"만 비교하게 된다.
  */
-export function toShapeVector(data) {
+export function toShapeVector(data, channel = 'luma') {
   const n = data.length / 4
   const v = new Float32Array(n)
   let sum = 0
   for (let i = 0; i < n; i++) {
     const p = i * 4
-    v[i] = 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2]
+    v[i] = channel === 'chroma'
+      ? (data[p] + data[p + 2]) / 2 - data[p + 1]
+      : 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2]
     sum += v[i]
   }
   const mean = sum / n
@@ -125,11 +143,19 @@ export const LOCATE = {
    */
   frameWidth: 640,
   /** 1단계 통과선 — 놓치는 것보다 후보가 조금 많은 편이 낫다 */
-  coarseScore: 0.45,
-  /** 2단계(원본 해상도) 통과선 — 이걸 넘어야 자동으로 고른다 */
-  minScore: 0.62,
-  /** 여기까지는 후보로 보여준다. 실제 게임 아이콘은 단축키 글자·슬롯 테두리가 겹쳐 점수가 깎인다 */
-  looseScore: 0.38,
+  coarseScore: 0.4,
+  /**
+   * 자동으로 고르는 조건. 절대 점수만으로는 판단이 안 된다 —
+   * 화면에는 보라색 아이콘이 여럿이라 엉뚱한 곳도 0.7~0.8이 나온다.
+   * 1등이 충분히 높고 2등과 뚜렷이 벌어졌을 때만 확신한다.
+   * (실측: 저장된 모양이면 정답 0.99 / 2등 0.73, 내장 원본이면 0.87 / 0.76)
+   */
+  sureScore: 0.82,
+  sureMargin: 0.12,
+  /** 후보로 보여줄 최소 점수 */
+  minScore: 0.6,
+  /** 여기까지는 후보로 보여준다 */
+  looseScore: 0.42,
   /** 2단계에서 후보 주변을 살펴볼 반경(px) */
   refineRadius: 8,
   /** 이 거리(px, 축소 화면 기준) 안의 후보는 같은 것으로 본다 */
@@ -180,7 +206,7 @@ export function findMatches(gray, w, h, tpl, tw, th, opts = {}) {
       }
       const mean = sum * invN
       const variance = sqSum * invN - mean * mean
-      if (variance < 25) continue // 거의 단색 — 아이콘일 리 없다
+      if (variance < 4) continue // 거의 단색 — 아이콘일 리 없다 (색 성분은 값 범위가 좁아 기준도 낮다)
       const inv = 1 / (Math.sqrt(variance) * Math.sqrt(n))
 
       let dot = 0

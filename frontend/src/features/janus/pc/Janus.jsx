@@ -101,8 +101,10 @@ export default function Janus() {
   const applyHits = (hits) => {
     setLocating(false)
     if (!hits || hits.length === 0) { setPicking(true); return }
-    const sure = hits.filter((h) => h.score >= LOCATE.minScore)
-    if (sure.length === 1) setRegion(sure[0].region)
+    const [best, second] = hits
+    const clear = best.score >= LOCATE.sureScore
+      && (!second || best.score - second.score >= LOCATE.sureMargin)
+    if (clear) setRegion(best.region)
     else setCandidates(hits.slice(0, 6))
   }
 
