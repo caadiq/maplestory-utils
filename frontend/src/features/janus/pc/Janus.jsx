@@ -270,14 +270,15 @@ export default function Janus() {
                 className="flex items-center gap-2 rounded-[9px] px-3 py-2"
                 style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
               >
+                {/* 값은 왼쪽, 단위는 오른쪽 끝 — 위 레벨 행("30레벨 … 120초")과 같은 리듬 */}
                 <input
                   type="number" min={1} max={Math.max(1, durationForLevel(settings.level) - 1)}
                   value={settings.offsetSec}
                   onChange={(e) => set({ offsetSec: Math.max(1, Number(e.target.value) || 1) })}
-                  className="text-[13.5px] font-extrabold tabular-nums w-[42px] bg-transparent outline-none"
+                  className="janus-num flex-1 min-w-0 text-[13.5px] font-semibold tabular-nums bg-transparent outline-none"
                   style={{ color: 'var(--text-strong)' }}
                 />
-                <span className="text-[12.5px] font-bold" style={{ color: 'var(--text-dim)' }}>초 전</span>
+                <span className="text-[12.5px] font-bold shrink-0" style={{ color: 'var(--text-dim)' }}>초 전</span>
               </div>
             </SettingRow>
 
