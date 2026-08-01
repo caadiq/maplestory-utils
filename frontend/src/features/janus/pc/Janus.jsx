@@ -61,10 +61,19 @@ export default function Janus() {
     scheduleFor(settings, next.at)
   }, [scheduleFor, settings])
 
+  /*
+   * 다음 설치는 알림이 울린 뒤에 한다. 그 전에 잡히는 "설치"는 전부 오검출이다.
+   * 특히 쿨타임 막바지 깜빡임이 밝음 → 어두움으로 읽히면 새 설치가 되는데,
+   * 그 시점은 알림보다 앞이라 여기서 걸린다. (3초는 미리 까는 경우를 위한 여유)
+   */
+  const gapMsRef = useRef(0)
+  gapMsRef.current = Math.max(0,
+    ((durationForLevel(settings.level) || 0) - settings.offsetSec - 3) * 1000)
+
   const {
     stream, region, setRegion, install, stale, error, match, glyphs, iconLost,
     videoRef, start, stop, resetCycle, locate, hasTemplate, log,
-  } = useJanusDetector({ onInstall: handleInstall })
+  } = useJanusDetector({ onInstall: handleInstall, minGapMs: gapMsRef.current })
 
   /* ── 표시값 ─────────────────────────────────────────────── */
 

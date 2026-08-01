@@ -27,7 +27,7 @@ const iconFiles = import.meta.glob('./icon/*.{png,webp,jpg}', {
 const BUILTIN_ICON_URL = Object.values(iconFiles)[0] ?? null
 export const HAS_BUILTIN_ICON = Boolean(BUILTIN_ICON_URL)
 
-export function useJanusDetector({ onInstall }) {
+export function useJanusDetector({ onInstall, minGapMs = 0 }) {
   const [stream, setStream] = useState(null)
   const [region, setRegion] = useState(null)   // {x,y,w,h} — 0~1 정규화
   const [install, setInstall] = useState(null) // {index, at}
@@ -62,6 +62,11 @@ export function useJanusDetector({ onInstall }) {
 
   const cbRef = useRef({ onInstall })
   useEffect(() => { cbRef.current = { onInstall } })
+
+  // 마지막 설치 시각 — 한 사이클 안에서 또 설치로 잡히는 것을 막는다
+  const lastInstallRef = useRef(0)
+  const gapRef = useRef(minGapMs)
+  useEffect(() => { gapRef.current = minGapMs }, [minGapMs])
 
   // 페이지를 떠나면 화면 공유도 끊는다.
   // 안 그러면 뒤로 가도 브라우저의 "공유 중" 표시가 남고 캡처가 계속 돈다.
@@ -115,11 +120,13 @@ export function useJanusDetector({ onInstall }) {
     stream?.getTracks().forEach((t) => t.stop())
     setStream(null)
     resetDetector()
+    lastInstallRef.current = 0
     setInstall(null)
   }, [stream])
 
   /** 오검출이 났을 때 되돌리기 */
   const resetCycle = useCallback(() => {
+    lastInstallRef.current = 0
     setInstall(null)
     resetDetector()
     log('수동 리셋', '사용자', 'muted')
@@ -387,8 +394,13 @@ export function useJanusDetector({ onInstall }) {
         rawSinceRef.current = now
         return
       }
-      // 주변이 어두워진 만큼은 빼고 본다 — 그래야 "아이콘만" 어두워진 것을 잡는다
-      const base = baselineRef.current * ctxRatio
+      /*
+       * 주변 밝기는 "화면 전체가 꺼졌는지"를 가리는 데만 쓴다.
+       * 기준을 주변 밝기로 나눠봤더니 사냥 중에는 오히려 불안정했다 —
+       * 퀵슬롯 뒤로 스킬 이펙트가 계속 번쩍여서 기준이 같이 출렁이고,
+       * 그 바람에 쿨타임 도는 중에도 아이콘이 "밝음"으로 읽혀 타이머가 다시 시작됐다.
+       */
+      const base = baselineRef.current
       levelRef.current = { luma, base }
 
       // 쿨타임이 돌면 아이콘 위에 밝은 숫자가 남는다. 그 점들이 없으면 어두워진 게 아니라
@@ -428,9 +440,7 @@ export function useJanusDetector({ onInstall }) {
           luma > base * DETECT.brightRatio &&
           luma < base * DETECT.baselineAcceptHigh
         ) {
-          // 주변 보정을 되돌린 값으로 저장해야 기준이 흔들리지 않는다
-          const raw0 = luma / (ctxRatio || 1)
-          baselineRef.current = baselineRef.current * 0.98 + raw0 * 0.02
+          baselineRef.current = base * 0.98 + luma * 0.02
         }
         return
       }
@@ -447,6 +457,11 @@ export function useJanusDetector({ onInstall }) {
         // 화면 공유 지연만큼 더 당긴다
         const onset = Math.min(rawSinceRef.current, dipSinceRef.current ?? rawSinceRef.current)
         dipSinceRef.current = null
+
+        // 방금 설치한 야누스가 아직 살아 있는 동안의 재감지는 무시한다.
+        // 실제로 다시 까는 건 지속시간이 끝나갈 무렵이라 이 구간에 진짜 설치는 없다.
+        if (lastInstallRef.current && onset - lastInstallRef.current < gapRef.current) return
+        lastInstallRef.current = onset
         indexRef.current += 1
         const next = { index: indexRef.current, at: onset - Math.round(latencyRef.current) }
         setInstall(next)
