@@ -159,16 +159,6 @@ export default function Janus() {
         <div className="rounded-[11px] overflow-hidden relative" style={CARD}>
           <RegionPicker videoRef={videoRef} stream={stream} region={region} />
 
-          <div className="absolute right-2.5 top-2.5 flex gap-1.5">
-            {pip.supported && (
-              <SmallPill tone="sky" onClick={() => (pip.pip ? pip.close() : pip.open())}>
-                {pip.pip ? '미니 HUD 닫기' : '미니 HUD 열기'}
-              </SmallPill>
-            )}
-            <SmallPill tone="slate" onClick={() => setPicking(true)}>영역 지정</SmallPill>
-            <SmallPill tone="red" onClick={stop}>공유 중단</SmallPill>
-          </div>
-
           <div
             className="absolute left-3.5 bottom-3 flex items-end gap-3.5 rounded-xl px-4 py-3"
             style={{
@@ -196,8 +186,16 @@ export default function Janus() {
                 </div>
               )}
             </div>
-            <div className="pb-1.5">
-              <SmallPill tone="slate" onClick={resetCycle}>↺ 초기화</SmallPill>
+            {/* 조작 버튼도 여기 모은다 — 화면 위쪽에 흩어두면 게임 화면에 묻혀 안 보인다 */}
+            <div className="grid grid-cols-2 gap-1.5 pb-0.5">
+              <SmallPill tone="slate" onClick={resetCycle}><RefreshIcon /> 초기화</SmallPill>
+              {pip.supported ? (
+                <SmallPill tone="sky" onClick={() => (pip.pip ? pip.close() : pip.open())}>
+                  {pip.pip ? '미니 HUD 닫기' : '미니 HUD 열기'}
+                </SmallPill>
+              ) : <span />}
+              <SmallPill tone="slate" onClick={() => setPicking(true)}>영역 지정</SmallPill>
+              <SmallPill tone="red" onClick={stop}>공유 중단</SmallPill>
             </div>
           </div>
 
@@ -341,12 +339,24 @@ const TONES = {
   red: 'linear-gradient(180deg, var(--mpl-red-from), var(--mpl-red-to))',
 }
 
+function RefreshIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path
+        d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"
+        stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"
+      />
+      <path d="M13.4 1.9v3.1h-3.1" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 function SmallPill({ tone, onClick, className = '', children }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-lg px-3 py-1.5 text-[12.5px] font-extrabold text-white ${className}`}
+      className={`rounded-lg px-3 py-1.5 text-[12.5px] font-extrabold text-white whitespace-nowrap inline-flex items-center justify-center gap-1 ${className}`}
       style={{
         background: TONES[tone],
         textShadow: '0 1px 0 rgba(0,0,0,.28)',
