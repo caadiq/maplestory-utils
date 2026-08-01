@@ -3,12 +3,13 @@ import { createPortal } from 'react-dom'
 import MapleWindow from '../../../components/pc/MapleWindow'
 import { useJanusDetector } from '../useJanusDetector'
 import { usePipWindow } from '../usePipWindow'
+import Select from '../../../components/common/Select'
 import RegionPicker from './RegionPicker'
 import RegionPickerModal from './RegionPickerModal'
 import MiniBar from './MiniBar'
 import {
   DETECT, loadSettings, saveSettings, durationForLevel, formatSeconds, formatClock, formatLogTime,
-  SOUND_OPTIONS,
+  SOUND_OPTIONS, LEVEL_TIERS, tierForLevel,
 } from '../logic'
 import {
   ensureAudio, scheduleSound, playSound, blinkTitle, stopBlink, notify, requestNotifyPermission,
@@ -84,6 +85,7 @@ export default function Janus() {
   const remainingMs = active ? durationMs - elapsed : null
   const alarmInMs = remainingMs != null ? remainingMs - settings.offsetSec * 1000 : null
   const progress = active ? elapsed / durationMs : 0
+  const alarmAtSec = Math.max(0, durationForLevel(settings.level) - settings.offsetSec)
 
   /* ── PiP ────────────────────────────────────────────────── */
 
@@ -236,7 +238,7 @@ export default function Janus() {
 
             <div className="flex gap-3.5">
               <Stat label="알림까지" value={alarmInMs != null && alarmInMs > 0 ? `${formatSeconds(alarmInMs)}초` : '-'} color="var(--warning-text)" />
-              <Stat label="알림 시점" value={`설치 후 ${Math.max(0, durationForLevel(settings.level) - settings.offsetSec)}초`} />
+              <Stat label="알림 시점" value={`설치 후 ${alarmAtSec}초`} />
               <Stat label="설치 횟수" value={`${install?.index ?? 0}회`} />
               <Stat label="아이콘" value={iconDark ? '쿨타임 중' : '사용 가능'} color={iconDark ? 'var(--text-muted)' : 'var(--ok-text)'} />
             </div>
@@ -245,55 +247,62 @@ export default function Janus() {
 
           {/* 알림 설정 */}
           <div className="rounded-[11px] overflow-hidden" style={CARD}>
-            <div className="px-3.5 py-2 text-[12.5px] font-extrabold" style={SLATE_BAR}>⚙️ 알림 설정</div>
-            <div className="p-3.5 flex gap-3.5 items-start">
-              <Field label="야누스 스킬 레벨" width={170}>
-                <div className="flex gap-2 items-center">
-                  <input
-                    type="number" min={1} max={30} value={settings.level}
-                    onChange={(e) => set({ level: Number(e.target.value) })}
-                    className="rounded-lg px-2.5 py-2 text-[13.5px] font-semibold tabular-nums w-[74px]"
-                    style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-strong)' }}
-                  />
-                  <span className="text-[12.5px] leading-relaxed" style={{ color: 'var(--text-dim)' }}>
-                    지속 <b style={{ color: 'var(--text-emphasis)' }}>{durationForLevel(settings.level)}초</b>
-                  </span>
-                </div>
-              </Field>
-
-              <Field label="알림 시점 (사라지기 전)" width={280}>
-                <div className="flex gap-2 items-center">
-                  <input
-                    type="number" min={1} max={Math.max(1, durationForLevel(settings.level) - 1)}
-                    value={settings.offsetSec}
-                    onChange={(e) => set({ offsetSec: Math.max(1, Number(e.target.value) || 1) })}
-                    className="rounded-lg px-2.5 py-2 text-[13.5px] font-semibold tabular-nums w-[74px]"
-                    style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-strong)' }}
-                  />
-                  <span className="text-[12.5px] leading-relaxed" style={{ color: 'var(--text-dim)' }}>
-                    초 전<br />젠 주기 × 젠 수로 잡으면 됩니다
-                  </span>
-                </div>
-              </Field>
-
-              <Field label="소리" width={175}>
-                <Seg options={SOUND_OPTIONS} value={settings.sound} onChange={(v) => set({ sound: v })} />
-              </Field>
-
-              <Field label="추가 알림" grow>
-                <div className="flex flex-col gap-1.5 pt-0.5">
-                  <Check
-                    checked={settings.titleBlink}
-                    onChange={(v) => set({ titleBlink: v })}
-                  >탭 제목 깜빡임</Check>
-                  <Check
-                    checked={settings.browserNotify}
-                    onChange={async (v) => set({ browserNotify: v && await requestNotifyPermission() })}
-                  >브라우저 알림</Check>
-                </div>
-              </Field>
-
+            <div className="px-3.5 py-2 text-[12.5px] font-extrabold flex items-center" style={SLATE_BAR}>
+              ⚙️ 알림 설정
+              <span className="flex-1" />
+              <span style={{ color: '#cfdae4' }}>설치 후 {alarmAtSec}초에 알림</span>
             </div>
+
+            <SettingRow name="야누스 스킬 레벨" desc="레벨로 지속시간이 정해집니다 (10레벨 단위)">
+              <Select
+                showSub
+                options={LEVEL_TIERS}
+                value={tierForLevel(settings.level)}
+                onChange={(v) => set({ level: v })}
+              />
+            </SettingRow>
+
+            <SettingRow
+              name="알림 시점"
+              desc={<>사라지기 몇 초 전에 알릴지 — <b style={{ color: 'var(--text-muted)' }}>젠 주기 × 젠 수</b>로 잡으세요</>}
+            >
+              <div
+                className="flex items-center gap-2 rounded-[9px] px-3 py-2"
+                style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
+              >
+                <input
+                  type="number" min={1} max={Math.max(1, durationForLevel(settings.level) - 1)}
+                  value={settings.offsetSec}
+                  onChange={(e) => set({ offsetSec: Math.max(1, Number(e.target.value) || 1) })}
+                  className="text-[13.5px] font-extrabold tabular-nums w-[42px] bg-transparent outline-none"
+                  style={{ color: 'var(--text-strong)' }}
+                />
+                <span className="text-[12.5px] font-bold" style={{ color: 'var(--text-dim)' }}>초 전</span>
+              </div>
+            </SettingRow>
+
+            <SettingRow name="알림 소리" desc="백그라운드 탭에서도 정확한 시각에 울립니다">
+              <div className="flex gap-2 items-center">
+                <div className="flex-1 min-w-0">
+                  <Seg options={SOUND_OPTIONS} value={settings.sound} onChange={(v) => set({ sound: v })} />
+                </div>
+                <SmallPill tone="tan" className="shrink-0 !px-2.5" onClick={handleTest}>🔔</SmallPill>
+              </div>
+            </SettingRow>
+
+            <SettingRow name="추가 알림" desc="소리를 못 듣는 상황을 위한 보조 수단">
+              <div className="flex flex-col gap-1.5">
+                <Check checked={settings.titleBlink} onChange={(v) => set({ titleBlink: v })}>
+                  탭 제목 깜빡임
+                </Check>
+                <Check
+                  checked={settings.browserNotify}
+                  onChange={async (v) => set({ browserNotify: v && await requestNotifyPermission() })}
+                >
+                  브라우저 알림
+                </Check>
+              </div>
+            </SettingRow>
           </div>
          </div>
 
@@ -470,6 +479,20 @@ function Stat({ label, value, color }) {
     <div className="flex-1 rounded-[9px] px-3 py-2.5" style={{ background: 'var(--mpl-row)', border: '1px solid var(--mpl-card-line)' }}>
       <div className="text-[12px] font-bold" style={{ color: 'var(--text-muted)' }}>{label}</div>
       <div className="text-[19px] font-extrabold mt-0.5 tabular-nums" style={{ color: color || 'var(--text-strong)' }}>{value}</div>
+    </div>
+  )
+}
+
+/** 설정 한 줄 — 이름 / 설명 / 컨트롤 (관리자 화면 행과 같은 결) */
+function SettingRow({ name, desc, children }) {
+  return (
+    <div
+      className="flex items-center gap-3.5 px-3.5 py-2.5"
+      style={{ borderTop: '1px solid var(--mpl-card-line)' }}
+    >
+      <span className="w-[132px] shrink-0 text-[13px] font-bold" style={{ color: 'var(--text-emphasis)' }}>{name}</span>
+      <span className="flex-1 min-w-0 text-[12.5px]" style={{ color: 'var(--text-dim)' }}>{desc}</span>
+      <span className="w-[230px] shrink-0">{children}</span>
     </div>
   )
 }

@@ -6,8 +6,11 @@ import { useScrollChainBlock } from '../../hooks/useScrollLock'
 
 /**
  * 커스텀 드롭다운 셀렉트 (포털로 렌더링 → 부모 overflow:hidden에도 잘림 없음)
+ *
+ * showSub: 닫힌 상태에서도 option.sub를 오른쪽에 같이 보여준다.
+ *   기본은 끔 — 기존 화면(캐릭터 선택 등)의 모양이 바뀌지 않도록 opt-in으로 뒀다.
  */
-export default function Select({ value, onChange, options, disabled, className = '', placeholder = '선택' }) {
+export default function Select({ value, onChange, options, disabled, className = '', placeholder = '선택', showSub = false }) {
   const [open, setOpen] = useState(false)
   const [flipUp, setFlipUp] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0, width: 0 })
@@ -170,6 +173,11 @@ export default function Select({ value, onChange, options, disabled, className =
             <img src={selected.subIcon} alt="" className="w-4 h-4 shrink-0 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
           )}
           <span className="truncate">{selected ? selected.label : placeholder}</span>
+          {showSub && selected?.sub && (
+            <span className="text-[12.5px] font-bold shrink-0 ml-auto pl-2" style={{ color: 'var(--text-dim)' }}>
+              {selected.sub}
+            </span>
+          )}
         </span>
         <svg
           className={`w-3.5 h-3.5 transition ${open ? 'rotate-180' : ''}`}
