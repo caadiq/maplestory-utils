@@ -63,12 +63,55 @@ export const DETECT = {
   /** 프레임이 이 시간(ms) 이상 안 들어오면 인식 실패로 경고 */
   staleWarnMs: 3000,
   /**
+   * 지정할 때 기억해둔 아이콘 모양과 얼마나 닮았는지(-1~1).
+   * 이 아래로 떨어지면 "야누스 아이콘이 그 자리에 없다"고 보고 밝기 판정을 아예 쉰다.
+   * 다른 창에 가려지거나 퀵슬롯이 잠깐 사라졌을 때 그걸 설치로 오인하지 않기 위한 장치.
+   * 쿨타임 숫자가 겹쳐도 통과해야 하므로 느슨하게 잡는다.
+   */
+  matchThreshold: 0.45,
+  /** 이 시간(ms) 이상 못 알아보면 화면에 알린다 */
+  lostWarnMs: 1500,
+  /**
    * 기준 밝기 갱신의 위쪽 한계(기준 대비).
    * 쿨타임이 끝날 때의 연출로 확 밝아진 값까지 섞이면 기준선이 올라가고,
    * 원래 밝기로 돌아왔을 때 "어두워졌다"고 잘못 판단하게 된다.
    * 아래쪽 한계는 brightRatio를 그대로 쓴다 — 살짝 떨어진 값은 이미 설치의 시작일 수 있다.
    */
   baselineAcceptHigh: 1.15,
+}
+
+/**
+ * 픽셀 배열 → 밝기 벡터를 평균 0, 길이 1로 정규화.
+ * 이렇게 두면 두 벡터의 내적이 곧 정규화 상호상관(NCC)이라,
+ * 전체가 어두워지거나 밝아지는 변화에는 흔들리지 않고 "모양"만 비교하게 된다.
+ */
+export function toShapeVector(data) {
+  const n = data.length / 4
+  const v = new Float32Array(n)
+  let sum = 0
+  for (let i = 0; i < n; i++) {
+    const p = i * 4
+    v[i] = 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2]
+    sum += v[i]
+  }
+  const mean = sum / n
+  let norm = 0
+  for (let i = 0; i < n; i++) {
+    v[i] -= mean
+    norm += v[i] * v[i]
+  }
+  norm = Math.sqrt(norm)
+  if (norm < 1e-6) return null // 단색 — 비교할 모양이 없다
+  for (let i = 0; i < n; i++) v[i] /= norm
+  return v
+}
+
+/** 두 모양 벡터의 닮은 정도 (-1 ~ 1) */
+export function shapeSimilarity(a, b) {
+  if (!a || !b || a.length !== b.length) return 0
+  let dot = 0
+  for (let i = 0; i < a.length; i++) dot += a[i] * b[i]
+  return dot
 }
 
 /** 캔버스 픽셀 배열의 평균 휘도(0~255) */
