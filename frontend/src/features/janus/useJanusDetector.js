@@ -35,6 +35,8 @@ export function useJanusDetector({ onInstall }) {
   const stateRef = useRef('bright')  // 확정된 상태: bright | dark
   const rawRef = useRef('bright')    // 임계선만 적용한 즉시 상태
   const rawSinceRef = useRef(0)      // 그 즉시 상태가 시작된 시각
+  const dipSinceRef = useRef(null)   // "확실히 밝음"에서 처음 벗어난 시각 (진짜 설치 순간에 가깝다)
+  const latencyRef = useRef(0)       // 화면 공유 파이프라인 지연(ms)
   const levelRef = useRef(null)
   const indexRef = useRef(0)
   const lastFrameRef = useRef(0)
@@ -70,6 +72,7 @@ export function useJanusDetector({ onInstall }) {
   const resetDetector = () => {
     stateRef.current = 'bright'
     rawRef.current = 'bright'
+    dipSinceRef.current = null
     baselineRef.current = null
     setIconDark(false)
   }
@@ -118,8 +121,14 @@ export function useJanusDetector({ onInstall }) {
 
     // 프레임이 실제로 갱신되는지 별도로 센다 (게임 창이 최소화되면 멈춘다)
     let rvfcHandle = null
-    const countFrame = () => {
+    const countFrame = (now, metadata) => {
       lastFrameRef.current = performance.now()
+      // 화면이 캡처된 시각과 지금 사이의 간격 = 공유 파이프라인 지연.
+      // 이만큼 과거의 화면을 보고 있는 셈이라 감지 시각에서 빼줘야 실제와 맞는다.
+      if (metadata?.captureTime != null) {
+        const lag = Math.min(1000, Math.max(0, performance.now() - metadata.captureTime))
+        latencyRef.current = latencyRef.current * 0.8 + lag * 0.2
+      }
       if (alive && video.requestVideoFrameCallback) {
         rvfcHandle = video.requestVideoFrameCallback(countFrame)
       }
@@ -166,6 +175,17 @@ export function useJanusDetector({ onInstall }) {
         rawSinceRef.current = now
       }
 
+      // 어두워지는 건 한 번에 뚝 떨어지지 않는다. 쿨타임 숫자가 겹쳐 있어서
+      // 잠깐 히스테리시스 구간(0.78~0.88)에 머무르다 내려가는데, 그 구간에 들어선 순간이
+      // 실제로 스킬을 쓴 시점에 가깝다. 판정선을 넘은 순간만 보면 그만큼 늦게 잡힌다.
+      if (stateRef.current === 'bright') {
+        if (luma < base * DETECT.brightRatio) {
+          if (dipSinceRef.current == null) dipSinceRef.current = now
+        } else {
+          dipSinceRef.current = null
+        }
+      }
+
       if (raw === stateRef.current) {
         // 밝은 상태에서만, 그것도 기준 근처 값으로만 기준선을 갱신한다.
         // (어두울 때 갱신하면 기준선이 같이 내려가고, 번쩍임까지 섞으면 기준선이 올라간다)
@@ -187,9 +207,12 @@ export function useJanusDetector({ onInstall }) {
       setIconDark(raw === 'dark')
 
       if (raw === 'dark') {
-        // 확정은 늦어도 시각은 처음 어두워진 순간으로 소급한다
+        // 확정은 늦어도 시각은 처음 어두워지기 시작한 순간으로 소급하고,
+        // 화면 공유 지연만큼 더 당긴다
+        const onset = Math.min(rawSinceRef.current, dipSinceRef.current ?? rawSinceRef.current)
+        dipSinceRef.current = null
         indexRef.current += 1
-        const next = { index: indexRef.current, at: rawSinceRef.current }
+        const next = { index: indexRef.current, at: onset - Math.round(latencyRef.current) }
         setInstall(next)
         log(`설치 감지 — 사이클 #${next.index} 시작`, '아이콘 어두워짐', 'ok')
         cbRef.current.onInstall?.(next)
