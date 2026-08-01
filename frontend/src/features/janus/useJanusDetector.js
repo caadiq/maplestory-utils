@@ -1,5 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { DETECT, meanLuma, toShapeVector, shapeSimilarity } from './logic'
+import {
+  DETECT, LOCATE, meanLuma, toShapeVector, shapeSimilarity,
+  findMatches, saveTemplate, loadTemplate,
+} from './logic'
 
 /**
  * 화면 공유 → 지정 영역 밝기 샘플링 → **설치 감지만** 한다.
@@ -16,6 +19,13 @@ import { DETECT, meanLuma, toShapeVector, shapeSimilarity } from './logic'
  */
 
 const MAX_LOGS = 40
+
+/** icon/ 폴더에 원본을 넣어두면 한 번도 지정하지 않은 상태에서도 자동으로 찾는다 */
+const iconFiles = import.meta.glob('./icon/*.{png,webp,jpg}', {
+  eager: true, query: '?url', import: 'default',
+})
+const BUILTIN_ICON_URL = Object.values(iconFiles)[0] ?? null
+export const HAS_BUILTIN_ICON = Boolean(BUILTIN_ICON_URL)
 
 export function useJanusDetector({ onInstall }) {
   const [stream, setStream] = useState(null)
@@ -40,6 +50,7 @@ export function useJanusDetector({ onInstall }) {
   const dipSinceRef = useRef(null)   // "확실히 밝음"에서 처음 벗어난 시각 (진짜 설치 순간에 가깝다)
   const latencyRef = useRef(0)       // 화면 공유 파이프라인 지연(ms)
   const templateRef = useRef(null)   // 지정할 때 기억한 아이콘 모양
+  const builtinIconRef = useRef(null) // icon/ 폴더의 원본 (있을 때만)
   const matchRef = useRef(null)
   const lostSinceRef = useRef(null)
   const levelRef = useRef(null)
@@ -48,6 +59,14 @@ export function useJanusDetector({ onInstall }) {
 
   const cbRef = useRef({ onInstall })
   useEffect(() => { cbRef.current = { onInstall } })
+
+  // 내장 아이콘 원본을 한 번만 읽어둔다
+  useEffect(() => {
+    if (!BUILTIN_ICON_URL || builtinIconRef.current) return
+    const img = new Image()
+    img.src = BUILTIN_ICON_URL
+    builtinIconRef.current = img
+  }, [])
 
   const log = useCallback((message, tag, tagColor) => {
     setLogs((prev) => [{ at: Date.now(), message, tag, tagColor }, ...prev].slice(0, MAX_LOGS))
@@ -115,6 +134,82 @@ export function useJanusDetector({ onInstall }) {
     lostSinceRef.current = null
   }, [region])
 
+  /**
+   * 화면 전체에서 아이콘 모양을 찾는다.
+   * 직접 지정한 적이 있으면 그 모양을(사용자 화면의 실물이라 가장 정확),
+   * 없으면 icon/ 폴더의 원본을 여러 크기로 훑는다.
+   * 브라우저가 화면 공유 권한을 기억하지 않아 매번 창을 다시 고르는데,
+   * 그때마다 아이콘까지 다시 집는 건 번거로워서 자동으로 찾아준다.
+   */
+  const locate = useCallback(() => {
+    const video = videoRef.current
+    if (!video?.videoWidth) return null
+
+    const scale = LOCATE.frameWidth / video.videoWidth
+    const w = LOCATE.frameWidth
+    const h = Math.round(video.videoHeight * scale)
+
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const c = canvas.getContext('2d', { willReadFrequently: true })
+    try {
+      c.drawImage(video, 0, 0, w, h)
+    } catch {
+      return null
+    }
+    const px = c.getImageData(0, 0, w, h).data
+    const gray = new Float32Array(w * h)
+    for (let i = 0; i < gray.length; i++) {
+      const p = i * 4
+      gray[i] = 0.299 * px[p] + 0.587 * px[p + 1] + 0.114 * px[p + 2]
+    }
+
+    /** source(캔버스나 이미지)를 tw×th로 줄여 모양 벡터를 만든다 */
+    const templateAt = (source, sw, sh, tw, th) => {
+      const t = document.createElement('canvas')
+      t.width = tw
+      t.height = th
+      const tctx = t.getContext('2d', { willReadFrequently: true })
+      tctx.drawImage(source, 0, 0, sw, sh, 0, 0, tw, th)
+      return toShapeVector(tctx.getImageData(0, 0, tw, th).data)
+    }
+
+    const scan = (vec, tw, th) => (vec
+      ? findMatches(gray, w, h, vec, tw, th).map((hit) => ({
+        score: hit.score,
+        region: { x: hit.x / w, y: hit.y / h, w: tw / w, h: th / h },
+      }))
+      : [])
+
+    const saved = loadTemplate()
+    if (saved) {
+      // 직접 지정한 모양 — 크기까지 알고 있으니 한 번만 훑으면 된다
+      const tc = document.createElement('canvas')
+      tc.width = saved.tw
+      tc.height = saved.th
+      tc.getContext('2d').putImageData(
+        new ImageData(new Uint8ClampedArray(saved.rgba), saved.tw, saved.th), 0, 0,
+      )
+      const tw = Math.max(6, Math.round(saved.rw * video.videoWidth * scale))
+      const th = Math.max(6, Math.round(saved.rh * video.videoHeight * scale))
+      return scan(templateAt(tc, saved.tw, saved.th, tw, th), tw, th)
+    }
+
+    // 내장 원본 — 화면 배율을 모르니 몇 가지 크기로 훑어 가장 잘 맞는 것을 쓴다
+    const img = builtinIconRef.current
+    if (!img?.complete || !img.naturalWidth) return null
+    let best = []
+    for (const size of LOCATE.builtinSizes) {
+      const tw = Math.round(size * scale)
+      const th = Math.round(size * scale * (img.naturalHeight / img.naturalWidth))
+      if (tw < 6 || th < 6) continue
+      const hits = scan(templateAt(img, img.naturalWidth, img.naturalHeight, tw, th), tw, th)
+      if (hits.length && (!best.length || hits[0].score > best[0].score)) best = hits
+    }
+    return best
+  }, [])
+
   useEffect(() => {
     if (!stream || !region) return
 
@@ -169,9 +264,11 @@ export function useJanusDetector({ onInstall }) {
       const pixels = ctx.getImageData(0, 0, 24, 24).data
       const now = Date.now()
 
-      // 지정 직후 첫 프레임을 기준 모양으로 기억한다
+      // 지정 직후 첫 프레임을 기준 모양으로 기억하고, 다음 접속을 위해 저장해둔다
       if (!templateRef.current) {
         templateRef.current = toShapeVector(pixels)
+        const r = regionRef.current
+        saveTemplate({ rgba: Array.from(pixels), tw: 24, th: 24, rw: r.w, rh: r.h })
         return
       }
 
@@ -289,6 +386,7 @@ export function useJanusDetector({ onInstall }) {
     // 공유가 끊기면 경고도 같이 내린다
     stale: stream ? stale : false,
     videoRef,
-    start, stop, resetCycle, markInstalledNow, log,
+    start, stop, resetCycle, markInstalledNow, locate, log,
+    hasTemplate: Boolean(loadTemplate()) || HAS_BUILTIN_ICON,
   }
 }

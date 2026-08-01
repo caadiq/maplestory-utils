@@ -7,6 +7,7 @@ import { useJanusDetector } from '../useJanusDetector'
 import { usePipWindow } from '../usePipWindow'
 import RegionPicker from './RegionPicker'
 import RegionPickerModal from './RegionPickerModal'
+import CandidatePicker from './CandidatePicker'
 import MiniBar from './MiniBar'
 import {
   DETECT, loadSettings, saveSettings, durationForLevel, formatSeconds,
@@ -24,6 +25,8 @@ const SLATE_BAR = {
 export default function Janus() {
   const [settings, setSettings] = useState(loadSettings)
   const [picking, setPicking] = useState(false)
+  const [candidates, setCandidates] = useState(null)
+  const [locating, setLocating] = useState(false)
 
   const set = useCallback((patch) => {
     setSettings((prev) => {
@@ -60,7 +63,7 @@ export default function Janus() {
 
   const {
     stream, region, setRegion, install, stale, error, match, iconLost,
-    videoRef, start, stop, resetCycle, log,
+    videoRef, start, stop, resetCycle, locate, hasTemplate, log,
   } = useJanusDetector({ onInstall: handleInstall })
 
   /* ── 표시값 ─────────────────────────────────────────────── */
@@ -80,7 +83,28 @@ export default function Janus() {
     ensureAudio() // 사용자 제스처 안에서 오디오를 깨워둔다 (예약이 안 울리는 걸 방지)
     preloadSounds() // 음원을 미리 받아둔다 — 알림 시각에 네트워크를 기다리지 않도록
     const ok = await start()
-    if (ok && !region) setPicking(true)
+    if (!ok || region) return
+
+    // 전에 지정한 적이 있으면 화면에서 아이콘을 자동으로 찾아본다
+    if (!hasTemplate) { setPicking(true); return }
+    setLocating(true)
+    // 영상이 실제로 흐르기 시작할 때까지 잠깐 기다린다
+    await new Promise((r) => setTimeout(r, 700))
+    const hits = locate()
+    setLocating(false)
+    if (!hits || hits.length === 0) setPicking(true)
+    else if (hits.length === 1) setRegion(hits[0].region)
+    else setCandidates(hits)
+  }
+
+  const relocate = async () => {
+    if (!hasTemplate) { setPicking(true); return }
+    setLocating(true)
+    const hits = locate()
+    setLocating(false)
+    if (!hits || hits.length === 0) setPicking(true)
+    else if (hits.length === 1) setRegion(hits[0].region)
+    else setCandidates(hits)
   }
 
   const handleTest = async () => {
@@ -167,7 +191,7 @@ export default function Janus() {
                   <PipIcon />
                 </IconButton>
               )}
-              <IconButton tone="slate" label="인식 영역 다시 지정" onClick={() => setPicking(true)}><CropIcon /></IconButton>
+              <IconButton tone="slate" label="아이콘 다시 찾기" onClick={relocate}><CropIcon /></IconButton>
               <IconButton tone="red" label="화면 공유 중단" onClick={stop}><StopIcon /></IconButton>
             </div>
           </div>
@@ -272,6 +296,25 @@ export default function Janus() {
         )}
       </div>
       </div>
+
+      {locating && (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center"
+          style={{ background: 'rgba(4,8,14,.7)', color: '#eef3f8' }}
+        >
+          <div className="text-[14px] font-extrabold">화면에서 야누스 아이콘을 찾는 중…</div>
+        </div>
+      )}
+
+      {candidates && (
+        <CandidatePicker
+          videoRef={videoRef}
+          candidates={candidates}
+          onPick={(r) => { setRegion(r); setCandidates(null) }}
+          onManual={() => { setCandidates(null); setPicking(true) }}
+          onClose={() => setCandidates(null)}
+        />
+      )}
 
       {picking && (
         <RegionPickerModal
