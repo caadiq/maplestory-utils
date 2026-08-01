@@ -119,10 +119,8 @@ export const DEFAULT_SETTINGS = {
    * (야누스가 끊기지 않으려면 몬스터를 잡자마자 다시 깔아야 해서 보통 2젠 전쯤)
    */
   offsetSec: 14,
-  sound: 'bell',
+  sound: 'ppyorong',
   volume: 0.7,
-  titleBlink: true,
-  browserNotify: false,
 }
 
 export function loadSettings() {
@@ -143,8 +141,3 @@ export function saveSettings(settings) {
   }
 }
 
-export const SOUND_OPTIONS = [
-  { value: 'bell', label: '벨' },
-  { value: 'beep', label: '비프' },
-  { value: 'chime', label: '차임' },
-]
