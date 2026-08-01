@@ -109,8 +109,6 @@ export const DEFAULT_SETTINGS = {
   volume: 0.7,
   titleBlink: true,
   browserNotify: false,
-  /** 지속시간이 실제로 끝날 때도 한 번 더 알릴지 */
-  notifyDurationEnd: false,
 }
 
 export function loadSettings() {

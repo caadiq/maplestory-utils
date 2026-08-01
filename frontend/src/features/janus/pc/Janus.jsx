@@ -63,11 +63,6 @@ export default function Janus() {
       }, fireInSec * 1000)
       cancelRef.current.push(() => clearTimeout(t))
     }
-
-    const endInSec = (durationMs - elapsed) / 1000
-    if (settingsNow.notifyDurationEnd && endInSec > 0) {
-      cancelRef.current.push(scheduleSound('beep', settingsNow.volume * 0.7, endInSec))
-    }
   }, [clearScheduled])
 
   const handleInstall = useCallback((next) => {
@@ -108,7 +103,7 @@ export default function Janus() {
   useEffect(() => {
     if (active && install) scheduleFor(settings, install.at)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.offsetSec, settings.sound, settings.volume, settings.level, settings.notifyDurationEnd])
+  }, [settings.offsetSec, settings.sound, settings.volume, settings.level])
 
   const miniProps = {
     active, remainingMs, alarmInMs, progress,
@@ -295,10 +290,6 @@ export default function Janus() {
                     checked={settings.browserNotify}
                     onChange={async (v) => set({ browserNotify: v && await requestNotifyPermission() })}
                   >브라우저 알림</Check>
-                  <Check
-                    checked={settings.notifyDurationEnd}
-                    onChange={(v) => set({ notifyDurationEnd: v })}
-                  >사라질 때도 알림</Check>
                 </div>
               </Field>
 
