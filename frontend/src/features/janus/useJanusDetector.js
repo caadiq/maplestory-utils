@@ -289,10 +289,14 @@ export function useJanusDetector({ onInstall, minGapMs = 0 }) {
       if (merged.length >= LOCATE.maxCandidates) break
     }
 
-    return merged.map((c) => ({
-      score: c.score,
-      region: { x: c.x / vw, y: c.y / vh, w: c.size.w / vw, h: c.size.h / vh },
-    }))
+    return {
+      // 직접 지정해 저장한 모양인지 — 확신 기준이 달라진다
+      learned: Boolean(saved),
+      hits: merged.map((c) => ({
+        score: c.score,
+        region: { x: c.x / vw, y: c.y / vh, w: c.size.w / vw, h: c.size.h / vh },
+      })),
+    }
   }, [])
 
   useEffect(() => {

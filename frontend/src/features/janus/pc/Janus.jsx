@@ -107,12 +107,15 @@ export default function Janus() {
    * 실제 게임 아이콘은 단축키 글자와 슬롯 테두리가 겹쳐 점수가 깎이므로
    * 통과선을 못 넘었다고 곧장 수동으로 보내지 않는다.
    */
-  const applyHits = (hits) => {
+  const applyHits = (found) => {
     setLocating(false)
-    if (!hits || hits.length === 0) { setPicking(true); return }
+    const hits = found?.hits
+    if (!hits?.length) { setPicking(true); return }
     const [best, second] = hits
-    const clear = best.score >= LOCATE.sureScore
-      && (!second || best.score - second.score >= LOCATE.sureMargin)
+    const minScore = found.learned ? LOCATE.sureScore : LOCATE.builtinSureScore
+    const minMargin = found.learned ? LOCATE.sureMargin : LOCATE.builtinSureMargin
+    const clear = best.score >= minScore
+      && (!second || best.score - second.score >= minMargin)
     if (clear) setRegion(best.region)
     else setCandidates(hits.slice(0, 6))
   }
