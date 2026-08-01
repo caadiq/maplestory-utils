@@ -8,7 +8,7 @@ import RegionPickerModal from './RegionPickerModal'
 import MiniBar from './MiniBar'
 import {
   DETECT, loadSettings, saveSettings, durationForLevel, formatSeconds, formatClock, formatLogTime,
-  OFFSET_PRESETS, SOUND_OPTIONS,
+  SOUND_OPTIONS,
 } from '../logic'
 import {
   ensureAudio, scheduleSound, playSound, blinkTitle, stopBlink, notify, requestNotifyPermission,
@@ -35,7 +35,6 @@ export default function Janus() {
 
   /* ── 알림 예약 ──────────────────────────────────────────── */
 
-  const totalCdRef = useRef(null)
   const cancelRef = useRef([])
 
   const clearScheduled = useCallback(() => {
@@ -45,64 +44,51 @@ export default function Janus() {
   }, [])
 
   /**
-   * installedAt은 "아이콘이 어두워진 순간"이고, 감지 확정은 그보다 조금 뒤에 일어난다.
-   * 그래서 예약 시각은 지금부터가 아니라 설치 시각 기준으로 계산해야 한다.
+   * installedAt은 "아이콘이 어두워진 순간"이고 확정은 그보다 조금 뒤에 일어나므로,
+   * 예약 시각은 지금이 아니라 설치 시각을 기준으로 잡는다.
    */
   const scheduleFor = useCallback((settingsNow, installedAt) => {
     clearScheduled()
-    const total = totalCdRef.current
     const durationMs = (durationForLevel(settingsNow.level) || 0) * 1000
     const elapsed = Date.now() - installedAt
 
-    if (total) {
-      const fireInSec = (total - settingsNow.offsetSec * 1000 - elapsed) / 1000
-      if (fireInSec > 0) {
-        cancelRef.current.push(scheduleSound(settingsNow.sound, settingsNow.volume, fireInSec))
-        const t = setTimeout(() => {
-          if (settingsNow.titleBlink) blinkTitle('🔔 야누스 쿨타임 임박')
-          if (settingsNow.browserNotify) {
-            notify('야누스 쿨타임', `${settingsNow.offsetSec}초 뒤 사용 가능합니다`)
-          }
-        }, fireInSec * 1000)
-        cancelRef.current.push(() => clearTimeout(t))
-      }
+    const fireInSec = (durationMs - settingsNow.offsetSec * 1000 - elapsed) / 1000
+    if (fireInSec > 0) {
+      cancelRef.current.push(scheduleSound(settingsNow.sound, settingsNow.volume, fireInSec))
+      const t = setTimeout(() => {
+        if (settingsNow.titleBlink) blinkTitle('🔔 야누스 재설치')
+        if (settingsNow.browserNotify) {
+          notify('야누스', `${settingsNow.offsetSec}초 뒤 사라집니다 — 다시 설치하세요`)
+        }
+      }, fireInSec * 1000)
+      cancelRef.current.push(() => clearTimeout(t))
     }
 
-    const durationLeftSec = (durationMs - elapsed) / 1000
-    if (settingsNow.notifyDurationEnd && durationLeftSec > 0) {
-      cancelRef.current.push(scheduleSound('beep', settingsNow.volume * 0.7, durationLeftSec))
+    const endInSec = (durationMs - elapsed) / 1000
+    if (settingsNow.notifyDurationEnd && endInSec > 0) {
+      cancelRef.current.push(scheduleSound('beep', settingsNow.volume * 0.7, endInSec))
     }
   }, [clearScheduled])
 
-  const handleCycleStart = useCallback((started) => {
-    scheduleFor(settings, started.installedAt)
+  const handleInstall = useCallback((next) => {
+    scheduleFor(settings, next.at)
   }, [scheduleFor, settings])
 
-  const handleCycleEnd = useCallback(({ cancelled }) => {
-    if (cancelled) clearScheduled()
-  }, [clearScheduled])
-
-  const detector = useJanusDetector({ onCycleStart: handleCycleStart, onCycleEnd: handleCycleEnd })
+  const detector = useJanusDetector({ onInstall: handleInstall })
   const {
-    stream, region, setRegion, status, cycle, samples, logs, stale, error, level,
-    estimateMs, spreadSec, videoRef, start, stop, resetCycle, log,
+    stream, region, setRegion, install, iconDark, logs, stale, error, level,
+    videoRef, start, stop, resetCycle, markInstalledNow, log,
   } = detector
-
-  // 실측이 쌓이기 전에는 수동 입력값으로 알린다 (없으면 첫 사이클은 측정만)
-  const manualMs = settings.manualCooldownSec ? settings.manualCooldownSec * 1000 : null
-  const totalCdMs = estimateMs ?? manualMs
-  totalCdRef.current = totalCdMs
 
   /* ── 표시값 ─────────────────────────────────────────────── */
 
-  const now = Date.now()
-  const elapsed = cycle ? now - cycle.installedAt : 0
-  const cooling = status === 'cooling'
-  const remainingMs = cooling && totalCdMs ? totalCdMs - elapsed : null
   const durationMs = (durationForLevel(settings.level) || 0) * 1000
-  const durationRemainingMs = cycle ? durationMs - elapsed : 0
+  const now = Date.now()
+  const elapsed = install ? now - install.at : 0
+  const active = Boolean(install) && elapsed < durationMs
+  const remainingMs = active ? durationMs - elapsed : null
   const alarmInMs = remainingMs != null ? remainingMs - settings.offsetSec * 1000 : null
-  const progress = cooling && totalCdMs ? elapsed / totalCdMs : 0
+  const progress = active ? elapsed / durationMs : 0
 
   /* ── PiP ────────────────────────────────────────────────── */
 
@@ -120,13 +106,13 @@ export default function Janus() {
 
   // 설정을 바꾸면 진행 중인 예약도 새 값으로 다시 잡는다
   useEffect(() => {
-    if (cooling && cycle) scheduleFor(settings, cycle.installedAt)
+    if (active && install) scheduleFor(settings, install.at)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.offsetSec, settings.sound, settings.volume, settings.level, settings.notifyDurationEnd])
 
   const miniProps = {
-    status, remainingMs, durationRemainingMs, alarmInMs, progress,
-    cycleIndex: cycle?.index ?? 0,
+    active, remainingMs, alarmInMs, progress,
+    cycleIndex: install?.index ?? 0,
     onTest: handleTest,
     onReset: resetCycle,
   }
@@ -186,7 +172,7 @@ export default function Janus() {
       titleRight={(
         <div className="flex items-center gap-2">
           {stale && <Badge tone="warn">⚠ 화면이 갱신되지 않음</Badge>}
-          <Badge tone={cooling ? 'live' : 'wait'}>{cooling ? `● 사이클 ${cycle.index}` : '● 대기 중'}</Badge>
+          <Badge tone={active ? 'live' : 'wait'}>{active ? `● 유지 중 · 사이클 ${install.index}` : '● 설치 대기'}</Badge>
         </div>
       )}
     >
@@ -210,12 +196,12 @@ export default function Janus() {
               <div className="pb-1.5 flex-1">
                 <div className="text-[12px] font-extrabold tracking-wide" style={{ color: 'var(--accent-label)' }}>
                   {remainingMs == null
-                    ? (cooling ? '쿨타임 측정 중 — 이번 사이클은 알리지 않습니다' : '설치 대기 중')
-                    : `쿨타임 남음 · 총 ${(totalCdMs / 1000).toFixed(1)}초`}
+                    ? (install ? '지속시간 종료 — 다시 설치하면 이어서 잽니다' : '설치 대기 중')
+                    : `사라지기까지 · 총 ${durationForLevel(settings.level)}초`}
                 </div>
                 <div className="text-[13px] font-bold mt-1" style={{ color: 'var(--text-muted)' }}>
-                  {cycle
-                    ? <>사이클 #{cycle.index} · 설치 <b className="tabular-nums" style={{ color: 'var(--text-emphasis)' }}>{formatClock(cycle.installedAt)}</b></>
+                  {install
+                    ? <>사이클 #{install.index} · 설치 <b className="tabular-nums" style={{ color: 'var(--text-emphasis)' }}>{formatClock(install.at)}</b></>
                     : '야누스를 설치하면 시작합니다'}
                 </div>
               </div>
@@ -225,6 +211,7 @@ export default function Janus() {
                     {pip.pip ? '창 닫기' : '작은 창으로'}
                   </SmallPill>
                 )}
+                <SmallPill tone="lime" onClick={markInstalledNow}>지금 설치함</SmallPill>
                 <SmallPill tone="tan" onClick={handleTest}>🔔</SmallPill>
                 <SmallPill tone="slate" onClick={resetCycle}>↺ 리셋</SmallPill>
               </div>
@@ -241,11 +228,11 @@ export default function Janus() {
                   background: 'linear-gradient(90deg, var(--mpl-sky-from), var(--mpl-sky-to))',
                 }}
               />
-              {totalCdMs && settings.offsetSec * 1000 < totalCdMs && (
+              {settings.offsetSec * 1000 < durationMs && (
                 <span
                   className="absolute -top-1 w-0.5 h-5"
                   style={{
-                    left: `${((totalCdMs - settings.offsetSec * 1000) / totalCdMs) * 100}%`,
+                    left: `${((durationMs - settings.offsetSec * 1000) / durationMs) * 100}%`,
                     background: 'var(--warning-text)',
                   }}
                 />
@@ -253,10 +240,10 @@ export default function Janus() {
             </div>
 
             <div className="flex gap-3.5">
-              <Stat label="지속시간" value={durationRemainingMs > 0 ? `${formatSeconds(durationRemainingMs)}초` : '-'} color="var(--ok-text)" />
               <Stat label="알림까지" value={alarmInMs != null && alarmInMs > 0 ? `${formatSeconds(alarmInMs)}초` : '-'} color="var(--warning-text)" />
-              <Stat label="측정 횟수" value={`${samples.length}회`} />
-              <Stat label="편차" value={spreadSec != null ? `${spreadSec.toFixed(1)}초` : '-'} />
+              <Stat label="알림 시점" value={`설치 후 ${Math.max(0, durationForLevel(settings.level) - settings.offsetSec)}초`} />
+              <Stat label="설치 횟수" value={`${install?.index ?? 0}회`} />
+              <Stat label="아이콘" value={iconDark ? '쿨타임 중' : '사용 가능'} color={iconDark ? 'var(--text-muted)' : 'var(--ok-text)'} />
             </div>
           </div>
 
@@ -279,15 +266,22 @@ export default function Janus() {
                 </div>
               </Field>
 
-              <Field label="알림 시점 (쿨 종료 전)" width={240}>
-                <Seg
-                  options={OFFSET_PRESETS.map((s) => ({ value: s, label: `${s}초` }))}
-                  value={settings.offsetSec}
-                  onChange={(v) => set({ offsetSec: v })}
-                />
+              <Field label="알림 시점 (사라지기 전)" width={280}>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="number" min={1} max={Math.max(1, durationForLevel(settings.level) - 1)}
+                    value={settings.offsetSec}
+                    onChange={(e) => set({ offsetSec: Math.max(1, Number(e.target.value) || 1) })}
+                    className="rounded-lg px-2.5 py-2 text-[13.5px] font-semibold tabular-nums w-[74px]"
+                    style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-strong)' }}
+                  />
+                  <span className="text-[12.5px] leading-relaxed" style={{ color: 'var(--text-dim)' }}>
+                    초 전<br />젠 주기 × 젠 수로 잡으면 됩니다
+                  </span>
+                </div>
               </Field>
 
-              <Field label="소리" width={185}>
+              <Field label="소리" width={175}>
                 <Seg options={SOUND_OPTIONS} value={settings.sound} onChange={(v) => set({ sound: v })} />
               </Field>
 
@@ -304,7 +298,7 @@ export default function Janus() {
                   <Check
                     checked={settings.notifyDurationEnd}
                     onChange={(v) => set({ notifyDurationEnd: v })}
-                  >지속시간 종료도 알림</Check>
+                  >사라질 때도 알림</Check>
                 </div>
               </Field>
 
@@ -327,7 +321,7 @@ export default function Janus() {
                   </p>
                 ) : (
                   <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--text-dim)' }}>
-                    아이콘이 어두워지는 순간을 설치로 봅니다. 다시 밝아질 때까지의 시간이 곧 실제 쿨타임이라, 사이클마다 자동으로 다시 재요.
+                    아이콘이 어두워지는 순간만 설치로 봅니다. 그 뒤로는 레벨로 정해진 지속시간을 타이머로 세기 때문에, 쿨타임 막바지에 아이콘이 깜빡여도 영향을 받지 않아요.
                   </p>
                 )}
 
@@ -347,9 +341,7 @@ export default function Janus() {
             📋 인식 기록
             <span className="flex-1" />
             <span style={{ color: '#cfdae4' }}>
-              {samples.length > 0
-                ? `측정 ${samples.length}회 · 평균 쿨타임 ${(estimateMs / 1000).toFixed(1)}초`
-                : '아직 측정된 쿨타임이 없습니다'}
+              {install ? `설치 ${install.index}회` : '설치를 기다리는 중'}
             </span>
           </div>
           {logs.length === 0 ? (
@@ -434,6 +426,7 @@ const TONES = {
   slate: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))',
   sky: 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))',
   red: 'linear-gradient(180deg, var(--mpl-red-from), var(--mpl-red-to))',
+  lime: 'linear-gradient(180deg, var(--mpl-lime-from), var(--mpl-lime-to))',
 }
 
 function SmallPill({ tone, onClick, className = '', children }) {

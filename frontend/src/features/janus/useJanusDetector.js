@@ -1,22 +1,27 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { DETECT, meanLuma, estimateCooldown, cooldownSpread, isOutlier } from './logic'
+import { DETECT, meanLuma } from './logic'
 
 /**
- * 화면 공유 → 지정 영역 밝기 샘플링 → 사이클 상태머신.
+ * 화면 공유 → 지정 영역 밝기 샘플링 → **설치 감지만** 한다.
  *
- * UI 갱신은 초당 10번짜리 tick 하나로만 하고, 실제 감지 루프는 전부 ref에서 돈다.
- * (감지는 33ms마다 도는데 그때마다 리렌더하면 화면이 버벅인다)
+ * 쿨타임 종료(어두움 → 밝음)는 재지 않는다. 아이콘이 쿨타임 막바지 약 5초 동안
+ * 깜빡여서 그 밝은 순간이 종료로 잡히고, 매 사이클이 그만큼 짧게 측정됐다.
+ * 어차피 지속시간은 스킬 레벨로 정해져 있으니 설치 순간만 잡으면 나머지는 타이머로 충분하다.
+ *
+ * 밝아짐은 "다음 설치를 감지할 수 있는 상태로 돌아왔다"는 의미로만 쓴다.
+ * 사냥 사이클상 재설치는 쿨이 돈 직후가 아니라 지속시간이 끝나갈 때 하므로,
+ * 밝아짐 확정을 넉넉히 잡아 깜빡임을 걸러도 설치를 놓치지 않는다.
+ *
+ * UI 갱신은 초당 10번짜리 tick 하나로만 하고, 감지 루프는 전부 ref에서 돈다.
  */
 
 const MAX_LOGS = 40
-const MAX_SAMPLES = 8
 
-export function useJanusDetector({ onCycleStart, onCycleEnd }) {
+export function useJanusDetector({ onInstall }) {
   const [stream, setStream] = useState(null)
-  const [region, setRegion] = useState(null)      // {x,y,w,h} — 0~1 정규화
-  const [status, setStatus] = useState('idle')    // idle | cooling
-  const [cycle, setCycle] = useState(null)        // {index, installedAt}
-  const [samples, setSamples] = useState([])      // 실측 쿨타임(ms)
+  const [region, setRegion] = useState(null)   // {x,y,w,h} — 0~1 정규화
+  const [install, setInstall] = useState(null) // {index, at}
+  const [iconDark, setIconDark] = useState(false)
   const [logs, setLogs] = useState([])
   const [stale, setStale] = useState(false)
   const [level, setLevel] = useState(null)
@@ -27,16 +32,15 @@ export function useJanusDetector({ onCycleStart, onCycleEnd }) {
   const canvasRef = useRef(null)
   const regionRef = useRef(null)
   const baselineRef = useRef(null)   // "밝음" 기준 휘도
-  const stateRef = useRef('bright')  // bright | dark (감지기 내부 상태)
-  const pendingRef = useRef(null)    // 확정 대기 중인 전환 {state, since}
-  const levelRef = useRef(null)      // 최근 밝기 {luma, base} — 진단 표시용
-  const estimateRef = useRef(null)   // 감지 루프 안에서 현재 추정치를 보기 위한 사본
-  const cycleRef = useRef(null)
+  const stateRef = useRef('bright')  // 확정된 상태: bright | dark
+  const rawRef = useRef('bright')    // 임계선만 적용한 즉시 상태
+  const rawSinceRef = useRef(0)      // 그 즉시 상태가 시작된 시각
+  const levelRef = useRef(null)
+  const indexRef = useRef(0)
   const lastFrameRef = useRef(0)
 
-  // 콜백을 ref로 잡아둔다 — 감지 루프를 매번 다시 만들지 않기 위해
-  const cbRef = useRef({ onCycleStart, onCycleEnd })
-  useEffect(() => { cbRef.current = { onCycleStart, onCycleEnd } })
+  const cbRef = useRef({ onInstall })
+  useEffect(() => { cbRef.current = { onInstall } })
 
   const log = useCallback((message, tag, tagColor) => {
     setLogs((prev) => [{ at: Date.now(), message, tag, tagColor }, ...prev].slice(0, MAX_LOGS))
@@ -52,10 +56,7 @@ export function useJanusDetector({ onCycleStart, onCycleEnd }) {
         video: { displaySurface: 'window', frameRate: { ideal: 30 } },
         audio: false,
       })
-      media.getVideoTracks()[0]?.addEventListener('ended', () => {
-        setStream(null)
-        setStatus('idle')
-      })
+      media.getVideoTracks()[0]?.addEventListener('ended', () => setStream(null))
       setStream(media)
       log('화면 공유 시작', '연결됨', 'ok')
       return true
@@ -66,27 +67,34 @@ export function useJanusDetector({ onCycleStart, onCycleEnd }) {
     }
   }, [log])
 
+  const resetDetector = () => {
+    stateRef.current = 'bright'
+    rawRef.current = 'bright'
+    baselineRef.current = null
+    setIconDark(false)
+  }
+
   const stop = useCallback(() => {
     stream?.getTracks().forEach((t) => t.stop())
     setStream(null)
-    setStatus('idle')
-    stateRef.current = 'bright'
-    baselineRef.current = null
-    pendingRef.current = null
-    cycleRef.current = null
-    setCycle(null)
+    resetDetector()
+    setInstall(null)
   }, [stream])
 
-  /* ── 사이클 ─────────────────────────────────────────────── */
-
+  /** 오검출이 났을 때 되돌리기 */
   const resetCycle = useCallback(() => {
-    cycleRef.current = null
-    setCycle(null)
-    setStatus('idle')
-    stateRef.current = 'bright'
-    pendingRef.current = null
-    cbRef.current.onCycleEnd?.({ cancelled: true })
+    setInstall(null)
+    resetDetector()
     log('수동 리셋', '사용자', 'muted')
+  }, [log])
+
+  /** 아이콘을 놓쳤거나 화면 공유 전에 이미 깔아둔 경우 — 지금을 설치 시각으로 */
+  const markInstalledNow = useCallback(() => {
+    indexRef.current += 1
+    const next = { index: indexRef.current, at: Date.now() }
+    setInstall(next)
+    log(`설치 시각을 지금으로 지정 — 사이클 #${next.index}`, '수동', 'muted')
+    cbRef.current.onInstall?.(next)
   }, [log])
 
   /* ── 감지 루프 ──────────────────────────────────────────── */
@@ -141,19 +149,24 @@ export function useJanusDetector({ onCycleStart, onCycleEnd }) {
       const luma = meanLuma(ctx.getImageData(0, 0, 24, 24).data)
       const now = Date.now()
 
-      // 기준선(밝을 때의 휘도)을 서서히 따라간다 — 맵이 밝아지거나 어두워져도 따라감
       if (baselineRef.current == null) {
         baselineRef.current = luma
+        rawSinceRef.current = now
         return
       }
       const base = baselineRef.current
-      const isDark = luma < base * DETECT.darkRatio
-      const isBright = luma > base * DETECT.brightRatio
       levelRef.current = { luma, base }
 
-      const want = isDark ? 'dark' : isBright ? 'bright' : stateRef.current
-      if (want === stateRef.current) {
-        pendingRef.current = null
+      // 히스테리시스 — 경계에서 떨리는 것 방지
+      const raw = luma < base * DETECT.darkRatio ? 'dark'
+        : luma > base * DETECT.brightRatio ? 'bright'
+          : rawRef.current
+      if (raw !== rawRef.current) {
+        rawRef.current = raw
+        rawSinceRef.current = now
+      }
+
+      if (raw === stateRef.current) {
         // 밝은 상태에서만, 그것도 기준 근처 값으로만 기준선을 갱신한다.
         // (어두울 때 갱신하면 기준선이 같이 내려가고, 번쩍임까지 섞으면 기준선이 올라간다)
         if (
@@ -166,47 +179,22 @@ export function useJanusDetector({ onCycleStart, onCycleEnd }) {
         return
       }
 
-      // 임계선을 넘었다고 바로 확정하지 않는다 — 그 상태가 confirmMs 동안 유지돼야 한다
-      if (pendingRef.current?.state !== want) {
-        pendingRef.current = { state: want, since: now }
-        return
-      }
-      const need = want === 'dark' ? DETECT.confirmDarkMs : DETECT.confirmBrightMs
-      if (now - pendingRef.current.since < need) return
+      // 임계선을 넘었다고 바로 확정하지 않는다 — 그 상태가 일정 시간 유지돼야 한다
+      const need = raw === 'dark' ? DETECT.confirmDarkMs : DETECT.confirmBrightMs
+      if (now - rawSinceRef.current < need) return
 
-      // 확정. 다만 시각은 처음 넘어간 순간으로 소급한다 (확정 지연이 타이머에 반영되지 않도록)
-      const at = pendingRef.current.since
-      pendingRef.current = null
-      stateRef.current = want
+      stateRef.current = raw
+      setIconDark(raw === 'dark')
 
-      if (want === 'dark') {
-        const started = { index: (cycleRef.current?.index || 0) + 1, installedAt: at }
-        cycleRef.current = started
-        setCycle(started)
-        setStatus('cooling')
-        log(`설치 감지 — 사이클 #${started.index} 시작`, '아이콘 어두워짐', 'ok')
-        cbRef.current.onCycleStart?.(started)
-      } else {
-        const c = cycleRef.current
-        setStatus('idle')
-        if (!c) return
-        const darkMs = at - c.installedAt
-        if (darkMs < DETECT.minCooldownMs) {
-          // 스킬 이펙트나 화면 연출로 잠깐 어두워진 것 — 사이클로 치지 않는다
-          cycleRef.current = null
-          setCycle(null)
-          log(`짧은 어두움(${(darkMs / 1000).toFixed(1)}초) — 설치가 아니라고 보고 취소`, '무시', 'warn')
-          cbRef.current.onCycleEnd?.({ cancelled: true })
-          return
-        }
-        if (isOutlier(darkMs, estimateRef.current)) {
-          log(`쿨타임 종료 — ${(darkMs / 1000).toFixed(1)}초는 기존과 너무 달라 표본에서 제외`, '이상값', 'warn')
-        } else {
-          setSamples((prev) => [...prev, darkMs].slice(-MAX_SAMPLES))
-          log(`쿨타임 종료 — 이번 사이클 ${(darkMs / 1000).toFixed(1)}초로 측정`, '아이콘 밝아짐', 'ok')
-        }
-        cbRef.current.onCycleEnd?.({ measuredMs: darkMs, cycle: c })
+      if (raw === 'dark') {
+        // 확정은 늦어도 시각은 처음 어두워진 순간으로 소급한다
+        indexRef.current += 1
+        const next = { index: indexRef.current, at: rawSinceRef.current }
+        setInstall(next)
+        log(`설치 감지 — 사이클 #${next.index} 시작`, '아이콘 어두워짐', 'ok')
+        cbRef.current.onInstall?.(next)
       }
+      // 밝아짐은 "다음 설치를 볼 준비가 됐다"는 뜻일 뿐, 따로 알리지 않는다
     }
 
     const sampler = setInterval(sample, DETECT.intervalMs)
@@ -234,18 +222,12 @@ export function useJanusDetector({ onCycleStart, onCycleEnd }) {
     }
   }, [stream, region, log])
 
-  const estimate = estimateCooldown(samples)
-  // 감지 루프(ref 안)에서도 현재 추정치를 봐야 이상값을 걸러낼 수 있다
-  useEffect(() => { estimateRef.current = estimate }, [estimate])
-
   return {
     stream, region, setRegion,
-    status, cycle, samples, logs, error, level,
+    install, iconDark, logs, error, level,
     // 공유가 끊기면 경고도 같이 내린다
     stale: stream ? stale : false,
-    estimateMs: estimate,
-    spreadSec: cooldownSpread(samples, estimate),
     videoRef,
-    start, stop, resetCycle, log,
+    start, stop, resetCycle, markInstalledNow, log,
   }
 }
