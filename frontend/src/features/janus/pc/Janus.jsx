@@ -161,7 +161,7 @@ export default function Janus() {
           <RegionPicker videoRef={videoRef} stream={stream} region={region} />
 
           <div
-            className="absolute left-3.5 bottom-3 flex flex-col gap-2 rounded-xl px-4 py-3"
+            className="absolute left-4 bottom-4 flex flex-col gap-3 rounded-2xl px-5 py-4"
             style={{
               background: 'rgba(8,13,19,.78)',
               border: '1px solid rgba(255,255,255,.13)',
@@ -169,27 +169,27 @@ export default function Janus() {
             }}
           >
             <div>
-              <div className="text-[11.5px] font-extrabold tracking-wide" style={{ color: 'var(--mpl-title-yellow)' }}>
+              <div className="text-[13px] font-extrabold tracking-wide" style={{ color: 'var(--mpl-title-yellow)' }}>
                 다음 알림까지
               </div>
               {alarmInMs != null && alarmInMs > 0 ? (
                 <div
                   className="font-extrabold tabular-nums leading-[.9]"
-                  style={{ fontSize: 46, letterSpacing: '-2px', color: '#eef3f8' }}
+                  style={{ fontSize: 64, letterSpacing: '-2.5px', color: '#eef3f8' }}
                 >
                   {formatSeconds(alarmInMs).split('.')[0]}
-                  <span style={{ fontSize: 22, letterSpacing: 0 }}>.{formatSeconds(alarmInMs).split('.')[1]}</span>
+                  <span style={{ fontSize: 30, letterSpacing: 0 }}>.{formatSeconds(alarmInMs).split('.')[1]}</span>
                 </div>
               ) : (
                 // 숫자 자리에 "--.-"를 두면 깨진 요소처럼 보여서 말로 적는다
-                <div className="font-extrabold leading-[1.35]" style={{ fontSize: 28, color: '#8ba0b4' }}>
+                <div className="font-extrabold leading-[1.3]" style={{ fontSize: 38, color: '#8ba0b4' }}>
                   설치 대기
                 </div>
               )}
             </div>
 
             {/* 조작은 아이콘만 — 화면 위쪽에 글자 버튼을 흩어두면 게임 화면에 묻혀 안 보인다 */}
-            <div className="flex gap-1.5">
+            <div className="flex gap-2">
               <IconButton tone="slate" label="초기화" onClick={resetCycle}><RefreshIcon /></IconButton>
               {pip.supported && (
                 <IconButton
@@ -348,7 +348,7 @@ const TONES = {
 
 function RefreshIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
       <path
         d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"
         stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"
@@ -360,7 +360,7 @@ function RefreshIcon() {
 
 function PipIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+    <svg width="17" height="17" viewBox="0 0 16 16" fill="none" aria-hidden>
       <rect x="1.4" y="2.6" width="13.2" height="10.8" rx="1.8" stroke="currentColor" strokeWidth="1.6" />
       <rect x="7.8" y="7.6" width="5.6" height="4.6" rx="1" fill="currentColor" />
     </svg>
@@ -369,7 +369,7 @@ function PipIcon() {
 
 function CropIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+    <svg width="17" height="17" viewBox="0 0 16 16" fill="none" aria-hidden>
       <path d="M4.6 1.4v10h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M1.4 4.6h10v10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
@@ -378,7 +378,7 @@ function CropIcon() {
 
 function StopIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+    <svg width="17" height="17" viewBox="0 0 16 16" fill="none" aria-hidden>
       <circle cx="8" cy="8" r="6.4" stroke="currentColor" strokeWidth="1.7" />
       <path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
@@ -393,7 +393,7 @@ function IconButton({ tone, label, onClick, children }) {
         type="button"
         onClick={onClick}
         aria-label={label}
-        className="w-8 h-8 rounded-lg grid place-items-center text-white"
+        className="w-10 h-10 rounded-[10px] grid place-items-center text-white"
         style={{
           background: TONES[tone],
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,.3), 0 2px 5px rgba(0,0,0,.25)',
