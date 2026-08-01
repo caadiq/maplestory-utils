@@ -8,10 +8,10 @@ import RegionPicker from './RegionPicker'
 import RegionPickerModal from './RegionPickerModal'
 import MiniBar from './MiniBar'
 import {
-  loadSettings, saveSettings, durationForLevel, formatSeconds, formatClock,
+  loadSettings, saveSettings, durationForLevel, formatSeconds,
   LEVEL_TIERS, tierForLevel,
 } from '../logic'
-import { ensureAudio, scheduleSound, playSound, preloadFileSounds, SOUND_OPTIONS } from '../alarm'
+import { ensureAudio, scheduleSound, playSound, preloadSounds, resolveSound, SOUND_OPTIONS } from '../alarm'
 
 const CARD = { background: 'var(--mpl-card)', border: '1px solid var(--mpl-card-line)' }
 const SLATE_BAR = {
@@ -64,6 +64,7 @@ export default function Janus() {
 
   /* ── 표시값 ─────────────────────────────────────────────── */
 
+  const soundValue = resolveSound(settings.sound)
   const durationSec = durationForLevel(settings.level)
   const durationMs = durationSec * 1000
   const alarmAtSec = Math.max(0, durationSec - settings.offsetSec)
@@ -76,15 +77,15 @@ export default function Janus() {
 
   const handleStart = async () => {
     ensureAudio() // 사용자 제스처 안에서 오디오를 깨워둔다 (예약이 안 울리는 걸 방지)
-    preloadFileSounds() // 음원 파일을 미리 받아둔다 — 알림 시각에 네트워크를 기다리지 않도록
+    preloadSounds() // 음원을 미리 받아둔다 — 알림 시각에 네트워크를 기다리지 않도록
     const ok = await start()
     if (ok && !region) setPicking(true)
   }
 
   const handleTest = async () => {
-    // 파일 소리를 아직 못 받았을 수 있다 — 받아두고 눌러야 엉뚱한 소리가 나지 않는다
-    await preloadFileSounds()
-    playSound(settings.sound, settings.volume)
+    // 아직 못 받았을 수 있다 — 받아두고 눌러야 소리가 난다
+    await preloadSounds()
+    playSound(soundValue, settings.volume)
   }
 
   useEffect(() => () => clearScheduled(), [clearScheduled])
@@ -154,79 +155,70 @@ export default function Janus() {
       )}
     >
       <div className="flex flex-col gap-3">
-        <div className="flex gap-3 items-stretch">
-          {/* 공유 화면 */}
-          <div className="flex-1 min-w-0 rounded-[11px] overflow-hidden relative" style={CARD}>
-            <RegionPicker videoRef={videoRef} stream={stream} region={region} />
-            <div className="absolute right-2.5 top-2.5 flex gap-1.5">
-              <SmallPill tone="slate" onClick={() => setPicking(true)}>영역 지정</SmallPill>
-              <SmallPill tone="red" onClick={stop}>공유 중단</SmallPill>
-            </div>
-            {!region && (
-              <div
-                className="absolute left-0 right-0 bottom-0 px-3 py-2 text-[12.5px] font-bold"
-                style={{ background: 'rgba(10,16,22,.85)', color: '#ffe437' }}
-              >
-                퀵슬롯의 야누스 아이콘을 지정해 주세요
-              </div>
+        {/* 공유 화면 + 타이머 오버레이 */}
+        <div className="rounded-[11px] overflow-hidden relative" style={CARD}>
+          <RegionPicker videoRef={videoRef} stream={stream} region={region} />
+
+          <div className="absolute right-2.5 top-2.5 flex gap-1.5">
+            {pip.supported && (
+              <SmallPill tone="sky" onClick={() => (pip.pip ? pip.close() : pip.open())}>
+                {pip.pip ? '미니 HUD 닫기' : '미니 HUD 열기'}
+              </SmallPill>
             )}
+            <SmallPill tone="slate" onClick={() => setPicking(true)}>영역 지정</SmallPill>
+            <SmallPill tone="red" onClick={stop}>공유 중단</SmallPill>
           </div>
 
-          {/* 타이머 */}
-          <div className="w-[212px] shrink-0 rounded-[11px] p-3.5 flex flex-col gap-2.5 justify-center" style={CARD}>
+          <div
+            className="absolute left-3.5 bottom-3 flex items-end gap-3.5 rounded-xl px-4 py-3"
+            style={{
+              background: 'rgba(8,13,19,.78)',
+              border: '1px solid rgba(255,255,255,.13)',
+              backdropFilter: 'blur(4px)',
+            }}
+          >
             <div>
-              <div className="text-[11.5px] font-extrabold tracking-wide" style={{ color: 'var(--accent-label)' }}>
+              <div className="text-[11.5px] font-extrabold tracking-wide" style={{ color: 'var(--mpl-title-yellow)' }}>
                 다음 알림까지
               </div>
               {alarmInMs != null && alarmInMs > 0 ? (
                 <div
-                  className="font-extrabold tabular-nums leading-[.95]"
-                  style={{ fontSize: 56, letterSpacing: '-2.5px', color: 'var(--text-strong)' }}
+                  className="font-extrabold tabular-nums leading-[.9]"
+                  style={{ fontSize: 46, letterSpacing: '-2px', color: '#eef3f8' }}
                 >
                   {formatSeconds(alarmInMs).split('.')[0]}
-                  <span style={{ fontSize: 26, letterSpacing: 0 }}>.{formatSeconds(alarmInMs).split('.')[1]}</span>
+                  <span style={{ fontSize: 22, letterSpacing: 0 }}>.{formatSeconds(alarmInMs).split('.')[1]}</span>
                 </div>
               ) : (
-                <div className="font-extrabold tabular-nums leading-[.95]" style={{ fontSize: 56, color: 'var(--text-dim)' }}>
+                <div className="font-extrabold tabular-nums leading-[.9]" style={{ fontSize: 46, color: '#64788c' }}>
                   --.-
                 </div>
               )}
             </div>
-
-            <div
-              className="h-2.5 rounded-full relative overflow-hidden"
-              style={{ background: 'var(--progress-track)', border: '1px solid var(--input-border)' }}
-            >
-              <div
-                className="h-full"
-                style={{
-                  width: `${Math.min(100, Math.max(0, progress * 100))}%`,
-                  background: 'linear-gradient(90deg, var(--mpl-sky-from), var(--mpl-sky-to))',
-                }}
-              />
-              {alarmAtSec > 0 && (
-                <span
-                  className="absolute -top-1 w-0.5 h-[18px]"
-                  style={{ left: `${(alarmAtSec / durationSec) * 100}%`, background: 'var(--warning-text)' }}
-                />
-              )}
-            </div>
-
-            <div className="text-[12.5px] leading-relaxed" style={{ color: 'var(--text-dim)' }}>
-              {install
-                ? <>설치 <b style={{ color: 'var(--text-muted)' }}>{formatClock(install.at)}</b></>
-                : '야누스를 설치하면 시작합니다'}
-            </div>
-
-            <div className="flex gap-1.5">
-              {pip.supported && (
-                <SmallPill tone="sky" className="flex-1" onClick={() => (pip.pip ? pip.close() : pip.open())}>
-                  {pip.pip ? '미니 HUD 닫기' : '미니 HUD 열기'}
-                </SmallPill>
-              )}
-              <SmallPill tone="slate" onClick={resetCycle}>↺</SmallPill>
+            <div className="pb-1.5">
+              <SmallPill tone="slate" onClick={resetCycle}>↺ 초기화</SmallPill>
             </div>
           </div>
+
+          {/* 지속시간 진행 — 화면 아래 테두리에 얇게 */}
+          <div className="absolute left-0 right-0 bottom-0 h-[5px]" style={{ background: 'rgba(8,13,19,.55)' }}>
+            <div
+              className="h-full"
+              style={{
+                width: `${Math.min(100, Math.max(0, progress * 100))}%`,
+                background: 'linear-gradient(90deg, var(--mpl-sky-from), var(--mpl-sky-to))',
+              }}
+            />
+          </div>
+
+          {!region && (
+            <div
+              className="absolute left-0 right-0 top-0 px-3 py-2 text-[12.5px] font-bold"
+              style={{ background: 'rgba(10,16,22,.85)', color: '#ffe437' }}
+            >
+              퀵슬롯의 야누스 아이콘을 지정해 주세요
+            </div>
+          )}
         </div>
 
         {/* 설정 */}
@@ -264,7 +256,7 @@ export default function Janus() {
           <SettingRow name="알림 소리" desc="백그라운드 탭에서도 정확한 시각에 울립니다">
             <div className="flex gap-2 items-center">
               <div className="flex-1 min-w-0">
-                <Select options={SOUND_OPTIONS} value={settings.sound} onChange={(v) => set({ sound: v })} />
+                <Select options={SOUND_OPTIONS} value={soundValue} onChange={(v) => set({ sound: v })} />
               </div>
               <SmallPill tone="tan" className="shrink-0 !px-2.5" onClick={handleTest}>🔔</SmallPill>
             </div>

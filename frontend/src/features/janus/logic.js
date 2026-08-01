@@ -89,24 +89,6 @@ export function formatSeconds(ms) {
   return s.toFixed(1)
 }
 
-/** "오후 9시 14분 02초" — 사이트 다른 화면과 같은 표기 */
-export function formatClock(ts) {
-  const d = new Date(ts)
-  const h = d.getHours()
-  const ampm = h < 12 ? '오전' : '오후'
-  const h12 = h % 12 === 0 ? 12 : h % 12
-  const mm = d.getMinutes()
-  const ss = String(d.getSeconds()).padStart(2, '0')
-  return `${ampm} ${h12}시 ${mm}분 ${ss}초`
-}
-
-/** 로그용 짧은 시각 "9:14:02" */
-export function formatLogTime(ts) {
-  const d = new Date(ts)
-  const h = d.getHours() % 12 === 0 ? 12 : d.getHours() % 12
-  return `${h}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`
-}
-
 /* ── 설정 저장 ────────────────────────────────────────────── */
 
 export const STORAGE_KEY = 'maple.janus.settings'
@@ -119,7 +101,8 @@ export const DEFAULT_SETTINGS = {
    * (야누스가 끊기지 않으려면 몬스터를 잡자마자 다시 깔아야 해서 보통 2젠 전쯤)
    */
   offsetSec: 14,
-  sound: 'ppyorong',
+  /** 목록에 없는 값이면 첫 번째 소리로 대체된다 (alarm.js resolveSound) */
+  sound: null,
   volume: 0.7,
 }
 
