@@ -60,6 +60,12 @@ export function useJanusDetector({ onInstall }) {
   const cbRef = useRef({ onInstall })
   useEffect(() => { cbRef.current = { onInstall } })
 
+  // 페이지를 떠나면 화면 공유도 끊는다.
+  // 안 그러면 뒤로 가도 브라우저의 "공유 중" 표시가 남고 캡처가 계속 돈다.
+  const streamRef = useRef(null)
+  useEffect(() => { streamRef.current = stream }, [stream])
+  useEffect(() => () => streamRef.current?.getTracks().forEach((t) => t.stop()), [])
+
   // 내장 아이콘 원본을 한 번만 읽어둔다
   useEffect(() => {
     if (!BUILTIN_ICON_URL || builtinIconRef.current) return
@@ -237,7 +243,9 @@ export function useJanusDetector({ onInstall }) {
         if (!fullTpl) continue
         const best = findMatches(full.gray, full.w, full.h, fullTpl, size.w, size.h, {
           step: 1,
-          minScore: LOCATE.minScore,
+          // 통과선에 못 미쳐도 일단 모아둔다 — 자동으로 못 고르더라도
+          // "이 중에 고르세요"가 직접 드래그보다 낫다
+          minScore: LOCATE.looseScore,
           bounds: { x0: cx - r, y0: cy - r, x1: cx + r, y1: cy + r },
           merge: false,
         })[0]

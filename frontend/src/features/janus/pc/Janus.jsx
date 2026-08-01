@@ -10,7 +10,7 @@ import RegionPickerModal from './RegionPickerModal'
 import CandidatePicker from './CandidatePicker'
 import MiniBar from './MiniBar'
 import {
-  DETECT, loadSettings, saveSettings, durationForLevel, formatSeconds,
+  DETECT, LOCATE, loadSettings, saveSettings, durationForLevel, formatSeconds,
   LEVEL_TIERS, tierForLevel,
 } from '../logic'
 import { ensureAudio, scheduleSound, playSound, preloadSounds, resolveSound, SOUND_OPTIONS } from '../alarm'
@@ -90,21 +90,26 @@ export default function Janus() {
     setLocating(true)
     // 영상이 실제로 흐르기 시작할 때까지 잠깐 기다린다
     await new Promise((r) => setTimeout(r, 700))
-    const hits = locate()
+    applyHits(locate())
+  }
+
+  /**
+   * 확실한 것이 딱 하나면 바로 쓰고, 애매하면 고르게 한다.
+   * 실제 게임 아이콘은 단축키 글자와 슬롯 테두리가 겹쳐 점수가 깎이므로
+   * 통과선을 못 넘었다고 곧장 수동으로 보내지 않는다.
+   */
+  const applyHits = (hits) => {
     setLocating(false)
-    if (!hits || hits.length === 0) setPicking(true)
-    else if (hits.length === 1) setRegion(hits[0].region)
-    else setCandidates(hits)
+    if (!hits || hits.length === 0) { setPicking(true); return }
+    const sure = hits.filter((h) => h.score >= LOCATE.minScore)
+    if (sure.length === 1) setRegion(sure[0].region)
+    else setCandidates(hits.slice(0, 6))
   }
 
   const relocate = async () => {
-    if (!hasTemplate) { setPicking(true); return }
     setLocating(true)
-    const hits = locate()
-    setLocating(false)
-    if (!hits || hits.length === 0) setPicking(true)
-    else if (hits.length === 1) setRegion(hits[0].region)
-    else setCandidates(hits)
+    await new Promise((r) => setTimeout(r, 50))
+    applyHits(locate())
   }
 
   const handleTest = async () => {
