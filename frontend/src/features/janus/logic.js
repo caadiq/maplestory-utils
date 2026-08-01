@@ -19,6 +19,20 @@ const DURATION_TIERS = [
   { min: 1, sec: 60 },
 ]
 
+/** 드롭다운용 — 정확한 레벨보다 어느 구간인지가 전부다 */
+export const LEVEL_TIERS = [
+  { value: 1, label: '1~9레벨', sub: '60초' },
+  { value: 10, label: '10~19레벨', sub: '70초' },
+  { value: 20, label: '20~29레벨', sub: '80초' },
+  { value: 30, label: '30레벨', sub: '120초' },
+]
+
+/** 저장된 레벨이 속한 구간의 대표값 (예: 25 → 20) */
+export function tierForLevel(level) {
+  const lv = Math.floor(Number(level))
+  return DURATION_TIERS.find((t) => lv >= t.min)?.min ?? 1
+}
+
 export function durationForLevel(level) {
   const lv = Math.floor(Number(level))
   if (!Number.isFinite(lv)) return null
