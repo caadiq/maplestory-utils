@@ -62,7 +62,7 @@ export default function Janus() {
   }, [scheduleFor, settings])
 
   const {
-    stream, region, setRegion, install, stale, error, match, iconLost,
+    stream, region, setRegion, install, stale, error, match, glyphs, iconLost,
     videoRef, start, stop, resetCycle, locate, hasTemplate, log,
   } = useJanusDetector({ onInstall: handleInstall })
 
@@ -292,13 +292,19 @@ export default function Janus() {
         </SettingRow>
 
         {match != null && (
-          <SettingRow name="아이콘 인식" desc="지정한 모양과 지금 화면이 얼마나 닮았는지 — 낮으면 영역을 다시 지정하세요">
-            <span
-              className="text-[13.5px] font-extrabold tabular-nums"
-              style={{ color: match >= DETECT.matchThreshold ? 'var(--ok-text)' : 'var(--warning-text)' }}
-            >
-              {Math.round(match * 100)}%
-            </span>
+          <SettingRow
+            name="아이콘 인식"
+            desc="왼쪽은 지정한 모양과의 일치도, 오른쪽은 쿨타임 숫자로 보이는 밝은 점의 비율입니다"
+          >
+            <div className="flex items-center gap-3 text-[13.5px] font-extrabold tabular-nums">
+              <span style={{ color: match >= DETECT.matchThreshold ? 'var(--ok-text)' : 'var(--warning-text)' }}>
+                {Math.round(match * 100)}%
+              </span>
+              <span style={{ color: 'var(--text-dim)' }}>·</span>
+              <span style={{ color: (glyphs ?? 0) >= DETECT.glyphMinRatio ? 'var(--accent-label)' : 'var(--text-dim)' }}>
+                숫자 {Math.round((glyphs ?? 0) * 100)}%
+              </span>
+            </div>
           </SettingRow>
         )}
       </div>
