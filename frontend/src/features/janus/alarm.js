@@ -94,9 +94,14 @@ export function scheduleSound(kind, volume, delaySec) {
   src.buffer = entry.buffer
   gain.gain.value = volume
   src.connect(gain).connect(audio.destination)
-  src.start(audio.currentTime + Math.max(0, delaySec), entry.offset)
+  const when = audio.currentTime + Math.max(0, delaySec)
+  src.start(when, entry.offset)
 
   return () => {
+    // 이미 울리기 시작했으면 건드리지 않는다.
+    // 알림이 울리는 도중에 다음 사이클이 시작되면 예약을 다시 잡는데,
+    // 그때 울리던 소리까지 끊어버려 알림이 중간에 잘렸다.
+    if (audio.currentTime >= when) return
     try {
       src.stop()
       src.disconnect()
