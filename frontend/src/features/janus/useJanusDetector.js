@@ -189,9 +189,12 @@ export function useJanusDetector({ onInstall }) {
       if (raw === stateRef.current) {
         // 밝은 상태에서만, 그것도 기준 근처 값으로만 기준선을 갱신한다.
         // (어두울 때 갱신하면 기준선이 같이 내려가고, 번쩍임까지 섞으면 기준선이 올라간다)
+        // "확실히 밝은" 값으로만 갱신한다.
+        // 살짝 떨어진 값까지 섞으면 기준선이 그쪽으로 끌려 내려가고,
+        // 그러면 어두워지기 시작한 흔적(dipSince)이 지워져 설치 시각이 늦게 잡힌다.
         if (
           stateRef.current === 'bright' &&
-          luma > base * DETECT.baselineAcceptLow &&
+          luma > base * DETECT.brightRatio &&
           luma < base * DETECT.baselineAcceptHigh
         ) {
           baselineRef.current = base * 0.98 + luma * 0.02
