@@ -81,12 +81,31 @@ export const DETECT = {
   /** 주변까지 이 정도로 어두워졌으면 화면 자체가 어두워진 것 — 판단을 쉰다 */
   contextBlackout: 0.5,
   /**
+   * 쿨타임 숫자 판정.
+   * 쿨타임이 도는 동안 아이콘은 어두워지지만 그 위에 밝은 숫자가 얹힌다.
+   * 화면이 까매지거나 가려진 경우에는 그 밝은 점들이 없다 —
+   * "어두워졌다"만으로는 구분이 안 되던 것을 이걸로 가른다.
+   */
+  glyphLevel: 0.7,     // 기준 밝기의 이 비율을 넘으면 "밝은 점"
+  glyphMinRatio: 0.02, // 영역에서 밝은 점이 이 비율 이상이어야 숫자로 인정
+  /**
    * 기준 밝기 갱신의 위쪽 한계(기준 대비).
    * 쿨타임이 끝날 때의 연출로 확 밝아진 값까지 섞이면 기준선이 올라가고,
    * 원래 밝기로 돌아왔을 때 "어두워졌다"고 잘못 판단하게 된다.
    * 아래쪽 한계는 brightRatio를 그대로 쓴다 — 살짝 떨어진 값은 이미 설치의 시작일 수 있다.
    */
   baselineAcceptHigh: 1.15,
+}
+
+/** 어두워진 아이콘 위에 남아 있는 밝은 점(쿨타임 숫자)의 비율 */
+export function glyphRatio(data, level) {
+  let bright = 0
+  const n = data.length / 4
+  for (let i = 0; i < n; i++) {
+    const p = i * 4
+    if (0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2] > level) bright++
+  }
+  return n ? bright / n : 0
 }
 
 /**

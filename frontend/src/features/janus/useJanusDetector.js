@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import {
-  DETECT, LOCATE, meanLuma, toShapeVector, shapeSimilarity,
+  DETECT, LOCATE, meanLuma, glyphRatio, toShapeVector, shapeSimilarity,
   findMatches, saveTemplate, loadTemplate,
 } from './logic'
 
@@ -35,6 +35,7 @@ export function useJanusDetector({ onInstall }) {
   const [logs, setLogs] = useState([])
   const [stale, setStale] = useState(false)
   const [match, setMatch] = useState(null)     // 아이콘 일치도 (진단용)
+  const [glyphs, setGlyphs] = useState(null)  // 쿨타임 숫자 픽셀 비율 (진단용)
   const [iconLost, setIconLost] = useState(false)
   const [level, setLevel] = useState(null)
   const [error, setError] = useState(null)
@@ -53,6 +54,7 @@ export function useJanusDetector({ onInstall }) {
   const templateRef = useRef(null)   // 지정할 때 기억한 아이콘 모양
   const builtinIconRef = useRef(null) // icon/ 폴더의 원본 (있을 때만)
   const matchRef = useRef(null)
+  const glyphRef = useRef(null)
   const lostSinceRef = useRef(null)
   const levelRef = useRef(null)
   const indexRef = useRef(0)
@@ -389,8 +391,14 @@ export function useJanusDetector({ onInstall }) {
       const base = baselineRef.current * ctxRatio
       levelRef.current = { luma, base }
 
+      // 쿨타임이 돌면 아이콘 위에 밝은 숫자가 남는다. 그 점들이 없으면 어두워진 게 아니라
+      // 가려졌거나 화면이 꺼진 것이므로 설치로 치지 않는다.
+      const glyphs = glyphRatio(pixels, base * DETECT.glyphLevel)
+      glyphRef.current = glyphs
+      const hasDigits = glyphs >= DETECT.glyphMinRatio
+
       // 히스테리시스 — 경계에서 떨리는 것 방지
-      const raw = luma < base * DETECT.darkRatio ? 'dark'
+      const raw = (luma < base * DETECT.darkRatio && hasDigits) ? 'dark'
         : luma > base * DETECT.brightRatio ? 'bright'
           : rawRef.current
       if (raw !== rawRef.current) {
@@ -461,6 +469,7 @@ export function useJanusDetector({ onInstall }) {
       setTick((t) => t + 1)
       setLevel(levelRef.current)
       setMatch(matchRef.current)
+      setGlyphs(glyphRef.current)
       setIconLost(lostSinceRef.current != null && Date.now() - lostSinceRef.current > DETECT.lostWarnMs)
     }, 100)
 
@@ -477,7 +486,7 @@ export function useJanusDetector({ onInstall }) {
 
   return {
     stream, region, setRegion,
-    install, iconDark, logs, error, level, match, iconLost,
+    install, iconDark, logs, error, level, match, glyphs, iconLost,
     // 공유가 끊기면 경고도 같이 내린다
     stale: stream ? stale : false,
     videoRef,
