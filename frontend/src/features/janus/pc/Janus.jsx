@@ -190,8 +190,9 @@ export default function Janus() {
                   <span style={{ fontSize: 22, letterSpacing: 0 }}>.{formatSeconds(alarmInMs).split('.')[1]}</span>
                 </div>
               ) : (
-                <div className="font-extrabold tabular-nums leading-[.9]" style={{ fontSize: 46, color: '#64788c' }}>
-                  --.-
+                // 숫자 자리에 "--.-"를 두면 깨진 요소처럼 보여서 말로 적는다
+                <div className="font-extrabold leading-[1.35]" style={{ fontSize: 28, color: '#8ba0b4' }}>
+                  설치 대기
                 </div>
               )}
             </div>
