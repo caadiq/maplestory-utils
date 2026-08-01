@@ -438,8 +438,8 @@ function Badge({ tone, children }) {
 function SettingRow({ name, desc, children }) {
   return (
     <div className="flex items-center gap-4 px-4 py-3" style={{ borderTop: '1px solid var(--mpl-card-line)' }}>
-      <span className="w-[104px] shrink-0 text-[14px] font-bold" style={{ color: 'var(--text-emphasis)' }}>{name}</span>
-      <span className="flex-1 min-w-0 text-[13px]" style={{ color: 'var(--text-dim)' }}>{desc}</span>
+      <span className="w-[112px] shrink-0 text-[15px] font-bold" style={{ color: 'var(--text-emphasis)' }}>{name}</span>
+      <span className="flex-1 min-w-0 text-[14px]" style={{ color: 'var(--text-dim)' }}>{desc}</span>
       {/* 컨트롤 폭은 항목마다 다르다 — 굳이 맞추면 짧은 입력칸이 쓸데없이 늘어난다 */}
       <span className="shrink-0 flex items-center gap-2.5">{children}</span>
     </div>
