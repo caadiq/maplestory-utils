@@ -396,3 +396,13 @@ input[type="number"] {
 .janus-num::-webkit-outer-spin-button,
 .janus-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .janus-num { -moz-appearance: textfield; appearance: textfield; }
+
+/* 야누스 소리 크기 슬라이더 */
+.janus-range { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 99px;
+  background: var(--progress-track); outline: none; }
+.janus-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none;
+  width: 15px; height: 15px; border-radius: 99px; cursor: pointer;
+  background: linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to));
+  box-shadow: 0 1px 3px rgba(31,44,61,.35); }
+.janus-range::-moz-range-thumb { width: 15px; height: 15px; border: 0; border-radius: 99px; cursor: pointer;
+  background: linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to)); }
