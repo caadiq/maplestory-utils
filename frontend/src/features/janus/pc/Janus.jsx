@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import MapleWindow from '../../../components/pc/MapleWindow'
 import Select from '../../../components/common/Select'
-import { RefreshIcon, PipIcon, CropIcon, StopIcon, IconButton } from './icons'
+import { RefreshIcon, PipIcon, CropIcon, StopIcon, GearIcon, BellIcon, IconButton } from './icons'
 import { useJanusDetector } from '../useJanusDetector'
 import { usePipWindow } from '../usePipWindow'
 import RegionPicker from './RegionPicker'
@@ -24,6 +24,7 @@ const SLATE_BAR = {
 export default function Janus() {
   const [settings, setSettings] = useState(loadSettings)
   const [picking, setPicking] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   const set = useCallback((patch) => {
     setSettings((prev) => {
@@ -97,51 +98,6 @@ export default function Janus() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.offsetSec, settings.sound, settings.volume, settings.level])
 
-  /* ── 화면 공유 전 ───────────────────────────────────────── */
-
-  if (!stream) {
-    return (
-      <MapleWindow title="JANUS ALARM" className="max-w-[720px] mx-auto">
-        <div className="flex flex-col items-center text-center gap-4 py-8 px-6">
-          <div className="text-[42px] leading-none">⏱️</div>
-          <div>
-            <h2 className="text-[18px] font-extrabold" style={{ color: 'var(--text-strong)' }}>
-              야누스 알림
-            </h2>
-            <p className="text-[13px] mt-1.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-              메이플 창을 공유하면 퀵슬롯의 야누스 아이콘을 지켜보다가<br />
-              사라지기 전에 소리로 알려줍니다.
-            </p>
-          </div>
-
-          <ol className="text-left text-[13px] flex flex-col gap-2 my-1" style={{ color: 'var(--text-emphasis)' }}>
-            <Step n={1}>아래 버튼을 눌러 <b>메이플스토리 창</b>을 선택합니다</Step>
-            <Step n={2}>퀵슬롯의 <b>야누스 아이콘</b>을 드래그해서 지정합니다</Step>
-            <Step n={3}>설치하면 자동으로 타이머가 시작됩니다</Step>
-          </ol>
-
-          <button
-            type="button"
-            onClick={handleStart}
-            className="rounded-[10px] px-6 py-3 text-[14px] font-extrabold text-white"
-            style={{
-              background: 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.3), 0 3px 8px rgba(0,0,0,.2)',
-            }}
-          >
-            🖥️ 화면 공유 시작
-          </button>
-
-          {error && <p className="text-[12.5px]" style={{ color: 'var(--danger-text)' }}>{error}</p>}
-          <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-dim)' }}>
-            공유 화면은 이 브라우저 안에서만 처리되고 어디로도 전송되지 않습니다.<br />
-            브라우저 정책상 페이지를 새로 열면 창을 다시 골라야 합니다.
-          </p>
-        </div>
-      </MapleWindow>
-    )
-  }
-
   /* ── 감시 중 ────────────────────────────────────────────── */
 
   return (
@@ -155,41 +111,53 @@ export default function Janus() {
         </div>
       )}
     >
-      <div className="flex flex-col gap-3">
-        {/* 공유 화면 + 타이머 오버레이 */}
-        <div className="rounded-[11px] overflow-hidden relative" style={CARD}>
+      <div className="rounded-[11px] overflow-hidden relative" style={CARD}>
+        {stream ? (
           <RegionPicker videoRef={videoRef} stream={stream} region={region} />
+        ) : (
+          <Intro onStart={handleStart} onSettings={() => setShowSettings(true)} error={error} />
+        )}
 
-          <div
-            className="absolute left-4 bottom-4 flex flex-col gap-3 rounded-2xl px-5 py-4"
-            style={{
-              background: 'rgba(8,13,19,.78)',
-              border: '1px solid rgba(255,255,255,.13)',
-              backdropFilter: 'blur(4px)',
-            }}
-          >
-            <div>
-              <div className="text-[13px] font-extrabold tracking-wide" style={{ color: 'var(--mpl-title-yellow)' }}>
-                다음 알림까지
+        {stream && (
+          <div className="absolute left-4 bottom-4 flex flex-col items-start gap-2.5">
+            {/* 타이머는 설치를 잡았을 때만 — 대기 중에 빈 숫자를 띄워둘 이유가 없다 */}
+            {install && (
+              <div
+                className="rounded-2xl px-5 py-4"
+                style={{
+                  background: 'rgba(8,13,19,.78)',
+                  border: '1px solid rgba(255,255,255,.13)',
+                  backdropFilter: 'blur(4px)',
+                }}
+              >
+                <div className="text-[13px] font-extrabold tracking-wide" style={{ color: 'var(--mpl-title-yellow)' }}>
+                  다음 알림까지
+                </div>
+                {alarmInMs != null && alarmInMs > 0 ? (
+                  <div
+                    className="font-extrabold tabular-nums leading-[.95]"
+                    style={{ fontSize: 64, letterSpacing: '-2.5px', color: '#eef3f8' }}
+                  >
+                    {formatSeconds(alarmInMs).split('.')[0]}
+                    <span style={{ fontSize: 30, letterSpacing: 0 }}>.{formatSeconds(alarmInMs).split('.')[1]}</span>
+                  </div>
+                ) : (
+                  <div className="font-extrabold leading-[1.3]" style={{ fontSize: 38, color: '#8ba0b4' }}>
+                    지속시간 종료
+                  </div>
+                )}
               </div>
-              {alarmInMs != null && alarmInMs > 0 ? (
-                <div
-                  className="font-extrabold tabular-nums leading-[.9]"
-                  style={{ fontSize: 64, letterSpacing: '-2.5px', color: '#eef3f8' }}
-                >
-                  {formatSeconds(alarmInMs).split('.')[0]}
-                  <span style={{ fontSize: 30, letterSpacing: 0 }}>.{formatSeconds(alarmInMs).split('.')[1]}</span>
-                </div>
-              ) : (
-                // 숫자 자리에 "--.-"를 두면 깨진 요소처럼 보여서 말로 적는다
-                <div className="font-extrabold leading-[1.3]" style={{ fontSize: 38, color: '#8ba0b4' }}>
-                  설치 대기
-                </div>
-              )}
-            </div>
+            )}
 
-            {/* 조작은 아이콘만 — 화면 위쪽에 글자 버튼을 흩어두면 게임 화면에 묻혀 안 보인다 */}
-            <div className="flex gap-2">
+            <div
+              className="flex gap-2 rounded-2xl px-3 py-2.5"
+              style={{
+                background: 'rgba(8,13,19,.78)',
+                border: '1px solid rgba(255,255,255,.13)',
+                backdropFilter: 'blur(4px)',
+              }}
+            >
+              <IconButton tone="slate" label="설정" onClick={() => setShowSettings(true)}><GearIcon /></IconButton>
               <IconButton tone="slate" label="초기화" onClick={resetCycle}><RefreshIcon /></IconButton>
               {pip.supported && (
                 <IconButton
@@ -203,10 +171,10 @@ export default function Janus() {
               <IconButton tone="slate" label="인식 영역 다시 지정" onClick={() => setPicking(true)}><CropIcon /></IconButton>
               <IconButton tone="red" label="화면 공유 중단" onClick={stop}><StopIcon /></IconButton>
             </div>
-
           </div>
+        )}
 
-          {/* 지속시간 진행 — 화면 아래 테두리에 얇게 */}
+        {stream && (
           <div className="absolute left-0 right-0 bottom-0 h-[5px]" style={{ background: 'rgba(8,13,19,.55)' }}>
             <div
               className="h-full"
@@ -216,72 +184,29 @@ export default function Janus() {
               }}
             />
           </div>
+        )}
 
-          {!region && (
-            <div
-              className="absolute left-0 right-0 top-0 px-3 py-2 text-[12.5px] font-bold"
-              style={{ background: 'rgba(10,16,22,.85)', color: '#ffe437' }}
-            >
-              퀵슬롯의 야누스 아이콘을 지정해 주세요
-            </div>
-          )}
-        </div>
-
-        {/* 설정 */}
-        <div className="rounded-[11px] overflow-hidden" style={CARD}>
-          <div className="px-3.5 py-2 text-[12.5px] font-extrabold" style={SLATE_BAR}>⚙️ 설정</div>
-
-          <SettingRow name="스킬 레벨" desc="레벨로 지속시간이 정해집니다">
-            <Select
-              showSub
-              options={LEVEL_TIERS}
-              value={tierForLevel(settings.level)}
-              onChange={(v) => set({ level: v })}
-            />
-          </SettingRow>
-
-          <SettingRow
-            name="알림 시점"
-            desc={<>젠 주기 × 젠 수로 잡으세요 — 지금 설정이면 <b style={{ color: 'var(--text-muted)' }}>설치 후 {alarmAtSec}초</b>에 알립니다</>}
+        {stream && !region && (
+          <div
+            className="absolute left-0 right-0 top-0 px-3 py-2 text-[12.5px] font-bold"
+            style={{ background: 'rgba(10,16,22,.85)', color: '#ffe437' }}
           >
-            <div
-              className="flex items-center gap-2 rounded-[9px] px-3 py-2"
-              style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
-            >
-              <input
-                type="number" min={1} max={Math.max(1, durationSec - 1)}
-                value={settings.offsetSec}
-                onChange={(e) => set({ offsetSec: Math.max(1, Number(e.target.value) || 1) })}
-                className="janus-num flex-1 min-w-0 text-[13.5px] font-semibold tabular-nums bg-transparent outline-none"
-                style={{ color: 'var(--text-strong)' }}
-              />
-              <span className="text-[12.5px] font-bold shrink-0" style={{ color: 'var(--text-dim)' }}>초 전</span>
-            </div>
-          </SettingRow>
-
-          <SettingRow name="알림 소리" desc="백그라운드 탭에서도 정확한 시각에 울립니다">
-            <div className="flex gap-2 items-center">
-              <div className="flex-1 min-w-0">
-                <Select options={SOUND_OPTIONS} value={soundValue} onChange={(v) => set({ sound: v })} />
-              </div>
-              <SmallPill tone="tan" className="shrink-0 !px-2.5" onClick={handleTest}>🔔</SmallPill>
-            </div>
-          </SettingRow>
-
-          <SettingRow name="소리 크기" desc="테스트 버튼으로 들어보면서 맞추세요">
-            <div className="flex items-center gap-2.5">
-              <input
-                type="range" min={0} max={100} value={Math.round(settings.volume * 100)}
-                onChange={(e) => set({ volume: Number(e.target.value) / 100 })}
-                className="janus-range flex-1 min-w-0"
-              />
-              <span className="text-[12.5px] font-bold tabular-nums w-[34px] text-right" style={{ color: 'var(--text-muted)' }}>
-                {Math.round(settings.volume * 100)}%
-              </span>
-            </div>
-          </SettingRow>
-        </div>
+            퀵슬롯의 야누스 아이콘을 지정해 주세요
+          </div>
+        )}
       </div>
+
+      {showSettings && (
+        <SettingsDialog
+          settings={settings}
+          soundValue={soundValue}
+          durationSec={durationSec}
+          alarmAtSec={alarmAtSec}
+          onChange={set}
+          onTest={handleTest}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
 
       {picking && (
         <RegionPickerModal
@@ -305,6 +230,133 @@ export default function Janus() {
         pip.pip.document.body
       )}
     </MapleWindow>
+  )
+}
+
+/* ── 화면 공유 전 안내 (창 안에 그대로 들어간다) ─────────── */
+
+function Intro({ onStart, onSettings, error }) {
+  return (
+    <div
+      className="w-full flex flex-col items-center justify-center text-center gap-4 px-6"
+      style={{ aspectRatio: '16 / 9', background: '#0e1620' }}
+    >
+      <div>
+        <h2 className="text-[17px] font-extrabold" style={{ color: '#eef3f8' }}>야누스 알림</h2>
+        <p className="text-[13px] mt-1.5 leading-relaxed" style={{ color: '#9db0c2' }}>
+          메이플 창을 공유하면 퀵슬롯의 야누스 아이콘을 지켜보다가<br />
+          사라지기 전에 소리로 알려줍니다.
+        </p>
+      </div>
+
+      <ol className="text-left text-[13px] flex flex-col gap-1.5" style={{ color: '#cfdae4' }}>
+        <Step n={1}>아래 버튼을 눌러 <b>메이플스토리 창</b>을 선택합니다</Step>
+        <Step n={2}>퀵슬롯의 <b>야누스 아이콘</b>을 드래그해서 지정합니다</Step>
+        <Step n={3}>설치하면 자동으로 타이머가 시작됩니다</Step>
+      </ol>
+
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onStart}
+          className="rounded-[10px] px-5 py-2.5 text-[13.5px] font-extrabold text-white"
+          style={{
+            background: 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.3), 0 3px 8px rgba(0,0,0,.25)',
+          }}
+        >
+          🖥️ 화면 공유 시작
+        </button>
+        <IconButton tone="slate" label="설정" onClick={onSettings}><GearIcon /></IconButton>
+      </div>
+
+      {error && <p className="text-[12.5px]" style={{ color: '#ef8078' }}>{error}</p>}
+      <p className="text-[12px] leading-relaxed" style={{ color: '#64788c' }}>
+        공유 화면은 이 브라우저 안에서만 처리되고 어디로도 전송되지 않습니다.<br />
+        브라우저 정책상 페이지를 새로 열면 창을 다시 골라야 합니다.
+      </p>
+    </div>
+  )
+}
+
+/* ── 설정 ─────────────────────────────────────────────────── */
+
+function SettingsDialog({ settings, soundValue, durationSec, alarmAtSec, onChange, onTest, onClose }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 grid place-items-center p-6"
+      style={{ background: 'var(--dialog-backdrop)' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-[620px] max-w-full rounded-xl overflow-hidden"
+        style={{ background: 'var(--mpl-card)', border: '1px solid var(--mpl-card-line)', boxShadow: 'var(--popup-shadow)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-4 py-2.5 text-[13px] font-extrabold flex items-center" style={SLATE_BAR}>
+          ⚙️ 설정
+          <span className="flex-1" />
+          <button type="button" onClick={onClose} aria-label="닫기" style={{ color: '#dbe4ec' }}>✕</button>
+        </div>
+
+        <SettingRow name="스킬 레벨" desc="레벨로 지속시간이 정해집니다">
+          <Select
+            showSub
+            options={LEVEL_TIERS}
+            value={tierForLevel(settings.level)}
+            onChange={(v) => onChange({ level: v })}
+          />
+        </SettingRow>
+
+        <SettingRow
+          name="알림 시점"
+          desc={<>젠 주기 × 젠 수로 잡으세요 — 지금 설정이면 <b style={{ color: 'var(--text-muted)' }}>설치 후 {alarmAtSec}초</b>에 알립니다</>}
+        >
+          <div
+            className="flex items-center gap-2 rounded-[9px] px-3 py-2"
+            style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
+          >
+            <input
+              type="number" min={1} max={Math.max(1, durationSec - 1)}
+              value={settings.offsetSec}
+              onChange={(e) => onChange({ offsetSec: Math.max(1, Number(e.target.value) || 1) })}
+              className="janus-num flex-1 min-w-0 text-[13.5px] font-semibold tabular-nums bg-transparent outline-none"
+              style={{ color: 'var(--text-strong)' }}
+            />
+            <span className="text-[12.5px] font-bold shrink-0" style={{ color: 'var(--text-dim)' }}>초 전</span>
+          </div>
+        </SettingRow>
+
+        <SettingRow name="알림 소리" desc="백그라운드 탭에서도 정확한 시각에 울립니다">
+          <div className="flex gap-2 items-center">
+            <div className="flex-1 min-w-0">
+              <Select options={SOUND_OPTIONS} value={soundValue} onChange={(v) => onChange({ sound: v })} />
+            </div>
+            <IconButton tone="tan" label="소리 테스트" size={34} onClick={onTest}><BellIcon /></IconButton>
+          </div>
+        </SettingRow>
+
+        <SettingRow name="소리 크기" desc="테스트 버튼으로 들어보면서 맞추세요">
+          <div className="flex items-center gap-2.5">
+            <input
+              type="range" min={0} max={100} value={Math.round(settings.volume * 100)}
+              onChange={(e) => onChange({ volume: Number(e.target.value) / 100 })}
+              className="janus-range flex-1 min-w-0"
+            />
+            <span className="text-[12.5px] font-bold tabular-nums w-[34px] text-right" style={{ color: 'var(--text-muted)' }}>
+              {Math.round(settings.volume * 100)}%
+            </span>
+          </div>
+        </SettingRow>
+      </div>
+    </div>,
+    document.body
   )
 }
 
@@ -337,29 +389,6 @@ function Badge({ tone, children }) {
   )
 }
 
-const TONES = {
-  tan: 'linear-gradient(180deg, var(--mpl-tan-from), var(--mpl-tan-to))',
-  slate: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))',
-  sky: 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))',
-  red: 'linear-gradient(180deg, var(--mpl-red-from), var(--mpl-red-to))',
-}
-
-function SmallPill({ tone, onClick, className = '', children }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-lg px-3 py-1.5 text-[12.5px] font-extrabold text-white whitespace-nowrap inline-flex items-center justify-center gap-1 ${className}`}
-      style={{
-        background: TONES[tone],
-        textShadow: '0 1px 0 rgba(0,0,0,.28)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.3), 0 2px 5px rgba(0,0,0,.2)',
-      }}
-    >
-      {children}
-    </button>
-  )
-}
 
 /** 설정 한 줄 — 이름 / 설명 / 컨트롤 */
 function SettingRow({ name, desc, children }) {

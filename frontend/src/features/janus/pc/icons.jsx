@@ -36,6 +36,30 @@ export function StopIcon({ size = 17 }) {
   )
 }
 
+export function GearIcon({ size = 17 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden>
+      <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+      <path
+        d="M8 1.3v1.6M8 13.1v1.6M14.7 8h-1.6M2.9 8H1.3M12.7 3.3l-1.1 1.1M4.4 11.6l-1.1 1.1M12.7 12.7l-1.1-1.1M4.4 4.4L3.3 3.3"
+        stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+export function BellIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path
+        d="M4 6.6a4 4 0 1 1 8 0c0 2.5.7 3.6 1.2 4.2.3.3.1.8-.4.8H3.2c-.5 0-.7-.5-.4-.8.5-.6 1.2-1.7 1.2-4.2Z"
+        stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"
+      />
+      <path d="M6.5 13.4a1.7 1.7 0 0 0 3 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 const TONES = {
   slate: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))',
   sky: 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))',
