@@ -7,7 +7,7 @@ import RegionPicker from './RegionPicker'
 import RegionPickerModal from './RegionPickerModal'
 import MiniBar from './MiniBar'
 import {
-  loadSettings, saveSettings, durationForLevel, formatSeconds, formatClock, formatLogTime,
+  DETECT, loadSettings, saveSettings, durationForLevel, formatSeconds, formatClock, formatLogTime,
   OFFSET_PRESETS, SOUND_OPTIONS,
 } from '../logic'
 import {
@@ -44,13 +44,18 @@ export default function Janus() {
     stopBlink()
   }, [])
 
-  const scheduleFor = useCallback((settingsNow) => {
+  /**
+   * installedAt은 "아이콘이 어두워진 순간"이고, 감지 확정은 그보다 조금 뒤에 일어난다.
+   * 그래서 예약 시각은 지금부터가 아니라 설치 시각 기준으로 계산해야 한다.
+   */
+  const scheduleFor = useCallback((settingsNow, installedAt) => {
     clearScheduled()
     const total = totalCdRef.current
     const durationMs = (durationForLevel(settingsNow.level) || 0) * 1000
+    const elapsed = Date.now() - installedAt
 
     if (total) {
-      const fireInSec = (total - settingsNow.offsetSec * 1000) / 1000
+      const fireInSec = (total - settingsNow.offsetSec * 1000 - elapsed) / 1000
       if (fireInSec > 0) {
         cancelRef.current.push(scheduleSound(settingsNow.sound, settingsNow.volume, fireInSec))
         const t = setTimeout(() => {
@@ -63,13 +68,14 @@ export default function Janus() {
       }
     }
 
-    if (settingsNow.notifyDurationEnd && durationMs > 0) {
-      cancelRef.current.push(scheduleSound('beep', settingsNow.volume * 0.7, durationMs / 1000))
+    const durationLeftSec = (durationMs - elapsed) / 1000
+    if (settingsNow.notifyDurationEnd && durationLeftSec > 0) {
+      cancelRef.current.push(scheduleSound('beep', settingsNow.volume * 0.7, durationLeftSec))
     }
   }, [clearScheduled])
 
-  const handleCycleStart = useCallback(() => {
-    scheduleFor(settings)
+  const handleCycleStart = useCallback((started) => {
+    scheduleFor(settings, started.installedAt)
   }, [scheduleFor, settings])
 
   const handleCycleEnd = useCallback(({ cancelled }) => {
@@ -78,7 +84,7 @@ export default function Janus() {
 
   const detector = useJanusDetector({ onCycleStart: handleCycleStart, onCycleEnd: handleCycleEnd })
   const {
-    stream, region, setRegion, status, cycle, samples, logs, stale, error,
+    stream, region, setRegion, status, cycle, samples, logs, stale, error, level,
     estimateMs, spreadSec, videoRef, start, stop, resetCycle, log,
   } = detector
 
@@ -114,7 +120,7 @@ export default function Janus() {
 
   // 설정을 바꾸면 진행 중인 예약도 새 값으로 다시 잡는다
   useEffect(() => {
-    if (cooling) scheduleFor(settings)
+    if (cooling && cycle) scheduleFor(settings, cycle.installedAt)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.offsetSec, settings.sound, settings.volume, settings.level, settings.notifyDurationEnd])
 
@@ -324,6 +330,9 @@ export default function Janus() {
                     아이콘이 어두워지는 순간을 설치로 봅니다. 다시 밝아질 때까지의 시간이 곧 실제 쿨타임이라, 사이클마다 자동으로 다시 재요.
                   </p>
                 )}
+
+                {/* 지금 밝기가 임계선의 어디쯤인지 — 오검출이 날 때 원인을 눈으로 볼 수 있게 */}
+                {region && level && <LevelMeter luma={level.luma} base={level.base} />}
                 <div className="flex gap-1.5">
                   <SmallPill tone="sky" className="flex-1" onClick={() => setPicking(true)}>영역 다시 지정</SmallPill>
                   <SmallPill tone="red" onClick={stop}>공유 중단</SmallPill>
@@ -441,6 +450,34 @@ function SmallPill({ tone, onClick, className = '', children }) {
     >
       {children}
     </button>
+  )
+}
+
+/**
+ * 밝기 진단 막대. 현재 밝기가 기준선 대비 몇 %인지와 어두움 판정선을 같이 보여준다.
+ * 오검출 신고가 들어왔을 때 "임계선을 스쳤는지"를 눈으로 확인할 수 있어야 해서 넣었다.
+ */
+function LevelMeter({ luma, base }) {
+  const ratio = base ? luma / base : 0
+  const pct = Math.min(100, Math.max(0, ratio * 100))
+  const dark = ratio < DETECT.darkRatio
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[11.5px] font-bold shrink-0" style={{ color: 'var(--text-dim)' }}>밝기</span>
+      <div className="flex-1 h-2 rounded-full relative overflow-hidden" style={{ background: 'var(--progress-track)' }}>
+        <div className="h-full" style={{ width: `${pct}%`, background: dark ? 'var(--warning-text)' : 'var(--mpl-sky-to)' }} />
+        <span
+          className="absolute top-0 bottom-0 w-px"
+          style={{ left: `${DETECT.darkRatio * 100}%`, background: 'var(--danger-text)' }}
+        />
+      </div>
+      <span
+        className="text-[11.5px] font-bold tabular-nums shrink-0"
+        style={{ color: dark ? 'var(--warning-text)' : 'var(--text-muted)' }}
+      >
+        {Math.round(ratio * 100)}%
+      </span>
+    </div>
   )
 }
 
