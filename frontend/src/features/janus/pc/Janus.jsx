@@ -134,6 +134,15 @@ export default function Janus() {
 
   useEffect(() => () => clearScheduled(), [clearScheduled])
 
+  /*
+   * 사이클이 사라지면 예약해둔 알림도 거둔다.
+   * 공유를 중단하거나 초기화를 눌러도 예약은 AudioContext에 그대로 남아 있어서
+   * 화면을 다 정리한 뒤에 알림이 울렸다.
+   */
+  useEffect(() => {
+    if (!install || !stream) clearScheduled()
+  }, [install, stream, clearScheduled])
+
   // 설정을 바꾸면 진행 중인 예약도 새 값으로 다시 잡는다
   useEffect(() => {
     if (active && install) scheduleFor(settings, installedAt)
