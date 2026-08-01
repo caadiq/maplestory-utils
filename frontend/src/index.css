@@ -182,6 +182,10 @@
   --mpl-red-from: #f07a6a;
   --mpl-red-to: #d9534a;
 
+  /* 카드 위 강조 라벨 — 게임창 노란색은 흰 카드에서 안 읽혀서 라이트만 청록으로 */
+  --accent-label: #1c7ba8;
+  --ok-text: #5f9b2a;
+
   /* 표면 (라이트) — 다크 테마에서 재정의됨 */
   --mpl-panel: #eef2f6;
   --mpl-card: #ffffff;
@@ -265,6 +269,9 @@
   --dialog-backdrop: rgba(4, 8, 14, 0.65);
 
   --inactive-filter: saturate(0.4) opacity(0.45) brightness(0.9);
+
+  --accent-label: #ffe437;
+  --ok-text: #9fd45e;
 
   /* 게임창 표면 (다크) */
   --mpl-win-body: #1b2634;
