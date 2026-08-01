@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import MapleWindow from '../../../components/pc/MapleWindow'
 import Select from '../../../components/common/Select'
+import Tooltip from '../../../components/common/Tooltip'
 import { useJanusDetector } from '../useJanusDetector'
 import { usePipWindow } from '../usePipWindow'
 import RegionPicker from './RegionPicker'
@@ -160,7 +161,7 @@ export default function Janus() {
           <RegionPicker videoRef={videoRef} stream={stream} region={region} />
 
           <div
-            className="absolute left-3.5 bottom-3 flex items-end gap-3.5 rounded-xl px-4 py-3"
+            className="absolute left-3.5 bottom-3 flex flex-col gap-2 rounded-xl px-4 py-3"
             style={{
               background: 'rgba(8,13,19,.78)',
               border: '1px solid rgba(255,255,255,.13)',
@@ -186,17 +187,23 @@ export default function Janus() {
                 </div>
               )}
             </div>
-            {/* 조작 버튼도 여기 모은다 — 화면 위쪽에 흩어두면 게임 화면에 묻혀 안 보인다 */}
-            <div className="grid grid-cols-2 gap-1.5 pb-0.5">
-              <SmallPill tone="slate" onClick={resetCycle}><RefreshIcon /> 초기화</SmallPill>
-              {pip.supported ? (
-                <SmallPill tone="sky" onClick={() => (pip.pip ? pip.close() : pip.open())}>
-                  {pip.pip ? '미니 HUD 닫기' : '미니 HUD 열기'}
-                </SmallPill>
-              ) : <span />}
-              <SmallPill tone="slate" onClick={() => setPicking(true)}>영역 지정</SmallPill>
-              <SmallPill tone="red" onClick={stop}>공유 중단</SmallPill>
+
+            {/* 조작은 아이콘만 — 화면 위쪽에 글자 버튼을 흩어두면 게임 화면에 묻혀 안 보인다 */}
+            <div className="flex gap-1.5">
+              <IconButton tone="slate" label="초기화" onClick={resetCycle}><RefreshIcon /></IconButton>
+              {pip.supported && (
+                <IconButton
+                  tone="sky"
+                  label={pip.pip ? '미니 HUD 닫기' : '미니 HUD 열기'}
+                  onClick={() => (pip.pip ? pip.close() : pip.open())}
+                >
+                  <PipIcon />
+                </IconButton>
+              )}
+              <IconButton tone="slate" label="인식 영역 다시 지정" onClick={() => setPicking(true)}><CropIcon /></IconButton>
+              <IconButton tone="red" label="화면 공유 중단" onClick={stop}><StopIcon /></IconButton>
             </div>
+
           </div>
 
           {/* 지속시간 진행 — 화면 아래 테두리에 얇게 */}
@@ -348,6 +355,53 @@ function RefreshIcon() {
       />
       <path d="M13.4 1.9v3.1h-3.1" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  )
+}
+
+function PipIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <rect x="1.4" y="2.6" width="13.2" height="10.8" rx="1.8" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="7.8" y="7.6" width="5.6" height="4.6" rx="1" fill="currentColor" />
+    </svg>
+  )
+}
+
+function CropIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path d="M4.6 1.4v10h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M1.4 4.6h10v10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function StopIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <circle cx="8" cy="8" r="6.4" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+/** 아이콘만 있는 정사각 버튼. 이름은 호버 툴팁으로 나온다 */
+function IconButton({ tone, label, onClick, children }) {
+  return (
+    <Tooltip text={label}>
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={label}
+        className="w-8 h-8 rounded-lg grid place-items-center text-white"
+        style={{
+          background: TONES[tone],
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,.3), 0 2px 5px rgba(0,0,0,.25)',
+        }}
+      >
+        {children}
+      </button>
+    </Tooltip>
   )
 }
 
