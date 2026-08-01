@@ -32,7 +32,7 @@ function copyStyles(target) {
 export function usePipWindow() {
   const [pip, setPip] = useState(null)
 
-  const open = useCallback(async ({ width = 320, height = 188 } = {}) => {
+  const open = useCallback(async ({ width = 316, height = 236 } = {}) => {
     if (!isSupported) return null
     try {
       const win = await window.documentPictureInPicture.requestWindow({ width, height })
