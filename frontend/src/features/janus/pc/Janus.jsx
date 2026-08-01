@@ -251,7 +251,7 @@ export default function Janus() {
         <div className="px-4 py-2.5 text-[13.5px] font-extrabold" style={SLATE_BAR}>⚙️ 설정</div>
 
         <SettingRow name="스킬 레벨" desc="레벨로 지속시간이 정해집니다">
-          <div className="w-[168px]">
+          <div className="w-[140px]">
             <Select
               showSub
               options={LEVEL_TIERS}
@@ -270,7 +270,7 @@ export default function Janus() {
             min={1}
             max={Math.max(1, durationSec - 1)}
             unit="초 전"
-            width={104}
+            chars={2}
             onChange={(v) => set({ offsetSec: Math.max(1, v || 1) })}
           />
         </SettingRow>
@@ -283,27 +283,32 @@ export default function Janus() {
             value={settings.trimSec}
             min={-5}
             max={5}
-            step={0.1}
             unit="초"
-            width={92}
+            chars={3}
             onChange={(v) => set({ trimSec: Math.max(-5, Math.min(5, v || 0)) })}
           />
         </SettingRow>
 
         <SettingRow name="알림 소리" desc="백그라운드 탭에서도 정확한 시각에 울립니다">
-          <div className="w-[150px]">
-            <Select options={SOUND_OPTIONS} value={soundValue} onChange={(v) => set({ sound: v })} />
+          <div className="flex flex-col gap-2 items-end">
+            <div className="flex items-center gap-2">
+              <div className="w-[126px]">
+                <Select options={SOUND_OPTIONS} value={soundValue} onChange={(v) => set({ sound: v })} />
+              </div>
+              <IconButton tone="tan" label="소리 테스트" size={36} onClick={handleTest}><BellIcon /></IconButton>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <input
+                type="range" min={0} max={100} value={Math.round(settings.volume * 100)}
+                onChange={(e) => set({ volume: Number(e.target.value) / 100 })}
+                className="janus-range w-[130px]"
+                aria-label="소리 크기"
+              />
+              <span className="text-[13px] font-bold tabular-nums w-[38px] text-right" style={{ color: 'var(--text-muted)' }}>
+                {Math.round(settings.volume * 100)}%
+              </span>
+            </div>
           </div>
-          <IconButton tone="tan" label="소리 테스트" size={36} onClick={handleTest}><BellIcon /></IconButton>
-          <input
-            type="range" min={0} max={100} value={Math.round(settings.volume * 100)}
-            onChange={(e) => set({ volume: Number(e.target.value) / 100 })}
-            className="janus-range w-[112px]"
-            aria-label="소리 크기"
-          />
-          <span className="text-[13px] font-bold tabular-nums w-[38px] text-right" style={{ color: 'var(--text-muted)' }}>
-            {Math.round(settings.volume * 100)}%
-          </span>
         </SettingRow>
       </div>
       </div>
@@ -441,21 +446,45 @@ function SettingRow({ name, desc, children }) {
   )
 }
 
-/** 숫자 + 단위 입력칸 */
-function NumberField({ value, min, max, step, unit, width, onChange }) {
+/** 숫자 + 단위 입력칸. 화살표로 한 칸씩 올리고 내릴 수 있다 */
+function NumberField({ value, min, max, step = 1, unit, chars = 2, onChange }) {
+  const nudge = (d) => {
+    const next = Math.round((Number(value) + d) * 10) / 10
+    onChange(Math.min(max, Math.max(min, next)))
+  }
   return (
     <div
-      className="flex items-center gap-1.5 rounded-[9px] px-3 py-2"
-      style={{ width, background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
+      className="flex items-center gap-1.5 rounded-[9px] pl-3 pr-1 py-1.5"
+      style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
     >
       <input
         type="number" min={min} max={max} step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="janus-num flex-1 min-w-0 text-[14px] font-semibold tabular-nums bg-transparent outline-none"
-        style={{ color: 'var(--text-strong)' }}
+        className="janus-num text-[14px] font-semibold tabular-nums bg-transparent outline-none"
+        style={{ width: `${chars}ch`, color: 'var(--text-strong)' }}
       />
       <span className="text-[13px] font-bold shrink-0" style={{ color: 'var(--text-dim)' }}>{unit}</span>
+      <span className="flex flex-col shrink-0">
+        <Nudge label="1 올리기" onClick={() => nudge(step)} up />
+        <Nudge label="1 내리기" onClick={() => nudge(-step)} />
+      </span>
     </div>
+  )
+}
+
+function Nudge({ label, onClick, up = false }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="w-4 h-[13px] grid place-items-center"
+      style={{ color: 'var(--text-dim)' }}
+    >
+      <svg width="9" height="6" viewBox="0 0 10 6" fill="none" style={{ transform: up ? 'none' : 'rotate(180deg)' }}>
+        <path d="M1 5l4-4 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
   )
 }
