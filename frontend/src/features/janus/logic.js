@@ -8,28 +8,21 @@
  * 이미 쿨이 돌아와 있고, 실제로 필요한 알림은 "지속시간이 끝나기 전"이기 때문이다.
  */
 
-/** 스킬 레벨 → 지속시간(초). 사이 레벨은 선형 보간 */
-const DURATION_POINTS = [
-  [1, 60],
-  [10, 70],
-  [20, 80],
-  [30, 120],
+/**
+ * 스킬 레벨 → 지속시간(초).
+ * 10레벨 단위 계단식이다 — 보간하지 않는다. 1~9는 전부 60초, 10~19는 전부 70초.
+ */
+const DURATION_TIERS = [
+  { min: 30, sec: 120 },
+  { min: 20, sec: 80 },
+  { min: 10, sec: 70 },
+  { min: 1, sec: 60 },
 ]
 
 export function durationForLevel(level) {
-  const lv = Number(level)
+  const lv = Math.floor(Number(level))
   if (!Number.isFinite(lv)) return null
-  if (lv <= DURATION_POINTS[0][0]) return DURATION_POINTS[0][1]
-  const last = DURATION_POINTS[DURATION_POINTS.length - 1]
-  if (lv >= last[0]) return last[1]
-  for (let i = 0; i < DURATION_POINTS.length - 1; i++) {
-    const [x1, y1] = DURATION_POINTS[i]
-    const [x2, y2] = DURATION_POINTS[i + 1]
-    if (lv >= x1 && lv <= x2) {
-      return Math.round(y1 + ((y2 - y1) * (lv - x1)) / (x2 - x1))
-    }
-  }
-  return null
+  return DURATION_TIERS.find((t) => lv >= t.min)?.sec ?? DURATION_TIERS[DURATION_TIERS.length - 1].sec
 }
 
 /* ── 감지 파라미터 ────────────────────────────────────────── */
