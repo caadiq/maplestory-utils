@@ -114,6 +114,98 @@ export function shapeSimilarity(a, b) {
   return dot
 }
 
+/* ── 자동 탐색 ────────────────────────────────────────────── */
+
+/** 저장해둔 모양을 화면 전체에서 찾을 때 쓰는 값들 */
+export const LOCATE = {
+  /** 탐색용으로 줄이는 화면 가로 크기 — 작을수록 빠르고 거칠다 */
+  frameWidth: 640,
+  /** 후보로 인정할 최소 일치도 */
+  minScore: 0.7,
+  /** 이 거리(px, 축소 화면 기준) 안의 후보는 같은 것으로 본다 */
+  mergeDistance: 12,
+  /** 최대 후보 수 */
+  maxCandidates: 6,
+  /**
+   * 내장 원본으로 찾을 때 훑어볼 아이콘 크기(원본 화면 기준 px).
+   * 화면 배율·해상도에 따라 실제 크기가 달라져서 몇 가지를 시도한다.
+   */
+  builtinSizes: [24, 28, 32, 36, 40, 46],
+}
+
+/**
+ * 축소한 화면 전체를 훑어 저장해둔 모양과 닮은 자리를 찾는다.
+ * 창을 고를 때마다 아이콘을 다시 집는 수고를 없애기 위한 것.
+ *
+ * gray: 축소 화면의 밝기 배열(w*h), tpl: 정규화된 템플릿(tw*th)
+ */
+export function findMatches(gray, w, h, tpl, tw, th) {
+  const found = []
+  const step = 2
+  for (let y = 0; y + th <= h; y += step) {
+    for (let x = 0; x + tw <= w; x += step) {
+      // 창 안의 평균과 표준편차
+      let sum = 0
+      let sqSum = 0
+      for (let j = 0; j < th; j++) {
+        const row = (y + j) * w + x
+        for (let i = 0; i < tw; i++) {
+          const v = gray[row + i]
+          sum += v
+          sqSum += v * v
+        }
+      }
+      const n = tw * th
+      const mean = sum / n
+      const variance = sqSum / n - mean * mean
+      if (variance < 25) continue // 거의 단색 — 아이콘일 리 없다
+      const inv = 1 / (Math.sqrt(variance) * n ** 0.5)
+
+      let dot = 0
+      for (let j = 0; j < th; j++) {
+        const row = (y + j) * w + x
+        const trow = j * tw
+        for (let i = 0; i < tw; i++) dot += (gray[row + i] - mean) * tpl[trow + i]
+      }
+      const score = dot * inv
+      if (score >= LOCATE.minScore) found.push({ x, y, score })
+    }
+  }
+
+  // 가까이 붙은 후보는 같은 아이콘이므로 가장 점수 높은 것만 남긴다
+  found.sort((a, b) => b.score - a.score)
+  const merged = []
+  for (const c of found) {
+    if (merged.some((m) => Math.abs(m.x - c.x) < LOCATE.mergeDistance && Math.abs(m.y - c.y) < LOCATE.mergeDistance)) continue
+    merged.push(c)
+    if (merged.length >= LOCATE.maxCandidates) break
+  }
+  return merged
+}
+
+/* ── 템플릿 저장 ──────────────────────────────────────────── */
+
+const TEMPLATE_KEY = 'maple.janus.template'
+
+export function saveTemplate(tpl) {
+  try {
+    localStorage.setItem(TEMPLATE_KEY, JSON.stringify({ ...tpl, vec: Array.from(tpl.vec) }))
+  } catch {
+    // 저장 실패해도 이번 세션 동작에는 지장 없음
+  }
+}
+
+export function loadTemplate() {
+  try {
+    const raw = localStorage.getItem(TEMPLATE_KEY)
+    if (!raw) return null
+    const t = JSON.parse(raw)
+    return { ...t, vec: Float32Array.from(t.vec) }
+  } catch {
+    return null
+  }
+}
+
 /** 캔버스 픽셀 배열의 평균 휘도(0~255) */
 export function meanLuma(data) {
   let sum = 0
