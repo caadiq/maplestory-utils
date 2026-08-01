@@ -4,6 +4,7 @@ import MapleWindow from '../../../components/pc/MapleWindow'
 import { useJanusDetector } from '../useJanusDetector'
 import { usePipWindow } from '../usePipWindow'
 import RegionPicker from './RegionPicker'
+import RegionPickerModal from './RegionPickerModal'
 import MiniBar from './MiniBar'
 import {
   loadSettings, saveSettings, durationForLevel, formatSeconds, formatClock, formatLogTime,
@@ -309,14 +310,7 @@ export default function Janus() {
             <div className="w-[352px] rounded-[11px] overflow-hidden flex flex-col" style={CARD}>
               <div className="px-3.5 py-2 text-[12.5px] font-extrabold" style={SLATE_BAR}>🖥️ 인식 영역</div>
               <div className="p-3.5 flex flex-col gap-2.5">
-                <RegionPicker
-                  videoRef={videoRef}
-                  stream={stream}
-                  region={region}
-                  onRegion={(r) => { setRegion(r); log('인식 영역 지정', '사용자', 'muted') }}
-                  picking={picking}
-                  onPickingChange={setPicking}
-                />
+                <RegionPicker videoRef={videoRef} stream={stream} region={region} />
                 {!region ? (
                   <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--warning-text)' }}>
                     아직 영역이 지정되지 않았습니다. 퀵슬롯의 야누스 아이콘을 드래그해 주세요.
@@ -377,6 +371,15 @@ export default function Janus() {
           )}
         </div>
       </div>
+
+      {picking && (
+        <RegionPickerModal
+          stream={stream}
+          region={region}
+          onConfirm={(r) => { setRegion(r); setPicking(false); log('인식 영역 지정', '사용자', 'muted') }}
+          onClose={() => setPicking(false)}
+        />
+      )}
 
       {pip.pip && createPortal(
         <div style={{ padding: 8 }}>
