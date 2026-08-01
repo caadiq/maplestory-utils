@@ -81,12 +81,24 @@ const SOUNDS = {
 }
 
 /**
- * 음원 파일로 된 소리. public/sounds/janus/ 에 파일을 넣고 여기 한 줄 추가하면 목록에 뜬다.
- * 라이선스는 넣는 사람이 확인할 것 (같은 폴더 README 참고).
+ * 음원 파일 소리 — sounds/ 폴더를 통째로 훑는다.
+ * 파일을 넣고 다시 빌드하면 자동으로 목록에 뜬다 (코드는 건드릴 필요 없음).
+ *
+ * 이름표는 파일명 순서대로 "알림 1, 2, …"를 붙이지만,
+ * 저장되는 값은 파일명이라 나중에 파일을 추가해 번호가 밀려도
+ * 이미 고른 소리는 그대로 유지된다.
  */
-export const FILE_SOUNDS = [
-  // { value: 'ding', label: '딩', file: 'ding.mp3' },
-]
+const soundFiles = import.meta.glob('./sounds/*.{mp3,ogg,wav,m4a}', {
+  eager: true, query: '?url', import: 'default',
+})
+
+export const FILE_SOUNDS = Object.keys(soundFiles)
+  .sort((a, b) => a.localeCompare(b))
+  .map((path, i) => ({
+    value: `file:${path.split('/').pop().replace(/\.[^.]+$/, '')}`,
+    label: `알림 ${i + 1}`,
+    url: soundFiles[path],
+  }))
 
 const SYNTH_OPTIONS = [
   { value: 'ppyorong', label: '뾰롱' },
@@ -100,34 +112,53 @@ const SYNTH_OPTIONS = [
   { value: 'siren', label: '경보' },
 ]
 
-export const SOUND_OPTIONS = [...SYNTH_OPTIONS, ...FILE_SOUNDS.map(({ value, label }) => ({ value, label }))]
+export const SOUND_OPTIONS = [
+  ...FILE_SOUNDS.map(({ value, label }) => ({ value, label })),
+  ...SYNTH_OPTIONS,
+]
 
 /* ── 파일음 ───────────────────────────────────────────────── */
 
 const buffers = new Map()
 
+/**
+ * 파일 앞쪽 무음 길이(초). 받아온 효과음은 앞에 0.1초쯤 무음이 붙어 있는 경우가 많은데,
+ * 그대로 틀면 그만큼 알림이 늦게 들린다. 재생을 이 지점부터 시작해 소리가 정시에 나게 한다.
+ */
+function leadingSilence(buffer) {
+  const data = buffer.getChannelData(0)
+  let peak = 0
+  for (let i = 0; i < data.length; i++) peak = Math.max(peak, Math.abs(data[i]))
+  const threshold = peak * 0.02
+  for (let i = 0; i < data.length; i++) {
+    if (Math.abs(data[i]) > threshold) return i / buffer.sampleRate
+  }
+  return 0
+}
+
 /** 미리 받아 디코딩해둔다 — 알림 시각에 네트워크를 기다리지 않도록 */
 export async function preloadFileSounds() {
   const audio = ensureAudio()
   if (!audio) return
-  await Promise.all(FILE_SOUNDS.map(async ({ value, file }) => {
+  await Promise.all(FILE_SOUNDS.map(async ({ value, url }) => {
     if (buffers.has(value)) return
     try {
-      const res = await fetch(`/sounds/janus/${file}`)
-      buffers.set(value, await audio.decodeAudioData(await res.arrayBuffer()))
+      const res = await fetch(url)
+      const buffer = await audio.decodeAudioData(await res.arrayBuffer())
+      buffers.set(value, { buffer, offset: leadingSilence(buffer) })
     } catch {
       buffers.set(value, null) // 실패하면 합성음으로 대체된다
     }
   }))
 }
 
-function scheduleBuffer(audio, buffer, volume, delaySec) {
+function scheduleBuffer(audio, entry, volume, delaySec) {
   const src = audio.createBufferSource()
   const gain = audio.createGain()
-  src.buffer = buffer
+  src.buffer = entry.buffer
   gain.gain.value = volume
   src.connect(gain).connect(audio.destination)
-  src.start(audio.currentTime + Math.max(0, delaySec))
+  src.start(audio.currentTime + Math.max(0, delaySec), entry.offset)
   return src
 }
 
@@ -162,9 +193,9 @@ export function scheduleSound(kind, volume, delaySec) {
   const audio = ensureAudio()
   if (!audio) return () => {}
 
-  const buffer = buffers.get(kind)
-  if (buffer) {
-    const src = scheduleBuffer(audio, buffer, volume, delaySec)
+  const entry = buffers.get(kind)
+  if (entry) {
+    const src = scheduleBuffer(audio, entry, volume, delaySec)
     return () => { try { src.stop(); src.disconnect() } catch { /* 이미 끝남 */ } }
   }
 
