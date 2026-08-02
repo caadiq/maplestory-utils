@@ -10,9 +10,10 @@ import RegionPickerModal from './RegionPickerModal'
 import CandidatePicker from './CandidatePicker'
 import MiniBar from './MiniBar'
 import {
-  DETECT, LOCATE, loadSettings, saveSettings, durationForLevel, formatSeconds,
+  DETECT, loadSettings, saveSettings, durationForLevel, formatSeconds,
   LEVEL_TIERS, tierForLevel,
 } from '../logic'
+import { LOCATE } from '../locateCore'
 import { ensureAudio, scheduleSound, playSound, preloadSounds, resolveSound, SOUND_OPTIONS } from '../alarm'
 
 const CARD = { background: 'var(--mpl-card)', border: '1px solid var(--mpl-card-line)' }
@@ -99,7 +100,7 @@ export default function Janus() {
     setLocating(true)
     // 영상이 실제로 흐르기 시작할 때까지 잠깐 기다린다
     await new Promise((r) => setTimeout(r, 700))
-    applyHits(locate())
+    applyHits(await locate())
   }
 
   /**
@@ -123,7 +124,7 @@ export default function Janus() {
   const relocate = async () => {
     setLocating(true)
     await new Promise((r) => setTimeout(r, 50))
-    applyHits(locate())
+    applyHits(await locate())
   }
 
   const handleTest = async () => {
