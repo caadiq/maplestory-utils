@@ -23,7 +23,7 @@ const SLATE_BAR = {
   textShadow: '0 1px 1px rgba(44,55,69,.3)',
 }
 
-export default function Janus() {
+export default function Timer() {
   const [settings, setSettings] = useState(loadSettings)
   const [picking, setPicking] = useState(false)
   const [candidates, setCandidates] = useState(null)
