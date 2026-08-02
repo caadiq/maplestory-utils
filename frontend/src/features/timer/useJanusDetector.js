@@ -193,8 +193,14 @@ export function useJanusDetector({ onInstall, minGapMs = 0 }) {
     const vw = video.videoWidth
     const vh = video.videoHeight
     const ratio = LOCATE.frameWidth / vw
-    const sizes = candidateSizes(vw, vh)
-    const probes = probeSizes(sizes)
+    const saved = loadTemplate()
+    // 직접 지정한 적이 있으면 그때의 크기를 먼저 쓴다 — 추측보다 확실한 정보다
+    const savedSize = saved ? Math.round(saved.rw * vw) : null
+    const sizes = [...new Set([
+      ...(savedSize && savedSize >= 10 ? [savedSize] : []),
+      ...candidateSizes(vw, vh),
+    ])].sort((a, b) => a - b)
+    const probes = savedSize ? [...new Set([savedSize, ...probeSizes(sizes)])] : probeSizes(sizes)
 
     /** 화면을 주어진 폭으로 줄여 RGBA로 꺼낸다 */
     const grabFrame = (w) => {
@@ -225,7 +231,6 @@ export function useJanusDetector({ onInstall, minGapMs = 0 }) {
       return normalize(toChroma(tctx.getImageData(0, 0, size, size).data))
     }
 
-    const saved = loadTemplate()
     const sources = []
     if (saved) {
       const toCanvas = (rgba) => {
