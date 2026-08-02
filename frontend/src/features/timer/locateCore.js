@@ -34,51 +34,46 @@ export const LOCATE = {
 }
 
 /**
- * 메이플 게임 설정에 있는 해상도 전부 (창모드·전체화면 공통).
- * 캡처에는 창 테두리가 조금 섞일 수 있어서, 가장 가까운 값으로 맞춰 본다.
- */
-const GAME_RESOLUTIONS = [
-  [1024, 768], [1280, 720], [1366, 768],
-  [1920, 1080], [1920, 1200], [2560, 1440],
-]
-
-/** 1080p 화면에서 실측한 퀵슬롯 아이콘 크기(px) */
-const BASE_ICON = 40
-const BASE_HEIGHT = 1080
-
-/**
- * 훑어볼 아이콘 크기 후보(px).
+ * 메이플 UI 배율.
  *
- * 메이플 UI는 해상도가 커져도 픽셀 크기가 그대로다. 다만 업스케일링 필터를 켜면
- * 화면 전체가 확대돼 UI도 같이 커진다. 둘 중 어느 쪽인지 캡처만 보고는 알 수 없으므로
- * 두 가정을 모두 덮는다 — 고정 크기와, 해상도에 비례한 크기.
+ * 해상도별 스크린샷 6종을 실측해서 얻은 규칙이다. UI는 세로 768px을 기준으로
+ * 그 비율만큼 커진다 (720처럼 더 작은 경우는 축소하지 않고 1배 유지).
+ *
+ *   해상도      배율    아이콘   우하단 기준 위치
+ *   1024x768   1.000    32px    (175, 45)
+ *   1280x720   1.000    32px    (175, 45)
+ *   1366x768   1.000    32px    (175, 45)
+ *   1920x1080  1.406    46px    (246, 64)
+ *   1920x1200  1.563    50px    (274, 70)
+ *   2560x1440  1.875    60px    (328, 84)
+ *
+ * 전체화면으로 확대돼도 같은 식이 성립한다 — 화면째 늘어나므로 캡처 세로 크기로
+ * 계산하면 그대로 맞는다. 창모드라 제목 표시줄이 섞여도 오차는 몇 px뿐이다.
  */
-export function candidateSizes(videoWidth, videoHeight) {
-  const near = GAME_RESOLUTIONS.reduce((best, r) => {
-    const d = Math.abs(r[0] - videoWidth) + Math.abs(r[1] - videoHeight)
-    return d < best.d ? { r, d } : best
-  }, { r: GAME_RESOLUTIONS[0], d: Infinity })
-  // 5% 안쪽이면 게임 해상도로 보고 그 값을 쓴다 (창 테두리가 섞여도 흔들리지 않게)
-  const height = near.d / videoHeight < 0.05 ? near.r[1] : videoHeight
-
-  const fixed = [0.8, 0.9, 1, 1.1].map((f) => Math.round(BASE_ICON * f))
-  const scaled = [0.85, 1, 1.15].map((f) => Math.round(BASE_ICON * (height / BASE_HEIGHT) * f))
-  return [...new Set([...fixed, ...scaled])].filter((n) => n >= 12).sort((a, b) => a - b)
+export function uiScale(videoHeight) {
+  return Math.max(1, videoHeight / 768)
 }
 
 /**
- * 퀵슬롯 상자 — 화면 우하단에 고정이다.
- *
- * 메이플 UI는 픽셀 크기가 고정이라 1080p 기준 값을 그대로 쓰되,
- * 업스케일링 필터를 켜면 화면째 확대되므로 해상도 비례값과 큰 쪽을 쓴다.
- * 퀵슬롯 위치는 고정이라 사실상 여기서만 찾는다.
- * 화면 전체 탐색은 상자에서 아무것도 못 찾았을 때를 위한 안전장치로만 남겼다.
+ * 퀵슬롯 상자 — 화면 우하단에 붙어 있다.
+ * 기준 해상도에서 바가 차지하는 크기(600×110)를 배율만큼 키운다.
+ * 여기서 아무것도 못 찾을 때만 화면 전체로 넓힌다 (막다른 길이 되지 않게 두는 안전장치).
  */
 export function quickslotBox(w, h) {
-  const scale = Math.max(1, h / 1080)
-  const bandH = Math.min(h, Math.round(220 * scale))
-  const bandW = Math.min(w, Math.round(900 * scale))
-  return { x0: w - bandW, y0: h - bandH, x1: w, y1: h }
+  const s = uiScale(h)
+  const bw = Math.min(w, Math.round(600 * s))
+  const bh = Math.min(h, Math.round(110 * s))
+  return { x0: w - bw, y0: h - bh, x1: w, y1: h }
+}
+
+/**
+ * 훑어볼 아이콘 크기(px). 배율에서 바로 나오므로 몇 px 오차만 감안하면 된다.
+ * 예전에는 22~48px을 무작정 훑었다.
+ */
+export function candidateSizes(videoWidth, videoHeight) {
+  // 실측이 예측보다 1px 크게 나온 해상도가 있어(1080p: 예측 45 / 실측 46) 1px 단위로 훑는다
+  const base = Math.round(32 * uiScale(videoHeight))
+  return [-2, -1, 0, 1, 2, 3].map((d) => base + d).filter((n) => n >= 10)
 }
 
 /** 1단계로 훑을 대표 크기 — 20%쯤 달라도 걸리므로 셋이면 전 구간을 덮는다 */
