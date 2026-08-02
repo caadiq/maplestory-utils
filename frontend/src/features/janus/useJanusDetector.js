@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import {
-  DETECT, LOCATE, meanLuma, glyphRatio, toShapeVector, shapeSimilarity,
-  findMatches, saveTemplate, loadTemplate,
+  DETECT, meanLuma, glyphRatio, toShapeVector, shapeSimilarity,
+  saveTemplate, loadTemplate,
 } from './logic'
+import { LOCATE, candidateSizes, probeSizes, normalize, toChroma, locateIcon } from './locateCore'
 
 /**
  * 화면 공유 → 지정 영역 밝기 샘플링 → **설치 감지만** 한다.
@@ -19,6 +20,30 @@ import {
  */
 
 const MAX_LOGS = 40
+
+/** 탐색을 워커에서 돌린다. 워커를 못 쓰면 같은 계산을 이 자리에서 한다 */
+let locateWorker = null
+let locateSeq = 0
+function runLocate(payload) {
+  if (typeof Worker === 'undefined') return Promise.resolve(locateIcon(payload))
+  try {
+    if (!locateWorker) {
+      locateWorker = new Worker(new URL('./locate.worker.js', import.meta.url), { type: 'module' })
+    }
+  } catch {
+    return Promise.resolve(locateIcon(payload))
+  }
+  const id = ++locateSeq
+  return new Promise((resolve) => {
+    const onMessage = (e) => {
+      if (e.data?.id !== id) return
+      locateWorker.removeEventListener('message', onMessage)
+      resolve(e.data.hits || [])
+    }
+    locateWorker.addEventListener('message', onMessage)
+    locateWorker.postMessage({ id, payload })
+  })
+}
 
 /** icon/ 폴더에 원본을 넣어두면 한 번도 지정하지 않은 상태에서도 자동으로 찾는다 */
 const iconFiles = import.meta.glob('./icon/*.{png,webp,jpg}', {
@@ -159,19 +184,19 @@ export function useJanusDetector({ onInstall, minGapMs = 0 }) {
    * 그때마다 아이콘까지 다시 집는 건 번거로워서 자동으로 찾아준다.
    *
    * 직접 지정한 적이 있으면 그 모양을(사용자 화면의 실물이라 가장 정확),
-   * 없으면 icon/ 폴더의 원본을 여러 크기로 훑는다.
-   *
-   * 줄인 화면에서 자리만 추린 뒤 원본 해상도에서 다시 확인하는 2단계다.
-   * 줄인 화면에서는 아이콘이 15px 남짓이라 세부가 뭉개져 그것만으로는 판정을 못 믿는다.
+   * 없으면 icon/ 폴더의 원본을 쓴다. 무거운 계산은 워커에서 돌린다.
    */
-  const locate = useCallback(() => {
+  const locate = useCallback(async () => {
     const video = videoRef.current
     if (!video?.videoWidth) return null
 
     const vw = video.videoWidth
     const vh = video.videoHeight
+    const ratio = LOCATE.frameWidth / vw
+    const sizes = candidateSizes(vw, vh)
+    const probes = probeSizes(sizes)
 
-    /** 화면을 주어진 폭으로 줄여 밝기 배열로 만든다 */
+    /** 화면을 주어진 폭으로 줄여 RGBA로 꺼낸다 */
     const grabFrame = (w) => {
       const h = Math.round(vh * (w / vw))
       const canvas = document.createElement('canvas')
@@ -183,35 +208,25 @@ export function useJanusDetector({ onInstall, minGapMs = 0 }) {
       } catch {
         return null
       }
-      const px = c.getImageData(0, 0, w, h).data
-      // 밝기가 아니라 자주색 성분으로 찾는다 (아이콘 위 단축키 글자에 덜 흔들린다)
-      const gray = new Float32Array(w * h)
-      for (let i = 0; i < gray.length; i++) {
-        const p = i * 4
-        gray[i] = (px[p] + px[p + 2]) / 2 - px[p + 1]
-      }
-      return { gray, w, h }
-    }
-
-    /** source를 tw×th로 줄여 모양 벡터를 만든다 */
-    const templateAt = (source, sw, sh, tw, th) => {
-      const t = document.createElement('canvas')
-      t.width = tw
-      t.height = th
-      const tctx = t.getContext('2d', { willReadFrequently: true })
-      tctx.drawImage(source, 0, 0, sw, sh, 0, 0, tw, th)
-      return toShapeVector(tctx.getImageData(0, 0, tw, th).data, 'chroma')
+      return { data: c.getImageData(0, 0, w, h).data, w, h }
     }
 
     const coarse = grabFrame(LOCATE.frameWidth)
     const full = grabFrame(vw)
     if (!coarse || !full) return null
-    const ratio = LOCATE.frameWidth / vw
+
+    /** source를 size×size로 줄여 정규화한 자주색 벡터를 만든다 */
+    const vecAt = (source, sw, sh, size) => {
+      const t = document.createElement('canvas')
+      t.width = size
+      t.height = size
+      const tctx = t.getContext('2d', { willReadFrequently: true })
+      tctx.drawImage(source, 0, 0, sw, sh, 0, 0, size, size)
+      return normalize(toChroma(tctx.getImageData(0, 0, size, size).data))
+    }
 
     const saved = loadTemplate()
-    let source = null
-    let sizes = []
-    const extraSources = []
+    const sources = []
     if (saved) {
       const toCanvas = (rgba) => {
         const tc = document.createElement('canvas')
@@ -222,82 +237,54 @@ export function useJanusDetector({ onInstall, minGapMs = 0 }) {
         )
         return { el: tc, w: saved.tw, h: saved.th }
       }
-      source = toCanvas(saved.rgba)
+      sources.push(toCanvas(saved.rgba))
       // 쿨타임 중 모습도 저장돼 있으면 같이 훑는다
-      if (saved.darkRgba?.length) extraSources.push(toCanvas(saved.darkRgba))
-      sizes = [{ w: Math.round(saved.rw * vw), h: Math.round(saved.rh * vh) }]
+      if (saved.darkRgba?.length) sources.push(toCanvas(saved.darkRgba))
     } else {
       const img = builtinIconRef.current
       if (!img?.complete || !img.naturalWidth) return null
-      source = { el: img, w: img.naturalWidth, h: img.naturalHeight }
-      sizes = LOCATE.builtinSizes.map((n) => ({ w: n, h: Math.round(n * (img.naturalHeight / img.naturalWidth)) }))
+      sources.push({ el: img, w: img.naturalWidth, h: img.naturalHeight })
     }
 
-    const allSources = [source, ...extraSources]
-
-    // 1단계 — 대표 크기 몇 개로 줄인 화면을 훑어 자리만 추린다
-    const aspect = source.h / source.w
-    const probes = saved
-      ? [sizes[0]]
-      : LOCATE.coarseSizes.map((n) => ({ w: n, h: Math.round(n * aspect) }))
-    const spots = []
-    for (const src of allSources) {
-      for (const probe of probes) {
-        const ctw = Math.max(6, Math.round(probe.w * ratio))
-        const cth = Math.max(6, Math.round(probe.h * ratio))
-        const coarseTpl = templateAt(src.el, src.w, src.h, ctw, cth)
-        if (!coarseTpl) continue
-        for (const hit of findMatches(coarse.gray, coarse.w, coarse.h, coarseTpl, ctw, cth, {
-          step: 3, minScore: LOCATE.coarseScore,
-        }).slice(0, LOCATE.coarseKeep)) {
-          if (spots.some((sp) => Math.abs(sp.x - hit.x) < LOCATE.mergeDistance && Math.abs(sp.y - hit.y) < LOCATE.mergeDistance)) continue
-          spots.push(hit)
-        }
+    // 크기별 템플릿을 미리 만들어 워커로 넘긴다 (워커에는 캔버스가 없다)
+    const templates = sources.map((src) => {
+      const vecs = {}
+      const coarseVecs = {}
+      for (const size of sizes) {
+        const v = vecAt(src.el, src.w, src.h, size)
+        if (v) vecs[size] = v
       }
-    }
-
-    // 2단계 — 후보 주변을 원본 해상도에서, 여러 크기로 촘촘히 다시 본다
-    const results = []
-    for (const spot of spots) {
-      const cx = Math.round(spot.x / ratio)
-      const cy = Math.round(spot.y / ratio)
-      const r = LOCATE.refineRadius
-      for (const src of allSources) {
-        for (const size of sizes) {
-        const fullTpl = templateAt(src.el, src.w, src.h, size.w, size.h)
-        if (!fullTpl) continue
-        const best = findMatches(full.gray, full.w, full.h, fullTpl, size.w, size.h, {
-          step: 1,
-          // 통과선에 못 미쳐도 일단 모아둔다 — 자동으로 못 고르더라도
-          // "이 중에 고르세요"가 직접 드래그보다 낫다
-          minScore: LOCATE.looseScore,
-          bounds: { x0: cx - r, y0: cy - r, x1: cx + r, y1: cy + r },
-          merge: false,
-        })[0]
-        if (best) results.push({ score: best.score, x: best.x, y: best.y, size })
-        }
+      for (const size of probes) {
+        const v = vecAt(src.el, src.w, src.h, Math.max(6, Math.round(size * ratio)))
+        if (v) coarseVecs[size] = v
       }
-    }
+      return { vecs, coarseVecs }
+    })
 
-    // 같은 자리를 여러 크기로 잡았을 수 있으니 한 번 더 합친다
-    results.sort((a, b) => b.score - a.score)
-    const merged = []
-    for (const c of results) {
-      // 같은 자리를 두 모습(사용 가능 / 쿨타임 중)으로 각각 잡으면 중복이므로 하나로 합친다
-      if (merged.some((m) => Math.abs(m.x - c.x) < c.size.w && Math.abs(m.y - c.y) < c.size.h)) continue
-      merged.push(c)
-      if (merged.length >= LOCATE.maxCandidates) break
-    }
+    const payload = { coarse, full, templates, sizes, probes, ratio }
+    const hits = await runLocate(payload)
 
     return {
       // 직접 지정해 저장한 모양인지 — 확신 기준이 달라진다
       learned: Boolean(saved),
-      hits: merged.map((c) => ({
+      hits: hits.map((c) => ({
         score: c.score,
-        region: { x: c.x / vw, y: c.y / vh, w: c.size.w / vw, h: c.size.h / vh },
+        region: { x: c.x / vw, y: c.y / vh, w: c.w / vw, h: c.h / vh },
       })),
     }
   }, [])
+
+  /* ── 감지 루프 ──────────────────────────────────────────── */
+
+  useEffect(() => {
+    regionRef.current = region
+    // 영역을 다시 지정하면 기준 모양도 새로 잡는다
+    templateRef.current = null
+    baselineRef.current = null
+    ctxBaseRef.current = null
+    lostSinceRef.current = null
+  }, [region])
+
 
   useEffect(() => {
     if (!stream || !region) return
