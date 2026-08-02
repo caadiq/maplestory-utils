@@ -66,6 +66,21 @@ export function candidateSizes(videoWidth, videoHeight) {
   return [...new Set([...fixed, ...scaled])].filter((n) => n >= 12).sort((a, b) => a - b)
 }
 
+/**
+ * 퀵슬롯 상자 — 화면 우하단에 고정이다.
+ *
+ * 메이플 UI는 픽셀 크기가 고정이라 1080p 기준 값을 그대로 쓰되,
+ * 업스케일링 필터를 켜면 화면째 확대되므로 해상도 비례값과 큰 쪽을 쓴다.
+ * 퀵슬롯 위치는 고정이라 사실상 여기서만 찾는다.
+ * 화면 전체 탐색은 상자에서 아무것도 못 찾았을 때를 위한 안전장치로만 남겼다.
+ */
+export function quickslotBox(w, h) {
+  const scale = Math.max(1, h / 1080)
+  const bandH = Math.min(h, Math.round(220 * scale))
+  const bandW = Math.min(w, Math.round(900 * scale))
+  return { x0: w - bandW, y0: h - bandH, x1: w, y1: h }
+}
+
 /** 1단계로 훑을 대표 크기 — 20%쯤 달라도 걸리므로 셋이면 전 구간을 덮는다 */
 export function probeSizes(sizes) {
   if (sizes.length <= 3) return sizes
@@ -214,22 +229,38 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
   const fGray = toChroma(full.data)
   const fInt = buildIntegral(fGray, full.w, full.h)
 
-  // 1단계 — 자리만 추린다
-  const spots = []
-  for (const tpl of templates) {
-    for (const size of probes) {
-      const vec = tpl.coarseVecs[size]
-      if (!vec) continue
-      const tw = Math.max(6, Math.round(size * ratio))
-      const th = tw
-      for (const hit of findMatches(cGray, coarse.w, coarse.h, cInt, vec, tw, th, {
-        step: 3, minScore: LOCATE.coarseScore,
-      }).slice(0, LOCATE.coarseKeep)) {
-        if (spots.some((s) => Math.abs(s.x - hit.x) < tw && Math.abs(s.y - hit.y) < th)) continue
-        spots.push(hit)
+  /** 1단계 — 주어진 범위에서 자리만 추린다 */
+  const collectSpots = (bounds) => {
+    const spots = []
+    for (const tpl of templates) {
+      for (const size of probes) {
+        const vec = tpl.coarseVecs[size]
+        if (!vec) continue
+        const tw = Math.max(6, Math.round(size * ratio))
+        const th = tw
+        for (const hit of findMatches(cGray, coarse.w, coarse.h, cInt, vec, tw, th, {
+          step: 3, minScore: LOCATE.coarseScore, bounds,
+        }).slice(0, LOCATE.coarseKeep)) {
+          if (spots.some((s) => Math.abs(s.x - hit.x) < tw && Math.abs(s.y - hit.y) < th)) continue
+          spots.push(hit)
+        }
       }
     }
+    return spots
   }
+
+  // 퀵슬롯 상자 → 하단 전체 → 화면 전체 순으로 넓혀 가며 찾는다.
+  // 상자는 원본 해상도 기준으로 잡고 축소 화면 좌표로 옮긴다 (축소본으로 계산하면 엉뚱하게 커진다)
+  const boxFull = quickslotBox(full.w, full.h)
+  const box = {
+    x0: Math.floor(boxFull.x0 * ratio),
+    y0: Math.floor(boxFull.y0 * ratio),
+    x1: Math.ceil(boxFull.x1 * ratio),
+    y1: Math.ceil(boxFull.y1 * ratio),
+  }
+  let spots = collectSpots(box)
+  // 상자에서 아무것도 못 찾았을 때만 화면 전체로 — 막다른 길이 되지 않게 두는 안전장치다
+  if (spots.length === 0) spots = collectSpots({})
 
   // 2단계 — 후보 주변만 원본 해상도에서 촘촘히
   const results = []
