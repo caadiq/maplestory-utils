@@ -279,6 +279,13 @@
   --mpl-card: #1f2b3a;
   --mpl-card-line: #324356;
   --mpl-row: #182330;
+
+  /* 헥사 계산기 — 타입별 파스텔은 다크에서 은은한 틴트로 */
+  --hexa-skill-bg: rgba(236, 217, 139, 0.08);
+  --hexa-mastery-bg: rgba(183, 110, 230, 0.08);
+  --hexa-enhance-bg: rgba(94, 205, 245, 0.07);
+  --hexa-common-bg: rgba(159, 212, 94, 0.07);
+  --hexa-result-bg: linear-gradient(180deg, rgba(255, 228, 55, 0.05), transparent);
 }
 
 

@@ -14,6 +14,7 @@ import { symbolMetrics } from '../logic'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import { useSymbolCharacterSync } from '../useSymbolCharacterSync'
 import PageLoader from '../../../components/common/PageLoader'
+import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import CharacterCard from './user/CharacterCard'
 import SymbolCard from './user/SymbolCard'
 import SymbolLevelTableModal from './user/SymbolLevelTableModal'
@@ -64,6 +65,7 @@ export default function Symbol() {
   const [addError, setAddError] = useState('')
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [levelTableOpen, setLevelTableOpen] = useState(false)
+  const [confirmRemove, setConfirmRemove] = useState(null)
   const addAnchorRef = useRef(null)
 
   const symbols = allSymbols.filter((s) => s.type === tab)
@@ -155,6 +157,7 @@ export default function Symbol() {
               value={addName}
               onChange={(e) => { setAddName(e.target.value); if (addError) setAddError('') }}
               onFocus={() => setDropdownOpen(true)}
+              onClick={() => setDropdownOpen(true)}
               onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
               placeholder="캐릭터 닉네임 검색"
               className="w-full h-12 box-border rounded-full border pl-10 pr-5 text-base outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
@@ -216,7 +219,7 @@ export default function Symbol() {
                   char={c}
                   active={c.id === selectedCharId}
                   onSelect={() => selectCharacter(c.id)}
-                  onRemove={() => removeCharacter(c.id)}
+                  onRemove={() => setConfirmRemove(c)}
                 />
               ))}
             </Reorder.Group>
@@ -272,6 +275,18 @@ export default function Symbol() {
         )}
       </MapleWindow>
 
+      <ConfirmDialog
+        open={!!confirmRemove}
+        onClose={() => setConfirmRemove(null)}
+        onConfirm={() => {
+          removeCharacter(confirmRemove.id)
+          setConfirmRemove(null)
+        }}
+        title="캐릭터 삭제"
+        description={confirmRemove ? `"${confirmRemove.character_name}" 캐릭터를 목록에서 삭제하시겠습니까?\n\n저장된 심볼 진행도도 함께 삭제됩니다.` : ''}
+        confirmText="삭제"
+        destructive
+      />
       <SymbolLevelTableModal open={levelTableOpen} onClose={() => setLevelTableOpen(false)} allSymbols={allSymbols} />
     </div>
   )

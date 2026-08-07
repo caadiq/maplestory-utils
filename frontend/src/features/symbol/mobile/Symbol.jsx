@@ -12,6 +12,7 @@ import CharacterSuggestDropdown from '../../../components/common/CharacterSugges
 import SymbolCard from '../pc/user/SymbolCard'
 import SymbolLevelSheet from './SymbolLevelSheet'
 import MapleWindow, { MapleWindowTab } from '../../../components/pc/MapleWindow'
+import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import PageLoader from '../../../components/common/PageLoader'
 
 export default function Symbol() {
@@ -33,6 +34,7 @@ export default function Symbol() {
   const selectedCharId = useSymbolStore((s) => s.selectedCharId)
   const addCharacter = useSymbolStore((s) => s.addCharacter)
   const removeCharacter = useSymbolStore((s) => s.removeCharacter)
+  const [confirmRemove, setConfirmRemove] = useState(null)
   const selectCharacter = useSymbolStore((s) => s.selectCharacter)
   const storedTab = useSymbolStore((s) => s.selectedTabs?.[selectedCharId])
   const setTabStore = useSymbolStore((s) => s.setTab)
@@ -124,6 +126,7 @@ export default function Symbol() {
             value={addName}
             onChange={(e) => { setAddName(e.target.value); if (addError) setAddError('') }}
             onFocus={() => setDropdownOpen(true)}
+              onClick={() => setDropdownOpen(true)}
             onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
             placeholder="캐릭터 닉네임 검색"
             className="w-full rounded-full border-2 px-4 py-2.5 text-sm outline-none focus:border-[var(--input-border-focus)]"
@@ -192,7 +195,7 @@ export default function Symbol() {
                     <span
                       role="button"
                       tabIndex={-1}
-                      onClick={(e) => { e.stopPropagation(); removeCharacter(c.id) }}
+                      onClick={(e) => { e.stopPropagation(); setConfirmRemove(c) }}
                       className="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center rounded-full text-sm"
                       style={{ color: 'var(--text-dim)' }}
                     >
@@ -249,6 +252,18 @@ export default function Symbol() {
       )}
     </MapleWindow>
 
+    <ConfirmDialog
+      open={!!confirmRemove}
+      onClose={() => setConfirmRemove(null)}
+      onConfirm={() => {
+        removeCharacter(confirmRemove.id)
+        setConfirmRemove(null)
+      }}
+      title="캐릭터 삭제"
+      description={confirmRemove ? `"${confirmRemove.character_name}" 캐릭터를 목록에서 삭제하시겠습니까?\n\n저장된 심볼 진행도도 함께 삭제됩니다.` : ''}
+      confirmText="삭제"
+      destructive
+    />
     <SymbolLevelSheet open={levelSheetOpen} onClose={() => setLevelSheetOpen(false)} allSymbols={allSymbols} />
     </>
   )

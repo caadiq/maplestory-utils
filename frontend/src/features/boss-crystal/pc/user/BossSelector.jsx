@@ -50,10 +50,10 @@ export default function BossSelector({ characterName, worldName, bosses, selecti
           textShadow: '0 1px 1px rgba(44,55,69,.3)',
         }}
       >
-        <div className="w-52 shrink-0">보스</div>
+        <div className="w-32 min-[1500px]:w-52 shrink-0">보스</div>
         <div className="flex-1">난이도</div>
-        <div className="w-20 shrink-0 text-center">파티원 수</div>
-        <div className="w-32 shrink-0 flex justify-end">
+        <div className="w-[74px] min-[1500px]:w-20 shrink-0 text-center">파티원</div>
+        <div className="w-24 min-[1500px]:w-32 shrink-0 flex justify-end">
           <button
             type="button"
             onClick={onOpenPriceTable}
@@ -105,32 +105,25 @@ export default function BossSelector({ characterName, worldName, bosses, selecti
                 style={{
                   background: 'var(--mpl-card)',
                   boxShadow: isSeason
-                    ? 'inset 0 0 0 1.5px #eec584'
+                    ? 'inset 0 0 0 1.5px #8b7ad0'
                     : 'inset 0 0 0 1px var(--mpl-card-line)',
                   opacity: disabled ? 'var(--disabled-opacity)' : 1,
                 }}
               >
-                {/* 보스 이미지 + 이름 */}
-                <div className="flex items-center gap-2.5 w-52 shrink-0">
+                {/* 보스 이미지 + 이름 — 시즌 표시는 아이콘 위 S 배지로 (태그가 이름 폭을 잡아먹지 않게) */}
+                <div className="flex items-center gap-2.5 w-32 min-[1500px]:w-52 shrink-0">
                   <div
-                    className="shrink-0 w-11 h-11 rounded-lg overflow-hidden"
+                    className="relative shrink-0 w-11 h-11 rounded-lg overflow-hidden"
                     style={{ background: 'var(--surface-nested)' }}
                   >
                     <img src={boss.image_url || '/default.png'} alt={boss.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   </div>
-                  <span className="text-base font-medium leading-tight whitespace-nowrap overflow-hidden text-ellipsis">{boss.name}</span>
-                  {isSeason && (
-                    <span
-                      className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
-                      style={{
-                        background: 'linear-gradient(180deg, #f7dcab, #eec584)',
-                        boxShadow: 'inset 0 0 0 1px #e3b878',
-                        color: '#9a6a10',
-                      }}
-                    >
-                      시즌
-                    </span>
-                  )}
+                  <span
+                    className="text-base font-medium leading-tight whitespace-nowrap overflow-hidden text-ellipsis"
+                    title={boss.name}
+                  >
+                    {boss.name}
+                  </span>
                 </div>
 
                 {/* 난이도 - 한 줄 고정 */}
@@ -139,13 +132,28 @@ export default function BossSelector({ characterName, worldName, bosses, selecti
                     const active = sel?.difficulty === d.key
                     const hasVisibleBorder = d.colors.border !== d.colors.bg
                     const borderColor = hasVisibleBorder ? d.colors.border : 'rgba(0, 0, 0, 0.55)'
-                    const style = {
-                      background: d.colors.bg,
-                      borderColor,
-                      borderWidth: '1.5px',
-                      color: d.colors.text,
-                      filter: active ? 'none' : 'var(--inactive-filter)',
-                    }
+                    /*
+                     * 선택/비선택 대비를 확실히:
+                     * 비선택은 회색조로 완전히 죽이고, 선택은 원색 + 링 + 체크 표시.
+                     * 채도만 낮추면 원색 계열이 살아 있어 뭘 골랐는지 한눈에 안 들어왔다.
+                     */
+                    // 링은 글자색(대부분 흰색)이 아니라 버튼 색으로 — 흰 링은 흰 카드 위에서 안 보인다
+                    const ringColor = hasVisibleBorder ? d.colors.border : d.colors.bg
+                    const style = active
+                      ? {
+                        background: d.colors.bg,
+                        borderColor,
+                        borderWidth: '1.5px',
+                        color: d.colors.text,
+                        boxShadow: `0 0 0 2px var(--mpl-card), 0 0 0 3.5px ${ringColor}, 0 2px 6px rgba(31,44,61,.25)`,
+                      }
+                      : {
+                        background: d.colors.bg,
+                        borderColor,
+                        borderWidth: '1.5px',
+                        color: d.colors.text,
+                        filter: 'grayscale(0.85) opacity(0.4)',
+                      }
                     return (
                       <button
                         key={d.key}
@@ -157,16 +165,16 @@ export default function BossSelector({ characterName, worldName, bosses, selecti
                           else onChange(boss.id, { difficulty: d.key, party: partyN })
                         }}
                         style={style}
-                        className="shrink-0 rounded-full border-solid px-4 h-7 text-xs font-bold tracking-wider transition focus:outline-none"
+                        className="shrink-0 rounded-full border-solid px-2.5 min-[1500px]:px-4 h-7 text-xs font-bold tracking-wide min-[1500px]:tracking-wider transition focus:outline-none"
                       >
-                        {LABEL_EN[d.key] || d.key.toUpperCase()}
+                        {active && '✓ '}{LABEL_EN[d.key] || d.key.toUpperCase()}
                       </button>
                     )
                   })}
                 </div>
 
                 {/* 파티 인원 - 커스텀 Select */}
-                <div className="w-20 shrink-0">
+                <div className="w-[74px] min-[1500px]:w-20 shrink-0">
                   {sel ? (
                     <Select
                       value={partyN}
@@ -186,7 +194,7 @@ export default function BossSelector({ characterName, worldName, bosses, selecti
 
                 {/* 수익 */}
                 <div
-                  className="w-32 shrink-0 text-right text-sm font-bold tabular-nums"
+                  className="w-24 min-[1500px]:w-32 shrink-0 text-right text-sm font-bold tabular-nums"
                   style={{ color: sel ? 'var(--accent-bright)' : 'var(--text-dim)' }}
                 >
                   {sel ? formatMeso(revenue) : '-'}

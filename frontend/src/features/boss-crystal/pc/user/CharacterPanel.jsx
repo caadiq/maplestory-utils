@@ -11,7 +11,7 @@ import { DIFFICULTIES, formatMeso, getDifficultyBadgeStyle } from '../admin/cons
 import { MAX_PER_CHARACTER, MAX_PER_ACCOUNT, charRevenue, isSeasonActive } from '../../logic'
 
 /** 이름·레벨·직업 줄 — 항상 전체 텍스트 호버 툴팁 표시 */
-function NameLine({ char }) {
+function NameLine({ char, onDark = false }) {
   return (
     <div
       data-tooltip={[char.world_name, `${char.character_name} · Lv.${char.character_level} · ${char.job_name}`]
@@ -26,8 +26,8 @@ function NameLine({ char }) {
           style={{ imageRendering: 'pixelated' }}
         />
       )}
-      <span className="truncate text-base font-semibold">{char.character_name}</span>
-      <span className="truncate text-xs" style={{ color: 'var(--text-dim)' }}>
+      <span className="truncate text-base font-semibold" style={onDark ? { color: '#ffffff', textShadow: '0 1px 1px rgba(44,55,69,.3)' } : undefined}>{char.character_name}</span>
+      <span className="truncate text-xs" style={{ color: onDark ? '#c3d0dd' : 'var(--text-dim)' }}>
         Lv.{char.character_level} · {char.job_name}
       </span>
     </div>
@@ -51,7 +51,7 @@ function CharacterContent({ char, selections, bosses }) {
     })
     .filter(Boolean)
 
-  // 시즌보스(활성 시즌만)는 결정석 한도 미포함 — 별도로 분리해 맨 앞에 표시
+  // 시즌보스(활성 시즌만)는 결정석 한도 미포함 — 그리드 맨 앞에 S 배지로 함께 표시
   const seasonSelected = selectedBosses.filter((x) => x.boss.season && isSeasonActive(x.boss))
   const normalSelected = selectedBosses.filter((x) => !x.boss.season)
 
@@ -60,7 +60,6 @@ function CharacterContent({ char, selections, bosses }) {
   const sorted = topByRevenue.sort(
     (a, b) => (bossIndex.get(a.boss.id) ?? 0) - (bossIndex.get(b.boss.id) ?? 0)
   )
-  const visibleBosses = sorted
   const totalRevenue = [...seasonSelected, ...sorted].reduce((s, x) => s + x.revenue, 0)
   const hasAny = seasonSelected.length > 0 || sorted.length > 0
   const count = normalSelected.length
@@ -73,7 +72,7 @@ function CharacterContent({ char, selections, bosses }) {
             <img
               src={char.character_image}
               alt=""
-              className="w-full h-full object-contain scale-[3] origin-center select-none"
+              className="w-full h-full object-contain scale-[3] origin-[center_58%] select-none"
               style={{ imageRendering: 'pixelated' }}
               draggable={false}
               loading="lazy"
@@ -84,27 +83,24 @@ function CharacterContent({ char, selections, bosses }) {
           )}
         </div>
 
-        <div className="flex-1 min-w-0 space-y-2">
-          <NameLine char={char} />
-
+        <div className="flex-1 min-w-0">
           {hasAny ? (
-            <div className="space-y-1.5">
-            {visibleBosses.length > 0 && (
-            <div className="grid grid-cols-6 gap-1.5">
-              {visibleBosses.map((item) => {
+            <div className="grid grid-cols-5 gap-1.5">
+              {[...seasonSelected, ...sorted].map((item) => {
                 const diff = DIFFICULTIES.find((d) => d.key === item.difficulty)
+                const isSeason = !!item.boss.season
                 return (
                   <Tooltip
                     key={item.boss.id}
-                    text={`${diff?.label || ''} ${item.boss.name} · ${formatMeso(item.revenue)}`}
+                    text={`${isSeason ? '시즌보스 · ' : ''}${diff?.label || ''} ${item.boss.name} · ${formatMeso(item.revenue)}`}
                   >
                     <div className="space-y-0.5">
                       <div
-                        className="aspect-square rounded overflow-hidden border"
-                        style={{
-                          background: 'var(--surface-nested)',
-                          borderColor: 'var(--panel-border)',
-                        }}
+                        className={`relative aspect-square rounded overflow-hidden ${isSeason ? 'border-2' : 'border'}`}
+                        style={isSeason
+                          // 시즌보스 이미지 자체에 S 마크가 있어 배지는 생략 — 챌린저스 아이콘 보라 테두리로만 구분
+                          ? { background: 'var(--surface-nested)', borderColor: '#8b7ad0', boxShadow: '0 0 5px rgba(139,122,208,.6)' }
+                          : { background: 'var(--surface-nested)', borderColor: 'var(--panel-border)' }}
                       >
                         <img src={item.boss.image_url || '/default.png'} alt="" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover select-none" />
                       </div>
@@ -120,62 +116,10 @@ function CharacterContent({ char, selections, bosses }) {
                   </Tooltip>
                 )
               })}
-            </div>
-            )}
-            {/* 시즌보스 줄 — 결정석 한도와 별개라 12개 그리드와 분리 */}
-            {seasonSelected.length > 0 && (
-            <div className="grid grid-cols-6 gap-1.5">
-              {seasonSelected.map((item) => {
-                const diff = DIFFICULTIES.find((d) => d.key === item.difficulty)
-                return (
-                  <Tooltip
-                    key={item.boss.id}
-                    text={`시즌보스 · ${diff?.label || ''} ${item.boss.name} · ${formatMeso(item.revenue)}`}
-                  >
-                    <div className="space-y-0.5">
-                      <div
-                        className="aspect-square rounded overflow-hidden border-2"
-                        style={{
-                          background: 'var(--surface-nested)',
-                          borderColor: '#eec584',
-                          boxShadow: '0 0 5px rgba(238,197,132,.55)',
-                        }}
-                      >
-                        <img src={item.boss.image_url || '/default.png'} alt="" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover select-none" />
-                      </div>
-                      <div className="flex justify-center">
-                        <div
-                          className="text-[9px] font-bold leading-none rounded border w-3.5 h-3.5 flex items-center justify-center"
-                          style={getDifficultyBadgeStyle(item.difficulty)}
-                        >
-                          {diff?.initial}
-                        </div>
-                      </div>
-                    </div>
-                  </Tooltip>
-                )
-              })}
-              <div
-                className="flex items-center"
-                style={{ gridColumn: `span ${Math.max(1, 6 - seasonSelected.length)}` }}
-              >
-                <span
-                  className="rounded-full px-2.5 py-1 text-[10px] font-bold leading-none"
-                  style={{
-                    background: 'linear-gradient(180deg, #f7dcab, #eec584)',
-                    boxShadow: 'inset 0 0 0 1px #e3b878',
-                    color: '#9a6a10',
-                  }}
-                >
-                  시즌보스
-                </span>
-              </div>
-            </div>
-            )}
             </div>
           ) : (
             <div
-              className="text-xs italic h-[58px] flex items-center"
+              className="text-xs italic h-[72px] flex items-center"
               style={{ color: 'var(--text-dim)' }}
             >
               보스 미선택
@@ -235,38 +179,49 @@ function CharacterItem({ char, isSelected, selections, bosses, onSelect, onRemov
       className="group relative rounded-xl cursor-pointer select-none"
       style={{
         background: 'var(--mpl-card)',
+        // inset 링은 자식(헤더 밴드)에 가려져 헤더 구간에서 끊겨 보인다 — 바깥 링으로
         boxShadow: isSelected
-          ? 'inset 0 0 0 2.5px var(--selected-border), 0 3px 10px rgba(134,201,62,.25)'
-          : 'inset 0 0 0 1px var(--mpl-card-line)',
+          ? '0 0 0 2.5px var(--selected-border), 0 3px 10px rgba(134,201,62,.25)'
+          : '0 0 0 1px var(--mpl-card-line)',
       }}
     >
-      {/* 드래그 핸들 */}
+      {/*
+        헤더 밴드 — 서버·닉네임·레벨·직업은 여기에만 둔다.
+        본문 옆줄에 욱여넣으면 좁은 폭에서 전부 말줄임돼 사실상 안 보였다.
+      */}
       <div
-        onPointerDown={(e) => { e.preventDefault(); dragControls.start(e) }}
-        className="absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center cursor-grab active:cursor-grabbing"
-        style={{ touchAction: 'none', color: 'var(--text-dim)' }}
+        className="flex items-center gap-2 rounded-t-xl px-2.5 py-2"
+        style={{ background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))' }}
       >
-        <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
-          <circle cx="3" cy="3" r="1.2" />
-          <circle cx="9" cy="3" r="1.2" />
-          <circle cx="3" cy="8" r="1.2" />
-          <circle cx="9" cy="8" r="1.2" />
-          <circle cx="3" cy="13" r="1.2" />
-          <circle cx="9" cy="13" r="1.2" />
-        </svg>
+        <div
+          onPointerDown={(e) => { e.preventDefault(); dragControls.start(e) }}
+          className="shrink-0 w-5 flex items-center justify-center cursor-grab active:cursor-grabbing"
+          style={{ touchAction: 'none', color: 'rgba(255,255,255,.55)' }}
+        >
+          <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
+            <circle cx="3" cy="3" r="1.2" />
+            <circle cx="9" cy="3" r="1.2" />
+            <circle cx="3" cy="8" r="1.2" />
+            <circle cx="9" cy="8" r="1.2" />
+            <circle cx="3" cy="13" r="1.2" />
+            <circle cx="9" cy="13" r="1.2" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <NameLine char={char} onDark />
+        </div>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onRemove(char) }}
+          className="shrink-0 w-6 h-6 rounded flex items-center justify-center text-base hover:bg-[rgba(255,255,255,.18)]"
+          style={{ color: 'rgba(255,255,255,.75)' }}
+          aria-label="삭제"
+        >
+          ×
+        </button>
       </div>
 
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); onRemove(char) }}
-        className="absolute top-2 right-2 z-10 w-6 h-6 rounded opacity-0 group-hover:opacity-100 flex items-center justify-center text-base hover:bg-[var(--danger-bg-hover)] hover:text-[var(--danger-text)]"
-        style={{ color: 'var(--text-dim)' }}
-        aria-label="삭제"
-      >
-        ×
-      </button>
-
-      <div className="pl-8 pr-3 py-2.5">
+      <div className="px-3 py-2.5">
         <CharacterContent char={char} selections={selections} bosses={bosses} />
       </div>
     </Reorder.Item>
@@ -380,8 +335,8 @@ export default function CharacterPanel({
 
       {/* 캐릭터 추가 (고정) */}
       <div className="shrink-0">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <div ref={addAnchorRef} className="relative flex-1 min-w-0">
+        <form ref={addAnchorRef} onSubmit={handleSubmit} className="relative flex gap-2">
+          <div className="relative flex-1 min-w-0">
             <span
               className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
               style={{ color: 'var(--input-icon)' }}
@@ -396,6 +351,7 @@ export default function CharacterPanel({
               value={name}
               onChange={(e) => { setName(e.target.value); if (error) setError('') }}
               onFocus={() => setDropdownOpen(true)}
+              onClick={() => setDropdownOpen(true)}
               onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
               placeholder="캐릭터 닉네임 검색"
               className="w-full rounded-full border-2 pl-10 pr-4 py-2.5 text-sm outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
@@ -445,7 +401,7 @@ export default function CharacterPanel({
           }}
           defer
         >
-          <div className="px-4">
+          <div className="px-4 pt-1 pb-1">
             <Reorder.Group
               axis="y"
               values={characters}

@@ -1,15 +1,19 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { isPcOnly } from '../../features/registry'
 import { api } from '../../api/client'
 import MobileSundayBanner from '../../components/mobile/SundayBanner'
 import MobileNoticeWidget from '../../components/mobile/NoticeWidget'
 import PageLoader from '../../components/common/PageLoader'
 
 export default function MobileHome() {
-  const { data: menus = [], isLoading } = useQuery({
+  const { data: all = [], isLoading } = useQuery({
     queryKey: ['menus'],
     queryFn: () => api('/api/menus').catch(() => []),
   })
+
+  // 모바일에서 원리상 못 쓰는 기능은 목록에 올리지 않는다 (재획 타이머 — 화면 공유 불가)
+  const menus = all.filter((m) => !isPcOnly(m.url))
 
   if (isLoading) return <PageLoader />
 

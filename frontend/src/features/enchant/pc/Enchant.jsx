@@ -976,6 +976,9 @@ export default function Enchant() {
     setParams(q, { replace: !key })
   }
 
+  // 상세 ↔ 목록 전환 시 스크롤을 맨 위로 (모바일과 동일)
+  useLayoutEffect(() => { window.scrollTo(0, 0) }, [detailKey])
+
   // 데이터 로딩·가공은 모바일과 공유
   const {
     loading, sfGroups, sfSum, potGroups, potStat,
