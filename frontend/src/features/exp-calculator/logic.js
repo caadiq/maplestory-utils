@@ -228,7 +228,9 @@ export function breakdown(data, char, s) {
   const epic = w.epic.on && !epicLocked ? epicOne : 0
 
   const parkZone = parkZoneAt(L, data, w.park.zone)
-  const park = w.park.on ? parkWeeklyExp(parkZone, w.park.runs || 0, w.park.sundaySpecial) : 0
+  // 몬파는 매일 도는 컨텐츠지만 일요일 보너스 때문에 주 단위로 계산한다.
+  // 집계·표시는 하루치가 맞으므로 7로 나눠 평균을 낸다.
+  const parkWeek = w.park.on ? parkWeeklyExp(parkZone, w.park.runs || 0, w.park.sundaySpecial) : 0
 
   const extremeLocked = L < data.extremePark.minLevel
   const extremeOne = extremeLocked ? 0 : byLevel(data.extremePark.byLevel, L)
@@ -270,8 +272,9 @@ export function breakdown(data, char, s) {
   const mech = mechOne * (it.farmMech || 0)
 
   const hunt = pct(huntAbs)
-  const dailyTotal = hunt + dailyQuest
-  const weeklyTotal = pct(epic + park + extreme + mvp)
+  const parkDaily = pct(parkWeek) / 7
+  const dailyTotal = hunt + dailyQuest + parkDaily
+  const weeklyTotal = pct(epic + extreme + mvp)
   const onceTotal = elixirPct + e200 + e250 + couponN + couponU + vip + golden + blue + mech
 
   return {
@@ -285,7 +288,8 @@ export function breakdown(data, char, s) {
       zone: parkZone,
       oneNormal: parkZone ? pct(parkZone.exp.normal) : 0,
       oneSunday: parkZone ? pct(w.park.sundaySpecial ? parkZone.exp.special : parkZone.exp.sunday) : 0,
-      total: pct(park),
+      total: parkDaily,   // 하루 평균 (카드 합계·일일 집계 공통)
+      week: pct(parkWeek),
     },
     extreme: { locked: extremeLocked, one: pct(extremeOne), total: pct(extreme) },
     mvp: pct(mvp),
