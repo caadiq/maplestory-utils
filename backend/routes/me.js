@@ -4,7 +4,7 @@ import { requireAuth } from '../middleware/session.js';
 import { attachWorldIcons } from '../services/character.js';
 
 const router = Router();
-const FEATURES = ['boss-crystal', 'symbol', 'liberation'];
+const FEATURES = ['boss-crystal', 'symbol', 'liberation', 'hexa-matrix', 'exp-calculator'];
 
 // 이하 모든 라우트는 로그인 필요
 router.use(requireAuth);
