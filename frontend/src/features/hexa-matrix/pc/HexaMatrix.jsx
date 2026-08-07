@@ -1,0 +1,432 @@
+import { useState, useRef, useMemo } from 'react'
+import { useQuery, useMutation, keepPreviousData } from '@tanstack/react-query'
+import { api } from '../../../api/client'
+import { useAuth } from '../../../hooks/useAuth'
+import MapleWindow from '../../../components/pc/MapleWindow'
+import Select from '../../../components/common/Select'
+import CharacterSuggestDropdown from '../../../components/common/CharacterSuggestDropdown'
+import PageLoader from '../../../components/common/PageLoader'
+import Tooltip from '../../../components/common/Tooltip'
+import ConfirmDialog from '../../../components/common/ConfirmDialog'
+import { Reorder } from 'framer-motion'
+import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
+import CharacterCard from '../../symbol/pc/user/CharacterCard'
+import { charRevenue } from '../../boss-crystal/logic'
+import { useFeatureSync } from '../../../hooks/useFeatureSync'
+import { useHexaStore, hexaInitial } from '../store'
+import {
+  withCosts, isHuntingCore,
+  EPIC_DUNGEONS, EPIC_MULTIPLIERS, weeklyIncome, weeksFor, fmtWeeks, fmtNum, fmtMeso, dateAfterWeeks,
+} from '../logic'
+import {
+  CARD, SLATE_TITLE, TYPE_STYLE, TYPE_ORDER,
+  useResourceIcons, ResIcon, NumInput, Seg, Toggle, SecTitle, FormRow, CoreCard,
+} from '../shared'
+
+/* ── 페이지 ────────────────────────────────────────────── */
+
+export default function HexaMatrix() {
+  const { user } = useAuth()
+  const icons = useResourceIcons()
+
+  const { hydrated } = useFeatureSync({ feature: 'hexa-matrix', store: useHexaStore, initial: hexaInitial })
+  const characters = useHexaStore((s) => s.characters)
+  const selectedName = useHexaStore((s) => s.selectedName)
+  const settings = useHexaStore((s) => s.settings)
+  const addCharacter = useHexaStore((s) => s.addCharacter)
+  const removeCharacter = useHexaStore((s) => s.removeCharacter)
+  const setCharacters = useHexaStore((s) => s.setCharacters)
+  const selectCharacter = useHexaStore((s) => s.selectCharacter)
+  const set = useHexaStore((s) => s.setSettings)
+  const [addName, setAddName] = useState('')
+  const [addError, setAddError] = useState('')
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [confirmRemove, setConfirmRemove] = useState(null)
+  const addAnchorRef = useRef(null)
+
+  /*
+   * 선택 캐릭터의 헥사 코어.
+   * 마지막 응답을 로컬에 저장해 새로고침 직후에도 로더 없이 곧바로 그리고(깜빡임 방지),
+   * 뒤에서 최신 데이터로 갱신한다. 캐릭터 전환 때도 이전 화면을 유지한다.
+   */
+  const { data: hexaData, isFetching, error: hexaError } = useQuery({
+    queryKey: ['hexa', selectedName],
+    queryFn: async () => {
+      const data = await api(`/api/hexa/lookup?name=${encodeURIComponent(selectedName)}`)
+      try { localStorage.setItem(`maple.hexa.data.${selectedName}`, JSON.stringify(data)) } catch { /* noop */ }
+      return data
+    },
+    enabled: hydrated && !!selectedName,
+    staleTime: 10 * 60 * 1000,
+    retry: false,
+    placeholderData: keepPreviousData,
+    initialData: () => {
+      try { return JSON.parse(localStorage.getItem(`maple.hexa.data.${selectedName}`)) || undefined } catch { return undefined }
+    },
+    initialDataUpdatedAt: 0, // 캐시는 즉시 그리되 항상 뒤에서 재조회
+  })
+
+  const searchMutation = useMutation({
+    mutationFn: (name) => api(`/api/hexa/lookup?name=${encodeURIComponent(name)}`),
+    onSuccess: (data) => {
+      const name = data.character.character_name
+      setAddError('')
+      setAddName('')
+      void name
+      addCharacter(data.character)
+    },
+    onError: (err) => setAddError(err.message || '조회 실패'),
+  })
+
+  const handleSearch = (e) => {
+    e.preventDefault()
+    const n = addName.trim()
+    if (!n) return
+    searchMutation.mutate(n)
+  }
+
+  // 주간 보스 수익 (로그인 + 보스 계산기 상태가 있을 때만)
+  const { data: bossState } = useQuery({
+    queryKey: ['me', 'state', 'boss-crystal'],
+    queryFn: () => api('/api/me/state/boss-crystal'),
+    enabled: !!user,
+    staleTime: 60 * 1000,
+  })
+  const { data: bosses = [] } = useQuery({
+    queryKey: ['boss-crystal', 'bosses'],
+    queryFn: () => api('/api/boss-crystal/bosses'),
+    enabled: !!user && !!bossState?.payload,
+    staleTime: 5 * 60 * 1000,
+  })
+  const bossRevenue = useMemo(() => {
+    const p = bossState?.payload
+    if (!p?.characters || !bosses.length) return 0
+    return p.characters.reduce((sum, c) => sum + charRevenue(c.character_name, p.selections || {}, bosses).revenue, 0)
+  }, [bossState, bosses])
+
+  /* ── 계산 ── */
+  const cores = useMemo(() => (hexaData ? withCosts(hexaData.cores) : []), [hexaData])
+  const counted = cores.filter((c) => !(settings.excludeJanus && isHuntingCore(c)))
+  const totals = counted.reduce((a, c) => ({
+    spentErda: a.spentErda + c.spentErda,
+    spentFrag: a.spentFrag + c.spentFrag,
+    totalErda: a.totalErda + c.totalErda,
+    totalFrag: a.totalFrag + c.totalFrag,
+    remainErda: a.remainErda + c.remainErda,
+    remainFrag: a.remainFrag + c.remainFrag,
+  }), { spentErda: 0, spentFrag: 0, totalErda: 0, totalFrag: 0, remainErda: 0, remainFrag: 0 })
+
+  const income = weeklyIncome(settings, bossRevenue)
+  // 캐시샵·코인샵 기타 구매는 기간 한정 일회성 — 남은 필요량에서 바로 뺀다
+  const effRemainErda = Math.max(0, totals.remainErda - settings.etcErdaOnce)
+  const erdaWeeks = weeksFor(effRemainErda, income.erda)
+  const fragWeeks = weeksFor(totals.remainFrag, income.frag)
+  const doneWeeks = Math.max(erdaWeeks, fragWeeks)
+  const doneDate = dateAfterWeeks(doneWeeks)
+  const [bottleneck, bottleneckJosa] = erdaWeeks > fragWeeks ? ['솔 에르다', '가'] : ['조각', '이']
+
+  const erdaPct = totals.totalErda ? Math.round((totals.spentErda / totals.totalErda) * 100) : 0
+  const fragPct = totals.totalFrag ? Math.round((totals.spentFrag / totals.totalFrag) * 100) : 0
+
+  return (
+    <div className="pb-10 max-w-[920px] mx-auto">
+      <MapleWindow title="HEXA CALCULATOR">
+        <div className="mpl-page-enter flex flex-col gap-3">
+
+          {/* 캐릭터 */}
+          <div className="rounded-[11px] overflow-hidden" style={CARD}>
+            <SecTitle>캐릭터</SecTitle>
+            <div className="p-3.5 flex flex-col gap-3">
+              <form onSubmit={handleSearch} className="flex items-center gap-2">
+                <div ref={addAnchorRef} className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--input-icon)' }}>
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                      <circle cx="8" cy="8" r="5" stroke="currentColor" strokeWidth="1.5" />
+                      <path d="M12 12L16 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    value={addName}
+                    onChange={(e) => { setAddName(e.target.value); if (addError) setAddError('') }}
+                    onFocus={() => setDropdownOpen(true)}
+              onClick={() => setDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
+                    placeholder="캐릭터 닉네임 검색"
+                    className="w-full h-11 box-border rounded-full border pl-10 pr-5 text-[14px] outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
+                    style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-strong)' }}
+                  />
+                  <CharacterSuggestDropdown
+                    open={dropdownOpen}
+                    filter={addName}
+                    anchorRef={addAnchorRef}
+                    excludeNames={characters.map((c) => c.character_name)}
+                    onSelect={(n) => {
+                      setAddName(n)
+                      setDropdownOpen(false)
+                      setAddError('')
+                      searchMutation.mutate(n)
+                    }}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={searchMutation.isPending}
+                  className="shrink-0 rounded-full disabled:opacity-50 px-6 h-11 text-[14px] font-bold hover:brightness-105"
+                  style={{
+                    background: 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))',
+                    color: '#ffffff',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,.5), 0 2px 5px rgba(31,44,61,.2)',
+                  }}
+                >
+                  {searchMutation.isPending ? '...' : '조회'}
+                </button>
+              </form>
+              {addError && <p className="text-[13px]" style={{ color: 'var(--danger-text)' }}>{addError}</p>}
+
+              {characters.length > 0 && (
+                <OverlayScrollbarsComponent
+                  options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'scroll', y: 'hidden' } }}
+                  defer
+                >
+                  <Reorder.Group
+                    as="div"
+                    axis="x"
+                    values={characters}
+                    onReorder={setCharacters}
+                    className="flex items-start gap-3 pt-1 pb-1.5"
+                  >
+                    {characters.map((c) => (
+                      <CharacterCard
+                        key={c.id || c.character_name}
+                        char={c}
+                        active={c.character_name === selectedName}
+                        onSelect={() => selectCharacter(c.character_name)}
+                        onRemove={() => setConfirmRemove(c)}
+                      />
+                    ))}
+                  </Reorder.Group>
+                </OverlayScrollbarsComponent>
+              )}
+            </div>
+          </div>
+
+          {/* 강화 진행도 */}
+          {selectedName && (
+            <div className="rounded-[11px] overflow-hidden" style={CARD}>
+              <SecTitle right={<Toggle light on={settings.excludeJanus} onChange={(v) => set({ excludeJanus: v })}>솔 야누스 제외</Toggle>}>
+                강화 진행도
+              </SecTitle>
+              {isFetching && !hexaData ? <PageLoader /> : hexaError ? (
+                <p className="p-6 text-center text-[13px]" style={{ color: 'var(--danger-text)' }}>{hexaError.message || '조회 실패'}</p>
+              ) : (
+                <div className="p-3.5 flex flex-col gap-3">
+                  {/* 총괄 게이지 */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: '솔 에르다', url: icons.erdaUrl, spent: totals.spentErda, total: totals.totalErda, pct: erdaPct, grad: 'linear-gradient(90deg, var(--mpl-sky-from), var(--mpl-sky-to))' },
+                      { label: '조각', url: icons.fragUrl, spent: totals.spentFrag, total: totals.totalFrag, pct: fragPct, grad: 'linear-gradient(90deg, var(--mpl-purple-from), var(--mpl-purple-to))' },
+                    ].map((g) => (
+                      <div key={g.label} className="flex items-center gap-2.5 rounded-[10px] border px-3 py-2.5" style={{ background: 'var(--mpl-row)', borderColor: 'var(--mpl-card-line)' }}>
+                        <ResIcon url={g.url} size={34} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between text-[12.5px]">
+                            <b>{g.label}</b>
+                            <span className="tabular-nums" style={{ color: 'var(--text-muted)' }}>{fmtNum(g.spent)} / {fmtNum(g.total)}</span>
+                          </div>
+                          <div className="relative h-[18px] rounded-full overflow-hidden mt-1" style={{ background: 'rgba(31,44,61,.14)' }}>
+                            <i className="block h-full rounded-full" style={{ width: `${g.pct}%`, background: g.grad, transition: 'width .6s cubic-bezier(.22, 1, .36, 1)' }} />
+                            <span
+                              className="absolute inset-0 flex items-center justify-center text-[12.5px] font-extrabold tabular-nums"
+                              style={g.pct >= 50
+                                ? { color: '#ffffff', textShadow: '0 1px 1px rgba(0,0,0,.35)' }
+                                : { color: 'var(--text-strong)' }}
+                            >
+                              {g.pct}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 타입별 섹션 */}
+                  {TYPE_ORDER.map((type) => {
+                    const group = cores.filter((c) => c.type === type)
+                    if (!group.length) return null
+                    const st = TYPE_STYLE[type]
+                    const doneCount = group.filter((c) => c.level >= 30).length
+                    return (
+                      <div key={type} className="rounded-xl border-[1.5px] p-3" style={{ borderColor: st.line }}>
+                        <div className="flex items-center gap-2 mb-2.5 text-[13px] font-extrabold" style={{ color: st.accent }}>
+                          <i className="w-2.5 h-2.5 rounded" style={{ background: st.accent }} />
+                          {type}
+                          <span className="ml-auto text-[12px] font-bold tabular-nums" style={{ color: 'var(--text-dim)' }}>{doneCount} / {group.length} 완료</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2.5">
+                          {group.map((c) => (
+                            <CoreCard key={c.name} core={c} excluded={settings.excludeJanus && isHuntingCore(c)} icons={icons} />
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 수급 */}
+          {selectedName && hexaData && (
+            <>
+              <div className="grid grid-cols-2 gap-3 items-start">
+                <div className="rounded-[11px] overflow-hidden" style={CARD}>
+                  <SecTitle>솔 에르다 수급</SecTitle>
+                  <div className="px-3.5 py-1">
+                    <FormRow label="에픽던전">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-[132px]">
+                          <Select
+                            options={EPIC_DUNGEONS.map((d) => ({ value: d.id, label: d.name }))}
+                            value={settings.dungeon}
+                            onChange={(v) => set({ dungeon: v })}
+                          />
+                        </span>
+                        <Seg
+                          options={EPIC_MULTIPLIERS.map((m, i) => ({ value: m, label: ['기본', '1단계', '2단계'][i] }))}
+                          value={settings.multiplier}
+                          onChange={(v) => set({ multiplier: v })}
+                          disabled={settings.dungeon === 'none'}
+                        />
+                      </span>
+                    </FormRow>
+                    <FormRow label="사냥 획득">
+                      <NumInput value={settings.huntErdaPerDay} onChange={(v) => set({ huntErdaPerDay: v })} max={99} unit="개/일" />
+                    </FormRow>
+                    <FormRow label="기타 구매" sub="캐시샵·코인샵 — 총량">
+                      <NumInput value={settings.etcErdaOnce} onChange={(v) => set({ etcErdaOnce: v })} max={9999} chars={3} unit="개" />
+                    </FormRow>
+                    <FormRow total label={(
+                      <span className="text-[12px] font-extrabold rounded-full px-2.5 py-1 border" style={{ color: '#0f6c9c', background: 'rgba(94,205,245,.16)', borderColor: 'rgba(94,205,245,.5)' }}>주당 합계</span>
+                    )}>
+                      <b className="text-[13.5px] tabular-nums" style={{ color: 'var(--text-strong)' }}>{fmtNum(income.erda)}개</b>
+                    </FormRow>
+                  </div>
+                </div>
+
+                <div className="rounded-[11px] overflow-hidden" style={CARD}>
+                  <SecTitle>솔 에르다 조각 수급</SecTitle>
+                  <div className="px-3.5 py-1">
+                    <FormRow label={(
+                      <span className="inline-flex items-center gap-1.5">구매
+                        <Seg
+                          options={[{ value: 'count', label: '개수' }, { value: 'meso', label: '총 가격' }]}
+                          value={settings.buyMode}
+                          onChange={(v) => set({ buyMode: v })}
+                        />
+                      </span>
+                    )}>
+                      <span className="inline-flex items-center gap-1.5">
+                        <NumInput value={settings.fragPrice} onChange={(v) => set({ fragPrice: v })} max={99999} chars={4} unit="만 메소" />
+                        {settings.buyMode === 'count' ? (
+                          <NumInput value={settings.buyCountPerWeek} onChange={(v) => set({ buyCountPerWeek: v })} max={99999} chars={3} unit="개/주" />
+                        ) : (
+                          <NumInput value={settings.buyMesoPerWeek} onChange={(v) => set({ buyMesoPerWeek: v })} max={999} chars={3} unit="억/주" />
+                        )}
+                      </span>
+                    </FormRow>
+                    <FormRow label="사냥 획득">
+                      <NumInput value={settings.huntFragPerDay} onChange={(v) => set({ huntFragPerDay: v })} max={9999} chars={3} unit="개/일" />
+                    </FormRow>
+                    <FormRow label={(
+                      <Toggle on={settings.useBossRevenue} onChange={(v) => set({ useBossRevenue: v })}>
+                        💰 주간 보스 수익으로 최대 구매
+                      </Toggle>
+                    )}>
+                      <span className="inline-flex items-center py-2 text-[12.5px] font-extrabold tabular-nums whitespace-nowrap" style={{ color: settings.useBossRevenue ? '#7a3fb0' : 'var(--text-dim)', border: '1px solid transparent' }}>
+                        {user
+                          ? bossRevenue > 0
+                            ? `+${fmtNum(income.bossCount || (settings.fragPrice > 0 ? Math.floor(bossRevenue / (settings.fragPrice * 10000)) : 0))} 개/주`
+                            : '보스 계산기 데이터 없음'
+                          : '로그인 필요'}
+                      </span>
+                    </FormRow>
+                    <FormRow total label={(
+                      <span className="text-[12px] font-extrabold rounded-full px-2.5 py-1 border" style={{ color: '#7a3fb0', background: 'rgba(183,110,230,.13)', borderColor: 'rgba(183,110,230,.45)' }}>주당 합계</span>
+                    )}>
+                      <b className="text-[13.5px] tabular-nums" style={{ color: 'var(--text-strong)' }}>
+                        {fmtNum(income.frag)}개{income.buyMesoWeekly > 0 && <span className="font-semibold" style={{ color: 'var(--text-muted)' }}> ({fmtMeso(income.buyMesoWeekly)})</span>}
+                      </b>
+                    </FormRow>
+                  </div>
+                </div>
+              </div>
+
+              {/* 완료 예상 */}
+              <div className="rounded-[11px] overflow-hidden" style={{ ...CARD, borderColor: '#ead9a0' }}>
+                <SecTitle>완료 예상</SecTitle>
+                <div className="px-4 py-3.5 grid gap-4 items-center" style={{ gridTemplateColumns: 'auto 1px 1fr', background: 'var(--hexa-result-bg, linear-gradient(180deg,#fffdf2,#fff))' }}>
+                  <div>
+                    <div className="text-[28px] font-black leading-tight tabular-nums" style={{ color: 'var(--text-strong)' }}>
+                      {Number.isFinite(doneWeeks) ? (doneWeeks <= 0 ? '완료!' : `약 ${Math.ceil(doneWeeks)}주`) : '—'}
+                    </div>
+                    <div className="text-[12.5px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                      {Number.isFinite(doneWeeks) && doneWeeks > 0 ? `${doneDate} 완료 예상` : doneWeeks <= 0 ? '모든 코어 만렙' : '수급량을 입력해 주세요'}
+                    </div>
+                  </div>
+                  <div className="h-16" style={{ background: 'var(--mpl-card-line)' }} />
+                  <div className="flex flex-col gap-2">
+                    {[
+                      { label: '솔 에르다', url: icons.erdaUrl, weeks: erdaWeeks, grad: 'linear-gradient(90deg, var(--mpl-sky-from), var(--mpl-sky-to))' },
+                      { label: '조각', url: icons.fragUrl, weeks: fragWeeks, grad: 'linear-gradient(90deg, var(--mpl-purple-from), var(--mpl-purple-to))' },
+                    ].map((r) => {
+                      const maxW = Math.max(erdaWeeks, fragWeeks)
+                      const w = Number.isFinite(r.weeks) && Number.isFinite(maxW) && maxW > 0 ? Math.max(4, (r.weeks / maxW) * 100) : 0
+                      return (
+                        <div key={r.label} className="flex items-center gap-2.5">
+                          <span className="inline-flex items-center gap-1.5 w-[92px] text-[12.5px] font-bold">
+                            <ResIcon url={r.url} size={20} />{r.label}
+                          </span>
+                          <div className="flex-1 h-[13px] rounded-full overflow-hidden" style={{ background: 'var(--mpl-row)', boxShadow: 'inset 0 1px 2px rgba(31,44,61,.1)' }}>
+                            <i className="block h-full rounded-full" style={{ width: `${w}%`, background: r.grad, transition: 'width .6s cubic-bezier(.22, 1, .36, 1)' }} />
+                          </div>
+                          <b className="w-14 text-right text-[13px] tabular-nums" style={{ color: r.weeks === doneWeeks && r.weeks > 0 ? '#7a3fb0' : 'var(--text-strong)' }}>{fmtWeeks(r.weeks)}</b>
+                        </div>
+                      )
+                    })}
+                    <div className="text-[12.5px]" style={{ color: 'var(--text-dim)' }}>
+                      {Number.isFinite(doneWeeks) && doneWeeks > 0
+                        ? `${bottleneck}${bottleneckJosa} 병목입니다 — ${bottleneck} 수급을 늘리면 그만큼 앞당겨져요`
+                        : '주간 수급량을 입력하면 완료 시점을 계산합니다'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {!selectedName && (
+            <div className="rounded-[11px] p-12 text-center" style={CARD}>
+              <div className="text-4xl mb-3 opacity-50">⬡</div>
+              <p className="text-[13.5px]" style={{ color: 'var(--text-muted)' }}>캐릭터를 조회하면 헥사 코어 진행도와 완료 시점을 계산합니다</p>
+            </div>
+          )}
+
+        <ConfirmDialog
+          open={!!confirmRemove}
+          onClose={() => setConfirmRemove(null)}
+          onConfirm={() => {
+            removeCharacter(confirmRemove.character_name)
+            setConfirmRemove(null)
+          }}
+          title="캐릭터 삭제"
+          description={confirmRemove ? `"${confirmRemove.character_name}" 캐릭터를 목록에서 삭제하시겠습니까?` : ''}
+          confirmText="삭제"
+          destructive
+        />
+
+        </div>
+      </MapleWindow>
+    </div>
+  )
+}
