@@ -1,6 +1,7 @@
-import { useLayoutEffect } from 'react'
+import { useLayoutEffect, useState, useEffect } from 'react'
 import { Outlet, Navigate, NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { Reorder, useDragControls } from 'framer-motion'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import { useAuth } from '../../../hooks/useAuth'
 import { useLayout } from '../../../components/pc/Layout'
@@ -23,6 +24,67 @@ function navStyle({ isActive }) {
     : { color: '#cfdae4' }
 }
 
+/**
+ * 드래그로 순서를 바꿀 수 있는 기능 메뉴 항목.
+ * 핸들(⠿)로만 드래그를 시작해 NavLink 클릭·⚙ 편집과 충돌하지 않는다.
+ */
+function MenuNavItem({ menu, onNavigateEdit, onDragDone }) {
+  const dragControls = useDragControls()
+  const slug = (menu.url || '').replace(/^\/+/, '').split('/')[0]
+  return (
+    <Reorder.Item
+      as="div"
+      value={menu}
+      dragListener={false}
+      dragControls={dragControls}
+      onDragEnd={onDragDone}
+      className="relative"
+    >
+      <NavLink
+        to={slug ? `/admin/${slug}` : `/admin/menus/${menu.id}`}
+        className={NAV_BASE}
+        style={navStyle}
+      >
+        {({ isActive }) => (
+          <>
+            <span
+              onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); dragControls.start(e) }}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
+              title="드래그하여 순서 변경"
+              className="shrink-0 -ml-1 w-4 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ touchAction: 'none', color: isActive ? 'rgba(255,255,255,.85)' : 'rgba(255,255,255,.45)' }}
+            >
+              <svg width="10" height="14" viewBox="0 0 12 16" fill="currentColor">
+                <circle cx="3" cy="3" r="1.2" />
+                <circle cx="9" cy="3" r="1.2" />
+                <circle cx="3" cy="8" r="1.2" />
+                <circle cx="9" cy="8" r="1.2" />
+                <circle cx="3" cy="13" r="1.2" />
+                <circle cx="9" cy="13" r="1.2" />
+              </svg>
+            </span>
+            {menu.image?.url
+              ? <img src={menu.image.url} alt="" className="w-[22px] h-[22px] object-contain shrink-0" draggable={false} />
+              : <span className="w-[22px] text-center shrink-0 text-[15px]">📄</span>}
+            <span className="flex-1 min-w-0 truncate">{menu.title}</span>
+            <span
+              role="button"
+              tabIndex={0}
+              title="메뉴 정보 편집"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onNavigateEdit() }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onNavigateEdit() } }}
+              className="shrink-0 text-[13px] px-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ color: isActive ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.6)' }}
+            >
+              ⚙
+            </span>
+          </>
+        )}
+      </NavLink>
+    </Reorder.Item>
+  )
+}
+
 /** 사이드바 그룹 제목 */
 function GroupLabel({ children, action }) {
   return (
@@ -43,11 +105,30 @@ export default function AdminLayout() {
     return () => setWide(false)
   }, [setWide])
 
+  const queryClient = useQueryClient()
   const { data: menus = [], isLoading: menusLoading } = useQuery({
     queryKey: ['admin', 'menus'],
     queryFn: () => api('/api/admin/menus').catch(() => []),
     enabled: !!user?.is_admin,
   })
+
+  // 드래그 중 순서는 로컬로 다루고, 놓는 순간 저장한다
+  const [orderedMenus, setOrderedMenus] = useState(menus)
+  useEffect(() => { setOrderedMenus(menus) }, [menus])
+
+  const reorderMutation = useMutation({
+    mutationFn: (ids) => api('/api/admin/menus/reorder', { method: 'POST', body: { ids } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'menus'] })
+      queryClient.invalidateQueries({ queryKey: ['menus'] }) // 메인 페이지 목록도 새 순서로
+    },
+  })
+  const handleDragDone = () => {
+    setOrderedMenus((current) => {
+      reorderMutation.mutate(current.map((m) => m.id))
+      return current
+    })
+  }
 
   if (isLoading) {
     return (
@@ -98,37 +179,16 @@ export default function AdminLayout() {
         >
           기능 관리
         </GroupLabel>
-        {menus.map((menu) => {
-          const slug = (menu.url || '').replace(/^\/+/, '').split('/')[0]
-          return (
-            <NavLink
+        <Reorder.Group as="div" axis="y" values={orderedMenus} onReorder={setOrderedMenus}>
+          {orderedMenus.map((menu) => (
+            <MenuNavItem
               key={menu.id}
-              to={slug ? `/admin/${slug}` : `/admin/menus/${menu.id}`}
-              className={NAV_BASE}
-              style={navStyle}
-            >
-              {({ isActive }) => (
-                <>
-                  {menu.image?.url
-                    ? <img src={menu.image.url} alt="" className="w-[22px] h-[22px] object-contain shrink-0" draggable={false} />
-                    : <span className="w-[22px] text-center shrink-0 text-[15px]">📄</span>}
-                  <span className="flex-1 min-w-0 truncate">{menu.title}</span>
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    title="메뉴 정보 편집"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/admin/menus/${menu.id}`) }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); navigate(`/admin/menus/${menu.id}`) } }}
-                    className="shrink-0 text-[13px] px-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ color: isActive ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.6)' }}
-                  >
-                    ⚙
-                  </span>
-                </>
-              )}
-            </NavLink>
-          )
-        })}
+              menu={menu}
+              onNavigateEdit={() => navigate(`/admin/menus/${menu.id}`)}
+              onDragDone={handleDragDone}
+            />
+          ))}
+        </Reorder.Group>
 
         <GroupLabel>자원 관리</GroupLabel>
         {RESOURCE_ITEMS.map((item) => (

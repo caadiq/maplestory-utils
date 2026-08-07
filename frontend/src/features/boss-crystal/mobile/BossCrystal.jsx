@@ -156,6 +156,7 @@ export default function BossCrystal() {
               value={name}
               onChange={(e) => { setName(e.target.value); if (error) setError('') }}
               onFocus={() => setDropdownOpen(true)}
+              onClick={() => setDropdownOpen(true)}
               onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
               placeholder="캐릭터 닉네임 검색"
               className="w-full rounded-full border-2 px-4 py-2.5 text-sm outline-none focus:border-[var(--input-border-focus)]"

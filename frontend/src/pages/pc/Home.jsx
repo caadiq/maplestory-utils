@@ -87,8 +87,9 @@ export default function Home() {
                   </div>
                   <div>
                     <h2 className="font-medium">{menu.title}</h2>
+                    {/* 설명이 1줄이든 2줄이든 카드 높이가 같도록 2줄 높이를 확보한다 */}
                     <p
-                      className="text-sm mt-1 leading-relaxed"
+                      className="text-sm mt-1 leading-relaxed min-h-[3.25em]"
                       style={{ color: 'var(--text-muted)' }}
                     >
                       {menu.description}

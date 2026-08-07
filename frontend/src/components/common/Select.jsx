@@ -133,9 +133,11 @@ export default function Select({ value, onChange, options, disabled, className =
                       )}
                     </span>
                   )}
+                  {/* subIcon은 원본(32~38px)보다 작게 그려지는 축소라 pixelated를 쓰지 않는다 —
+                      니어리스트로 줄이면 픽셀이 통째로 버려져 무늬가 깨진다 */}
                   <span className="flex items-center gap-1.5 min-w-0">
                     {opt.subIcon ? (
-                      <img src={opt.subIcon} alt="" className="w-[18px] h-[18px] shrink-0 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
+                      <img src={opt.subIcon} alt="" className="w-[18px] h-[18px] shrink-0 object-contain" draggable={false} />
                     ) : opt.hasIconSlot && !opt.noSubIcon && <span className="w-[18px] shrink-0" />}
                     <span className="truncate">{opt.label}</span>
                     {opt.sub && <span className="text-[13px] shrink-0" style={{ color: 'var(--text-dim)' }}>{opt.sub}</span>}
@@ -170,7 +172,7 @@ export default function Select({ value, onChange, options, disabled, className =
           style={{ color: selected ? 'var(--text-strong)' : 'var(--input-placeholder)' }}
         >
           {selected?.subIcon && (
-            <img src={selected.subIcon} alt="" className="w-4 h-4 shrink-0 object-contain" style={{ imageRendering: 'pixelated' }} draggable={false} />
+            <img src={selected.subIcon} alt="" className="w-4 h-4 shrink-0 object-contain" draggable={false} />
           )}
           <span className="truncate">{selected ? selected.label : placeholder}</span>
           {showSub && selected?.sub && (

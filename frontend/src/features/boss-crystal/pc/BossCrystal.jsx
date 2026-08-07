@@ -92,7 +92,7 @@ export default function BossCrystal() {
       {isLoading || !hydrated ? (
         <PageLoader />
       ) : (
-        <div className="mpl-page-enter grid gap-5 lg:grid-cols-[440px_minmax(940px,1fr)] h-full min-h-0">
+        <div className="mpl-page-enter grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)] min-[1500px]:grid-cols-[440px_minmax(0,1fr)] h-full min-h-0">
           <MapleWindow
             title="WEEKLY PROFIT"
             className="min-h-0 max-h-full self-start"
