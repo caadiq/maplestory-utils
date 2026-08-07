@@ -84,7 +84,9 @@ export default function ExpJourney({
   // SVG 박스 자체를 위 통계 스트립과 같은 폭으로 두므로 좌우 정렬이 맞는다.
   const V = { W: 1000, H: 300, padL: 48, padR: 0, padT: 56, padB: 52 }
   const pts = useMemo(() => history.map((h) => ({ ...h, cum: h.level + h.exp_rate / 100 })), [history])
-  const nowPoint = { date: 'now', cum: nowCum, level, exp_rate: char.exp_rate }
+  // 오늘 점도 실제 날짜를 갖는다 — 툴팁에서 과거 점과 같은 형식으로 쓰기 위해 (KST 기준)
+  const todayStr = new Date(nowMs + 9 * 3600 * 1000).toISOString().slice(0, 10)
+  const nowPoint = { date: todayStr, isNow: true, cum: nowCum, level, exp_rate: char.exp_rate }
   const seq = [...pts, nowPoint]
 
   const targetCum = result.target
@@ -204,9 +206,13 @@ export default function ExpJourney({
             <g key={p.date}>
               <circle cx={p.x} cy={p.y} r={hover === i ? 5 : 3} fill="var(--panel-bg)" stroke="var(--mpl-sky-to)" strokeWidth="2" />
               <circle cx={p.x} cy={p.y} r="16" fill="transparent"
-                onMouseEnter={() => setHover(i)} style={{ cursor: 'pointer' }} />
+                onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} style={{ cursor: 'pointer' }} />
             </g>
           ))}
+          {/* 오늘 점 — 마커는 아래 오버레이(pointer-events 없음)라 hover 영역만 여기 둔다 */}
+          <circle cx={now.x} cy={now.y} r="16" fill="transparent"
+            onMouseEnter={() => setHover(coords.length - 1)} onMouseLeave={() => setHover(null)}
+            style={{ cursor: 'pointer' }} />
           {reachable && <circle cx={tgx} cy={tgy} r="7" fill="#f0a828" stroke="var(--panel-bg)" strokeWidth="3" />}
           {/* 예상 라벨 */}
           {reachable && result.days > 0 && (
@@ -243,20 +249,28 @@ export default function ExpJourney({
           const p = coords[hover]
           const prev = coords[hover - 1]
           const delta = prev ? (p.cum - prev.cum) * 100 : null
+          // 오늘 점 위에는 캐릭터가 서 있어서 툴팁이 가려진다 → 아래쪽으로 뺀다
+          const below = !!p.isNow
           return (
             <div className="absolute pointer-events-none z-10 rounded-[10px] px-3 py-2 text-center whitespace-nowrap"
               style={{
-                left: `calc(${(p.x * HXW).toFixed(2)}% )`, top: `calc(${(p.y * HYH).toFixed(2)}% - 12px)`,
-                transform: 'translate(-50%, -100%)',
+                left: `calc(${(p.x * HXW).toFixed(2)}% )`,
+                top: `calc(${(p.y * HYH).toFixed(2)}% ${below ? '+' : '-'} 12px)`,
+                transform: `translate(-50%, ${below ? '0' : '-100%'})`,
                 background: '#22303f', color: '#fff', boxShadow: '0 6px 16px rgba(31,44,61,.3)',
               }}>
-              <div className="text-[12px] font-bold opacity-75">{p.date.replace(/-/g, '.')} ({WK_DAY[new Date(p.date).getDay()]})</div>
+              <div className="text-[12px] font-bold opacity-75">
+                {p.date.replace(/-/g, '.')} ({WK_DAY[new Date(p.date).getDay()]}){p.isNow ? ' · 오늘' : ''}
+              </div>
               <div className="text-[15px] font-bold tabular-nums leading-snug">
                 Lv.{p.level} · {pct(p.exp_rate)}
               </div>
               {delta != null && <div className="text-[12px]" style={{ color: '#8fd8f5' }}>전일 대비 +{delta.toFixed(1)}%p</div>}
-              <div className="absolute left-1/2 -translate-x-1/2 -bottom-[6px]" style={{
-                width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '6px solid #22303f',
+              <div className={`absolute left-1/2 -translate-x-1/2 ${below ? '-top-[6px]' : '-bottom-[6px]'}`} style={{
+                width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent',
+                ...(below
+                  ? { borderBottom: '6px solid #22303f' }
+                  : { borderTop: '6px solid #22303f' }),
               }} />
             </div>
           )
