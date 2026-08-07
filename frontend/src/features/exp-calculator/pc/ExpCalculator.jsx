@@ -484,7 +484,7 @@ export default function ExpCalculator() {
 
               {/* 몬스터파크 — 일요일 보너스는 자동 반영 (주 1회) */}
               <ContentCard icon="mp" grad="linear-gradient(180deg,#b98fdd,#9868c7)" title="몬스터파크"
-                sub="일 2회 무료 · 최대 7회" pct={fmtPct(bd.park.total)} pctColor={C_WEEK} totalLabel="주간 합계">
+                sub="일 2회 무료 · 최대 7회" pct={fmtPct(bd.park.total)} pctColor={C_WEEK} totalLabel="일 평균">
                 <div className="grid grid-cols-[3fr_2fr] gap-2">
                   <Field label="지역">
                     <Select
