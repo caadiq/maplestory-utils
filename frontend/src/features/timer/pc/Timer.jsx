@@ -10,11 +10,18 @@ import RegionPickerModal from './RegionPickerModal'
 import CandidatePicker from './CandidatePicker'
 import MiniBar from './MiniBar'
 import {
-  DETECT, loadSettings, saveSettings, durationForLevel, formatSeconds,
-  LEVEL_TIERS, tierForLevel,
+  DETECT, loadSettings, saveSettings, durationForSettings, formatSeconds,
+  LEVEL_TIERS, tierForLevel, ALARM_DISPLAY_BIAS_MS, DURATION_LAG_MS, MODE_LABELS,
 } from '../logic'
 import { LOCATE } from '../locateCore'
 import { ensureAudio, scheduleSound, playSound, preloadSounds, resolveSound, SOUND_OPTIONS } from '../alarm'
+
+/* 모드 드롭다운 — 라벨 앞에 실제 스킬 아이콘을 붙인다 */
+const MODE_ICONS = import.meta.glob('../icon/janus-*.png', { eager: true, query: '?url', import: 'default' })
+const modeIcon = (m) => Object.entries(MODE_ICONS).find(([p]) => p.includes(`janus-${m}`))?.[1]
+const MODE_OPTIONS = Object.entries(MODE_LABELS).map(([value, label]) => ({
+  value, label, subIcon: modeIcon(value),
+}))
 
 const CARD = { background: 'var(--mpl-card)', border: '1px solid var(--mpl-card-line)' }
 const SLATE_BAR = {
@@ -23,11 +30,33 @@ const SLATE_BAR = {
   textShadow: '0 1px 1px rgba(44,55,69,.3)',
 }
 
+/**
+ * 쿨타임 숫자로 설치 시각을 맞추는 중일 때만 띄운다.
+ * 맞춰지는 순간 타이머가 살짝 점프하는데, 이유를 모르면 오작동처럼 보인다.
+ * 끝나고 나면 알릴 것이 없으므로 조용히 사라진다.
+ */
+function SyncPill({ sync }) {
+  if (sync !== 'pending') return null
+  return (
+    <span
+      className="text-[12.5px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap animate-pulse"
+      style={{ color: '#ffd76a', background: 'rgba(255,215,106,.14)', borderColor: 'rgba(255,215,106,.38)' }}
+      title="쿨타임 숫자를 읽어 게임 시계에 맞추는 중입니다"
+    >
+      ⟳ 보정 중
+    </span>
+  )
+}
+
 export default function Timer() {
   const [settings, setSettings] = useState(loadSettings)
   const [picking, setPicking] = useState(false)
   const [candidates, setCandidates] = useState(null)
   const [locating, setLocating] = useState(false)
+
+  // 콜백 안에서 최신 설정을 보기 위한 참조 (모드 자동 전환 판정용)
+  const settingsRef = useRef(settings)
+  useEffect(() => { settingsRef.current = settings }, [settings])
 
   const set = useCallback((patch) => {
     setSettings((prev) => {
@@ -52,39 +81,39 @@ export default function Timer() {
    */
   const scheduleFor = useCallback((s, installedAt) => {
     clearScheduled()
-    const fireInSec = ((durationForLevel(s.level) - s.offsetSec) * 1000 - (Date.now() - installedAt)) / 1000
+    const fireInSec = ((durationForSettings(s) - s.offsetSec) * 1000
+      - DURATION_LAG_MS + ALARM_DISPLAY_BIAS_MS - (Date.now() - installedAt)) / 1000
     if (fireInSec > 0) {
       cancelRef.current.push(scheduleSound(s.sound, s.volume, fireInSec))
     }
   }, [clearScheduled])
 
   const handleInstall = useCallback((next) => {
-    scheduleFor(settings, next.at + settings.trimSec * 1000)
+    scheduleFor(settings, next.at)
   }, [scheduleFor, settings])
 
-  /*
-   * 아주 짧은 간격의 재감지만 막는다.
-   * 처음엔 "재설치는 알림 이후"라고 보고 길게 잠갔는데, 쿨이 돌면 바로 다시 까는 경우가 있어
-   * 진짜 설치까지 막혔다. 깜빡임은 밝아짐 확정 시간(2.2초)으로 걸러진다.
-   */
-  const gapMsRef = useRef(5000)
-
   const {
-    stream, region, setRegion, install, stale, error, iconLost,
+    stream, region, setRegion, install, stale, error, iconLost, sync,
     videoRef, start, stop, resetCycle, locate, hasTemplate, log,
-  } = useJanusDetector({ onInstall: handleInstall, minGapMs: gapMsRef.current })
+  } = useJanusDetector({
+    onInstall: handleInstall,
+    mode: settings.mode,
+    cycleMs: durationForSettings(settings) * 1000,
+  })
 
   /* ── 표시값 ─────────────────────────────────────────────── */
 
   const soundValue = resolveSound(settings.sound)
-  const durationSec = durationForLevel(settings.level)
+  const durationSec = durationForSettings(settings)
   const durationMs = durationSec * 1000
   const alarmAtSec = Math.max(0, durationSec - settings.offsetSec)
-  // 보정을 적용한 설치 시각 — 표시와 알림이 함께 움직여야 한다
-  const installedAt = install ? install.at + settings.trimSec * 1000 : 0
+  const installedAt = install ? install.at : 0
   const elapsed = install ? Date.now() - installedAt : 0
   const active = Boolean(install) && elapsed < durationMs
-  const alarmInMs = active ? alarmAtSec * 1000 - elapsed : null
+  // 표시도 실제 울리는 시각과 같아야 한다
+  const alarmInMs = active
+    ? alarmAtSec * 1000 - DURATION_LAG_MS + ALARM_DISPLAY_BIAS_MS - elapsed
+    : null
   const progress = active ? elapsed / durationMs : 0
 
   const pip = usePipWindow()
@@ -110,6 +139,15 @@ export default function Timer() {
    */
   const applyHits = (found) => {
     setLocating(false)
+    /*
+     * 새벽/황혼 아이콘을 모두 대조하므로 이긴 쪽이 곧 현재 장착 모드다.
+     * 실측(1080p): 황혼이 끼워진 화면에서 황혼 원본은 0.890으로 1위, 새벽 원본은 10위 밖 —
+     * 구분이 확실해서 자동으로 맞춰도 안전하다.
+     */
+    if (found?.detectedMode && found.detectedMode !== settingsRef.current.mode) {
+      set({ mode: found.detectedMode })
+      log(`${found.detectedMode === 'dusk' ? '황혼' : '새벽'} 아이콘으로 인식 — 모드 자동 전환`, '자동', 'ok')
+    }
     const hits = found?.hits
     if (!hits?.length) { setPicking(true); return }
     const [best, second] = hits
@@ -148,7 +186,7 @@ export default function Timer() {
   useEffect(() => {
     if (active && install) scheduleFor(settings, installedAt)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.offsetSec, settings.sound, settings.volume, settings.level, settings.trimSec])
+  }, [settings.offsetSec, settings.sound, settings.volume, settings.level])
 
   /* ── 감시 중 ────────────────────────────────────────────── */
 
@@ -159,7 +197,9 @@ export default function Timer() {
       titleRight={(
         <div className="flex items-center gap-2">
           {stale && <Badge tone="warn">⚠ 화면이 갱신되지 않음</Badge>}
-          <Badge tone={active ? 'live' : 'wait'}>{active ? `● 유지 중 · ${install.index}회차` : '● 설치 대기'}</Badge>
+          <Badge tone={active ? 'live' : 'wait'}>{active
+            ? `● ${settings.mode === 'dusk' ? '회수까지' : '유지 중'} · ${install.index}회차`
+            : (settings.mode === 'dusk' ? '● 쿨타임 대기' : '● 설치 대기')}</Badge>
         </div>
       )}
     >
@@ -183,8 +223,11 @@ export default function Timer() {
                   backdropFilter: 'blur(4px)',
                 }}
               >
-                <div className="text-[13px] font-extrabold tracking-wide" style={{ color: 'var(--mpl-title-yellow)' }}>
-                  다음 알림까지
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-extrabold tracking-wide" style={{ color: 'var(--mpl-title-yellow)' }}>
+                    다음 알림까지
+                  </span>
+                  <SyncPill sync={sync} />
                 </div>
                 {alarmInMs != null && alarmInMs > 0 ? (
                   <div
@@ -263,20 +306,39 @@ export default function Timer() {
       <div className="rounded-[11px] overflow-hidden" style={CARD}>
         <div className="px-4 py-2.5 text-[13.5px] font-extrabold" style={SLATE_BAR}>⚙️ 설정</div>
 
-        <SettingRow name="스킬 레벨" desc="레벨로 지속시간이 정해집니다">
-          <div className="w-[140px]">
+        <SettingRow
+          name="야누스 모드"
+          desc={settings.mode === 'dusk'
+            ? '쿨타임이 처음 도는 순간부터 2분을 재고, 끝나면 다시 감지합니다'
+            : '설치 순간을 잡아 지속시간을 셉니다'}
+        >
+          <div className="w-[172px]">
             <Select
-              showSub
-              options={LEVEL_TIERS}
-              value={tierForLevel(settings.level)}
-              onChange={(v) => set({ level: v })}
+              options={MODE_OPTIONS}
+              value={settings.mode}
+              onChange={(v) => set({ mode: v })}
             />
           </div>
         </SettingRow>
 
+        {settings.mode !== 'dusk' && (
+          <SettingRow name="스킬 레벨" desc="레벨로 지속시간이 정해집니다">
+            <div className="w-[140px]">
+              <Select
+                showSub
+                options={LEVEL_TIERS}
+                value={tierForLevel(settings.level)}
+                onChange={(v) => set({ level: v })}
+              />
+            </div>
+          </SettingRow>
+        )}
+
         <SettingRow
           name="알림 시점"
-          desc={<>지속시간이 <b style={{ color: 'var(--text-muted)' }}>{settings.offsetSec}초</b> 남았을 때 알립니다 — 젠 주기 × 젠 수로 잡으세요</>}
+          desc={settings.mode === 'dusk'
+            ? <>아이템이 사라지기 <b style={{ color: 'var(--text-muted)' }}>{settings.offsetSec}초</b> 전에 알립니다 — 회수할 시간을 감안해 잡으세요</>
+            : <>지속시간이 <b style={{ color: 'var(--text-muted)' }}>{settings.offsetSec}초</b> 남았을 때 알립니다 — 젠 주기 × 젠 수로 잡으세요</>}
         >
           <NumberField
             value={settings.offsetSec}
@@ -285,20 +347,6 @@ export default function Timer() {
             unit="초 전"
             chars={2}
             onChange={(v) => set({ offsetSec: Math.max(1, v || 1) })}
-          />
-        </SettingRow>
-
-        <SettingRow
-          name="타이머 보정"
-          desc={<>인게임 지속시간과 견줘 맞추세요 — 웹 타이머가 <b style={{ color: 'var(--text-muted)' }}>느리면 음수</b>, 빠르면 양수</>}
-        >
-          <NumberField
-            value={settings.trimSec}
-            min={-5}
-            max={5}
-            unit="초"
-            chars={3}
-            onChange={(v) => set({ trimSec: Math.max(-5, Math.min(5, v || 0)) })}
           />
         </SettingRow>
 
@@ -361,6 +409,7 @@ export default function Timer() {
             remainingMs={alarmInMs}
             progress={progress}
             cycleIndex={install?.index ?? 0}
+            sync={sync}
             onReset={resetCycle}
           />
         </div>,

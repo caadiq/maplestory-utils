@@ -39,6 +39,7 @@ export function durationForLevel(level) {
   return DURATION_TIERS.find((t) => lv >= t.min)?.sec ?? DURATION_TIERS[DURATION_TIERS.length - 1].sec
 }
 
+
 /* ── 감지 파라미터 ────────────────────────────────────────── */
 
 export const DETECT = {
@@ -88,8 +89,6 @@ export const DETECT = {
    * 화면이 까매지거나 가려진 경우에는 그 밝은 점들이 없다 —
    * "어두워졌다"만으로는 구분이 안 되던 것을 이걸로 가른다.
    */
-  glyphLevel: 0.7,     // 기준 밝기의 이 비율을 넘으면 "밝은 점"
-  glyphMinRatio: 0.02, // 영역에서 밝은 점이 이 비율 이상이어야 숫자로 인정
   /**
    * 기준 밝기 갱신의 위쪽 한계(기준 대비).
    * 쿨타임이 끝날 때의 연출로 확 밝아진 값까지 섞이면 기준선이 올라가고,
@@ -97,17 +96,6 @@ export const DETECT = {
    * 아래쪽 한계는 brightRatio를 그대로 쓴다 — 살짝 떨어진 값은 이미 설치의 시작일 수 있다.
    */
   baselineAcceptHigh: 1.15,
-}
-
-/** 어두워진 아이콘 위에 남아 있는 밝은 점(쿨타임 숫자)의 비율 */
-export function glyphRatio(data, level) {
-  let bright = 0
-  const n = data.length / 4
-  for (let i = 0; i < n; i++) {
-    const p = i * 4
-    if (0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2] > level) bright++
-  }
-  return n ? bright / n : 0
 }
 
 /**
@@ -204,7 +192,50 @@ export function formatSeconds(ms) {
 
 export const STORAGE_KEY = 'maple.janus.settings'
 
+/*
+ * 인게임에 보이는 지속시간 숫자는 아이콘이 어두워진 시점보다 조금 늦게 시작한다.
+ *
+ * 사용자 영상(1920×1080 한 사이클)에서 체력바 위 야누스 숫자의 전환 시각을 직접 쟀다.
+ * 26→25가 설치 후 93.96초, 17→16이 설치 후 102.88초 — 두 지점 모두
+ * **소멸 = 설치 + 118.9초**로 맞는다. 스킬 설명상 지속시간(120초)과 1.1초 차이다.
+ * 이걸 빼지 않으면 알림이 딱 1초 늦게 울려 인게임 숫자가 한 칸 지나 있다.
+ */
+export const DURATION_LAG_MS = 1100
+
+/*
+ * 알림은 인게임 숫자가 설정값으로 **바뀌는 바로 그 순간**에 울린다.
+ *
+ * 이 알림은 확인용이 아니라 행동 개시 신호다 — 소리를 듣고 마지막 몸 젠을 잡고
+ * 재설치를 시작하므로, 구간 한가운데(+0.5초)에서 울리면 매 사이클 그만큼씩 늦어져
+ * 갈수록 밀린다(사용자가 실제로 겪고 18초로 당겨 쓰던 문제). 경계 정각에 울린다.
+ */
+export const ALARM_DISPLAY_BIAS_MS = 0
+
+/**
+ * 솔 야누스 모드.
+ *
+ * dawn(새벽)  — 설치기. 쿨타임 54~60초, 지속시간은 스킬 레벨로 정해진다.
+ *               쿨타임 숫자가 위로 점프하는 순간이 곧 설치이므로 그걸로 사이클을 잡는다.
+ * dusk(황혼)  — 설치기가 아니라 공격 시 맵 전역을 때리는 추가타. 쿨타임이 3초라
+ *               숫자로는 사이클을 못 잡는다. 대신 바닥에 떨어진 아이템이 2분이면 사라지므로
+ *               "쿨타임이 처음 도는 순간"부터 2분을 재고, 그동안은 재시작을 잠근다.
+ *               한 바퀴가 끝나면 다시 감지해 같은 주기를 반복한다.
+ */
+export const MODE_LABELS = {
+  dawn: '솔 야누스 : 새벽',
+  dusk: '솔 야누스 : 황혼',
+}
+
+/** 황혼: 바닥 아이템이 사라지기까지 (초) */
+export const DUSK_DURATION_SEC = 120
+
+/** 설정 기준 한 사이클 길이(초) — 황혼은 레벨과 무관하게 아이템 소멸 시간 고정 */
+export function durationForSettings(s) {
+  return s?.mode === 'dusk' ? DUSK_DURATION_SEC : durationForLevel(s?.level)
+}
+
 export const DEFAULT_SETTINGS = {
+  mode: 'dawn',
   level: 30,
   /**
    * 지속시간이 끝나기 몇 초 전에 알릴지.
@@ -214,12 +245,6 @@ export const DEFAULT_SETTINGS = {
   offsetSec: 14,
   /** 목록에 없는 값이면 첫 번째 소리로 대체된다 (alarm.js resolveSound) */
   sound: null,
-  /**
-   * 타이머 보정(초). 감지한 설치 시각을 이만큼 옮긴다.
-   * 화면 공유 지연, 아이콘이 어두워지기까지의 시차처럼 환경마다 다른 요인이 있어
-   * 인게임 지속시간과 견줘 직접 맞출 수 있게 열어둔다. 음수면 타이머가 그만큼 앞당겨진다.
-   */
-  trimSec: 0,
   volume: 0.7,
 }
 
