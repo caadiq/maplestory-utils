@@ -81,3 +81,17 @@ export function prefetchUserComponent(slug) {
   const loader = pages[`./${cleaned}/pc/${pascal}.jsx`]
   if (loader) loader()
 }
+
+/**
+ * 모바일에서 아예 감추는 기능.
+ *
+ * "모바일 페이지가 아직 없음"과는 다르다 — 그건 언젠가 만들면 되지만,
+ * 여기 있는 건 모바일에서 원리상 불가능해서 만들 수가 없다.
+ * 재획 타이머는 게임 화면 공유(getDisplayMedia)가 있어야 하는데 모바일 브라우저에는 없다.
+ */
+const PC_ONLY = new Set(['timer'])
+
+export function isPcOnly(slug) {
+  if (!slug) return false
+  return PC_ONLY.has(slug.replace(/^\/+/, '').split('/')[0])
+}
