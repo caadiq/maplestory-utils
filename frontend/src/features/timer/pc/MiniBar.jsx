@@ -5,7 +5,7 @@ import { RefreshIcon, IconButton } from './icons'
  * 미니 HUD — PiP 창으로 분리해 게임 위에 띄우는 타이머.
  * 본 화면의 오버레이 패널과 같은 모양으로 맞춰 둘 사이에 낯섦이 없게 한다.
  */
-export default function MiniBar({ active, remainingMs, progress, cycleIndex, sync, onReset }) {
+export default function MiniBar({ active, remainingMs, progress, cycleIndex, sync, onReset, idleLabel = '설치 대기' }) {
   return (
     <div
       className="rounded-2xl px-5 py-4 flex flex-col gap-3"
@@ -48,7 +48,7 @@ export default function MiniBar({ active, remainingMs, progress, cycleIndex, syn
         </div>
       ) : (
         <div className="font-extrabold leading-[1.3]" style={{ fontSize: 38, color: '#8ba0b4' }}>
-          설치 대기
+          {idleLabel}
         </div>
       )}
 
