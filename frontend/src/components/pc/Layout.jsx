@@ -190,7 +190,7 @@ export default function Layout() {
   return (
     <LayoutContext.Provider value={{ fullscreen, setFullscreen, wide, setWide }}>
       <div
-        className={`min-w-[1280px] flex flex-col ${
+        className={`min-w-[1100px] flex flex-col ${
           fullscreen ? 'h-dvh' : 'min-h-screen'
         }`}
         style={{ color: 'var(--text-strong)' }}
