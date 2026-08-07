@@ -92,29 +92,41 @@ export default function Timer() {
     scheduleFor(settings, next.at)
   }, [scheduleFor, settings])
 
+  const isDusk = settings.mode === 'dusk'
+  const durationSec = durationForSettings(settings)
+  const alarmAtSec = Math.max(0, durationSec - settings.offsetSec)
+  /*
+   * 사이클(= 다음 감지까지 잠그는 구간)의 길이.
+   *
+   * 새벽은 설치기라 지속시간이 다 지나야 다시 설치할 수 있다 → 지속시간 그대로.
+   * 황혼은 알림이 곧 사이클의 끝이다. 회수하러 다니는 동안에도 몹은 계속 잡히고
+   * 그때 떨어진 아이템의 2분은 이미 흐르기 시작한다. 남은 알림초를 채우고 나서
+   * 다음 사이클을 시작하면 그 아이템들이 먼저 사라지므로, 알림과 동시에 잠금을 풀어
+   * 다음 쿨타임에 바로 이어붙인다.
+   */
+  const cycleMs = (isDusk ? alarmAtSec : durationSec) * 1000
+
   const {
     stream, region, setRegion, install, stale, error, iconLost, sync,
     videoRef, start, stop, resetCycle, locate, hasTemplate, log,
   } = useJanusDetector({
     onInstall: handleInstall,
     mode: settings.mode,
-    cycleMs: durationForSettings(settings) * 1000,
+    cycleMs,
   })
 
   /* ── 표시값 ─────────────────────────────────────────────── */
 
   const soundValue = resolveSound(settings.sound)
-  const durationSec = durationForSettings(settings)
-  const durationMs = durationSec * 1000
-  const alarmAtSec = Math.max(0, durationSec - settings.offsetSec)
   const installedAt = install ? install.at : 0
   const elapsed = install ? Date.now() - installedAt : 0
-  const active = Boolean(install) && elapsed < durationMs
+  const active = Boolean(install) && elapsed < cycleMs
   // 표시도 실제 울리는 시각과 같아야 한다
   const alarmInMs = active
     ? alarmAtSec * 1000 - DURATION_LAG_MS + ALARM_DISPLAY_BIAS_MS - elapsed
     : null
-  const progress = active ? elapsed / durationMs : 0
+  const countdownMs = alarmInMs
+  const progress = active ? elapsed / cycleMs : 0
 
   const pip = usePipWindow()
 
@@ -229,17 +241,17 @@ export default function Timer() {
                   </span>
                   <SyncPill sync={sync} />
                 </div>
-                {alarmInMs != null && alarmInMs > 0 ? (
+                {countdownMs != null && countdownMs > 0 ? (
                   <div
                     className="font-extrabold tabular-nums leading-[.95]"
                     style={{ fontSize: 64, letterSpacing: '-2.5px', color: '#eef3f8' }}
                   >
-                    {formatSeconds(alarmInMs).split('.')[0]}
-                    <span style={{ fontSize: 30, letterSpacing: 0 }}>.{formatSeconds(alarmInMs).split('.')[1]}</span>
+                    {formatSeconds(countdownMs).split('.')[0]}
+                    <span style={{ fontSize: 30, letterSpacing: 0 }}>.{formatSeconds(countdownMs).split('.')[1]}</span>
                   </div>
                 ) : (
                   <div className="font-extrabold leading-[1.3]" style={{ fontSize: 38, color: '#8ba0b4' }}>
-                    지속시간 종료
+                    {isDusk ? '쿨타임 대기' : '지속시간 종료'}
                   </div>
                 )}
               </div>
@@ -406,7 +418,8 @@ export default function Timer() {
         <div style={{ padding: 8 }}>
           <MiniBar
             active={active}
-            remainingMs={alarmInMs}
+            remainingMs={countdownMs}
+            idleLabel={isDusk ? '쿨타임 대기' : '설치 대기'}
             progress={progress}
             cycleIndex={install?.index ?? 0}
             sync={sync}
