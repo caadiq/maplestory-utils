@@ -1,5 +1,5 @@
-import { useState, useRef, useMemo, useEffect, createContext, useContext } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useState, useMemo, useEffect, createContext, useContext } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import MapleWindow from '../../../components/pc/MapleWindow'
 import Select from '../../../components/common/Select'
@@ -11,6 +11,7 @@ import CharacterCard from '../../symbol/pc/user/CharacterCard'
 import ExpJourney from './ExpJourney'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import { useCharacterLookup } from '../../../hooks/useCharacterLookup'
+import { useCharacterRoster } from '../../../hooks/useCharacterRoster'
 import { useExpStore, expInitialState } from '../store'
 import { NumInput, SecTitle, CARD } from '../../../components/common/widgets'
 import {
@@ -190,11 +191,14 @@ export default function ExpCalculator() {
   const selectCharacter = useExpStore((s) => s.selectCharacter)
   const patchSettings = useExpStore((s) => s.patchSettings)
 
-  const [addName, setAddName] = useState('')
-  const [addError, setAddError] = useState('')
-  const [dropdownOpen, setDropdownOpen] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(null)
-  const addAnchorRef = useRef(null)
+  const {
+    addName, setAddName, addError, setAddError,
+    dropdownOpen, setDropdownOpen, addAnchorRef, searchMutation, handleSearch,
+  } = useCharacterRoster({
+    endpoint: (name) => `/api/exp/lookup?name=${encodeURIComponent(name)}`,
+    onResult: (res) => { addCharacter({ ...res.character, exp_rate: res.exp_rate }) },
+  })
 
   const { data } = useQuery({
     queryKey: ['exp', 'data'],
@@ -213,16 +217,6 @@ export default function ExpCalculator() {
     staleTime: 30 * 60 * 1000,
   })
   const sundaySpecialWeek = sunday?.available && sunday.variant === 'special'
-
-  const searchMutation = useMutation({
-    mutationFn: (name) => api(`/api/exp/lookup?name=${encodeURIComponent(name)}`),
-    onSuccess: (res) => {
-      setAddError('')
-      setAddName('')
-      addCharacter({ ...res.character, exp_rate: res.exp_rate })
-    },
-    onError: (err) => setAddError(err.message || '조회 실패'),
-  })
 
   /*
    * 선택 캐릭터 재조회 — 넥슨 데이터는 전일 기준이라 추가 시점 스냅샷으로 두면 굳는다.
@@ -244,12 +238,6 @@ export default function ExpCalculator() {
         : c
     )))
   }, [lookup]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleSearch = (e) => {
-    e.preventDefault()
-    const n = addName.trim()
-    if (n) searchMutation.mutate(n)
-  }
 
   const stored = characters.find((c) => c.character_name === selectedName) || null
   // 표시·계산은 재조회 값 우선 (전일 기준 최신)
