@@ -1,20 +1,13 @@
 import { Router } from 'express';
-import axios from 'axios';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import { Image } from '../models/index.js';
 import { getPublicUrl } from '../lib/s3.js';
 import { attachWorldIcons } from '../services/character.js';
+import { nexonGet, getOcid, handleNexonError } from '../lib/nexon.js';
 
 const router = Router();
-const NEXON_API_BASE = 'https://open.api.nexon.com';
-
-const nexon = (p, params) => axios.get(`${NEXON_API_BASE}${p}`, {
-  params,
-  headers: { 'x-nxopen-api-key': process.env.NEXON_API_KEY },
-  timeout: 10000,
-});
 
 // 경험치 데이터 (레벨 테이블·컨텐츠별 정수) — 서버 기동 시 1회 로드
 const dataPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '../data/exp-data.json');
@@ -106,7 +99,7 @@ async function fetchHistory(ocid, days = 9) {
     const key = `${ocid}:${date}`;
     if (historyCache.has(key)) return { date, ...historyCache.get(key) || {} };
     try {
-      const { data } = await nexon('/maplestory/v1/ranking/overall', { date, ocid });
+      const { data } = await nexonGet('/maplestory/v1/ranking/overall', { date, ocid });
       const r = data.ranking?.[0];
       const v = r ? { level: r.character_level, exp: Number(r.character_exp) } : null;
       if (historyCache.size > 20000) historyCache.clear();
@@ -134,11 +127,10 @@ router.get('/lookup', async (req, res) => {
   if (!name) return res.status(400).json({ error: '캐릭터 닉네임을 입력해주세요' });
 
   try {
-    const { data: idData } = await nexon('/maplestory/v1/id', { character_name: name });
-    const ocid = idData.ocid;
+    const ocid = await getOcid(name);
 
     const [{ data: basic }, history] = await Promise.all([
-      nexon('/maplestory/v1/character/basic', { ocid }),
+      nexonGet('/maplestory/v1/character/basic', { ocid }),
       fetchHistory(ocid).catch(() => []),
     ]);
 
@@ -159,15 +151,7 @@ router.get('/lookup', async (req, res) => {
       history,
     });
   } catch (err) {
-    const code = err.response?.data?.error?.name;
-    if (['OPENAPI00001', 'OPENAPI00007', 'OPENAPI00010', 'OPENAPI00011'].includes(code)) {
-      return res.status(503).json({ error: 'API 점검중입니다', code, maintenance: true });
-    }
-    if (err.response?.status === 400) {
-      return res.status(404).json({ error: '존재하지 않는 캐릭터입니다' });
-    }
-    console.error('경험치 캐릭터 조회 오류:', err.response?.data || err.message);
-    res.status(500).json({ error: '캐릭터 조회 실패' });
+    handleNexonError(err, res, { label: '경험치 캐릭터 조회 오류', notFound: '존재하지 않는 캐릭터입니다', failMsg: '캐릭터 조회 실패' });
   }
 });
 

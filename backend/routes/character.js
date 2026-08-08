@@ -1,12 +1,8 @@
 import { Router } from 'express';
-import axios from 'axios';
-import { Op } from 'sequelize';
-import { Image } from '../models/index.js';
-import { getPublicUrl } from '../lib/s3.js';
-import { attachWorldIcons } from '../services/character.js';
+import { attachWorldIcons, extractAccountCharacters } from '../services/character.js';
+import { nexonGet, getOcid, handleNexonError } from '../lib/nexon.js';
 
 const router = Router();
-const NEXON_API_BASE = 'https://open.api.nexon.com';
 
 // 캐릭터 닉네임으로 정보 조회
 router.get('/search', async (req, res) => {
@@ -14,20 +10,11 @@ router.get('/search', async (req, res) => {
   if (!name?.trim()) return res.status(400).json({ error: '캐릭터 닉네임을 입력해주세요' });
 
   try {
-    // 1) ocid 조회
-    const { data: idData } = await axios.get(`${NEXON_API_BASE}/maplestory/v1/id`, {
-      params: { character_name: name.trim() },
-      headers: { 'x-nxopen-api-key': process.env.NEXON_API_KEY },
-    });
-
-    // 2) basic 조회
-    const { data: basic } = await axios.get(`${NEXON_API_BASE}/maplestory/v1/character/basic`, {
-      params: { ocid: idData.ocid },
-      headers: { 'x-nxopen-api-key': process.env.NEXON_API_KEY },
-    });
+    const ocid = await getOcid(name.trim());
+    const { data: basic } = await nexonGet('/maplestory/v1/character/basic', { ocid });
 
     const [character] = await attachWorldIcons([{
-      ocid: idData.ocid,
+      ocid,
       character_name: basic.character_name,
       world_name: basic.world_name,
       job_name: basic.character_class,
@@ -36,15 +23,7 @@ router.get('/search', async (req, res) => {
     }]);
     res.json(character);
   } catch (err) {
-    const code = err.response?.data?.error?.name;
-    if (['OPENAPI00001', 'OPENAPI00007', 'OPENAPI00010', 'OPENAPI00011'].includes(code)) {
-      return res.status(503).json({ error: 'API 점검중입니다', code, maintenance: true });
-    }
-    if (err.response?.status === 400) {
-      return res.status(404).json({ error: '존재하지 않는 캐릭터입니다' });
-    }
-    console.error('캐릭터 조회 오류:', err.response?.data || err.message);
-    res.status(500).json({ error: '캐릭터 조회 실패' });
+    handleNexonError(err, res, { label: '캐릭터 조회 오류', notFound: '존재하지 않는 캐릭터입니다', failMsg: '캐릭터 조회 실패' });
   }
 });
 
@@ -107,19 +86,11 @@ router.get('/symbols', async (req, res) => {
 
   try {
     const [symbolRes, skillRes, schedRes] = await Promise.all([
-      axios.get(`${NEXON_API_BASE}/maplestory/v1/character/symbol-equipment`, {
-        params: { ocid },
-        headers: { 'x-nxopen-api-key': process.env.NEXON_API_KEY },
-      }),
-      axios.get(`${NEXON_API_BASE}/maplestory/v1/character/skill`, {
-        params: { ocid, character_skill_grade: '0' },
-        headers: { 'x-nxopen-api-key': process.env.NEXON_API_KEY },
-      }).catch(() => ({ data: { character_skill: [] } })),
+      nexonGet('/maplestory/v1/character/symbol-equipment', { ocid }),
+      nexonGet('/maplestory/v1/character/skill', { ocid, character_skill_grade: '0' })
+        .catch(() => ({ data: { character_skill: [] } })),
       // 스케줄러: API 키 소유 계정의 캐릭터만 조회 가능 → 실패하면 null (일퀘 자동 체크 생략)
-      axios.get(`${NEXON_API_BASE}/maplestory/v1/scheduler/character-state`, {
-        params: { ocid },
-        headers: { 'x-nxopen-api-key': process.env.NEXON_API_KEY },
-      }).catch(() => null),
+      nexonGet('/maplestory/v1/scheduler/character-state', { ocid }).catch(() => null),
     ]);
     const data = symbolRes.data;
 
@@ -148,12 +119,7 @@ router.get('/symbols', async (req, res) => {
 
     res.json({ ocid, character_class: data.character_class, symbols: parsed, event_skill, artifact, daily_quests });
   } catch (err) {
-    const code = err.response?.data?.error?.name;
-    if (['OPENAPI00001', 'OPENAPI00007', 'OPENAPI00010', 'OPENAPI00011'].includes(code)) {
-      return res.status(503).json({ error: 'API 점검중입니다', code, maintenance: true });
-    }
-    console.error('심볼 조회 오류:', err.response?.data || err.message);
-    res.status(500).json({ error: '심볼 조회 실패' });
+    handleNexonError(err, res, { label: '심볼 조회 오류', failMsg: '심볼 조회 실패' });
   }
 });
 
@@ -163,61 +129,15 @@ router.get('/list', async (req, res) => {
   if (!key) return res.status(400).json({ error: 'API 키가 필요합니다' });
 
   try {
-    const { data } = await axios.get(`${NEXON_API_BASE}/maplestory/v1/character/list`, {
-      headers: { 'x-nxopen-api-key': key },
-    });
-
-    // 계정별 캐릭터를 하나로 합치고 월드 필터링 (스페셜/리부트 제외)
-    const characters = [];
-    for (const acc of data.account_list || []) {
-      for (const c of acc.character_list || []) {
-        const world = c.world_name || '';
-        if (world.includes('스페셜') || world.includes('리부트')) continue;
-        characters.push({
-          ocid: c.ocid,
-          character_name: c.character_name,
-          world_name: world,
-          job_name: c.character_class_name || c.character_class,
-          character_level: c.character_level,
-        });
-      }
-    }
-
-    characters.sort((a, b) => (b.character_level || 0) - (a.character_level || 0));
-
-    // 월드 아이콘 매핑 ("월드 : 월드명", "월드:월드명" 등 공백 유연하게 매칭)
-    const worldNames = [...new Set(characters.map((c) => c.world_name).filter(Boolean))];
-    if (worldNames.length) {
-      const images = await Image.findAll({
-        where: {
-          [Op.or]: [
-            { name: { [Op.like]: '월드%' } },
-            ...worldNames.map((w) => ({ name: w })),
-          ],
-        },
-      });
-      const worldIconMap = {};
-      for (const img of images) {
-        const m = img.name.match(/^월드\s*:\s*(.+)$/);
-        const key = m ? m[1].trim() : img.name.trim();
-        worldIconMap[key] = getPublicUrl(img.path);
-      }
-      for (const c of characters) {
-        c.world_icon = worldIconMap[c.world_name] || null;
-      }
-    }
-
+    const { data } = await nexonGet('/maplestory/v1/character/list', null, { apiKey: key });
+    const characters = await attachWorldIcons(extractAccountCharacters(data));
     res.json({ characters });
   } catch (err) {
     const code = err.response?.data?.error?.name;
-    if (['OPENAPI00001', 'OPENAPI00007', 'OPENAPI00010', 'OPENAPI00011'].includes(code)) {
-      return res.status(503).json({ error: 'API 점검중입니다', code, maintenance: true });
-    }
     if (err.response?.status === 401 || err.response?.status === 403 || code === 'OPENAPI00004') {
       return res.status(401).json({ error: '유효하지 않은 API 키입니다' });
     }
-    console.error('캐릭터 목록 조회 오류:', err.response?.data || err.message);
-    res.status(500).json({ error: '캐릭터 목록 조회 실패' });
+    handleNexonError(err, res, { label: '캐릭터 목록 조회 오류', failMsg: '캐릭터 목록 조회 실패' });
   }
 });
 
