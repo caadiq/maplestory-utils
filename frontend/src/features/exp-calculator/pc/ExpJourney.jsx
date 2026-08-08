@@ -68,7 +68,8 @@ export default function ExpJourney({
   // ── 차트 좌표 ── (계산은 ../journey 공용, 여기선 PC 크기만 정한다)
   // padL = y축 라벨 전용 여백(라벨 왼쪽 끝이 SVG 좌측 경계에 닿음), padR = 0 → 플롯 우측 끝이 SVG 경계와 일치.
   // SVG 박스 자체를 위 통계 스트립과 같은 폭으로 두므로 좌우 정렬이 맞는다.
-  const V = { W: 1000, H: 300, padL: 48, padR: 0, padT: 56, padB: 52 }
+  // 라벨 크기에는 viewBox 축소배율(약 0.94)이 곱해진다 — 화면에서 13px로 보이려면 14를 줘야 한다
+  const V = { W: 1000, H: 300, padL: 56, padR: 0, padT: 56, padB: 52 }
   const { coords, now, tgx, tgy, gridLevels, line, area, proj, projFill, Y } =
     chartGeometry({ history, level, expRate: char.exp_rate, targetLevel: result.target, nowMs, V })
   const reachable = result.days != null
@@ -140,7 +141,7 @@ export default function ExpJourney({
             <g key={lv}>
               <line x1={V.padL} y1={Y(lv)} x2={V.W - V.padR} y2={Y(lv)} stroke="var(--row-divider)" strokeWidth="1" strokeDasharray="3 4" />
               {/* 라벨은 좌측 여백 안에 우측정렬 + 그리드선과 수직 중앙 정렬 */}
-              <text x={V.padL - 8} y={Y(lv)} dominantBaseline="middle" textAnchor="end" fontSize="12.5" fill="var(--text-dim)">
+              <text x={V.padL - 9} y={Y(lv)} dominantBaseline="middle" textAnchor="end" fontSize="14" fill="var(--text-dim)">
                 Lv.{lv}
               </text>
             </g>
@@ -151,13 +152,13 @@ export default function ExpJourney({
           {reachable && <path d={proj} fill="none" stroke="#f0a828" strokeWidth="2.5" strokeDasharray="6 5" />}
           {/* x축 날짜: 과거 전부 + 오늘 + 목표 도달일 */}
           {coords.slice(0, -1).map((p) => (
-            <text key={p.date} x={p.x} y={V.H - V.padB + 20} fontSize="12.5" fill="var(--text-dim)" textAnchor="middle">
+            <text key={p.date} x={p.x} y={V.H - V.padB + 22} fontSize="14" fill="var(--text-dim)" textAnchor="middle">
               {mdLabel(p.date)}
             </text>
           ))}
-          <text x={now.x} y={V.H - V.padB + 20} fontSize="12.5" fill="var(--accent-bright)" textAnchor="middle" fontWeight="700">오늘</text>
+          <text x={now.x} y={V.H - V.padB + 22} fontSize="14" fill="var(--accent-bright)" textAnchor="middle" fontWeight="700">오늘</text>
           {goalDateObj && (
-            <text x={tgx} y={V.H - V.padB + 20} fontSize="12.5" fill="#c8890f" textAnchor="end" fontWeight="700">
+            <text x={tgx} y={V.H - V.padB + 22} fontSize="14" fill="#c8890f" textAnchor="end" fontWeight="700">
               {goalDateObj.getMonth() + 1}/{goalDateObj.getDate()}
             </text>
           )}
@@ -176,7 +177,7 @@ export default function ExpJourney({
           {reachable && <circle cx={tgx} cy={tgy} r="7" fill="#f0a828" stroke="var(--panel-bg)" strokeWidth="3" />}
           {/* 예상 라벨 */}
           {reachable && result.days > 0 && (
-            <text x={(now.x + tgx) / 2} y={(now.y + tgy) / 2 - 10} fontSize="12" fill="#c8890f" textAnchor="middle" fontWeight="700"
+            <text x={(now.x + tgx) / 2} y={(now.y + tgy) / 2 - 11} fontSize="13" fill="#c8890f" textAnchor="middle" fontWeight="700"
               transform={`rotate(-6 ${(now.x + tgx) / 2} ${(now.y + tgy) / 2 - 10})`}>
               예상 +{result.days}일
             </text>
