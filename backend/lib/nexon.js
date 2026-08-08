@@ -5,16 +5,29 @@ export const NEXON_API_BASE = 'https://open.api.nexon.com';
 // 점검/일시 오류 코드 — 이 경우 503 + maintenance 플래그로 응답한다
 export const MAINTENANCE_CODES = ['OPENAPI00001', 'OPENAPI00007', 'OPENAPI00010', 'OPENAPI00011'];
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 /**
  * 넥슨 OpenAPI GET.
  * @param apiKey 미지정 시 서버 키(NEXON_API_KEY) 사용. 사용자 제공 키가 있으면 넘긴다.
+ * @param retry  429(rate limit) 시 지수 백오프로 재시도할 횟수 (기본 0 = 재시도 안 함)
  */
-export function nexonGet(path, params, { apiKey, timeout = 10000 } = {}) {
-  return axios.get(`${NEXON_API_BASE}${path}`, {
-    params,
-    headers: { 'x-nxopen-api-key': apiKey || process.env.NEXON_API_KEY },
-    timeout,
-  });
+export async function nexonGet(path, params, { apiKey, timeout = 10000, retry = 0 } = {}) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await axios.get(`${NEXON_API_BASE}${path}`, {
+        params,
+        headers: { 'x-nxopen-api-key': apiKey || process.env.NEXON_API_KEY },
+        timeout,
+      });
+    } catch (err) {
+      if (err.response?.status === 429 && attempt < retry) {
+        await sleep(400 * 2 ** attempt);
+        continue;
+      }
+      throw err;
+    }
+  }
 }
 
 /** 닉네임 → ocid */
