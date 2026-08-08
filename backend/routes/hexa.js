@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { attachWorldIcons } from '../services/character.js';
 import { nexonGet, getOcid, handleNexonError } from '../lib/nexon.js';
+import { parseCores } from '../services/hexa.js';
 
 const router = Router();
 
@@ -25,34 +26,7 @@ router.get('/lookup', async (req, res) => {
       nexonGet('/maplestory/v1/character/skill', { ocid, character_skill_grade: 6 }),
     ]);
 
-    const iconBySkill = new Map(
-      (skill6.character_skill || []).map((s) => [s.skill_name, s.skill_icon]),
-    );
-
-    /*
-     * 아이콘 후보를 넓게 시도한다. 코어에 따라 이름 규칙이 제각각이다 —
-     * 렌의 "창룡파천검 : 일매낙화 천비인적"은 linked_skill이 "…-낙화/-진천/-천강"으로
-     * 갈라져 있는데 6차 스킬 목록에는 코어명 그대로만 있다.
-     */
-    const findIcon = (c) => {
-      const candidates = [c.hexa_core_name];
-      for (const l of c.linked_skill || []) {
-        const id = l.hexa_skill_id || '';
-        candidates.push(id, `${id} VI`, id.replace(/-[^-]*$/, ''));
-      }
-      for (const name of candidates) {
-        const icon = iconBySkill.get(name);
-        if (icon) return icon;
-      }
-      return null;
-    };
-
-    const cores = (hexa.character_hexa_core_equipment || []).map((c) => ({
-      name: c.hexa_core_name,
-      type: c.hexa_core_type,             // 스킬 코어 | 마스터리 코어 | 강화 코어 | 공용 코어
-      level: c.hexa_core_level,
-      icon: findIcon(c),
-    }));
+    const cores = parseCores(hexa, skill6);
 
     const [character] = await attachWorldIcons([{
       ocid,
