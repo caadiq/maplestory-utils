@@ -105,7 +105,7 @@ function TwoLineRow({ icon, label, control, note, value, valueColor, locked }) {
   return (
     <div className={`pt-2 border-t first:border-t-0 first:pt-0 ${locked ? 'opacity-45' : ''}`}
       style={{ borderColor: 'var(--row-divider)' }}>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <Ico id={icon} size={22} />
         <span className="text-[13px] truncate" style={{ color: 'var(--text-muted)' }}>{label}</span>
         {!locked && <span className="ml-auto shrink-0">{control}</span>}
@@ -519,22 +519,22 @@ export default function MobileExpCalculator() {
                     return (
                       <button key={c.id || c.character_name} type="button"
                         onClick={() => selectCharacter(c.character_name)}
-                        className="relative shrink-0 rounded-2xl border p-2 pr-8 text-left active:scale-[0.98] transition-transform"
+                        className="relative shrink-0 rounded-2xl border p-3 pr-9 text-left active:scale-[0.98] transition-transform"
                         style={active
                           ? { background: 'var(--mpl-card)', borderColor: 'transparent', boxShadow: 'inset 0 0 0 2px var(--selected-border), 0 3px 10px rgba(134,201,62,.25)' }
                           : { background: 'var(--mpl-card)', borderColor: 'transparent', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-11 h-11 rounded-lg overflow-hidden shrink-0 flex items-center justify-center" style={{ background: 'var(--surface-nested)' }}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 flex items-center justify-center" style={{ background: 'var(--surface-nested)' }}>
                             {c.character_image
                               ? <img src={c.character_image} alt="" className="w-full h-full object-contain scale-[2.1] origin-center select-none" style={{ imageRendering: 'pixelated' }} draggable={false} loading="lazy" decoding="async" />
-                              : <span className="text-xl" style={{ color: 'var(--text-dim)' }}>?</span>}
+                              : <span className="text-2xl" style={{ color: 'var(--text-dim)' }}>?</span>}
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1 min-w-0">
-                              {c.world_icon && <img src={c.world_icon} alt="" className="w-4 h-4 shrink-0 object-contain" style={{ imageRendering: 'pixelated' }} />}
-                              <div className="text-sm font-semibold truncate max-w-[8rem]" style={{ color: active ? 'var(--accent-bright)' : 'var(--text-strong)' }}>{c.character_name}</div>
+                              {c.world_icon && <img src={c.world_icon} alt="" className="w-5 h-5 shrink-0 object-contain" style={{ imageRendering: 'pixelated' }} />}
+                              <div className="text-base font-semibold truncate max-w-[9rem]" style={{ color: active ? 'var(--accent-bright)' : 'var(--text-strong)' }}>{c.character_name}</div>
                             </div>
-                            <div className="text-[11px] truncate max-w-[8rem]" style={{ color: 'var(--text-dim)' }}>Lv.{c.character_level} · {c.job_name}</div>
+                            <div className="text-xs truncate max-w-[9rem] mt-0.5" style={{ color: 'var(--text-dim)' }}>Lv.{c.character_level} · {c.job_name}</div>
                           </div>
                         </div>
                         <span role="button" tabIndex={-1}
