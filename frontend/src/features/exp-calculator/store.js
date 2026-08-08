@@ -4,7 +4,7 @@ import { defaultSettings } from './logic'
 /**
  * 경험치 계산기 상태.
  * characters: [{ id(ocid), character_name, world_name, world_icon, job_name,
- *                character_level, character_image, exp_rate, artifact_exp }]
+ *                character_level, character_image, exp_rate }]
  * selectedName: 선택된 캐릭터 닉네임
  * settings: { [ocid]: 캐릭터별 입력값 (logic.defaultSettings) }
  *

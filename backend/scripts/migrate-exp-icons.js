@@ -35,7 +35,6 @@ const NAMES = {
   hunt: '정령의 펜던트',
   mp: '몬스터파크 이용권',
   mp_extreme: '익스트림 몬스터파크',
-  mp_hands: '몬스터파크 핸즈',
   ed_highmountain: '에픽던전 : 하이마운틴',
   ed_angler: '에픽던전 : 앵글러 컴퍼니',
   ed_nightmare: '에픽던전 : 악몽선경',

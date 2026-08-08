@@ -312,16 +312,3 @@ export function fmtPct(p) {
   if (p >= 0.01) return `${p.toFixed(4)}%`
   return `${p.toFixed(4)}%`
 }
-
-/** 조 단위 축약 (남은 경험치 표시용) */
-export function fmtTrillion(abs) {
-  if (abs >= 1e12) return `${(abs / 1e12).toFixed(1)}조`
-  if (abs >= 1e8) return `${(abs / 1e8).toFixed(0)}억`
-  return abs.toLocaleString()
-}
-
-export function remainingToLevel(data, char, targetLevel) {
-  let sum = -((char.exp_rate / 100) * lvExp(data, char.character_level))
-  for (let L = char.character_level; L < targetLevel; L++) sum += lvExp(data, L)
-  return Math.max(0, sum)
-}
