@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from 'react'
-import { useQuery, useMutation, keepPreviousData } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../../api/client'
 import { useAuth } from '../../../hooks/useAuth'
@@ -10,6 +10,7 @@ import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import CharacterChip from '../../../components/common/CharacterChip'
 import { charRevenue } from '../../boss-crystal/logic'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
+import { useCharacterLookup } from '../../../hooks/useCharacterLookup'
 import { useHexaStore, hexaInitial } from '../store'
 import {
   withCosts, isHuntingCore,
@@ -42,21 +43,11 @@ export default function MobileHexaMatrix() {
   const [confirmRemove, setConfirmRemove] = useState(null)
   const addAnchorRef = useRef(null)
 
-  const { data: hexaData, error: hexaError } = useQuery({
+  const { data: hexaData, error: hexaError } = useCharacterLookup({
     queryKey: ['hexa', selectedName],
-    queryFn: async () => {
-      const data = await api(`/api/hexa/lookup?name=${encodeURIComponent(selectedName)}`)
-      try { localStorage.setItem(`maple.hexa.data.${selectedName}`, JSON.stringify(data)) } catch { /* noop */ }
-      return data
-    },
+    cacheKey: `maple.hexa.data.${selectedName}`,
+    endpoint: `/api/hexa/lookup?name=${encodeURIComponent(selectedName)}`,
     enabled: hydrated && !!selectedName,
-    staleTime: 10 * 60 * 1000,
-    retry: false,
-    placeholderData: keepPreviousData,
-    initialData: () => {
-      try { return JSON.parse(localStorage.getItem(`maple.hexa.data.${selectedName}`)) || undefined } catch { return undefined }
-    },
-    initialDataUpdatedAt: 0,
   })
 
   const searchMutation = useMutation({

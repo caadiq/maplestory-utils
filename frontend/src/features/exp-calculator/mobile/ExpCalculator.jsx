@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect, createContext, useContext } from 'react'
-import { useQuery, useMutation, keepPreviousData } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../../api/client'
 import MapleWindow from '../../../components/pc/MapleWindow'
@@ -8,6 +8,7 @@ import CharacterSuggestDropdown from '../../../components/common/CharacterSugges
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import CharacterChip from '../../../components/common/CharacterChip'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
+import { useCharacterLookup } from '../../../hooks/useCharacterLookup'
 import { useExpStore, expInitialState } from '../store'
 import { NumInput } from '../../../components/common/widgets'
 import {
@@ -386,21 +387,11 @@ export default function MobileExpCalculator() {
     onError: (err) => setAddError(err.message || '조회 실패'),
   })
 
-  const { data: lookup } = useQuery({
+  const { data: lookup } = useCharacterLookup({
     queryKey: ['exp', 'lookup', selectedName],
-    queryFn: async () => {
-      const res = await api(`/api/exp/lookup?name=${encodeURIComponent(selectedName)}`)
-      try { localStorage.setItem(`maple.exp.data.${selectedName}`, JSON.stringify(res)) } catch { /* noop */ }
-      return res
-    },
+    cacheKey: `maple.exp.data.${selectedName}`,
+    endpoint: `/api/exp/lookup?name=${encodeURIComponent(selectedName)}`,
     enabled: hydrated && !!selectedName,
-    staleTime: 10 * 60 * 1000,
-    retry: false,
-    placeholderData: keepPreviousData,
-    initialData: () => {
-      try { return JSON.parse(localStorage.getItem(`maple.exp.data.${selectedName}`)) || undefined } catch { return undefined }
-    },
-    initialDataUpdatedAt: 0,
   })
 
   useEffect(() => {

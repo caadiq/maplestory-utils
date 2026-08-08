@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from 'react'
-import { useQuery, useMutation, keepPreviousData } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import { useAuth } from '../../../hooks/useAuth'
 import MapleWindow from '../../../components/pc/MapleWindow'
@@ -13,6 +13,7 @@ import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import CharacterCard from '../../symbol/pc/user/CharacterCard'
 import { charRevenue } from '../../boss-crystal/logic'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
+import { useCharacterLookup } from '../../../hooks/useCharacterLookup'
 import { useHexaStore, hexaInitial } from '../store'
 import {
   withCosts, isHuntingCore,
@@ -49,21 +50,11 @@ export default function HexaMatrix() {
    * 마지막 응답을 로컬에 저장해 새로고침 직후에도 로더 없이 곧바로 그리고(깜빡임 방지),
    * 뒤에서 최신 데이터로 갱신한다. 캐릭터 전환 때도 이전 화면을 유지한다.
    */
-  const { data: hexaData, isFetching, error: hexaError } = useQuery({
+  const { data: hexaData, isFetching, error: hexaError } = useCharacterLookup({
     queryKey: ['hexa', selectedName],
-    queryFn: async () => {
-      const data = await api(`/api/hexa/lookup?name=${encodeURIComponent(selectedName)}`)
-      try { localStorage.setItem(`maple.hexa.data.${selectedName}`, JSON.stringify(data)) } catch { /* noop */ }
-      return data
-    },
+    cacheKey: `maple.hexa.data.${selectedName}`,
+    endpoint: `/api/hexa/lookup?name=${encodeURIComponent(selectedName)}`,
     enabled: hydrated && !!selectedName,
-    staleTime: 10 * 60 * 1000,
-    retry: false,
-    placeholderData: keepPreviousData,
-    initialData: () => {
-      try { return JSON.parse(localStorage.getItem(`maple.hexa.data.${selectedName}`)) || undefined } catch { return undefined }
-    },
-    initialDataUpdatedAt: 0, // 캐시는 즉시 그리되 항상 뒤에서 재조회
   })
 
   const searchMutation = useMutation({
