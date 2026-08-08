@@ -1,5 +1,5 @@
-import { useState, useRef, useMemo } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useState, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import { useAuth } from '../../../hooks/useAuth'
 import MapleWindow from '../../../components/pc/MapleWindow'
@@ -14,6 +14,7 @@ import CharacterCard from '../../symbol/pc/user/CharacterCard'
 import { charRevenue } from '../../boss-crystal/logic'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import { useCharacterLookup } from '../../../hooks/useCharacterLookup'
+import { useCharacterRoster } from '../../../hooks/useCharacterRoster'
 import { useHexaStore, hexaInitial } from '../store'
 import {
   withCosts, isHuntingCore,
@@ -39,11 +40,14 @@ export default function HexaMatrix() {
   const setCharacters = useHexaStore((s) => s.setCharacters)
   const selectCharacter = useHexaStore((s) => s.selectCharacter)
   const set = useHexaStore((s) => s.setSettings)
-  const [addName, setAddName] = useState('')
-  const [addError, setAddError] = useState('')
-  const [dropdownOpen, setDropdownOpen] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(null)
-  const addAnchorRef = useRef(null)
+  const {
+    addName, setAddName, addError, setAddError,
+    dropdownOpen, setDropdownOpen, addAnchorRef, searchMutation, handleSearch,
+  } = useCharacterRoster({
+    endpoint: (name) => `/api/hexa/lookup?name=${encodeURIComponent(name)}`,
+    onResult: (data) => { addCharacter(data.character) },
+  })
 
   /*
    * 선택 캐릭터의 헥사 코어.
@@ -56,25 +60,6 @@ export default function HexaMatrix() {
     endpoint: `/api/hexa/lookup?name=${encodeURIComponent(selectedName)}`,
     enabled: hydrated && !!selectedName,
   })
-
-  const searchMutation = useMutation({
-    mutationFn: (name) => api(`/api/hexa/lookup?name=${encodeURIComponent(name)}`),
-    onSuccess: (data) => {
-      const name = data.character.character_name
-      setAddError('')
-      setAddName('')
-      void name
-      addCharacter(data.character)
-    },
-    onError: (err) => setAddError(err.message || '조회 실패'),
-  })
-
-  const handleSearch = (e) => {
-    e.preventDefault()
-    const n = addName.trim()
-    if (!n) return
-    searchMutation.mutate(n)
-  }
 
   // 주간 보스 수익 (로그인 + 보스 계산기 상태가 있을 때만)
   const { data: bossState } = useQuery({

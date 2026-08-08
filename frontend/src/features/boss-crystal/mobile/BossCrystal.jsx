@@ -1,9 +1,10 @@
-import { useState, useRef, useMemo } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useState, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../../api/client'
 import { useBossStore, bossInitialState } from '../store'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
+import { useCharacterRoster } from '../../../hooks/useCharacterRoster'
 import CharacterSuggestDropdown from '../../../components/common/CharacterSuggestDropdown'
 import CharacterChip from '../../../components/common/CharacterChip'
 import Select from '../../../components/common/Select'
@@ -29,32 +30,17 @@ export default function BossCrystal() {
     queryFn: () => api('/api/boss-crystal/bosses').catch(() => []),
   })
 
-  const [name, setName] = useState('')
-  const [error, setError] = useState('')
-  const [dropdownOpen, setDropdownOpen] = useState(false)
   const [priceOpen, setPriceOpen] = useState(false)
-  const addAnchorRef = useRef(null)
-
-  const searchMutation = useMutation({
-    mutationFn: (n) => api(`/api/character/search?name=${encodeURIComponent(n)}`),
-    onSuccess: (data) => {
-      if (characters.find((c) => c.character_name === data.character_name)) {
-        setError('이미 추가된 캐릭터입니다')
-        return
-      }
+  const {
+    addName: name, setAddName: setName, addError: error, setAddError: setError,
+    dropdownOpen, setDropdownOpen, addAnchorRef, searchMutation, handleSearch: handleAdd,
+  } = useCharacterRoster({
+    endpoint: (n) => `/api/character/search?name=${encodeURIComponent(n)}`,
+    onResult: (data) => {
+      if (characters.find((c) => c.character_name === data.character_name)) return '이미 추가된 캐릭터입니다'
       addCharacter(data)
-      setName('')
-      setError('')
     },
-    onError: (err) => setError(err.message),
   })
-
-  const handleAdd = (e) => {
-    e.preventDefault()
-    if (!name.trim()) return
-    setError('')
-    searchMutation.mutate(name.trim())
-  }
 
   const { totalCount, totalRevenue } = useMemo(() => {
     let tc = 0, tr = 0

@@ -1,5 +1,5 @@
-import { useState, useRef, useMemo, useEffect, createContext, useContext } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useState, useMemo, useEffect, createContext, useContext } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../../api/client'
 import MapleWindow from '../../../components/pc/MapleWindow'
@@ -9,6 +9,7 @@ import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import CharacterChip from '../../../components/common/CharacterChip'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import { useCharacterLookup } from '../../../hooks/useCharacterLookup'
+import { useCharacterRoster } from '../../../hooks/useCharacterRoster'
 import { useExpStore, expInitialState } from '../store'
 import { NumInput } from '../../../components/common/widgets'
 import {
@@ -357,11 +358,14 @@ export default function MobileExpCalculator() {
   const selectCharacter = useExpStore((s) => s.selectCharacter)
   const patchSettings = useExpStore((s) => s.patchSettings)
 
-  const [addName, setAddName] = useState('')
-  const [addError, setAddError] = useState('')
-  const [dropdownOpen, setDropdownOpen] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(null)
-  const addAnchorRef = useRef(null)
+  const {
+    addName, setAddName, addError, setAddError,
+    dropdownOpen, setDropdownOpen, addAnchorRef, searchMutation, handleSearch,
+  } = useCharacterRoster({
+    endpoint: (name) => `/api/exp/lookup?name=${encodeURIComponent(name)}`,
+    onResult: (res) => { addCharacter({ ...res.character, exp_rate: res.exp_rate }) },
+  })
 
   const { data } = useQuery({
     queryKey: ['exp', 'data'],
@@ -376,16 +380,6 @@ export default function MobileExpCalculator() {
     staleTime: 30 * 60 * 1000,
   })
   const sundaySpecialWeek = sunday?.available && sunday.variant === 'special'
-
-  const searchMutation = useMutation({
-    mutationFn: (name) => api(`/api/exp/lookup?name=${encodeURIComponent(name)}`),
-    onSuccess: (res) => {
-      setAddError('')
-      setAddName('')
-      addCharacter({ ...res.character, exp_rate: res.exp_rate })
-    },
-    onError: (err) => setAddError(err.message || '조회 실패'),
-  })
 
   const { data: lookup } = useCharacterLookup({
     queryKey: ['exp', 'lookup', selectedName],
@@ -402,12 +396,6 @@ export default function MobileExpCalculator() {
         : c
     )))
   }, [lookup]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleSearch = (e) => {
-    e.preventDefault()
-    const n = addName.trim()
-    if (n) searchMutation.mutate(n)
-  }
 
   const stored = characters.find((c) => c.character_name === selectedName) || null
   const fresh = lookup?.character?.character_name === selectedName ? lookup : null

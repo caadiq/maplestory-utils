@@ -1,9 +1,10 @@
-import { useState, useRef, useMemo } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useState, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../../api/client'
 import { useSymbolStore, symbolInitialState } from '../store'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
+import { useCharacterRoster } from '../../../hooks/useCharacterRoster'
 import { useSymbolCharacterSync } from '../useSymbolCharacterSync'
 import { symbolMetrics } from '../logic'
 import { formatKoreanDate, TYPE_ORDER } from '../utils'
@@ -44,32 +45,17 @@ export default function Symbol() {
 
   useSymbolCharacterSync(allSymbols)
 
-  const [addName, setAddName] = useState('')
-  const [addError, setAddError] = useState('')
-  const [dropdownOpen, setDropdownOpen] = useState(false)
   const [levelSheetOpen, setLevelSheetOpen] = useState(false)
-  const addAnchorRef = useRef(null)
-
-  const searchMutation = useMutation({
-    mutationFn: (name) => api(`/api/character/search?name=${encodeURIComponent(name)}`),
-    onSuccess: (data) => {
-      if (characters.find((c) => c.character_name === data.character_name)) {
-        setAddError('이미 추가된 캐릭터입니다')
-        return
-      }
-      setAddError('')
-      setAddName('')
+  const {
+    addName, setAddName, addError, setAddError,
+    dropdownOpen, setDropdownOpen, addAnchorRef, searchMutation, handleSearch,
+  } = useCharacterRoster({
+    endpoint: (name) => `/api/character/search?name=${encodeURIComponent(name)}`,
+    onResult: (data) => {
+      if (characters.find((c) => c.character_name === data.character_name)) return '이미 추가된 캐릭터입니다'
       addCharacter(data)
     },
-    onError: (err) => setAddError(err.message || '조회 실패'),
   })
-  const handleSearch = (e) => {
-    e.preventDefault()
-    const n = addName.trim()
-    if (!n) return
-    setAddError('')
-    searchMutation.mutate(n)
-  }
 
   const progress = useSymbolStore((s) => s.progress[selectedCharId])
   const isEquipped = (id) => !!progress?.[id]?.equipped

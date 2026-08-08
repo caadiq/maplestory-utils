@@ -1,5 +1,5 @@
-import { useState, useLayoutEffect, useMemo, useRef } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useState, useLayoutEffect, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Reorder } from 'framer-motion'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../../api/client'
@@ -12,6 +12,7 @@ import { formatMeso } from '../../../utils/formatting'
 import { formatKoreanDate, TYPE_ORDER } from '../utils'
 import { symbolMetrics } from '../logic'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
+import { useCharacterRoster } from '../../../hooks/useCharacterRoster'
 import { useSymbolCharacterSync } from '../useSymbolCharacterSync'
 import PageLoader from '../../../components/common/PageLoader'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
@@ -61,37 +62,21 @@ export default function Symbol() {
   // 캐릭터 기본정보·장착 심볼 동기화 (PC·모바일 공용 훅)
   useSymbolCharacterSync(allSymbols)
 
-  const [addName, setAddName] = useState('')
-  const [addError, setAddError] = useState('')
-  const [dropdownOpen, setDropdownOpen] = useState(false)
   const [levelTableOpen, setLevelTableOpen] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(null)
-  const addAnchorRef = useRef(null)
+  const {
+    addName, setAddName, addError, setAddError,
+    dropdownOpen, setDropdownOpen, addAnchorRef, searchMutation, handleSearch,
+  } = useCharacterRoster({
+    endpoint: (name) => `/api/character/search?name=${encodeURIComponent(name)}`,
+    onResult: (data) => {
+      if (characters.find((c) => c.character_name === data.character_name)) return '이미 추가된 캐릭터입니다'
+      addCharacter(data)
+    },
+  })
 
   const symbols = allSymbols.filter((s) => s.type === tab)
   const tabInfo = tabs.find((t) => t.key === tab)
-
-  const searchMutation = useMutation({
-    mutationFn: (name) => api(`/api/character/search?name=${encodeURIComponent(name)}`),
-    onSuccess: (data) => {
-      if (characters.find((c) => c.character_name === data.character_name)) {
-        setAddError('이미 추가된 캐릭터입니다')
-        return
-      }
-      setAddError('')
-      setAddName('')
-      addCharacter(data)
-    },
-    onError: (err) => setAddError(err.message || '조회 실패'),
-  })
-
-  const handleSearch = (e) => {
-    e.preventDefault()
-    const n = addName.trim()
-    if (!n) return
-    setAddError('')
-    searchMutation.mutate(n)
-  }
 
   const progress = useSymbolStore((s) => s.progress[selectedCharId])
   const isEquipped = (symbolId) => !!progress?.[symbolId]?.equipped

@@ -1,5 +1,4 @@
-import { useState, useRef } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Reorder, useDragControls } from 'framer-motion'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../../../api/client'
@@ -7,6 +6,7 @@ import ConfirmDialog from '../../../../components/common/ConfirmDialog'
 import Tooltip from '../../../../components/common/Tooltip'
 import CharacterSuggestDropdown from '../../../../components/common/CharacterSuggestDropdown'
 import { useFitText } from '../../../../hooks/useFitText'
+import { useCharacterRoster } from '../../../../hooks/useCharacterRoster'
 import { DIFFICULTIES, formatMeso, getDifficultyBadgeStyle } from '../admin/constants'
 import { MAX_PER_CHARACTER, MAX_PER_ACCOUNT, charRevenue, isSeasonActive } from '../../logic'
 
@@ -232,32 +232,17 @@ export default function CharacterPanel({
   characters, selectedName, allSelections, bosses,
   onSelect, onAdd, onRemove, onReorder,
 }) {
-  const [name, setName] = useState('')
-  const [error, setError] = useState('')
   const [confirmRemove, setConfirmRemove] = useState(null)
-  const [dropdownOpen, setDropdownOpen] = useState(false)
-  const addAnchorRef = useRef(null)
-
-  const searchMutation = useMutation({
-    mutationFn: (n) => api(`/api/character/search?name=${encodeURIComponent(n)}`),
-    onSuccess: (data) => {
-      if (characters.find((c) => c.character_name === data.character_name)) {
-        setError('이미 추가된 캐릭터입니다')
-        return
-      }
+  const {
+    addName: name, setAddName: setName, addError: error, setAddError: setError,
+    dropdownOpen, setDropdownOpen, addAnchorRef, searchMutation, handleSearch: handleSubmit,
+  } = useCharacterRoster({
+    endpoint: (n) => `/api/character/search?name=${encodeURIComponent(n)}`,
+    onResult: (data) => {
+      if (characters.find((c) => c.character_name === data.character_name)) return '이미 추가된 캐릭터입니다'
       onAdd(data)
-      setName('')
-      setError('')
     },
-    onError: (err) => setError(err.message),
   })
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (!name.trim()) return
-    setError('')
-    searchMutation.mutate(name.trim())
-  }
 
   // 총합 계산
   const charResults = characters.map((char) => charRevenue(char.character_name, allSelections, bosses))
