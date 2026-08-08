@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import axios from 'axios';
+import { nexonGet as nexonRequest } from '../lib/nexon.js';
 import { Op } from 'sequelize';
 import { requireAuth } from '../middleware/session.js';
 import { Image, EnchantHistoryCache } from '../models/index.js';
@@ -7,7 +8,6 @@ import { getPublicUrl } from '../lib/s3.js';
 
 const router = Router();
 
-const NEXON_BASE = 'https://open.api.nexon.com/maplestory/v1/history';
 const TYPES = {
   starforce: { path: 'starforce', listKey: 'starforce_history' },
   cube: { path: 'cube', listKey: 'cube_history' },
@@ -18,26 +18,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // 넥슨은 최근 약 2년(729일)치만 제공 — 그보다 과거는 400을 반환하므로 요청하지 않는다
 const MAX_HISTORY_DAYS = 728;
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-/** 넥슨 GET — 429(rate limit) 시 지수 백오프 재시도 */
-async function nexonGet(url, params) {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      const { data } = await axios.get(url, {
-        params,
-        headers: { 'x-nxopen-api-key': process.env.NEXON_API_KEY },
-      });
-      return data;
-    } catch (err) {
-      if (err.response?.status === 429 && attempt < 5) {
-        await sleep(400 * Math.pow(2, attempt));
-        continue;
-      }
-      throw err;
-    }
-  }
-}
+// 넥슨 GET — 429 시 지수 백오프(lib/nexon). 이력 API를 여러 번 치므로 본문만 바로 반환한다.
+const nexonGet = (path, params) => nexonRequest(path, params, { retry: 5 }).then((r) => r.data);
 
 function todayKST() {
   return new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
@@ -55,7 +37,7 @@ async function fetchDayFromNexon(type, date) {
   let cursor = null;
   for (let i = 0; i < 30; i++) {
     const params = cursor ? { count: 1000, cursor } : { count: 1000, date };
-    const data = await nexonGet(`${NEXON_BASE}/${path}`, params);
+    const data = await nexonGet(`/maplestory/v1/history/${path}`, params);
     items.push(...(data[listKey] || []));
     cursor = data.next_cursor;
     if (!cursor) break;
@@ -147,13 +129,13 @@ async function fetchCharacterInfo(characterName) {
 
   let ocid = ocidCache.get(characterName);
   if (!ocid) {
-    const idData = await nexonGet('https://open.api.nexon.com/maplestory/v1/id', { character_name: characterName });
+    const idData = await nexonGet('/maplestory/v1/id', { character_name: characterName });
     ocid = idData.ocid;
     ocidCache.set(characterName, ocid);
   }
   const [equip, basic] = await Promise.all([
-    nexonGet('https://open.api.nexon.com/maplestory/v1/character/item-equipment', { ocid }).catch(() => null),
-    nexonGet('https://open.api.nexon.com/maplestory/v1/character/basic', { ocid }).catch(() => null),
+    nexonGet('/maplestory/v1/character/item-equipment', { ocid }).catch(() => null),
+    nexonGet('/maplestory/v1/character/basic', { ocid }).catch(() => null),
   ]);
   const icons = {};
   const levels = {};
@@ -192,7 +174,7 @@ async function fetchAccountIcons() {
   const icons = {};
   const levels = {};
   try {
-    const list = await nexonGet('https://open.api.nexon.com/maplestory/v1/character/list', {});
+    const list = await nexonGet('/maplestory/v1/character/list', {});
     const ocids = [];
     for (const acc of list.account_list || []) {
       for (const c of acc.character_list || []) {
@@ -203,7 +185,7 @@ async function fetchAccountIcons() {
     for (let i = 0; i < ocids.length; i += 4) {
       const chunk = ocids.slice(i, i + 4);
       const results = await Promise.all(chunk.map((ocid) =>
-        nexonGet('https://open.api.nexon.com/maplestory/v1/character/item-equipment', { ocid }).catch(() => null)
+        nexonGet('/maplestory/v1/character/item-equipment', { ocid }).catch(() => null)
       ));
       for (const equip of results) {
         if (!equip) continue;

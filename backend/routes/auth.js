@@ -1,14 +1,12 @@
 import { Router } from 'express';
 import crypto from 'crypto';
-import axios from 'axios';
 import { User, Session, UserCharacter } from '../models/index.js';
 import { sequelize } from '../lib/db.js';
 import { extractAccountCharacters } from '../services/character.js';
 import { parseCookies, buildSessionCookie, sessionExpiry } from '../middleware/session.js';
+import { nexonGet, MAINTENANCE_CODES } from '../lib/nexon.js';
 
 const router = Router();
-const NEXON_API_BASE = 'https://open.api.nexon.com';
-const MAINTENANCE_CODES = ['OPENAPI00001', 'OPENAPI00007', 'OPENAPI00010', 'OPENAPI00011'];
 
 function publicUser(user) {
   return { id: user.id, nickname: user.nickname, is_admin: user.is_admin };
@@ -21,9 +19,7 @@ router.post('/login', async (req, res) => {
   if (!nexonKey) return res.status(400).json({ error: 'API 키가 필요합니다' });
 
   try {
-    const { data } = await axios.get(`${NEXON_API_BASE}/maplestory/v1/character/list`, {
-      headers: { 'x-nxopen-api-key': nexonKey },
-    });
+    const { data } = await nexonGet('/maplestory/v1/character/list', null, { apiKey: nexonKey });
 
     // 계정 캐릭터 추출 후 최고 레벨을 계정 대표로
     const accountChars = extractAccountCharacters(data);

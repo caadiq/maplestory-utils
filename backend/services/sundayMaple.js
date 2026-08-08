@@ -3,13 +3,13 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
 import timezone from 'dayjs/plugin/timezone.js';
 import { SundayMaple } from '../models/index.js';
+import { nexonGet } from '../lib/nexon.js';
 import { uploadObject, getPublicUrl } from '../lib/s3.js';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 const KST = 'Asia/Seoul';
 
-const NEXON_API_BASE = 'https://open.api.nexon.com';
 const RUSTFS_PREFIX = 'sunday';
 
 /**
@@ -49,9 +49,7 @@ export function isInSundayWindow(now = dayjs().tz(KST)) {
  * Nexon 이벤트 API에서 이번 주 썬데이 메이플 항목 찾기
  */
 async function findSundayPost() {
-  const { data } = await axios.get(`${NEXON_API_BASE}/maplestory/v1/notice-event`, {
-    headers: { 'x-nxopen-api-key': process.env.NEXON_API_KEY },
-  });
+  const { data } = await nexonGet('/maplestory/v1/notice-event');
   const list = data.event_notice || [];
   const weekStart = currentWeekFriday();
   // 제목 매칭 + 이번 주 시작
