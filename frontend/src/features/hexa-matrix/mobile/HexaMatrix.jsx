@@ -7,6 +7,7 @@ import MapleWindow from '../../../components/pc/MapleWindow'
 import Select from '../../../components/common/Select'
 import CharacterSuggestDropdown from '../../../components/common/CharacterSuggestDropdown'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
+import CharacterChip from '../../../components/common/CharacterChip'
 import { charRevenue } from '../../boss-crystal/logic'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import { useHexaStore, hexaInitial } from '../store'
@@ -168,46 +169,15 @@ export default function MobileHexaMatrix() {
             defer
           >
             <div className="flex w-max gap-2.5 px-3.5 pt-0.5 pb-2">
-              {characters.map((c) => {
-                const active = c.character_name === selectedName
-                return (
-                  <button
-                    key={c.id || c.character_name}
-                    type="button"
-                    onClick={() => selectCharacter(c.character_name)}
-                    className="relative shrink-0 rounded-2xl border p-3 pr-9 text-left active:scale-[0.98] transition-transform"
-                    style={active
-                      ? { background: 'var(--mpl-card)', borderColor: 'transparent', boxShadow: 'inset 0 0 0 2px var(--selected-border), 0 3px 10px rgba(134,201,62,.25)' }
-                      : { background: 'var(--mpl-card)', borderColor: 'transparent', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 flex items-center justify-center" style={{ background: 'var(--surface-nested)' }}>
-                        {c.character_image
-                          ? <img src={c.character_image} alt="" className="w-full h-full object-contain scale-[2.1] origin-center select-none" style={{ imageRendering: 'pixelated' }} draggable={false} loading="lazy" decoding="async" />
-                          : <span className="text-2xl" style={{ color: 'var(--text-dim)' }}>?</span>}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1 min-w-0">
-                          {c.world_icon && (
-                            <img src={c.world_icon} alt="" className="w-5 h-5 shrink-0 object-contain" style={{ imageRendering: 'pixelated' }} />
-                          )}
-                          <div className="text-base font-semibold truncate max-w-[9rem]" style={{ color: active ? 'var(--accent-bright)' : 'var(--text-strong)' }}>{c.character_name}</div>
-                        </div>
-                        <div className="text-xs truncate max-w-[9rem] mt-0.5" style={{ color: 'var(--text-dim)' }}>Lv.{c.character_level} · {c.job_name}</div>
-                      </div>
-                    </div>
-                    <span
-                      role="button"
-                      tabIndex={-1}
-                      onClick={(e) => { e.stopPropagation(); setConfirmRemove(c) }}
-                      className="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center rounded-full text-sm"
-                      style={{ color: 'var(--text-dim)' }}
-                    >
-                      ×
-                    </span>
-                  </button>
-                )
-              })}
+              {characters.map((c) => (
+                <CharacterChip
+                  key={c.id || c.character_name}
+                  char={c}
+                  active={c.character_name === selectedName}
+                  onSelect={() => selectCharacter(c.character_name)}
+                  onRemove={() => setConfirmRemove(c)}
+                />
+              ))}
             </div>
           </OverlayScrollbarsComponent>
         </div>
