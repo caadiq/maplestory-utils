@@ -216,10 +216,18 @@ function Stat({ label, value, color, sub }) {
  * 등반 차트 — PC와 같은 좌표 계산(../journey)에 모바일 크기만 다르게.
  * 손가락엔 hover가 없으니 점을 탭하면 툴팁이 뜨고 다시 탭하면 닫힌다.
  */
+const CHART_DAYS = 5
+
 function Chart({ char, history, result, nowMs, goalDateObj }) {
-  const V = { W: 400, H: 250, padL: 32, padR: 0, padT: 44, padB: 46 }
+  const V = { W: 400, H: 300, padL: 34, padR: 0, padT: 48, padB: 48 }
+  /*
+   * 폭이 좁아 9일치를 다 그리면 점 간격이 19px밖에 안 돼 날짜를 하나 걸러 하나만 찍어야 했다.
+   * 최근 며칠만 그리면 간격이 37px로 벌어져 날짜를 전부 넣고도 글자·차트를 키울 수 있다.
+   * (통계의 '최근 7일 획득' 등은 자른 적 없는 전체 history를 그대로 쓴다)
+   */
+  const hist = history.slice(-CHART_DAYS)
   const { coords, now, tgx, tgy, gridLevels, line, area, proj, projFill, Y } =
-    chartGeometry({ history, level: char.character_level, expRate: char.exp_rate, targetLevel: result.target, nowMs, V })
+    chartGeometry({ history: hist, level: char.character_level, expRate: char.exp_rate, targetLevel: result.target, nowMs, V })
   const [tip, setTip] = useState(null)
   const reachable = result.days != null
   const HXW = 100 / V.W
@@ -248,7 +256,7 @@ function Chart({ char, history, result, nowMs, goalDateObj }) {
         {gridLevels.map((lv) => (
           <g key={lv}>
             <line x1={V.padL} y1={Y(lv)} x2={V.W - V.padR} y2={Y(lv)} stroke="var(--row-divider)" strokeWidth="1" strokeDasharray="3 4" />
-            <text x={V.padL - 6} y={Y(lv)} dominantBaseline="middle" textAnchor="end" fontSize="10.5" fill="var(--text-dim)">{lv}</text>
+            <text x={V.padL - 7} y={Y(lv)} dominantBaseline="middle" textAnchor="end" fontSize="12" fill="var(--text-dim)">{lv}</text>
           </g>
         ))}
         {reachable && <path d={projFill} fill="url(#mprojfill)" />}
@@ -256,23 +264,23 @@ function Chart({ char, history, result, nowMs, goalDateObj }) {
         <path d={line} fill="none" stroke="var(--mpl-sky-to)" strokeWidth="2" strokeLinejoin="round" />
         {reachable && <path d={proj} fill="none" stroke="#f0a828" strokeWidth="2" strokeDasharray="5 4" />}
 
-        {/* x축 — 좁아서 과거 날짜는 하나 걸러 하나만, 오늘·도달일은 항상 */}
-        {coords.slice(0, -1).map((c, i) => (i % 2 === 0 ? (
-          <text key={c.date} x={c.x} y={baseY + 16} fontSize="10" fill="var(--text-dim)" textAnchor="middle">{mdLabel(c.date)}</text>
-        ) : null))}
-        <text x={now.x} y={baseY + 16} fontSize="10" fill="var(--accent-bright)" textAnchor="middle" fontWeight="700">오늘</text>
+        {/* x축 — 날짜를 줄인 만큼 전부 표시한다 */}
+        {coords.slice(0, -1).map((c) => (
+          <text key={c.date} x={c.x} y={baseY + 18} fontSize="11.5" fill="var(--text-dim)" textAnchor="middle">{mdLabel(c.date)}</text>
+        ))}
+        <text x={now.x} y={baseY + 18} fontSize="11.5" fill="var(--accent-bright)" textAnchor="middle" fontWeight="700">오늘</text>
         {goalDateObj && (
-          <text x={tgx} y={baseY + 16} fontSize="10" fill="#c8890f" textAnchor="end" fontWeight="700">
+          <text x={tgx} y={baseY + 18} fontSize="11.5" fill="#c8890f" textAnchor="end" fontWeight="700">
             {goalDateObj.getMonth() + 1}/{goalDateObj.getDate()}
           </text>
         )}
 
         {coords.slice(0, -1).map((c, i) => (
-          <circle key={c.date} cx={c.x} cy={c.y} r={tip === i ? 4 : 2.6} fill="var(--panel-bg)" stroke="var(--mpl-sky-to)" strokeWidth="1.8" />
+          <circle key={c.date} cx={c.x} cy={c.y} r={tip === i ? 5 : 3.2} fill="var(--panel-bg)" stroke="var(--mpl-sky-to)" strokeWidth="2" />
         ))}
-        {reachable && <circle cx={tgx} cy={tgy} r="5" fill="#f0a828" stroke="var(--panel-bg)" strokeWidth="2.5" />}
+        {reachable && <circle cx={tgx} cy={tgy} r="6" fill="#f0a828" stroke="var(--panel-bg)" strokeWidth="3" />}
         {reachable && result.days > 0 && (
-          <text x={(now.x + tgx) / 2} y={(now.y + tgy) / 2 - 8} fontSize="10" fill="#c8890f" textAnchor="middle" fontWeight="700">
+          <text x={(now.x + tgx) / 2} y={(now.y + tgy) / 2 - 9} fontSize="11.5" fill="#c8890f" textAnchor="middle" fontWeight="700">
             예상 +{result.days}일
           </text>
         )}
@@ -285,23 +293,23 @@ function Chart({ char, history, result, nowMs, goalDateObj }) {
 
       {/* 현재 캐릭터 마커 */}
       <div className="absolute pointer-events-none" style={{
-        left: `calc(${(now.x * HXW).toFixed(2)}% - 27px)`,
-        top: `calc(${(now.y * HYH).toFixed(2)}% - 60px)`,
-        width: 54, height: 54, overflow: 'hidden', filter: 'drop-shadow(0 2px 3px rgba(31,44,61,.25))',
+        left: `calc(${(now.x * HXW).toFixed(2)}% - 32px)`,
+        top: `calc(${(now.y * HYH).toFixed(2)}% - 70px)`,
+        width: 64, height: 64, overflow: 'hidden', filter: 'drop-shadow(0 2px 3px rgba(31,44,61,.25))',
       }}>
         {char.character_image && (
           <img src={char.character_image} alt="" className="w-full h-full object-contain scale-[2.4] -translate-y-[3%]" style={{ imageRendering: 'pixelated' }} />
         )}
       </div>
       <div className="absolute pointer-events-none" style={{
-        left: `calc(${(now.x * HXW).toFixed(2)}% - 5px)`,
-        top: `calc(${(now.y * HYH).toFixed(2)}% - 11px)`,
-        width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '5px solid var(--accent-bright)',
+        left: `calc(${(now.x * HXW).toFixed(2)}% - 6px)`,
+        top: `calc(${(now.y * HYH).toFixed(2)}% - 13px)`,
+        width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '6px solid var(--accent-bright)',
       }} />
       <div className="absolute rounded-full pointer-events-none" style={{
-        left: `calc(${(now.x * HXW).toFixed(2)}% - 5px)`,
-        top: `calc(${(now.y * HYH).toFixed(2)}% - 5px)`,
-        width: 10, height: 10, background: 'var(--accent-bright)', border: '2px solid var(--panel-bg)',
+        left: `calc(${(now.x * HXW).toFixed(2)}% - 6px)`,
+        top: `calc(${(now.y * HYH).toFixed(2)}% - 6px)`,
+        width: 12, height: 12, background: 'var(--accent-bright)', border: '2.5px solid var(--panel-bg)',
       }} />
 
       {p && (
@@ -456,22 +464,6 @@ export default function MobileExpCalculator() {
 
   return (
     <IconCtx.Provider value={icons}>
-      {/* 결과 요약 — 스크롤해도 헤더 밑에 붙어 있게 */}
-      {char && result && (
-        <div className="sticky top-14 z-10 -mx-4 -mt-4 mb-3 flex items-center gap-2 px-4 py-2"
-          style={{ background: 'rgba(34,48,63,.97)', boxShadow: '0 2px 8px rgba(31,44,61,.25)' }}>
-          <span className="text-[12px] font-bold" style={{ color: '#9db0c2' }}>Lv.{result.target}까지</span>
-          <span className="text-[16px] font-bold tabular-nums" style={{ color: 'var(--mpl-title-yellow)' }}>
-            {result.days == null ? '불가' : result.days === 0 ? '달성!' : `약 ${result.days.toLocaleString()}일`}
-          </span>
-          {goalDateObj && (
-            <span className="ml-auto text-[12px] tabular-nums" style={{ color: '#cfe6f5' }}>
-              {goalDateObj.getMonth() + 1}.{goalDateObj.getDate()} ({WK_DAY[goalDateObj.getDay()]}) 도달
-            </span>
-          )}
-        </div>
-      )}
-
       <MapleWindow title="EXP CALCULATOR" bodyClassName="space-y-2.5">
 
         {/* 캐릭터 */}
