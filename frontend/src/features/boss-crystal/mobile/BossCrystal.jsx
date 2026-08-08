@@ -5,6 +5,7 @@ import { api } from '../../../api/client'
 import { useBossStore, bossInitialState } from '../store'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import CharacterSuggestDropdown from '../../../components/common/CharacterSuggestDropdown'
+import CharacterChip from '../../../components/common/CharacterChip'
 import Select from '../../../components/common/Select'
 import { DIFFICULTIES, formatMeso } from '../pc/admin/constants'
 import { MAX_PER_CHARACTER, MAX_PER_ACCOUNT, LABEL_EN, charRevenue, seasonBossesFor } from '../logic'
@@ -178,47 +179,20 @@ export default function BossCrystal() {
           >
             <div className="flex w-max gap-2.5 px-3.5 pb-1.5">
           {characters.map((c) => {
-            const active = c.character_name === selectedChar
             const r = charRevenue(c.character_name, selections, bosses)
             return (
-              <button
+              <CharacterChip
                 key={c.character_name}
-                type="button"
-                onClick={() => selectCharacter(c.character_name)}
-                className="relative shrink-0 rounded-2xl border p-3 pr-9 text-left active:scale-[0.98] transition-transform"
-                style={active
-                  ? { background: 'var(--mpl-card)', borderColor: 'transparent', boxShadow: 'inset 0 0 0 2px var(--selected-border), 0 3px 10px rgba(134,201,62,.25)' }
-                  : { background: 'var(--mpl-card)', borderColor: 'transparent', boxShadow: 'inset 0 0 0 1px var(--mpl-card-line)' }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 flex items-center justify-center" style={{ background: 'var(--surface-nested)' }}>
-                    {c.character_image
-                      ? <img src={c.character_image} alt="" className="w-full h-full object-contain scale-[2.1] origin-center select-none" style={{ imageRendering: 'pixelated' }} draggable={false} loading="lazy" decoding="async" />
-                      : <span className="text-2xl" style={{ color: 'var(--text-dim)' }}>?</span>}
+                char={c}
+                active={c.character_name === selectedChar}
+                onSelect={() => selectCharacter(c.character_name)}
+                onRemove={() => removeCharacter(c.character_name)}
+                footer={(
+                  <div className="text-sm tabular-nums mt-1" style={{ color: r.revenue > 0 ? 'var(--accent-bright)' : 'var(--text-dim)' }}>
+                    {r.revenue > 0 ? `${formatMeso(r.revenue)} · ${r.count}개` : '미선택'}
                   </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1 min-w-0">
-                      {c.world_icon && (
-                        <img src={c.world_icon} alt="" className="w-5 h-5 shrink-0 object-contain" style={{ imageRendering: 'pixelated' }} />
-                      )}
-                      <div className="text-base font-semibold truncate max-w-[9rem]" style={{ color: active ? 'var(--accent-bright)' : 'var(--text-strong)' }}>{c.character_name}</div>
-                    </div>
-                    <div className="text-xs truncate max-w-[9rem] mt-0.5" style={{ color: 'var(--text-dim)' }}>Lv.{c.character_level} · {c.job_name}</div>
-                    <div className="text-sm tabular-nums mt-1" style={{ color: r.revenue > 0 ? 'var(--accent-bright)' : 'var(--text-dim)' }}>
-                      {r.revenue > 0 ? `${formatMeso(r.revenue)} · ${r.count}개` : '미선택'}
-                    </div>
-                  </div>
-                </div>
-                <span
-                  role="button"
-                  tabIndex={-1}
-                  onClick={(e) => { e.stopPropagation(); removeCharacter(c.character_name) }}
-                  className="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center rounded-full text-sm"
-                  style={{ color: 'var(--text-dim)' }}
-                >
-                  ✕
-                </span>
-              </button>
+                )}
+              />
             )
           })}
             </div>
