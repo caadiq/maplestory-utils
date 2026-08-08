@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect, createContext, useContext } from 'react'
-import { useQuery, useMutation, keepPreviousData } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import MapleWindow from '../../../components/pc/MapleWindow'
 import Select from '../../../components/common/Select'
@@ -10,6 +10,7 @@ import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import CharacterCard from '../../symbol/pc/user/CharacterCard'
 import ExpJourney from './ExpJourney'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
+import { useCharacterLookup } from '../../../hooks/useCharacterLookup'
 import { useExpStore, expInitialState } from '../store'
 import { NumInput, SecTitle, CARD } from '../../../components/common/widgets'
 import {
@@ -227,21 +228,11 @@ export default function ExpCalculator() {
    * 선택 캐릭터 재조회 — 넥슨 데이터는 전일 기준이라 추가 시점 스냅샷으로 두면 굳는다.
    * 마지막 응답을 로컬에 캐시해 새로고침 직후에도 깜빡임 없이 그리고 뒤에서 갱신한다. (헥사와 동일 패턴)
    */
-  const { data: lookup } = useQuery({
+  const { data: lookup } = useCharacterLookup({
     queryKey: ['exp', 'lookup', selectedName],
-    queryFn: async () => {
-      const res = await api(`/api/exp/lookup?name=${encodeURIComponent(selectedName)}`)
-      try { localStorage.setItem(`maple.exp.data.${selectedName}`, JSON.stringify(res)) } catch { /* noop */ }
-      return res
-    },
+    cacheKey: `maple.exp.data.${selectedName}`,
+    endpoint: `/api/exp/lookup?name=${encodeURIComponent(selectedName)}`,
     enabled: hydrated && !!selectedName,
-    staleTime: 10 * 60 * 1000,
-    retry: false,
-    placeholderData: keepPreviousData,
-    initialData: () => {
-      try { return JSON.parse(localStorage.getItem(`maple.exp.data.${selectedName}`)) || undefined } catch { return undefined }
-    },
-    initialDataUpdatedAt: 0,
   })
 
   // 재조회 결과로 목록의 레벨·경험치도 최신화
