@@ -46,7 +46,6 @@ const ICON_NAMES = {
   hunt: '정령의 펜던트',
   mp: '몬스터파크 이용권',
   mp_extreme: '익스트림 몬스터파크',
-  mp_hands: '몬스터파크 핸즈',
   ed_highmountain: '에픽던전 : 하이마운틴',
   ed_angler: '에픽던전 : 앵글러 컴퍼니',
   ed_nightmare: '에픽던전 : 악몽선경',
@@ -90,15 +89,6 @@ router.get('/data', async (_req, res) => {
   }
 });
 
-// 유니온 아티팩트 효과에서 EXP 획득량 % 파싱 ("EXP 획득량 12% 증가")
-function parseArtifactExp(effects) {
-  for (const e of effects || []) {
-    const m = (e.name || '').match(/EXP\s*획득량\s*(\d+(?:\.\d+)?)\s*%/);
-    if (m) return Number(m[1]);
-  }
-  return 0;
-}
-
 /**
  * 일자별 경험치 히스토리 — 랭킹 API가 과거 날짜의 레벨·레벨 내 경험치(절대값)를 준다.
  * 과거 값은 불변이라 메모리에 캐시한다.
@@ -136,7 +126,7 @@ async function fetchHistory(ocid, days = 9) {
 }
 
 /**
- * 캐릭터 조회 — 레벨·현재 경험치%·아티팩트 EXP 보너스까지 한 번에.
+ * 캐릭터 조회 — 레벨·현재 경험치%·경험치 히스토리까지 한 번에.
  * 캐릭터 정보는 넥슨 API 특성상 전일 기준.
  */
 router.get('/lookup', async (req, res) => {
@@ -147,9 +137,8 @@ router.get('/lookup', async (req, res) => {
     const { data: idData } = await nexon('/maplestory/v1/id', { character_name: name });
     const ocid = idData.ocid;
 
-    const [{ data: basic }, artifactRes, history] = await Promise.all([
+    const [{ data: basic }, history] = await Promise.all([
       nexon('/maplestory/v1/character/basic', { ocid }),
-      nexon('/maplestory/v1/user/union-artifact', { ocid }).catch(() => null),
       fetchHistory(ocid).catch(() => []),
     ]);
 
@@ -167,7 +156,6 @@ router.get('/lookup', async (req, res) => {
       exp_rate: Number(basic.character_exp_rate) || 0,
       guild_name: basic.character_guild_name || null,
       date_create: basic.character_date_create || null,
-      artifact_exp: parseArtifactExp(artifactRes?.data?.union_artifact_effect),
       history,
     });
   } catch (err) {

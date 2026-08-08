@@ -11,7 +11,7 @@ import { useExpStore, expInitialState } from '../store'
 import { NumInput } from '../../hexa-matrix/shared'
 import {
   EPIC_STAGES, defaultSettings, zoneOn,
-  simulate, breakdown, fmtPct, remainingToLevel, weekKeyKST, parkSpecialActive,
+  simulate, breakdown, fmtPct, weekKeyKST, parkSpecialActive,
 } from '../logic'
 import { WK_DAY, dateFrom, fmtDate, mdLabel, journeyStats, chartGeometry } from '../journey'
 
@@ -380,7 +380,7 @@ export default function MobileExpCalculator() {
     onSuccess: (res) => {
       setAddError('')
       setAddName('')
-      addCharacter({ ...res.character, exp_rate: res.exp_rate, artifact_exp: res.artifact_exp })
+      addCharacter({ ...res.character, exp_rate: res.exp_rate })
     },
     onError: (err) => setAddError(err.message || '조회 실패'),
   })
@@ -406,7 +406,7 @@ export default function MobileExpCalculator() {
     if (!lookup?.character) return
     setCharacters((chars) => chars.map((c) => (
       c.character_name === lookup.character.character_name
-        ? { ...c, ...lookup.character, id: c.id, exp_rate: lookup.exp_rate, artifact_exp: lookup.artifact_exp }
+        ? { ...c, ...lookup.character, id: c.id, exp_rate: lookup.exp_rate }
         : c
     )))
   }, [lookup]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -421,7 +421,7 @@ export default function MobileExpCalculator() {
   const fresh = lookup?.character?.character_name === selectedName ? lookup : null
   const char = useMemo(
     () => (stored && fresh
-      ? { ...stored, ...fresh.character, id: stored.id, exp_rate: fresh.exp_rate, artifact_exp: fresh.artifact_exp }
+      ? { ...stored, ...fresh.character, id: stored.id, exp_rate: fresh.exp_rate }
       : stored),
     [stored, fresh],
   )
@@ -446,7 +446,7 @@ export default function MobileExpCalculator() {
     if (!data || !char) return null
     const t = Math.max(char.character_level + 1, Math.min(goal.level || char.character_level + 1, 300))
     const sim = simulate(data, char, s, { targetLevel: t })
-    return { target: t, days: sim.days, remaining: remainingToLevel(data, char, t) }
+    return { target: t, days: sim.days }
   }, [data, char, s, goal])
 
   // 렌더 중 시각 호출은 금지 → 최초 마운트 시 한 번만 고정

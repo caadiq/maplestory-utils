@@ -14,7 +14,7 @@ import { useExpStore, expInitialState } from '../store'
 import { NumInput, SecTitle, CARD } from '../../hexa-matrix/shared'
 import {
   EPIC_STAGES, defaultSettings, zoneOn,
-  simulate, breakdown, fmtPct, remainingToLevel, weekKeyKST, parkSpecialActive,
+  simulate, breakdown, fmtPct, weekKeyKST, parkSpecialActive,
 } from '../logic'
 
 
@@ -218,7 +218,7 @@ export default function ExpCalculator() {
     onSuccess: (res) => {
       setAddError('')
       setAddName('')
-      addCharacter({ ...res.character, exp_rate: res.exp_rate, artifact_exp: res.artifact_exp })
+      addCharacter({ ...res.character, exp_rate: res.exp_rate })
     },
     onError: (err) => setAddError(err.message || '조회 실패'),
   })
@@ -249,7 +249,7 @@ export default function ExpCalculator() {
     if (!lookup?.character) return
     setCharacters((chars) => chars.map((c) => (
       c.character_name === lookup.character.character_name
-        ? { ...c, ...lookup.character, id: c.id, exp_rate: lookup.exp_rate, artifact_exp: lookup.artifact_exp }
+        ? { ...c, ...lookup.character, id: c.id, exp_rate: lookup.exp_rate }
         : c
     )))
   }, [lookup]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -265,7 +265,7 @@ export default function ExpCalculator() {
   const fresh = lookup?.character?.character_name === selectedName ? lookup : null
   const char = useMemo(
     () => (stored && fresh
-      ? { ...stored, ...fresh.character, id: stored.id, exp_rate: fresh.exp_rate, artifact_exp: fresh.artifact_exp }
+      ? { ...stored, ...fresh.character, id: stored.id, exp_rate: fresh.exp_rate }
       : stored),
     [stored, fresh],
   )
@@ -296,7 +296,7 @@ export default function ExpCalculator() {
     if (!data || !char) return null
     const t = Math.max(char.character_level + 1, Math.min(goal.level || char.character_level + 1, 300))
     const sim = simulate(data, char, s, { targetLevel: t })
-    return { target: t, days: sim.days, remaining: remainingToLevel(data, char, t) }
+    return { target: t, days: sim.days }
   }, [data, char, s, goal])
 
   const level = char?.character_level || 0

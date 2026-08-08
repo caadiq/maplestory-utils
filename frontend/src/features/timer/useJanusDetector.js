@@ -83,7 +83,6 @@ export function useJanusDetector({ onInstall, mode = 'dawn', cycleMs = 0 }) {
   const [stream, setStream] = useState(null)
   const [region, setRegion] = useState(null)   // {x,y,w,h} — 0~1 정규화
   const [install, setInstall] = useState(null) // {index, at}
-  const [iconDark, setIconDark] = useState(false)
   const [logs, setLogs] = useState([])
   const [stale, setStale] = useState(false)
   const [sync, setSync] = useState(null)      // 쿨타임 숫자로 설치 시각 보정 — 'pending' | 'done' | null
@@ -113,7 +112,6 @@ export function useJanusDetector({ onInstall, mode = 'dawn', cycleMs = 0 }) {
   const builtinIconsRef = useRef({}) // icon/ 폴더의 원본 (모드별)
   const modeRef = useRef(mode)
   const cycleMsRef = useRef(cycleMs)
-  const matchRef = useRef(null)
   const lostSinceRef = useRef(null)
   const indexRef = useRef(0)
   const lastFrameRef = useRef(0)
@@ -184,7 +182,6 @@ export function useJanusDetector({ onInstall, mode = 'dawn', cycleMs = 0 }) {
     presenceStartRef.current = 0
     absentSinceRef.current = null
     lockUntilRef.current = 0
-    setIconDark(false)
   }
 
   const stop = useCallback(() => {
@@ -205,21 +202,6 @@ export function useJanusDetector({ onInstall, mode = 'dawn', cycleMs = 0 }) {
     setInstall(null)
     resetDetector()
     log('수동 리셋', '사용자', 'muted')
-  }, [log])
-
-  /** 아이콘을 놓쳤거나 화면 공유 전에 이미 깔아둔 경우 — 지금을 설치 시각으로 */
-  const markInstalledNow = useCallback(() => {
-    indexRef.current += 1
-    const at = Date.now()
-    const next = { index: indexRef.current, at, rawAt: at }
-    installRef.current = next
-    trackerRef.current.reset()
-    lastInstallRef.current = at
-    // 실제 설치는 이보다 전이었을 수 있으니 잠금은 절반만 건다
-    lockUntilRef.current = at + NEW_CYCLE_LOCK_MS / 2
-    setInstall(next)
-    log(`설치 시각을 지금으로 지정 — 사이클 #${next.index}`, '수동', 'muted')
-    cbRef.current.onInstall?.(next)
   }, [log])
 
   /* ── 감지 루프 ──────────────────────────────────────────── */
@@ -518,7 +500,6 @@ export function useJanusDetector({ onInstall, mode = 'dawn', cycleMs = 0 }) {
       // 쿨타임 숫자가 읽혔다면 그 자체가 야누스 아이콘이라는 증거다.
       const shape = toShapeVector(pixels)
       const similarity = shapeSimilarity(shape, templateRef.current)
-      matchRef.current = similarity
 
       if (digitCount > 0) lastDigitAtRef.current = now
 
@@ -545,7 +526,6 @@ export function useJanusDetector({ onInstall, mode = 'dawn', cycleMs = 0 }) {
       }
 
       const present = digitCount > 0
-      if (present !== presentRef.current) setIconDark(present)
 
       /*
        * 숫자 보임/안 보임 구간 추적.
@@ -725,11 +705,11 @@ export function useJanusDetector({ onInstall, mode = 'dawn', cycleMs = 0 }) {
 
   return {
     stream, region, setRegion,
-    install, iconDark, logs, error, iconLost, sync,
+    install, logs, error, iconLost, sync,
     // 공유가 끊기면 경고도 같이 내린다
     stale: stream ? stale : false,
     videoRef,
-    start, stop, resetCycle, markInstalledNow, locate, log,
+    start, stop, resetCycle, locate, log,
     hasTemplate: Boolean(loadTemplate()) || HAS_BUILTIN_ICON,
   }
 }

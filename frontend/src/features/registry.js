@@ -3,13 +3,12 @@
  *
  * - features/{kebab-case}/pc/{PascalCase}.jsx     : PC 사용자 페이지
  * - features/{kebab-case}/pc/{PascalCase}Admin.jsx: PC 관리자 페이지
- * - features/{kebab-case}/tablet/{PascalCase}.jsx : 태블릿 사용자 페이지
  * - features/{kebab-case}/mobile/{PascalCase}.jsx : 모바일 사용자 페이지
  */
 
 import { lazy } from 'react'
 
-const pages = import.meta.glob('./*/{pc,tablet,mobile}/*.jsx')
+const pages = import.meta.glob('./*/{pc,mobile}/*.jsx')
 
 function slugToPascal(slug) {
   return slug
@@ -20,7 +19,6 @@ function slugToPascal(slug) {
 
 const userPcCache = new Map()
 const adminPcCache = new Map()
-const userTabletCache = new Map()
 const userMobileCache = new Map()
 
 function loadCached(cache, slug, device, suffix) {
@@ -45,13 +43,6 @@ export function getUserComponent(slug) {
  */
 export function getAdminComponent(slug) {
   return loadCached(adminPcCache, slug, 'pc', 'Admin')
-}
-
-/**
- * slug에 해당하는 태블릿 사용자 페이지 컴포넌트 반환
- */
-export function getTabletComponent(slug) {
-  return loadCached(userTabletCache, slug, 'tablet', '')
 }
 
 /**
