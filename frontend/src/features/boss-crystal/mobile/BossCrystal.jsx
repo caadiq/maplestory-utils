@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../../api/client'
@@ -33,23 +33,6 @@ export default function BossCrystal() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [priceOpen, setPriceOpen] = useState(false)
   const addAnchorRef = useRef(null)
-
-  // 캐릭터 목록이 스크롤로 가려지면 상단에 컴팩트 선택 바 표시
-  const chipAreaRef = useRef(null)
-  const [showFloatBar, setShowFloatBar] = useState(false)
-  useEffect(() => {
-    const el = chipAreaRef.current
-    if (!el) {
-      setShowFloatBar(false)
-      return
-    }
-    const obs = new IntersectionObserver(
-      ([entry]) => setShowFloatBar(!entry.isIntersecting),
-      { rootMargin: '-56px 0px 0px 0px' } // 고정 헤더(h-14) 높이만큼 보정
-    )
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [characters.length])
 
   const searchMutation = useMutation({
     mutationFn: (n) => api(`/api/character/search?name=${encodeURIComponent(n)}`),
@@ -187,7 +170,7 @@ export default function BossCrystal() {
 
       {/* 캐릭터 칩 (가로 스크롤) */}
       {characters.length > 0 && (
-        <div ref={chipAreaRef} className="-mx-3.5 -mb-1.5">
+        <div className="-mx-3.5 -mb-1.5">
           <OverlayScrollbarsComponent
             className="pt-3 pb-0"
             options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark os-thin', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'scroll', y: 'hidden' } }}
@@ -368,47 +351,6 @@ export default function BossCrystal() {
             )
           })}
         </MapleWindow>
-      )}
-
-      {/* 상단 플로팅 캐릭터 선택 바 (목록이 가려졌을 때만) — 슬레이트 필 */}
-      {showFloatBar && characters.length > 0 && (
-        <div
-          className="fixed z-10 rounded-lg px-2"
-          style={{
-            top: 64,
-            left: 12,
-            right: 12,
-            background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.25), 0 6px 16px rgba(31,44,61,.35)',
-            animation: 'mpl-page-fade 0.2s ease-out both',
-          }}
-        >
-          <div className="flex gap-1.5 overflow-x-auto py-1.5" style={{ scrollbarWidth: 'none' }}>
-            {characters.map((c) => {
-              const active = c.character_name === selectedChar
-              return (
-                <button
-                  key={c.character_name}
-                  type="button"
-                  onClick={() => selectCharacter(c.character_name)}
-                  className="shrink-0 flex items-center gap-1.5 rounded-md pl-1 pr-3 py-1"
-                  style={active
-                    ? { background: '#ffffff', boxShadow: '0 1px 3px rgba(31,44,61,.25)' }
-                    : { background: 'rgba(255,255,255,.15)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.2)' }}
-                >
-                  <span className="w-6 h-6 rounded overflow-hidden flex items-center justify-center shrink-0" style={{ background: active ? 'var(--surface-nested)' : 'rgba(255,255,255,.25)' }}>
-                    {c.character_image
-                      ? <img src={c.character_image} alt="" className="w-full h-full object-contain scale-[2.4] origin-center select-none" style={{ imageRendering: 'pixelated' }} draggable={false} />
-                      : <span className="text-[10px]" style={{ color: active ? 'var(--text-dim)' : 'rgba(255,255,255,.7)' }}>?</span>}
-                  </span>
-                  <span className="text-xs font-bold whitespace-nowrap" style={{ color: active ? 'var(--accent-bright)' : '#ffffff' }}>
-                    {c.character_name}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
       )}
 
       <BossPriceModal open={priceOpen} onClose={() => setPriceOpen(false)} bosses={bosses} />
