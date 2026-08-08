@@ -8,7 +8,7 @@ import CharacterSuggestDropdown from '../../../components/common/CharacterSugges
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import { useExpStore, expInitialState } from '../store'
-import { NumInput } from '../../hexa-matrix/shared'
+import { NumInput } from '../../../components/common/widgets'
 import {
   EPIC_STAGES, defaultSettings, zoneOn,
   simulate, breakdown, fmtPct, weekKeyKST, parkSpecialActive,

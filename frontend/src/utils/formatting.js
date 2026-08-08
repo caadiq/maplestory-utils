@@ -16,5 +16,14 @@ export function formatMeso(n) {
   return parts.length ? parts.join(' ') : v.toLocaleString()
 }
 
-// 과거 이름 alias (symbol에서 formatMesoKorean으로 쓰던 것)
-export const formatMesoKorean = formatMeso
+const DOW = ['일', '월', '화', '수', '목', '금', '토']
+
+/**
+ * "YYYY-MM-DD" (KST 날짜 문자열) → "YYYY년 MM월 DD일 (요일)".
+ * 요일은 KST 자정 기준으로 계산한다.
+ */
+export function formatKoreanDate(s) {
+  const [y, m, d] = s.split('-')
+  const dow = DOW[new Date(`${s}T00:00:00+09:00`).getDay()]
+  return `${y}년 ${m}월 ${d}일 (${dow})`
+}
