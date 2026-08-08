@@ -123,7 +123,7 @@ function TwoLineRow({ icon, label, control, note, value, valueColor, locked }) {
 function Field({ label, children }) {
   return (
     <div className="min-w-0">
-      <span className="block text-[11.5px] mb-1" style={{ color: 'var(--text-muted)' }}>{label}</span>
+      <span className="block text-[12.5px] mb-1" style={{ color: 'var(--text-muted)' }}>{label}</span>
       {children}
     </div>
   )
@@ -197,7 +197,7 @@ function GoalLevelInput({ value, onCommit, min, max }) {
         className="bg-transparent outline-none text-right font-bold tabular-nums text-[15px] pr-[3px]"
         style={{ width: '4.5ch', color: 'var(--text-strong)' }}
       />
-      <span className="text-[11.5px] font-semibold" style={{ color: 'var(--text-dim)' }}>Lv</span>
+      <span className="text-[12.5px] font-semibold" style={{ color: 'var(--text-dim)' }}>Lv</span>
     </div>
   )
 }
@@ -205,9 +205,9 @@ function GoalLevelInput({ value, onCommit, min, max }) {
 function Stat({ label, value, color, sub }) {
   return (
     <div className="px-3 py-2.5 min-w-0">
-      <div className="text-[11.5px] font-bold truncate" style={{ color: 'var(--text-muted)' }}>{label}</div>
+      <div className="text-[12.5px] font-bold truncate" style={{ color: 'var(--text-muted)' }}>{label}</div>
       <div className="text-[19px] font-bold tabular-nums leading-tight mt-0.5 truncate" style={{ color }}>{value}</div>
-      {sub && <div className="text-[11px] truncate" style={{ color: 'var(--text-dim)' }}>{sub}</div>}
+      {sub && <div className="text-[12px] truncate" style={{ color: 'var(--text-dim)' }}>{sub}</div>}
     </div>
   )
 }
@@ -219,7 +219,12 @@ function Stat({ label, value, color, sub }) {
 const CHART_DAYS = 5
 
 function Chart({ char, history, result, nowMs, goalDateObj }) {
-  const V = { W: 400, H: 300, padL: 34, padR: 0, padT: 48, padB: 48 }
+  /*
+   * 라벨 크기는 viewBox 축소배율(폭 296/400 = 0.74)이 곱해져 화면에 그려진다.
+   * 실제 12.5~13px로 보이려면 여기서는 17 안팎을 줘야 한다.
+   * padL·padB는 그 커진 글자가 들어갈 자리다.
+   */
+  const V = { W: 400, H: 310, padL: 42, padR: 0, padT: 46, padB: 54 }
   /*
    * 폭이 좁아 9일치를 다 그리면 점 간격이 19px밖에 안 돼 날짜를 하나 걸러 하나만 찍어야 했다.
    * 최근 며칠만 그리면 간격이 37px로 벌어져 날짜를 전부 넣고도 글자·차트를 키울 수 있다.
@@ -227,7 +232,7 @@ function Chart({ char, history, result, nowMs, goalDateObj }) {
    */
   const hist = history.slice(-CHART_DAYS)
   const { coords, now, tgx, tgy, gridLevels, line, area, proj, projFill, Y } =
-    chartGeometry({ history: hist, level: char.character_level, expRate: char.exp_rate, targetLevel: result.target, nowMs, V })
+    chartGeometry({ history: hist, level: char.character_level, expRate: char.exp_rate, targetLevel: result.target, nowMs, V, histSpan: 0.70 })
   const [tip, setTip] = useState(null)
   const reachable = result.days != null
   const HXW = 100 / V.W
@@ -256,7 +261,7 @@ function Chart({ char, history, result, nowMs, goalDateObj }) {
         {gridLevels.map((lv) => (
           <g key={lv}>
             <line x1={V.padL} y1={Y(lv)} x2={V.W - V.padR} y2={Y(lv)} stroke="var(--row-divider)" strokeWidth="1" strokeDasharray="3 4" />
-            <text x={V.padL - 7} y={Y(lv)} dominantBaseline="middle" textAnchor="end" fontSize="12" fill="var(--text-dim)">{lv}</text>
+            <text x={V.padL - 9} y={Y(lv)} dominantBaseline="middle" textAnchor="end" fontSize="17.5" fill="var(--text-dim)">{lv}</text>
           </g>
         ))}
         {reachable && <path d={projFill} fill="url(#mprojfill)" />}
@@ -266,11 +271,11 @@ function Chart({ char, history, result, nowMs, goalDateObj }) {
 
         {/* x축 — 날짜를 줄인 만큼 전부 표시한다 */}
         {coords.slice(0, -1).map((c) => (
-          <text key={c.date} x={c.x} y={baseY + 18} fontSize="11.5" fill="var(--text-dim)" textAnchor="middle">{mdLabel(c.date)}</text>
+          <text key={c.date} x={c.x} y={baseY + 24} fontSize="17" fill="var(--text-dim)" textAnchor="middle">{mdLabel(c.date)}</text>
         ))}
-        <text x={now.x} y={baseY + 18} fontSize="11.5" fill="var(--accent-bright)" textAnchor="middle" fontWeight="700">오늘</text>
+        <text x={now.x} y={baseY + 24} fontSize="17" fill="var(--accent-bright)" textAnchor="middle" fontWeight="700">오늘</text>
         {goalDateObj && (
-          <text x={tgx} y={baseY + 18} fontSize="11.5" fill="#c8890f" textAnchor="end" fontWeight="700">
+          <text x={tgx} y={baseY + 24} fontSize="17" fill="#c8890f" textAnchor="end" fontWeight="700">
             {goalDateObj.getMonth() + 1}/{goalDateObj.getDate()}
           </text>
         )}
@@ -280,7 +285,9 @@ function Chart({ char, history, result, nowMs, goalDateObj }) {
         ))}
         {reachable && <circle cx={tgx} cy={tgy} r="6" fill="#f0a828" stroke="var(--panel-bg)" strokeWidth="3" />}
         {reachable && result.days > 0 && (
-          <text x={(now.x + tgx) / 2} y={(now.y + tgy) / 2 - 9} fontSize="11.5" fill="#c8890f" textAnchor="middle" fontWeight="700">
+          /* 중점에 두면 캐릭터에 물린다 — 예측 구간이 짧아 목표 쪽으로 밀어둔다 */
+          <text x={now.x + (tgx - now.x) * 0.68} y={now.y + (tgy - now.y) * 0.68 - 10}
+            fontSize="16.5" fill="#c8890f" textAnchor="middle" fontWeight="700">
             예상 +{result.days}일
           </text>
         )}
@@ -320,11 +327,11 @@ function Chart({ char, history, result, nowMs, goalDateObj }) {
             transform: `translate(-50%, ${below ? '0' : '-100%'})`,
             background: '#22303f', color: '#fff', boxShadow: '0 6px 16px rgba(31,44,61,.3)',
           }}>
-          <div className="text-[11px] font-bold opacity-75">
+          <div className="text-[12px] font-bold opacity-75">
             {p.date.replace(/-/g, '.')} ({WK_DAY[new Date(p.date).getDay()]}){p.isNow ? ' · 오늘' : ''}
           </div>
           <div className="text-[13.5px] font-bold tabular-nums leading-snug">Lv.{p.level} · {p.exp_rate.toFixed(1)}%</div>
-          {delta != null && <div className="text-[11px]" style={{ color: '#8fd8f5' }}>전일 대비 +{delta.toFixed(1)}%p</div>}
+          {delta != null && <div className="text-[12px]" style={{ color: '#8fd8f5' }}>전일 대비 +{delta.toFixed(1)}%p</div>}
           <div className={`absolute left-1/2 -translate-x-1/2 ${below ? '-top-[5px]' : '-bottom-[5px]'}`} style={{
             width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
             ...(below ? { borderBottom: '5px solid #22303f' } : { borderTop: '5px solid #22303f' }),
@@ -587,7 +594,7 @@ export default function MobileExpCalculator() {
                 { label: '일회성', value: bd.onceTotal, color: C_ONCE },
               ].map((m) => (
                 <div key={m.label} className="flex-1 text-center py-2.5">
-                  <div className="text-[11.5px] font-bold" style={{ color: 'var(--text-muted)' }}>{m.label}</div>
+                  <div className="text-[12.5px] font-bold" style={{ color: 'var(--text-muted)' }}>{m.label}</div>
                   <div className="text-[15px] font-bold tabular-nums" style={{ color: m.color }}>{fmtPct(m.value)}</div>
                 </div>
               ))}
