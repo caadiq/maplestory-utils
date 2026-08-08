@@ -8,7 +8,7 @@ import MapleWindow, { MapleWindowTab } from '../../../components/pc/MapleWindow'
 import Tooltip from '../../../components/common/Tooltip'
 import CharacterSuggestDropdown from '../../../components/common/CharacterSuggestDropdown'
 import { useSymbolStore, symbolInitialState } from '../store'
-import { formatMesoKorean } from '../../../utils/formatting'
+import { formatMeso } from '../../../utils/formatting'
 import { formatKoreanDate, TYPE_ORDER } from '../utils'
 import { symbolMetrics } from '../logic'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
@@ -254,7 +254,7 @@ export default function Symbol() {
         <div className="flex items-center text-right">
           <div className="pr-8">
             <div className="text-sm" style={{ color: 'rgba(255,255,255,.85)' }}>누적 체납 메소</div>
-            <Tooltip text={formatMesoKorean(totalArrearMeso)}>
+            <Tooltip text={formatMeso(totalArrearMeso)}>
               <div className="text-xl font-bold tabular-nums mt-1 inline-block" style={{ color: '#ffc9c0' }}>
                 {totalArrearMeso.toLocaleString()}
               </div>
@@ -263,7 +263,7 @@ export default function Symbol() {
           <div className="w-px h-11" style={{ background: 'rgba(255,255,255,.35)' }} />
           <div className="pl-8">
             <div className="text-sm" style={{ color: 'rgba(255,255,255,.85)' }}>남은 필요 메소</div>
-            <Tooltip text={formatMesoKorean(totalRequiredMeso)}>
+            <Tooltip text={formatMeso(totalRequiredMeso)}>
               <div className="text-xl font-bold tabular-nums mt-1 inline-block" style={{ color: '#ffe27a' }}>
                 {totalRequiredMeso.toLocaleString()}
               </div>

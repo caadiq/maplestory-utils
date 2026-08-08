@@ -7,7 +7,7 @@ import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import { useSymbolCharacterSync } from '../useSymbolCharacterSync'
 import { symbolMetrics } from '../logic'
 import { formatKoreanDate, TYPE_ORDER } from '../utils'
-import { formatMesoKorean } from '../../../utils/formatting'
+import { formatMeso } from '../../../utils/formatting'
 import CharacterSuggestDropdown from '../../../components/common/CharacterSuggestDropdown'
 import SymbolCard from '../pc/user/SymbolCard'
 import SymbolLevelSheet from './SymbolLevelSheet'
@@ -239,12 +239,12 @@ export default function Symbol() {
               <div className="flex-1">
                 <div className="text-xs" style={{ opacity: 0.85 }}>누적 체납 메소</div>
                 <div className="text-base font-bold tabular-nums mt-0.5">{totalArrearMeso.toLocaleString()}</div>
-                <div className="text-[11px]" style={{ opacity: 0.7 }}>{formatMesoKorean(totalArrearMeso)}</div>
+                <div className="text-[11px]" style={{ opacity: 0.7 }}>{formatMeso(totalArrearMeso)}</div>
               </div>
               <div className="flex-1">
                 <div className="text-xs" style={{ opacity: 0.85 }}>남은 필요 메소</div>
                 <div className="text-base font-bold tabular-nums mt-0.5">{totalRequiredMeso.toLocaleString()}</div>
-                <div className="text-[11px]" style={{ opacity: 0.7 }}>{formatMesoKorean(totalRequiredMeso)}</div>
+                <div className="text-[11px]" style={{ opacity: 0.7 }}>{formatMeso(totalRequiredMeso)}</div>
               </div>
             </div>
           </div>

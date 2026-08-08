@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatMeso, formatMesoKorean } from '../formatting'
+import { formatMeso } from '../formatting'
 
 describe('formatMeso', () => {
   it('0 이하는 "0" 반환', () => {
@@ -31,10 +31,6 @@ describe('formatMeso', () => {
     expect(formatMeso(2_576_000_000)).toBe('25억 7,600만')
   })
 
-  it('formatMesoKorean은 formatMeso와 동일', () => {
-    expect(formatMesoKorean(100_010_000)).toBe(formatMeso(100_010_000))
-    expect(formatMesoKorean(0)).toBe('0')
-  })
 
   it('문자열 입력도 처리', () => {
     expect(formatMeso('12345')).toBe('1만')

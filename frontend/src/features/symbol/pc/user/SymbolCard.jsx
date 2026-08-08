@@ -2,7 +2,7 @@ import { memo, useMemo } from 'react'
 import Select from '../../../../components/common/Select'
 import Tooltip from '../../../../components/common/Tooltip'
 import { useSymbolStore } from '../../store'
-import { formatMesoKorean } from '../../../../utils/formatting'
+import { formatMeso } from '../../../../utils/formatting'
 import { formatKoreanDate } from '../../utils'
 import { symbolMetrics } from '../../logic'
 
@@ -193,8 +193,8 @@ function SymbolCard({ symbol, equipped, charId }) {
       <div className="text-base">
         {[
           { label: '남은 심볼', value: equipped && !isMax && !effectivelyMax ? `${remainingAfterExtra.toLocaleString()}개` : '-', color: 'var(--text-emphasis)' },
-          { label: '필요 메소', value: equipped && !isMax ? remainingMeso.toLocaleString() : '-', color: 'var(--warning-text-bright)', tooltip: equipped && !isMax ? formatMesoKorean(remainingMeso) : null },
-          { label: '체납 메소', value: equipped && !isMax ? arrearMeso.toLocaleString() : '-', color: 'var(--danger-text)', tooltip: equipped && !isMax ? formatMesoKorean(arrearMeso) : null },
+          { label: '필요 메소', value: equipped && !isMax ? remainingMeso.toLocaleString() : '-', color: 'var(--warning-text-bright)', tooltip: equipped && !isMax ? formatMeso(remainingMeso) : null },
+          { label: '체납 메소', value: equipped && !isMax ? arrearMeso.toLocaleString() : '-', color: 'var(--danger-text)', tooltip: equipped && !isMax ? formatMeso(arrearMeso) : null },
           { label: '남은 일수', value: equipped && !isMax && !effectivelyMax && daysLeft != null ? `${daysLeft.toLocaleString()}일` : '-', color: 'var(--text-emphasis)' },
           { label: '예상 완료일', value: equipped && !isMax && !effectivelyMax && completeDate ? formatKoreanDate(completeDate) : '-', color: equipped && !isMax && !effectivelyMax && completeDate ? 'var(--accent-bright)' : 'var(--text-dim)', strong: true },
         ].map((row) => (

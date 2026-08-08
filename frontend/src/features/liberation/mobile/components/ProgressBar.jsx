@@ -1,10 +1,4 @@
-const DOW = ['일', '월', '화', '수', '목', '금', '토']
-function formatKoreanDate(s) {
-  const [y, m, d] = s.split('-')
-  const dow = DOW[new Date(`${s}T00:00:00+09:00`).getDay()]
-  return `${y}년 ${m}월 ${d}일 (${dow})`
-}
-
+import { formatKoreanDate } from '../../../../utils/formatting'
 function DateRow({ label, value }) {
   return (
     <div

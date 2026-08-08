@@ -11,7 +11,7 @@ import CharacterCard from '../../symbol/pc/user/CharacterCard'
 import ExpJourney from './ExpJourney'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import { useExpStore, expInitialState } from '../store'
-import { NumInput, SecTitle, CARD } from '../../hexa-matrix/shared'
+import { NumInput, SecTitle, CARD } from '../../../components/common/widgets'
 import {
   EPIC_STAGES, defaultSettings, zoneOn,
   simulate, breakdown, fmtPct, weekKeyKST, parkSpecialActive,
