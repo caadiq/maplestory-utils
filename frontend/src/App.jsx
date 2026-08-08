@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import PCRoutes from './routes/pc'
 import MobileRoutes from './routes/mobile'
 import GlobalTooltip from './components/common/GlobalTooltip'
+import ScrollToTop from './components/common/ScrollToTop'
 
 /**
  * 모바일/PC는 **뷰포트 폭(matchMedia)** 하나로 판정한다. UA는 보지 않는다.
@@ -35,6 +36,7 @@ export default function App() {
   const kind = useViewportKind()
   return (
     <>
+      <ScrollToTop />
       {kind === 'mobile' ? <MobileRoutes /> : <PCRoutes />}
       <GlobalTooltip />
     </>
