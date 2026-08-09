@@ -11,7 +11,7 @@ import CandidatePicker from './CandidatePicker'
 import MiniBar from './MiniBar'
 import {
   DETECT, loadSettings, saveSettings, durationForSettings, formatSeconds,
-  LEVEL_TIERS, tierForLevel, ALARM_DISPLAY_BIAS_MS, DURATION_LAG_MS, MODE_LABELS,
+  LEVEL_TIERS, tierForLevel, ALARM_DISPLAY_BIAS_MS, durationLagFor, MODE_LABELS,
 } from '../logic'
 import { LOCATE } from '../locateCore'
 import { ensureAudio, scheduleSound, playSound, preloadSounds, resolveSound, SOUND_OPTIONS } from '../alarm'
@@ -82,7 +82,7 @@ export default function Timer() {
   const scheduleFor = useCallback((s, installedAt) => {
     clearScheduled()
     const fireInSec = ((durationForSettings(s) - s.offsetSec) * 1000
-      - DURATION_LAG_MS + ALARM_DISPLAY_BIAS_MS - (Date.now() - installedAt)) / 1000
+      - durationLagFor(s) + ALARM_DISPLAY_BIAS_MS - (Date.now() - installedAt)) / 1000
     if (fireInSec > 0) {
       cancelRef.current.push(scheduleSound(s.sound, s.volume, fireInSec))
     }
@@ -123,7 +123,7 @@ export default function Timer() {
   const active = Boolean(install) && elapsed < cycleMs
   // 표시도 실제 울리는 시각과 같아야 한다
   const alarmInMs = active
-    ? alarmAtSec * 1000 - DURATION_LAG_MS + ALARM_DISPLAY_BIAS_MS - elapsed
+    ? alarmAtSec * 1000 - durationLagFor(settings) + ALARM_DISPLAY_BIAS_MS - elapsed
     : null
   const countdownMs = alarmInMs
   const progress = active ? elapsed / cycleMs : 0
