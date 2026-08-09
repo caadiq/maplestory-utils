@@ -214,14 +214,15 @@ export function useJanusDetector({ onInstall, mode = 'dawn', cycleMs = 0 }) {
    * 직접 지정한 적이 있으면 그 모양을(사용자 화면의 실물이라 가장 정확),
    * 없으면 icon/ 폴더의 원본을 쓴다. 무거운 계산은 워커에서 돌린다.
    */
-  const locate = useCallback(async () => {
+  const locate = useCallback(async ({ ignoreSaved = false } = {}) => {
     const video = videoRef.current
     if (!video?.videoWidth) return null
 
     const vw = video.videoWidth
     const vh = video.videoHeight
     const ratio = LOCATE.frameWidth / vw
-    const saved = loadTemplate()
+    // ignoreSaved: 저장 모양이 엉뚱한 자리에 굳었을 때 내장 원본으로만 다시 찾는다
+    const saved = ignoreSaved ? null : loadTemplate()
     // 직접 지정한 적이 있으면 그때의 크기를 먼저 쓴다 — 추측보다 확실한 정보다
     const savedSize = saved ? Math.round(saved.rw * vw) : null
     const sizes = [...new Set([
