@@ -183,6 +183,18 @@ export function durationForSettings(s) {
   return s?.mode === 'dusk' ? DUSK_DURATION_SEC : durationForLevel(s?.level)
 }
 
+/**
+ * 설정 기준 지속시간 보정(ms).
+ *
+ * DURATION_LAG_MS는 **설치기(새벽)** 에서만 성립하는 값이다 —
+ * "아이콘이 어두워진 순간"과 "인게임 지속시간 숫자가 시작하는 순간"의 시차를 잰 것.
+ * 황혼은 설치기가 아니라 바닥에 떨어진 아이템의 2분이 기준이라 그 시차가 없다.
+ * 여기에 1.1초를 빼면 설정한 알림초보다 그만큼 일찍 울린다(17초 설정 → 화면 101.9초).
+ */
+export function durationLagFor(s) {
+  return s?.mode === 'dusk' ? 0 : DURATION_LAG_MS
+}
+
 export const DEFAULT_SETTINGS = {
   mode: 'dawn',
   level: 30,
