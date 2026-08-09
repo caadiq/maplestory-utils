@@ -10,7 +10,7 @@ import RegionPickerModal from './RegionPickerModal'
 import CandidatePicker from './CandidatePicker'
 import MiniBar from './MiniBar'
 import {
-  DETECT, loadSettings, saveSettings, durationForSettings, formatSeconds,
+  DETECT, loadSettings, saveSettings, durationForSettings, formatSeconds, clearTemplate,
   LEVEL_TIERS, tierForLevel, ALARM_DISPLAY_BIAS_MS, durationLagFor, MODE_LABELS,
 } from '../logic'
 import { LOCATE } from '../locateCore'
@@ -171,10 +171,18 @@ export default function Timer() {
     else setCandidates(hits.slice(0, 6))
   }
 
+  /*
+   * 다시 찾기 = 기억해둔 모양을 버리고 내장 원본으로 새로 찾는다.
+   *
+   * 저장 모양을 그대로 두면 자기 자신과 맞춰 점수가 1.0이라, 한 번 엉뚱한 자리가
+   * 저장되면 몇 번을 눌러도 같은 자리만 다시 나온다(내장 원본이 0.89로 옳게 찾아도 진다).
+   * 이 버튼을 누른다는 건 지금 자리가 틀렸다는 뜻이므로 그 기억부터 지우는 게 맞다.
+   */
   const relocate = async () => {
     setLocating(true)
     await new Promise((r) => setTimeout(r, 50))
-    applyHits(await locate())
+    clearTemplate()
+    applyHits(await locate({ ignoreSaved: true }))
   }
 
   const handleTest = async () => {
