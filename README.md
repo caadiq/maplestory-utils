@@ -187,7 +187,7 @@ cd backend && npm install && npm run dev   # node --watch
 
 ### 환경 변수
 
-`.env` 파일에 설정합니다.
+[`.env.example`](.env.example)을 `.env`로 복사해 값을 채웁니다.
 
 ```env
 # DB (MariaDB)
@@ -221,4 +221,4 @@ PORT=3000
 
 ## 📄 라이선스
 
-MIT License
+[MIT License](LICENSE)
