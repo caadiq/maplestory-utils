@@ -403,7 +403,13 @@ export function useJanusDetector({ onInstall, mode = 'dawn', cycleMs = 0 }) {
       rvfcHandle = video.requestVideoFrameCallback(countFrame)
     }
 
-    /** 황혼 사이클 시작 — startAt(ms)을 기준으로 잠금을 걸어 다음 바퀴가 밀리지 않게 한다 */
+    /**
+     * 황혼 사이클 시작 — startAt(ms)을 기준으로 잠금을 걸어 다음 바퀴가 밀리지 않게 한다.
+     *
+     * startAt은 항상 "화면에서 쿨타임을 본 시각"이다. 공유 화면은 캡처 지연만큼
+     * 과거라 그만큼 당겨야 실제와 맞는다. (계산으로 만든 시각을 넘기면 안 된다 —
+     * 이미 실시간이라 또 빼면 사이클이 지연만큼 앞당겨진다)
+     */
     const startDuskCycle = (startAt, tag) => {
       const at = startAt - Math.round(latencyRef.current)
       indexRef.current += 1
@@ -666,8 +672,7 @@ export function useJanusDetector({ onInstall, mode = 'dawn', cycleMs = 0 }) {
        * 겹치면 이어붙이기가 통째로 건너뛰어진다(실제로 두어 번씩 씹혔다).
        * 인식과 무관하게 도는 이 타이머에서 처리해야 확실하다.
        *
-       * 시작 시각은 now가 아니라 직전 사이클이 끝난 시각(lockUntil)이라 반복해도 밀리지 않는다.
-       * 다만 사냥을 아예 멈춘 경우(쿨타임이 한동안 전혀 없음)에는 잇지 않고 다음 쿨타임을 기다린다.
+       * 사냥을 아예 멈춘 경우(쿨타임이 한동안 전혀 없음)에는 잇지 않고 다음 쿨타임을 기다린다.
        */
       if (modeRef.current === 'dusk') {
         const now = Date.now()
@@ -682,12 +687,16 @@ export function useJanusDetector({ onInstall, mode = 'dawn', cycleMs = 0 }) {
            * (실측 영상: 끝난 뒤 16초 동안 쿨이 여러 번 돌았는데도 시작 안 됨).
            * 그래서 엣지가 아니라 "최근에 쿨타임이 돌고 있었나"만 본다.
            *
-           * 이어붙일 때 시작 시각은 직전 사이클이 끝난 시각(lockUntil)이라 반복해도 밀리지 않고,
-           * 오래 쉬었다가 돌아온 경우에는 지금부터 새로 잰다.
+           * 시작 시각은 "사냥을 다시 시작한 순간" = 쿨타임을 마지막으로 본 시각이다.
+           * 아이템은 공격할 때 떨어지므로 그 시점이 곧 새 2분의 기점이고, 표시도
+           * 설정한 값에서 시작한다. 직전 알림 시각(lockUntil)에 맞추면 회수하느라
+           * 쉰 만큼 표시가 작게 시작해(실측 2.9초) 설정과 어긋나 보였다.
+           *
+           * 단 사이클이 끝나기 '전에' 본 쿨타임은 기점이 될 수 없다 —
+           * 그걸 쓰면 다시 과거로 앵커돼 같은 증상이 난다. 끝난 뒤에 본 것만 센다.
            */
-          if (activeRecently) {
-            const gap = now - lockUntilRef.current
-            startDuskCycle(gap <= DUSK_ACTIVE_MS ? lockUntilRef.current : now, '이어서')
+          if (lastDigitAtRef.current >= lockUntilRef.current) {
+            startDuskCycle(lastDigitAtRef.current, '이어서')
           }
         }
       }
