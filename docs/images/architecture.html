@@ -52,7 +52,7 @@ body{
 /* ── 화살표 (아래 줄과 같은 그리드에 얹어 열을 맞춘다) ── */
 .arrows{display:grid;gap:18px;height:46px}
 .a{position:relative}
-.a::before{content:'';position:absolute;left:50%;top:0;width:2px;height:46px;
+.a::before{content:'';position:absolute;left:50%;top:-33px;width:2px;height:79px;
   background:var(--accent);transform:translateX(-50%)}
 .a::after{content:'';position:absolute;left:50%;bottom:0;transform:translateX(-50%);
   border:7px solid transparent;border-top-color:var(--accent);border-bottom:0}
@@ -65,13 +65,29 @@ body{
 
 /* ── 데이터 계층 버스: 백엔드 열(82.4%)에서 내려와 두 저장소로 분기 ── */
 .bus{position:relative;height:56px}
-.bus-stub{position:absolute;left:82.4%;top:0;width:2px;height:28px;
+.bus-stub{position:absolute;left:82.4%;top:-33px;width:2px;height:61px;
   background:var(--accent);transform:translateX(-50%)}
 .bus-line{position:absolute;left:24.6%;right:17.6%;top:27px;height:2px;background:var(--accent)}
 .bus-drop{position:absolute;top:27px;width:2px;height:29px;background:var(--accent);
   transform:translateX(-50%)}
 .bus-drop::after{content:'';position:absolute;left:50%;bottom:-1px;transform:translateX(-50%);
   border:7px solid transparent;border-top-color:var(--accent);border-bottom:0}
+
+
+/* ── 흐름 스트립 ── */
+.flow{margin-top:30px;border:2px solid var(--accent);border-radius:15px;background:#fff;overflow:hidden}
+.flow-h{display:flex;align-items:center;gap:16px;
+  background:linear-gradient(90deg,var(--sky-from),var(--sky-to));padding:13px 22px}
+.flow-h .ft{font-size:17px;font-weight:700;color:#fff;letter-spacing:-.3px}
+.flow-h .fs2{font-size:13px;color:#eaf7ff;word-break:keep-all}
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:0;padding:20px 22px}
+.st{position:relative;padding:0 24px 0 0}
+.st + .st{padding-left:24px}
+.st + .st::before{content:'';position:absolute;left:-1px;top:50%;transform:translateY(-50%);
+  border:8px solid transparent;border-left-color:var(--accent);border-right:0}
+.st .sn{font-size:11.5px;font-weight:700;color:var(--accent);letter-spacing:1px}
+.st .sh{font-size:15px;font-weight:700;margin-top:6px;letter-spacing:-.3px}
+.st .sd{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.6;word-break:keep-all}
 
 /* ── 외부 서비스 ── */
 .ext{border:2px solid var(--lime-to);border-radius:15px;padding:20px;background:#fbfdf8}
@@ -105,11 +121,11 @@ body{
       <div class="grid" style="grid-template-columns:1fr 1fr">
         <div class="box">
           <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#1f2c3d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
-          <div><div class="n">Web — PC</div><div class="d">1100px 이상 · 게임창 UI 레이아웃</div></div>
+          <div><div class="n">Web — 넓은 화면</div><div class="d">데스크톱 · 태블릿 가로<br>1100px 이상 · 게임창 UI 레이아웃</div></div>
         </div>
         <div class="box">
           <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#1f2c3d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18.5h2"/></svg></div>
-          <div><div class="n">Web — 모바일</div><div class="d">1100px 미만 · 전용 페이지로 분기</div></div>
+          <div><div class="n">Web — 좁은 화면</div><div class="d">폰 · 태블릿 세로<br>1100px 미만 · 전용 페이지로 분기</div></div>
         </div>
       </div>
     </div>
@@ -206,6 +222,20 @@ body{
       <div class="note">※ 넥슨 API 키는 서버에만 두고, 브라우저는 이 사이트의 백엔드만 호출합니다.</div>
     </div>
   </aside>
+</div>
+
+<div class="flow">
+  <div class="flow-h">
+    <span class="ft">강화 이력 조회 흐름</span>
+    <span class="fs2">넥슨 API는 서버에서만 호출하고, 변하지 않는 과거 데이터는 다시 받지 않습니다</span>
+  </div>
+  <div class="steps">
+        <div class="st"><div class="sn">STEP 1</div><div class="sh">조회 요청</div><div class="sd">닉네임을 입력하면<br>브라우저가 백엔드에 요청</div></div>
+        <div class="st"><div class="sn">STEP 2</div><div class="sh">넥슨 API 호출</div><div class="sd">API 키는 서버에만 두고<br>백엔드가 대신 호출</div></div>
+        <div class="st"><div class="sn">STEP 3</div><div class="sh">날짜별 캐시 판단</div><div class="sd">과거 날짜는 DB에 영구 보관<br>오늘 자만 매번 재조회</div></div>
+        <div class="st"><div class="sn">STEP 4</div><div class="sh">아이콘 보강</div><div class="sd">계정에 없는 아이템은<br>maplestory.io로 폴백</div></div>
+        <div class="st"><div class="sn">STEP 5</div><div class="sh">결과 렌더</div><div class="sd">스타포스 · 큐브 이력을<br>게임창 UI로 표시</div></div>
+  </div>
 </div>
 
 </body>
