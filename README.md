@@ -35,8 +35,8 @@
 | 구성 | 역할 |
 | --- | --- |
 | **Caddy** | 리버스 프록시 · 자동 HTTPS. prod/dev 도메인을 각 컨테이너로 분기 |
-| **frontend / frontend-dev** | 같은 소스를 정적 빌드(serve) / Vite watch 두 갈래로 서빙 |
-| **backend (Express 5)** | REST API + 세션 인증 + 스케줄러(node-cron)를 한 프로세스에서 운영 |
+| **프로덕션 / 개발 프론트엔드** | 같은 소스를 정적 빌드(serve) / Vite watch 두 갈래로 서빙 |
+| **Backend (Node.js + Express)** | REST API + 세션 인증 + 스케줄러(node-cron)를 한 프로세스에서 운영 |
 | **MariaDB** | 보스·심볼·메뉴·이미지·사용자 상태, 강화 이력 날짜별 영구 캐시 (다른 서비스와 공유하는 인스턴스) |
 | **RustFS (S3 호환)** | 보스·심볼·아이콘 이미지 원본 저장 (sharp로 변환 후 업로드) |
 | **NEXON Open API** | 캐릭터·심볼·헥사·유니온·강화 이력·랭킹·공지 |
