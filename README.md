@@ -1,114 +1,116 @@
-# 🍄 MapleStory Tools
+# 🍄 메이플스토리 유틸리티
 
-메이플스토리 플레이에 필요한 계산기·체크리스트 도구 모음입니다.
+메이플스토리 플레이에 필요한 계산기 모음입니다. NEXON Open API로 캐릭터 정보를 불러와 보스 수익·심볼·헥사·경험치·해방을 계산하고, 화면 인식으로 동작하는 재획 타이머까지 제공하는 풀스택 서비스입니다.
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
+![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4-06B6D4?logo=tailwindcss)
 ![Express](https://img.shields.io/badge/Express-5-000000?logo=express)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss)
+![Node.js](https://img.shields.io/badge/Node.js-ESM-339933?logo=nodedotjs)
+![Sequelize](https://img.shields.io/badge/Sequelize-6-52B0E7?logo=sequelize)
+![MariaDB](https://img.shields.io/badge/MariaDB-MySQL2-003545?logo=mariadb)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker)
 
 ---
 
 ## ✨ 주요 기능
 
-- 🔍 **캐릭터 조회** - NEXON Open API로 닉네임 검색 (월드/직업/레벨/캐릭터 이미지)
-- 💎 **보스 결정석 계산기** - 보스/난이도별 주간 결정석 수익 정산 (캐릭터별 패널 관리)
-- 🔮 **심볼 계산기** - 아케인/어센틱 심볼 레벨업에 필요한 심볼 수·메소 계산 (캐릭터별 관리)
-- ⚔️ **해방 / 제네시스** - 제네시스 무기 해방 8단계(총 6,500) 진행도 추적, 주간 보스 스케줄러로 완료 예상 주차 산정
-- 🎫 **제네시스 패스** - 패스 기간/배수 기반 활성 여부 및 정보 표시
-- 🔨 **장비 강화 기록** - 스타포스·잠재능력 이력을 아이템별로 묶어 사용 메소·성공률·등급업 확률 분석 (전체 기간, 날짜별 영구 캐시)
-- ⏱️ **재획 타이머** - 화면 공유로 퀵슬롯 아이콘의 설치를 감지해 지속시간이 끝나기 전에 알림 (PiP 미니바)
-- 📰 **공지사항** - NEXON 공지/이벤트/업데이트/캐시샵 공지 연동 조회
-- ☀️ **썬데이 메이플** - 금요일 기준 주차별 썬데이 메이플(노멀/스페셜) 자동 수집 (node-cron 스케줄링)
-- 🛠️ **관리자** - 사이드바 레이아웃 기반 보스·심볼·시즌·이미지·메뉴 관리 (S3 업로드, sharp 이미지 처리)
-- 📱 **디바이스 분기** - PC / 태블릿 / 모바일 레이아웃 자동 분기 (feature 자동 등록 시스템)
+- 💎 **주간 보스 수익 계산기** — 보스·난이도·파티원별 결정석 수익 정산. 캐릭터 12개/계정 한도와 시즌 보스(챌린저스) 예외까지 반영
+- 🔮 **심볼 계산기** — 아케인·어센틱·그랜드 어센틱 심볼의 남은 심볼 수·메소·완료 예상일. 장착 심볼과 일퀘 보너스(이벤트 스킬·에테리온 아티팩트)를 API에서 자동 반영
+- ⬡ **헥사 강화 계산기** — 6차 코어별 솔 에르다·조각 소모량과 진행도, 주간 수급량 기반 완료 시점 산정. 보스 수익을 조각 구매로 환산해 반영
+- 📈 **경험치 계산기** — 사냥·일퀘·몬파·에픽던전·사우나·비약 등 컨텐츠별 획득량을 합산해 목표 레벨 도달일 예측. 랭킹 API로 최근 9일 성장 곡선을 그립니다
+- ⚔️ **해방 날짜 계산기** — 제네시스 무기 해방 8단계(총 6,500) 진행도 추적, 주간 보스 스케줄로 완료 예상 주차 산정 (제네시스 패스 배수 반영)
+- 🔨 **장비 강화 기록** — 스타포스·큐브·잠재능력 이력을 아이템 단위로 묶어 사용 메소·성공률·등급업 확률 분석 (전체 기간, 날짜별 영구 캐시)
+- ⏱️ **재획 타이머** — 게임 화면을 인식해 솔 야누스 사이클을 재고 회수 전에 알립니다. 새벽(설치기)·황혼(추가타) 모드 자동 판별, PiP 미니바
+- 📰 **공지사항 · 썬데이 메이플** — 넥슨 공지/이벤트/업데이트/캐시샵 연동, 주차별 썬데이 메이플 자동 수집(node-cron)
+- 🛠️ **관리자** — 보스·심볼·시즌·이미지·메뉴 관리 (S3 업로드, sharp 이미지 처리)
+- 📱 **PC / 모바일 분기** — 뷰포트 폭(1100px) 기준으로 전용 페이지·레이아웃 자동 분기
+
+---
+
+## 🏗 시스템 구조
+
+![시스템 구조도](docs/images/architecture.png)
+
+| 구성 | 역할 |
+| --- | --- |
+| **Caddy** | 리버스 프록시 · 자동 HTTPS. prod/dev 도메인을 각 컨테이너로 분기 |
+| **frontend / frontend-dev** | 같은 소스를 정적 빌드(serve) / Vite watch 두 갈래로 서빙 |
+| **backend (Express 5)** | REST API + 세션 인증 + 스케줄러(node-cron)를 한 프로세스에서 운영 |
+| **MariaDB** | 보스·심볼·메뉴·이미지·사용자 상태, 강화 이력 날짜별 영구 캐시 (다른 서비스와 공유하는 인스턴스) |
+| **RustFS (S3 호환)** | 보스·심볼·아이콘 이미지 원본 저장 (sharp로 변환 후 업로드) |
+| **NEXON Open API** | 캐릭터·심볼·헥사·유니온·강화 이력·랭킹·공지 |
+
+> 넥슨 API 키는 서버에만 두고, 브라우저는 이 사이트의 백엔드만 호출합니다.
+> 로그인은 사용자가 입력한 넥슨 API 키로 계정을 식별하며 **키 자체는 저장하지 않습니다**.
+
+### 재획 타이머 — 화면 인식 파이프라인
+
+게임 창을 화면 공유로 받아 퀵슬롯의 솔 야누스 아이콘만 추적합니다. **브라우저 안에서만 처리하며 화면 영상은 서버로 보내지 않습니다.**
+
+```
+화면 공유 ──▶ 아이콘 자동 탐색 ──▶ 쿨타임 숫자 OCR ──▶ 사이클 판정 ──▶ 알림 예약
+(getDisplayMedia)  (자주색 성분 NCC)   (설치 시각 역산)    (새벽/황혼)   (AudioContext)
+```
+
+- **밝기가 아니라 자주색 성분 `(R+B)/2 − G`로 찾습니다.** 퀵슬롯 아이콘 위에는 단축키 글자가 흰색·노란색으로 얹혀 밝기 분포를 망가뜨립니다 — 실측하면 밝기로는 0.16~0.33(잡음 수준), 색 성분으로는 0.65~0.78이 나옵니다
+- **쿨타임 숫자가 바뀌는 순간**은 게임 내부 시계의 정확한 1초 경계라, 몇 번만 읽으면 설치 시각이 확정됩니다. 총 쿨타임 길이는 가정하지 않습니다(쿨감 장비에 따라 달라짐)
+- **모드는 자동 판별합니다** — 새벽·황혼 원본을 모두 대조해 이긴 쪽으로 전환합니다
+  - **새벽**(설치기): 스킬 레벨로 정해지는 지속시간을 셉니다
+  - **황혼**(추가타): 바닥에 떨어진 아이템이 2분이면 사라지므로 그 전에 알리고, 사냥을 재개한 순간부터 다음 사이클을 셉니다
+- 알림은 `setTimeout` 대신 **AudioContext 예약** — 백그라운드 탭에서도 밀리지 않습니다
+
+### 장비 강화 기록 — 이력 캐시
+
+넥슨 이력 API는 **하루치 응답이 변하지 않으므로** 날짜별로 DB에 영구 캐시합니다(`enchant_history_cache`). 최초 1회만 전체 기간을 훑고 이후에는 즉시 로드합니다.
+
+> API 제약: 이력 보존 약 728일, **아이템 개체 식별자 없음**(같은 캐릭터의 동명 장비는 한 항목으로 합산), 파괴 방지 실제 발동 여부 판별 불가.
+> 비용은 API가 주지 않아 공개 공식으로 산출하며, **MVP·PC방 할인처럼 시점을 알 수 없는 할인은 제외**합니다.
 
 ---
 
 ## 📁 프로젝트 구조
 
 ```
-maplestory/
+maplestory-utils/
 ├── frontend/                 # React 19 + Vite 프론트엔드
 │   └── src/
 │       ├── features/         # 기능별 모듈 (자동 등록)
-│       │   ├── boss-crystal/ # 보스 결정석 계산기
+│       │   ├── boss-crystal/ # 주간 보스 수익 계산기
 │       │   ├── symbol/       # 심볼 계산기
-│       │   ├── liberation/   # 해방 / 제네시스 진행도 (+ 제네시스 패스 설정)
-│       │   ├── enchant/      # 장비 강화 기록 (스타포스·잠재능력)
-│       │   ├── timer/        # 재획 타이머 (화면 인식, 프론트 전용 — 백엔드 없음)
-│       │   ├── admin/        # 관리자 화면 (사이드바 레이아웃 + 공용 UI 조각)
-│       │   └── registry.js   # PC/태블릿/모바일 컴포넌트 자동 매핑
-│       ├── pages/            # pc / tablet 페이지
-│       ├── routes/           # pc / tablet / mobile 라우트
-│       ├── components/       # 공용 UI 컴포넌트
+│       │   ├── hexa-matrix/  # 헥사 강화 계산기
+│       │   ├── exp-calculator/ # 경험치 계산기 (성장 그래프)
+│       │   ├── liberation/   # 해방 / 제네시스 진행도
+│       │   ├── enchant/      # 장비 강화 기록
+│       │   ├── timer/        # 재획 타이머 (화면 인식 — 백엔드 없음)
+│       │   ├── admin/        # 관리자 화면
+│       │   └── registry.js   # PC/모바일 컴포넌트 자동 매핑
+│       ├── components/       # common / pc / mobile 공용 컴포넌트
+│       ├── pages/            # pc / mobile 페이지
+│       ├── routes/           # pc / mobile 라우트
+│       ├── hooks/            # 커스텀 훅 (캐릭터 조회·상태 동기화 등)
 │       ├── api/              # API 클라이언트
-│       ├── hooks/            # 커스텀 훅
 │       ├── stores/           # Zustand 스토어
-│       └── utils/            # 헬퍼
-├── backend/                  # Node.js + Express 5 백엔드
-│   ├── routes/               # boss-crystal, symbol, character, notices, enchant,
-│   │                         #   sunday-maple, genesis-pass, images, menus, admin
-│   ├── models/               # Sequelize 모델 (Boss, Symbol, GenesisPass, Image,
-│   │                         #   EnchantHistoryCache 등)
-│   ├── services/             # 이미지 처리, 썬데이 메이플 수집/크론
-│   ├── lib/                  # DB 연결, S3 클라이언트
-│   ├── middleware/           # Express 미들웨어
+│       ├── utils/            # 포맷 유틸
+│       └── App.jsx           # matchMedia(1100px) PC/모바일 분기
+│
+├── backend/                  # Node.js(ESM) + Express 5 백엔드
+│   ├── routes/               # auth, me, character, boss-crystal, symbol, hexa,
+│   │                         #   exp, enchant, liberation(genesis-pass), notices,
+│   │                         #   sunday-maple, images, menus, admin
+│   ├── services/             # character, exp, hexa, enchant, image,
+│   │                         #   sundayMaple(+cron), sessionCleanup
+│   ├── models/               # Sequelize 모델
+│   ├── lib/                  # db · s3 · nexon(공용 API 클라이언트)
+│   ├── middleware/           # 세션 인증
+│   ├── data/                 # exp-data.json (레벨·컨텐츠별 경험치 원본값)
 │   └── server.js             # 엔트리포인트
-└── docker-compose.yml        # Docker Compose 설정
+│
+├── docs/images/              # 시스템 구조도 (architecture.html → png)
+└── docker-compose.yml        # frontend / frontend-dev / backend
 ```
 
----
-
-## 🔨 장비 강화 기록
-
-넥슨 Open API의 스타포스·큐브·잠재능력 재설정 이력을 **아이템(캐릭터 + 장비) 단위로 묶어** 보여줍니다.
-
-- **전체 기간 조회** — 하루치 응답은 변하지 않으므로 날짜별로 DB에 영구 캐시(`enchant_history_cache`). 최초 1회만 API를 훑고 이후에는 즉시 로드
-- **비용은 계산값** — API가 사용 메소를 주지 않아 공개된 공식으로 산출합니다. 이력에 담긴 이벤트 할인·파괴 방지·강화권만 반영하며, **MVP·PC방 할인이나 통찰력 감정 면제처럼 시점을 알 수 없는 할인은 제외**합니다
-- **아이템 레벨 보강** — 스타포스 이력에는 `item_level`이 없어 계정 장비와 maplestory.io에서 이름→레벨 사전을 만들어 주입합니다
-
-> API 제약: 이력 보존 기간 약 728일, 아이템 개체 식별자 없음(같은 캐릭터의 동명 장비는 한 항목으로 합산), 파괴 방지의 실제 발동 여부는 판별 불가
-
----
-
-## ⏱️ 재획 타이머 (야누스 알림)
-
-메이플 창을 화면 공유로 받아 **퀵슬롯 야누스 아이콘이 어두워지는 순간(= 설치)만** 감지하고, 이후는 타이머로 셉니다. 서버로 아무것도 보내지 않는 프론트 전용 기능입니다.
-
-### 왜 이렇게 만들었나
-
-- **쿨타임은 보지 않습니다** — 지속시간(30렙 2분)이 쿨타임보다 길어 야누스가 사라지기 전에 이미 쿨이 돌아와 있습니다. 정작 필요한 알림은 "사라지기 전에 다시 깔아라"입니다
-- **지속시간은 스킬 레벨에서** — 10레벨 단위 계단식(1~9렙 60초 / 10~19렙 70초 / 20~29렙 80초 / 30렙 120초). 야누스는 버프 지속시간 증가의 영향을 받지 않습니다
-- **알림 시점은 초 단위 직접 입력** — 사냥터마다 젠 주기가 달라 고정 프리셋을 쓸 수 없습니다
-- **알림은 `AudioContext` 예약** — `setTimeout`은 백그라운드 탭에서 1초 단위로 밀립니다. 이미 울리기 시작한 소리는 다음 사이클이 시작돼도 끊지 않습니다
-
-### 오검출을 막는 장치들 (전부 실사용에서 드러난 것)
-
-| 상황 | 왜 문제였나 | 어떻게 막았나 |
-|---|---|---|
-| 쿨타임 막바지 깜빡임 | 밝은 구간이 "쿨 종료"로 읽히고 이어지는 어두운 구간이 새 설치가 됨 | 밝아짐 확정을 2.2초로 (깜빡임 한 주기보다 길게) |
-| 맵 이동 시 화면 암전 | 상호상관은 밝기에 불변이라 모양 검사를 통과 | 쿨타임 숫자(밝은 점)가 보일 때만 설치로 인정 + 주변까지 어두워지면 판단 보류 |
-| 다른 UI에 가려짐 | 밝기만으로는 "어두워짐"과 구분 불가 | 지정한 아이콘 모양과의 상호상관이 기준 아래면 판단을 얼림 |
-
-설치 시각은 **어두워지기 시작한 순간**으로 소급하고, `requestVideoFrameCallback`의 `captureTime`으로 화면 공유 지연을 실측해 보정합니다. 그래도 환경마다 남는 오차는 **타이머 보정** 설정으로 직접 맞춥니다.
-
-### 아이콘 자동 탐색
-
-화면 공유 권한은 기억되지 않아 매번 창을 다시 골라야 하는데, 아이콘까지 매번 집지 않도록 화면에서 자동으로 찾습니다.
-
-- **밝기가 아니라 자주색 성분 `(R+B)/2 − G`로 찾습니다.** 퀵슬롯 아이콘 위에는 단축키 글자가 흰색·노란색으로 얹혀 밝기 분포를 망가뜨립니다. 실측하면 밝기로는 0.16~0.33(잡음 수준), 색 성분으로는 0.65~0.78이 나옵니다
-- **퀵슬롯 상자 안에서만 찾습니다.** 화면 전체를 훑으면 스킬창 같은 보라색 UI 글자가 후보를 차지해 정작 아이콘이 밀려납니다
-- **UI 배율 = 세로 ÷ 768** (해상도 6종 실측). 아이콘 크기와 퀵슬롯 위치가 이 배율에서 그대로 나오므로 크기를 추측할 필요가 없습니다
-- 640px로 줄인 화면에서 자리를 추린 뒤 **원본 해상도에서 다시 확인**하는 2단계
-- 한 번 직접 지정하면 그 모양을 저장하고, 쿨타임 중의 모습도 따로 학습합니다
-- 자동 선택 기준은 출처에 따라 다릅니다 — 저장된 모양이면 1등을 믿고, 내장 원본이면 압도적이지 않은 한 사람에게 묻습니다
-
-### 소리
-
-`src/features/timer/sounds/`에 파일을 넣고 다시 빌드하면 자동으로 목록에 뜹니다(코드 수정 불필요). 앞쪽 무음은 재생 시 자동으로 건너뜁니다.
-
-> 브라우저 제약: 공유할 창을 **자동으로 고를 수 없고**(선택 UI는 브라우저가 그림), 공유 권한은 기억되지 않습니다. 게임 화면 위에 직접 오버레이를 그리는 것도 불가능해 미니 HUD는 Document PiP로 띄웁니다. 모바일은 화면 공유가 없어 PC 전용입니다.
+기능은 **폴더 규칙만 지키면 자동 등록**됩니다 — `features/{slug}/{pc,mobile}/{Pascal}.jsx`.
 
 ---
 
@@ -116,33 +118,33 @@ maplestory/
 
 ### Frontend
 
-| 분류 | 기술 |
-|------|------|
-| 프레임워크 | React 19 |
-| 빌드 도구 | Vite 8 |
-| 스타일링 | Tailwind CSS 4 |
-| 상태 관리 | Zustand 5 |
-| 서버 상태 | TanStack React Query 5 |
-| 라우팅 | React Router 7 |
-| 드래그앤드롭 | dnd-kit |
-| 애니메이션 | Framer Motion 12 |
-| 기타 | dayjs, OverlayScrollbars, react-device-detect |
-| 테스트 | Vitest |
+| 기술 | 설명 |
+| --- | --- |
+| **React 19** | UI 라이브러리 |
+| **Vite 8** | 빌드 도구 / 개발 서버 |
+| **TailwindCSS 4** | CSS 프레임워크 |
+| **Zustand 5** | 전역 상태 관리 |
+| **TanStack React Query 5** | 서버 상태 / 데이터 패칭 |
+| **React Router 7** | 라우팅 |
+| **framer-motion** | 애니메이션 · 드래그 정렬 |
+| **@dnd-kit** | 드래그 앤 드롭 |
+| **@tanstack/react-virtual** | 대용량 목록 가상 스크롤 (강화 이력) |
+| **OverlayScrollbars** | 커스텀 스크롤바 |
+| **Vitest** | 계산 로직 단위 테스트 |
 
 ### Backend
 
-| 분류 | 기술 |
-|------|------|
-| 런타임 | Node.js (ESM) |
-| 프레임워크 | Express 5 |
-| ORM | Sequelize 6 |
-| DB | MariaDB / MySQL2 |
-| 스토리지 | AWS S3 (`@aws-sdk/client-s3`) |
-| 이미지 처리 | sharp |
-| 업로드 | multer |
-| 스케줄링 | node-cron |
-| 외부 연동 | NEXON Open API (axios) |
-| 기타 | dayjs, cors |
+| 기술 | 설명 |
+| --- | --- |
+| **Node.js (ESM)** | 런타임 환경 |
+| **Express 5** | 웹 프레임워크 |
+| **Sequelize 6** | ORM |
+| **MariaDB / MySQL2** | 데이터베이스 |
+| **AWS SDK S3** | 이미지 스토리지 (RustFS S3 호환) |
+| **sharp** | 이미지 리사이즈/변환 |
+| **multer** | 업로드 |
+| **node-cron** | 썬데이 메이플 수집 · 세션 정리 |
+| **axios** | NEXON Open API 연동 |
 
 ---
 
@@ -152,32 +154,71 @@ maplestory/
 
 ```bash
 docker compose up -d --build    # 빌드 및 시작
-docker compose down             # 중지
 docker compose logs -f          # 로그 확인
+docker compose down             # 중지
 ```
 
-> `caddy`, `db`, `app` 외부 네트워크와 `.env`(DB·S3·NEXON_API_KEY 등) 설정이 필요합니다.
+> `caddy`, `db`, `app` 외부 네트워크와 `.env`가 필요합니다.
 
-### Frontend
+**프로덕션 / 개발 병행 서빙**
+
+| 도메인 | 컨테이너 | 내용 |
+| --- | --- | --- |
+| `maple.caadiq.co.kr` | `maplestory-frontend` | `vite build` 결과물을 정적 서빙 |
+| `dev.maple.caadiq.co.kr` | `maplestory-frontend-dev` | Vite watch — 수정 즉시 반영 |
+
+프론트 수정은 dev 도메인에서 확인한 뒤, 아래 한 줄로 프로덕션에 반영합니다.
 
 ```bash
-cd frontend
-npm run dev        # 개발 서버 (Vite)
-npm run build      # 프로덕션 빌드
-npm run lint       # ESLint
-npm run test       # Vitest
+docker compose up -d --build frontend
 ```
 
-### Backend
+### 로컬 개발 모드
 
 ```bash
-cd backend
-npm run dev        # 개발 서버 (--watch)
-npm start          # 프로덕션 실행
+# 프론트엔드
+cd frontend && npm install && npm run dev
+npm run lint        # ESLint
+npm run test        # Vitest
+
+# 백엔드
+cd backend && npm install && npm run dev   # node --watch
 ```
+
+### 환경 변수
+
+`.env` 파일에 설정합니다.
+
+```env
+# DB (MariaDB)
+DB_HOST=mariadb
+DB_PORT=3306
+DB_USER=maplestory
+DB_PASSWORD=your_password
+DB_NAME=maplestory
+
+# S3 호환 스토리지 (RustFS)
+S3_ENDPOINT=...
+S3_ACCESS_KEY=...
+S3_SECRET_KEY=...
+S3_BUCKET=...
+S3_PUBLIC_URL=...
+
+# 외부 API
+NEXON_API_KEY=...   # NEXON Open API (https://openapi.nexon.com)
+
+PORT=3000
+```
+
+---
+
+## 🌐 접속
+
+- **서비스**: https://maple.caadiq.co.kr
+- **개발 서버**: https://dev.maple.caadiq.co.kr
 
 ---
 
 ## 📄 라이선스
 
-MIT
+MIT License
