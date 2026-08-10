@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/Maplestory/Maplestory.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/*
+ * 시스템 구조도 — 사이트(게임창) 디자인 토큰·폰트를 그대로 쓴다.
+ * 값이 바뀌면 frontend/src/index.css 의 --mpl-* 와 다시 맞출 것.
+ */
+:root{
+  --navy-from:#2e3f53; --navy-to:#22303f;
+  --yellow:#ffe437;
+  --sky-from:#5ecdf5; --sky-to:#3aaee0; --accent:#2f9fd8;
+  --purple-from:#b76ee6; --purple-to:#9247c9;
+  --lime-from:#9fd45e; --lime-to:#7db93a;
+  --slate-from:#5a7188; --slate-to:#46596e;
+  --ink:#1f2c3d; --muted:#5a6a7a; --dim:#8b99a8;
+  --card:#fff; --line:#dbe3ea; --row:#f6f9fb;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:"Maplestory","Noto Sans KR",system-ui,sans-serif;
+  background:#fff;color:var(--ink);width:1720px;padding:44px 46px;
+}
+
+/* ── 본체 + 외부 서비스 2단 ── */
+.wrap{display:flex;gap:28px;align-items:stretch}
+.main{flex:1;min-width:0}
+.side{width:392px;flex:none}
+
+/* ── 레인 ── */
+.lane{display:grid;grid-template-columns:158px 1fr;gap:24px;align-items:center}
+.lane-label{padding:6px 0 6px 16px;border-left:4px solid var(--accent)}
+.lane-label .t{font-size:21px;font-weight:700;letter-spacing:-.3px}
+.lane-label .s{font-size:13px;color:var(--dim);margin-top:5px}
+.hr{height:1px;background:var(--line);margin:20px 0}
+
+.grid{display:grid;gap:18px}
+.box{background:var(--card);border:2px solid var(--ink);border-radius:14px;
+  padding:16px 18px;display:flex;align-items:center;gap:13px;min-height:92px}
+.box.soft{border:1.5px solid var(--line)}
+.ic{width:40px;height:40px;border-radius:11px;flex:none;display:flex;align-items:center;
+  justify-content:center;font-size:21px;box-shadow:inset 0 1px 0 rgba(255,255,255,.45)}
+.n{font-size:17.5px;font-weight:700;letter-spacing:-.3px}
+.d{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.55}
+.d b{color:var(--ink);font-weight:700}
+
+/* ── 화살표 (아래 줄과 같은 그리드에 얹어 열을 맞춘다) ── */
+.arrows{display:grid;gap:18px;height:46px}
+.a{position:relative}
+.a::before{content:'';position:absolute;left:50%;top:0;width:2px;height:46px;
+  background:var(--accent);transform:translateX(-50%)}
+.a::after{content:'';position:absolute;left:50%;bottom:0;transform:translateX(-50%);
+  border:7px solid transparent;border-top-color:var(--accent);border-bottom:0}
+.a .lbl{position:absolute;left:calc(50% + 12px);top:13px;font-size:13px;font-weight:700;color:var(--accent)}
+
+.proxy{background:linear-gradient(180deg,var(--navy-from),var(--navy-to));
+  border-radius:13px;padding:19px 22px;box-shadow:0 6px 18px rgba(31,44,61,.28)}
+.proxy .pn{color:var(--yellow);font-size:20px;font-weight:700;letter-spacing:.6px}
+.proxy .pd{color:#c3d3e2;font-size:13.5px;margin-top:5px}
+
+/* ── 외부 서비스 ── */
+.ext{border:2px solid var(--lime-to);border-radius:15px;padding:20px;background:#fbfdf8;height:100%}
+.ext-h{font-size:18px;font-weight:700;color:#4c8a2f}
+.ext-s{font-size:12.5px;color:var(--dim);margin:4px 0 15px}
+.xi{background:#fff;border:1px solid var(--line);border-radius:11px;padding:12px 13px;
+  display:flex;gap:11px;align-items:center}
+.xi + .xi{margin-top:10px}
+.xi .xn{font-size:14.5px;font-weight:700}
+.xi .xd{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.45}
+.xic{width:32px;height:32px;border-radius:9px;flex:none;display:flex;align-items:center;
+  justify-content:center;font-size:16px}
+.note{font-size:12px;color:var(--dim);margin-top:15px;line-height:1.65;
+  padding-top:13px;border-top:1px dashed var(--line)}
+
+/* ── 타이머 파이프라인 ── */
+.flow{margin-top:32px;border:2px solid var(--line);border-radius:16px;overflow:hidden}
+.flow-h{background:linear-gradient(180deg,var(--slate-from),var(--slate-to));color:#fff;
+  padding:14px 22px;display:flex;align-items:center;gap:18px}
+.flow-h .ft{font-size:17.5px;font-weight:700;letter-spacing:.3px}
+.flow-h .fs{font-size:13px;color:#dbe6f0}
+.badge{margin-left:auto;font-size:12px;font-weight:700;padding:4px 12px;border-radius:999px;
+  color:#0f6c9c;background:rgba(94,205,245,.2);border:1px solid rgba(94,205,245,.6)}
+.steps{display:flex;align-items:stretch;gap:0;padding:20px}
+.step{flex:1;background:var(--row);border:1px solid var(--line);border-radius:12px;padding:15px}
+.step .k{font-size:11.5px;font-weight:700;color:var(--accent);letter-spacing:1px}
+.step .sn{font-size:15.5px;font-weight:700;margin-top:8px}
+.step .sd{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.6}
+.chev{flex:none;width:44px;display:flex;align-items:center;justify-content:center;
+  color:var(--accent);font-size:20px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="main">
+
+    <!-- 클라이언트 -->
+    <div class="lane">
+      <div class="lane-label"><div class="t">클라이언트</div><div class="s">사용자 접속 경로</div></div>
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div class="box">
+          <div class="ic" style="background:linear-gradient(180deg,var(--sky-from),var(--sky-to))">🖥️</div>
+          <div><div class="n">Web — PC</div><div class="d">1100px 이상 · 게임창 UI 레이아웃</div></div>
+        </div>
+        <div class="box">
+          <div class="ic" style="background:linear-gradient(180deg,var(--sky-from),var(--sky-to))">📱</div>
+          <div><div class="n">Web — 모바일</div><div class="d">1100px 미만 · 전용 페이지로 분기</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <!-- 리버스 프록시 -->
+    <div class="lane">
+      <div class="lane-label"><div class="t">리버스 프록시</div><div class="s">모든 요청의 진입점</div></div>
+      <div>
+        <div class="arrows" style="grid-template-columns:1fr 1fr"><div class="a"></div><div class="a"></div></div>
+        <div class="proxy">
+          <div class="pn">Caddy</div>
+          <div class="pd">리버스 프록시 · 자동 HTTPS 인증서 발급 · prod / dev 도메인 분기</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <!-- 애플리케이션 -->
+    <div class="lane">
+      <div class="lane-label"><div class="t">애플리케이션</div><div class="s">서비스 구성 요소</div></div>
+      <div>
+        <div class="arrows" style="grid-template-columns:1fr 1fr 1.15fr">
+          <div class="a"></div><div class="a"></div><div class="a"><span class="lbl">/api</span></div>
+        </div>
+        <div class="grid" style="grid-template-columns:1fr 1fr 1.15fr">
+          <div class="box">
+            <div class="ic" style="background:linear-gradient(180deg,var(--sky-from),var(--sky-to))">🌐</div>
+            <div><div class="n">frontend</div><div class="d"><b>maple</b> · vite build 결과물을<br>serve로 정적 서빙</div></div>
+          </div>
+          <div class="box soft">
+            <div class="ic" style="background:linear-gradient(180deg,#a9bccd,#8ba0b4)">🛠️</div>
+            <div><div class="n">frontend-dev</div><div class="d"><b>dev.maple</b> · Vite watch<br>수정 즉시 반영 (HMR)</div></div>
+          </div>
+          <div class="box">
+            <div class="ic" style="background:linear-gradient(180deg,var(--lime-from),var(--lime-to))">⚙️</div>
+            <div><div class="n">backend (Express 5)</div><div class="d">REST API · 세션 인증 ·<br>node-cron 스케줄러 내장</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <!-- 데이터 계층 -->
+    <div class="lane">
+      <div class="lane-label"><div class="t">데이터 계층</div><div class="s">백엔드가 연결</div></div>
+      <div>
+        <div class="arrows" style="grid-template-columns:1fr 1fr"><div class="a"></div><div class="a"></div></div>
+        <div class="grid" style="grid-template-columns:1fr 1fr">
+          <div class="box">
+            <div class="ic" style="background:linear-gradient(180deg,#8fd0e8,#4f9bbd)">🗄️</div>
+            <div><div class="n">MariaDB</div><div class="d">보스 · 심볼 · 메뉴 · 이미지 · 사용자 상태<br>강화 이력 날짜별 영구 캐시</div></div>
+          </div>
+          <div class="box">
+            <div class="ic" style="background:linear-gradient(180deg,var(--purple-from),var(--purple-to))">📦</div>
+            <div><div class="n">RustFS (S3 호환)</div><div class="d">보스·심볼·아이콘 이미지 원본<br>sharp로 변환 후 업로드</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 외부 서비스 -->
+  <aside class="side">
+    <div class="ext">
+      <div class="ext-h">외부 서비스</div>
+      <div class="ext-s">백엔드에서 호출</div>
+      <div class="xi">
+        <div class="xic" style="background:linear-gradient(180deg,#ffd76a,#f0a828)">🍄</div>
+        <div><div class="xn">NEXON Open API</div><div class="xd">캐릭터 · 심볼 · 헥사 · 유니온</div></div>
+      </div>
+      <div class="xi">
+        <div class="xic" style="background:linear-gradient(180deg,var(--purple-from),var(--purple-to))">📜</div>
+        <div><div class="xn">강화 이력 API</div><div class="xd">스타포스 · 큐브 · 잠재능력 (약 728일)</div></div>
+      </div>
+      <div class="xi">
+        <div class="xic" style="background:linear-gradient(180deg,var(--sky-from),var(--sky-to))">🏆</div>
+        <div><div class="xn">랭킹 API</div><div class="xd">과거 날짜 레벨·경험치 → 성장 그래프</div></div>
+      </div>
+      <div class="xi">
+        <div class="xic" style="background:linear-gradient(180deg,#9db0c2,#6b7f93)">📰</div>
+        <div><div class="xn">공지 API</div><div class="xd">공지 · 이벤트 · 업데이트 · 캐시샵</div></div>
+      </div>
+      <div class="xi">
+        <div class="xic" style="background:linear-gradient(180deg,var(--lime-from),var(--lime-to))">🧩</div>
+        <div><div class="xn">maplestory.io</div><div class="xd">계정에 없는 아이템 아이콘·레벨 보강</div></div>
+      </div>
+      <div class="note">※ 넥슨 API 키는 서버에만 두고, 브라우저는 이 사이트의 백엔드만 호출합니다.</div>
+    </div>
+  </aside>
+</div>
+
+<!-- 재획 타이머 파이프라인 -->
+<div class="flow">
+  <div class="flow-h">
+    <span class="ft">재획 타이머 · 화면 인식</span>
+    <span class="fs">브라우저 안에서만 처리 — 화면 영상은 서버로 보내지 않습니다</span>
+    <span class="badge">프론트 전용</span>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="k">STEP 1</div><div class="sn">화면 공유</div>
+      <div class="sd">게임 창을 getDisplayMedia로 받아 프레임 단위로 훑습니다</div>
+    </div>
+    <div class="chev">▶</div>
+    <div class="step">
+      <div class="k">STEP 2</div><div class="sn">아이콘 자동 탐색</div>
+      <div class="sd">밝기가 아닌 자주색 성분으로 퀵슬롯에서 야누스를 찾습니다</div>
+    </div>
+    <div class="chev">▶</div>
+    <div class="step">
+      <div class="k">STEP 3</div><div class="sn">쿨타임 숫자 OCR</div>
+      <div class="sd">숫자가 바뀌는 순간이 게임 시계의 1초 경계 — 설치 시각을 역산합니다</div>
+    </div>
+    <div class="chev">▶</div>
+    <div class="step">
+      <div class="k">STEP 4</div><div class="sn">사이클 판정</div>
+      <div class="sd">새벽은 설치 지속시간, 황혼은 바닥 아이템 2분을 기준으로 셉니다</div>
+    </div>
+    <div class="chev">▶</div>
+    <div class="step">
+      <div class="k">STEP 5</div><div class="sn">알림 예약</div>
+      <div class="sd">AudioContext로 예약해 백그라운드 탭에서도 정확히 울립니다</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

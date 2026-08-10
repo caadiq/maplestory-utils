@@ -20,8 +20,12 @@ dist/
 build/
 .env
 
-# 작업용 문서 (커밋 제외)
-docs/
+# 작업용 문서 (커밋 제외) — 단, README가 참조하는 구조도는 포함한다
+docs/*
+!docs/images/
+docs/images/*
+!docs/images/architecture.html
+!docs/images/architecture.png
 
 # 작업용 시안 (커밋 제외)
 mockups/
