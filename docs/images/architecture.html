@@ -18,6 +18,10 @@
   --slate-from:#5a7188; --slate-to:#46596e;
   --ink:#1f2c3d; --muted:#5a6a7a; --dim:#8b99a8;
   --card:#fff; --line:#dbe3ea; --row:#f6f9fb;
+  /* 사이트 홈 카드 토큰 */
+  --card-border:rgba(255,255,255,.65); --card-shadow:0 6px 20px rgba(31,44,61,.15);
+  --icon-from:#eef6fb; --icon-to:#dceaf4; --icon-border:#c9d6e0;
+  --divider:#8fa8bc; --dim2:#8b99a8;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{
@@ -32,17 +36,20 @@ body{
 
 /* ── 레인 ── */
 .lane{display:grid;grid-template-columns:158px 1fr;gap:24px;align-items:center}
-.lane-label{padding:6px 0 6px 16px;border-left:4px solid var(--accent)}
-.lane-label .t{font-size:21px;font-weight:700;letter-spacing:-.3px}
-.lane-label .s{font-size:13px;color:var(--dim);margin-top:5px}
-.hr{height:1px;background:var(--line);margin:20px 0}
+.lane-label{padding:2px 0}
+.lane-label .t{font-size:19px;font-weight:700;letter-spacing:-.3px;color:var(--ink)}
+.lane-label .s{font-size:11.5px;color:var(--dim2);margin-top:6px;
+  text-transform:uppercase;letter-spacing:.16em}
+.hr{height:1px;margin:22px 0;
+  background-image:linear-gradient(to right,transparent,var(--divider),transparent);opacity:.55}
 
 .grid{display:grid;gap:18px}
-.box{background:var(--card);border:2px solid var(--ink);border-radius:14px;
+.box{background:var(--card);border:1px solid var(--card-border);border-radius:16px;box-shadow:var(--card-shadow);
   padding:16px 18px;display:flex;align-items:center;gap:13px;min-height:92px}
-.box.soft{border:1.5px solid var(--line)}
-.ic{width:44px;height:44px;border-radius:11px;flex:none;display:flex;align-items:center;
-  justify-content:center;background:var(--row);border:1px solid var(--line)}
+.box.soft{border:1px dashed var(--line);box-shadow:none;background:#fbfdff}
+.ic{width:48px;height:48px;border-radius:12px;flex:none;display:flex;align-items:center;
+  justify-content:center;background:linear-gradient(160deg,var(--icon-from),var(--icon-to));
+  border:1px solid var(--icon-border)}
 .ic img{width:26px;height:26px;object-fit:contain}
 .ic .mark{font-size:20px;font-weight:700;letter-spacing:-1px}
 .n{font-size:17.5px;font-weight:700;letter-spacing:-.3px}
@@ -75,7 +82,8 @@ body{
 
 
 /* ── 흐름 스트립 ── */
-.flow{margin-top:30px;border:2px solid var(--accent);border-radius:15px;background:#fff;overflow:hidden}
+.flow{margin-top:30px;border:1px solid var(--card-border);border-radius:16px;background:#fff;
+  overflow:hidden;box-shadow:var(--card-shadow)}
 .flow-h{display:flex;align-items:center;gap:16px;
   background:linear-gradient(90deg,var(--sky-from),var(--sky-to));padding:13px 22px}
 .flow-h .ft{font-size:17px;font-weight:700;color:#fff;letter-spacing:-.3px}
@@ -90,16 +98,18 @@ body{
 .st .sd{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.6;word-break:keep-all}
 
 /* ── 외부 서비스 ── */
-.ext{border:2px solid var(--lime-to);border-radius:15px;padding:20px;background:#fbfdf8}
-.ext-h{font-size:18px;font-weight:700;color:#4c8a2f}
-.ext-s{font-size:12.5px;color:var(--dim);margin:4px 0 15px}
-.xi{background:#fff;border:1px solid var(--line);border-radius:11px;padding:12px 13px;
+.ext{border:1px solid var(--card-border);border-radius:16px;padding:22px;background:#fff;
+  box-shadow:var(--card-shadow)}
+.ext-h{font-size:18px;font-weight:700;color:var(--ink);letter-spacing:-.3px}
+.ext-s{font-size:11.5px;color:var(--dim2);margin:6px 0 16px;text-transform:uppercase;letter-spacing:.16em}
+.xi{background:var(--row);border:1px solid var(--line);border-radius:12px;padding:13px 14px;
   display:flex;gap:11px;align-items:center}
 .xi + .xi{margin-top:10px}
 .xi .xn{font-size:14.5px;font-weight:700}
 .xi .xd{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.45;word-break:keep-all}
-.xic{width:34px;height:34px;border-radius:9px;flex:none;display:flex;align-items:center;
-  justify-content:center;background:#fff;border:1px solid var(--line)}
+.xic{width:36px;height:36px;border-radius:10px;flex:none;display:flex;align-items:center;
+  justify-content:center;background:linear-gradient(160deg,var(--icon-from),var(--icon-to));
+  border:1px solid var(--icon-border)}
 .xic img{width:22px;height:22px;object-fit:contain}
 .ep{list-style:none;margin:8px 0 0;padding:0}
 .ep li{font-size:12px;color:var(--muted);line-height:1.6;padding-left:11px;position:relative;word-break:keep-all}
@@ -216,7 +226,7 @@ body{
         </div>
       </div>
       <div class="xi">
-        <div class="xic"><span style="font-size:15px;font-weight:700;color:#4c8a2f">.io</span></div>
+        <div class="xic"><span style="font-size:15px;font-weight:700;color:var(--accent)">.io</span></div>
         <div><div class="xn">maplestory.io</div><div class="xd">계정에 없는 아이템 아이콘·레벨 보강</div></div>
       </div>
       <div class="note">※ 넥슨 API 키는 서버에만 두고, 브라우저는 이 사이트의 백엔드만 호출합니다.</div>
