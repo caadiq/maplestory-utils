@@ -1,37 +1,50 @@
 /** HUD 조작 아이콘 — 본 화면과 미니 HUD가 같이 쓴다 */
 
-export function RefreshIcon({ size = 17 }) {
+/**
+ * 타이머 초기화 — 스톱워치.
+ * 원형 화살표(↻)는 "새로고침"으로 읽혀서 이 버튼이 타이머를 되돌리는 것인 줄 모르는 경우가 있었다.
+ */
+export function TimerResetIcon({ size = 19 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden>
-      <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
-      <path d="M13.4 1.9v3.1h-3.1" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden>
+      <circle cx="10" cy="11" r="6.6" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M10 7.6V11l2.4 1.6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7.6 2.6h4.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M16.4 5.4l1.4-1.4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   )
 }
 
-export function PipIcon({ size = 17 }) {
+export function PipIcon({ size = 19 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden>
-      <rect x="1.4" y="2.6" width="13.2" height="10.8" rx="1.8" stroke="currentColor" strokeWidth="1.6" />
-      <rect x="7.8" y="7.6" width="5.6" height="4.6" rx="1" fill="currentColor" />
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden>
+      <rect x="1.8" y="3.4" width="16.4" height="13.2" rx="2.2" stroke="currentColor" strokeWidth="1.7" />
+      <rect x="9.6" y="9.4" width="7" height="5.4" rx="1.2" fill="currentColor" />
     </svg>
   )
 }
 
-export function CropIcon({ size = 17 }) {
+/**
+ * 아이콘 다시 찾기 — 조준선.
+ * 자르기 기호(⌐L)는 "이미지 crop"으로 읽혀 화면에서 아이콘을 찾는 동작과 연결되지 않았다.
+ */
+export function TargetIcon({ size = 19 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden>
-      <path d="M4.6 1.4v10h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M1.4 4.6h10v10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden>
+      <circle cx="10" cy="10" r="5.4" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="10" cy="10" r="1.7" fill="currentColor" />
+      <path d="M10 1.4v3.2M10 15.4v3.2M1.4 10h3.2M15.4 10h3.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   )
 }
 
-export function StopIcon({ size = 17 }) {
+/** 화면 공유 중단 — 모니터에 X. 원+X는 일반적인 "닫기"와 구분되지 않았다. */
+export function ScreenOffIcon({ size = 19 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden>
-      <circle cx="8" cy="8" r="6.4" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden>
+      <rect x="1.8" y="3.2" width="16.4" height="11" rx="2" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M7 17.2h6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M7.4 6.4l5.2 5.2M12.6 6.4l-5.2 5.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   )
 }

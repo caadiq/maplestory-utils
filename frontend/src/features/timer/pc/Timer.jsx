@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import MapleWindow from '../../../components/pc/MapleWindow'
 import Select from '../../../components/common/Select'
-import { RefreshIcon, PipIcon, CropIcon, StopIcon, BellIcon, IconButton } from './icons'
+import { TimerResetIcon, PipIcon, TargetIcon, ScreenOffIcon, BellIcon, IconButton } from './icons'
 import { useJanusDetector } from '../useJanusDetector'
 import { usePipWindow } from '../usePipWindow'
 import RegionPicker from './RegionPicker'
@@ -273,7 +273,7 @@ export default function Timer() {
                 backdropFilter: 'blur(4px)',
               }}
             >
-              <IconButton tone="slate" label="초기화" onClick={resetCycle}><RefreshIcon /></IconButton>
+              <IconButton tone="slate" label="타이머 초기화 — 잘못 시작됐을 때" onClick={resetCycle}><TimerResetIcon /></IconButton>
               {pip.supported && (
                 <IconButton
                   tone="sky"
@@ -283,8 +283,8 @@ export default function Timer() {
                   <PipIcon />
                 </IconButton>
               )}
-              <IconButton tone="slate" label="아이콘 다시 찾기" onClick={relocate}><CropIcon /></IconButton>
-              <IconButton tone="red" label="화면 공유 중단" onClick={stop}><StopIcon /></IconButton>
+              <IconButton tone="slate" label="야누스 아이콘 다시 찾기" onClick={relocate}><TargetIcon /></IconButton>
+              <IconButton tone="red" label="화면 공유 중단" onClick={stop}><ScreenOffIcon /></IconButton>
             </div>
           </div>
         )}
