@@ -79,7 +79,7 @@ const VALUE_TOL = 1.5
  */
 const DUSK_ACTIVE_MS = 6000
 
-export function useJanusDetector({ onInstall, mode = 'dawn', cycleMs = 0 }) {
+export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cycleMs = 0 }) {
   const [stream, setStream] = useState(null)
   const [region, setRegion] = useState(null)   // {x,y,w,h} — 0~1 정규화
   const [install, setInstall] = useState(null) // {index, at}
@@ -116,9 +116,10 @@ export function useJanusDetector({ onInstall, mode = 'dawn', cycleMs = 0 }) {
   const indexRef = useRef(0)
   const lastFrameRef = useRef(0)
   const lastDigitAtRef = useRef(0)   // 쿨타임 숫자를 마지막으로 본 시각 (황혼 사이클 재시작 판단용)
+  const bigReadingRef = useRef(null) // 황혼 모드에서 읽힌 '큰 쿨타임' — 모드 불일치 판단용
 
-  const cbRef = useRef({ onInstall })
-  useEffect(() => { cbRef.current = { onInstall } })
+  const cbRef = useRef({ onInstall, onModeMismatch })
+  useEffect(() => { cbRef.current = { onInstall, onModeMismatch } })
 
   // 마지막 설치 시각 — 한 사이클 안에서 또 설치로 잡히는 것을 막는다
   const lastInstallRef = useRef(0)
@@ -182,6 +183,13 @@ export function useJanusDetector({ onInstall, mode = 'dawn', cycleMs = 0 }) {
     presenceStartRef.current = 0
     absentSinceRef.current = null
     lockUntilRef.current = 0
+    /*
+     * 황혼은 "최근에 쿨타임을 봤나"로 사이클을 시작한다. 이 시각을 안 지우면
+     * 초기화 직후에도 조건이 그대로 참이라 다음 tick(100ms)에 곧바로 다시 시작해
+     * 아무리 눌러도 멈추지 않는다. 리셋은 본 기억까지 지워야 한다.
+     */
+    lastDigitAtRef.current = 0
+    bigReadingRef.current = null
   }
 
   const stop = useCallback(() => {
@@ -509,6 +517,26 @@ export function useJanusDetector({ onInstall, mode = 'dawn', cycleMs = 0 }) {
       const similarity = shapeSimilarity(shape, templateRef.current)
 
       if (digitCount > 0) lastDigitAtRef.current = now
+
+      /*
+       * 모드 불일치 자동 교정.
+       *
+       * 황혼은 쿨타임이 3초라 숫자가 1~3만 나온다. 그런데 20 이상이 읽힌다면
+       * 그 자리에 있는 건 새벽(쿨 54~60초)이다 — 캐릭터를 바꿔 같은 칸의 아이콘이
+       * 새벽으로 바뀐 경우가 실제로 있었고, 황혼 로직은 "숫자가 보이면 시작"이라
+       * 그 쿨타임을 사이클 시작으로 읽어 멋대로 타이머를 켰다.
+       * 한 번은 오독일 수 있으니 서로 다른 시각의 두 번을 보고 확정한다.
+       */
+      if (modeRef.current === 'dusk' && reading && reading.value >= CAND_MIN_VALUE) {
+        const prev = bigReadingRef.current
+        if (prev && now - prev > 400) {
+          bigReadingRef.current = null
+          log(`쿨타임 ${reading.value}초 — 황혼이 아니라 새벽 아이콘입니다`, '모드 교정', 'warn')
+          cbRef.current.onModeMismatch?.('dawn')
+          return
+        }
+        if (!prev) bigReadingRef.current = now
+      }
 
       if (similarity < DETECT.matchThreshold && !digitCount) {
         // 못 알아보는 동안에는 상태를 건드리지 않고 그대로 얼려둔다
