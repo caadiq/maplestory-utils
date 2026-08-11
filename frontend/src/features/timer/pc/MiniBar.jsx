@@ -1,5 +1,5 @@
 import { formatSeconds } from '../logic'
-import { RefreshIcon, IconButton } from './icons'
+import { TimerResetIcon, IconButton } from './icons'
 
 /**
  * 미니 HUD — PiP 창으로 분리해 게임 위에 띄우는 타이머.
@@ -63,8 +63,8 @@ export default function MiniBar({ active, remainingMs, progress, cycleIndex, syn
       </div>
 
       <div className="flex gap-2">
-        <IconButton tone="slate" label="초기화" onClick={onReset}>
-          <RefreshIcon />
+        <IconButton tone="slate" label="타이머 초기화 — 잘못 시작됐을 때" onClick={onReset}>
+          <TimerResetIcon />
         </IconButton>
       </div>
     </div>
