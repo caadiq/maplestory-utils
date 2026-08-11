@@ -92,6 +92,8 @@ export default function Timer() {
     scheduleFor(settings, next.at)
   }, [scheduleFor, settings])
 
+  const resetCycleRef = useRef(null)
+
   const isDusk = settings.mode === 'dusk'
   const durationSec = durationForSettings(settings)
   const alarmAtSec = Math.max(0, durationSec - settings.offsetSec)
@@ -111,9 +113,20 @@ export default function Timer() {
     videoRef, start, stop, resetCycle, locate, hasTemplate, log,
   } = useJanusDetector({
     onInstall: handleInstall,
+    /*
+     * 같은 칸의 아이콘이 다른 모드로 바뀐 경우(캐릭터 변경) 스스로 맞춘다.
+     * 모드만 바꾸면 이미 잘못 시작된 사이클이 남으므로 함께 되돌린다.
+     */
+    onModeMismatch: (m) => {
+      if (settingsRef.current.mode === m) return
+      set({ mode: m })
+      resetCycleRef.current?.()
+    },
     mode: settings.mode,
     cycleMs,
   })
+
+  useEffect(() => { resetCycleRef.current = resetCycle }, [resetCycle])
 
   /* ── 표시값 ─────────────────────────────────────────────── */
 
