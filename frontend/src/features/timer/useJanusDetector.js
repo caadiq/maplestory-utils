@@ -87,10 +87,7 @@ const DUSK_MAX_VALUE = 5
  * 쿨타임이 아예 없는 아이콘에서도 사이클이 시작된다 — 황혼으로 공유 중
  * 새벽 캐릭터로 바꾸면 상시 참이 돼 초기화해도 즉시 재시작됐다.
  *
- * 값을 읽는 것만으로도 부족하다. 새벽 아이콘 우하단에는 금색 스택 배지가
- * 늘 붙어 있어(실측 4x5px) 작은 값으로 읽힐 수 있다.
- * 결정적 차이는 **쿨타임은 줄어들고 배지는 고정**이라는 점이라,
- * 값이 실제로 바뀌는 걸 봐야 황혼으로 인정한다.
+ * 값이 제대로 읽힌 황혼 쿨타임(1~5초)을 최근에 본 적이 있을 때만 사이클을 돌린다.
  */
 const DUSK_CONFIRM_TTL_MS = 30000
 
@@ -132,8 +129,7 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
   const lastFrameRef = useRef(0)
   const lastDigitAtRef = useRef(0)   // 쿨타임 숫자를 마지막으로 본 시각 (황혼 사이클 재시작 판단용)
   const bigReadingRef = useRef(null) // 황혼 모드에서 읽힌 '큰 쿨타임' — 모드 불일치 판단용
-  const duskSeenAtRef = useRef(0)    // 황혼 쿨타임이 '줄어드는 것'을 마지막으로 확인한 시각
-  const duskLastValRef = useRef(null) // 직전에 읽은 작은 값 — 변화를 보기 위한 비교용
+  const duskSeenAtRef = useRef(0)    // 황혼다운 쿨타임 값(1~3)을 마지막으로 '읽은' 시각
 
   const cbRef = useRef({ onInstall, onModeMismatch })
   useEffect(() => { cbRef.current = { onInstall, onModeMismatch } })
@@ -208,7 +204,6 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
     lastDigitAtRef.current = 0
     bigReadingRef.current = null
     duskSeenAtRef.current = 0
-    duskLastValRef.current = null
   }
 
   const stop = useCallback(() => {
@@ -536,15 +531,9 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
       const similarity = shapeSimilarity(shape, templateRef.current)
 
       if (digitCount > 0) lastDigitAtRef.current = now
-      /*
-       * 진짜 황혼인지 확인 — 작은 값이 '바뀌는' 것을 봐야 한다.
-       * 새벽 아이콘의 스택 배지도 작은 값으로 읽히지만 늘 같은 숫자라 여기서 걸러진다.
-       */
-      if (reading && reading.value <= DUSK_MAX_VALUE) {
-        const prevVal = duskLastValRef.current
-        if (prevVal != null && prevVal !== reading.value) duskSeenAtRef.current = now
-        duskLastValRef.current = reading.value
-      }
+      // 값까지 제대로 읽힌 짧은 쿨타임 = 진짜 황혼이라는 증거
+      // (우하단 스택 배지는 digits.js에서 위치로 걸러지므로 여기까지 오지 않는다)
+      if (reading && reading.value <= DUSK_MAX_VALUE) duskSeenAtRef.current = now
 
       /*
        * 모드 불일치 자동 교정.

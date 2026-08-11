@@ -35,6 +35,9 @@ const MIN_MARGIN = 0.02
 
 /** 숫자는 아무리 좁아도 키의 이 비율보다는 넓다 — 테두리 조각을 걸러내는 기준 */
 const MIN_ASPECT = 0.25
+/** 우하단 스택 배지를 거르는 경계 (아이콘 폭·높이 비율) — 실측: 숫자 58% / 배지 84%·75% */
+const CORNER_X = 0.72
+const CORNER_Y = 0.62
 
 /** 정규화 크기 — 가로를 늘이지 않고 비율을 지켜야 좁은 1이 4와 안 헷갈린다 */
 const NW = 10
@@ -301,6 +304,18 @@ function splitDigits({ mask, w, h }) {
       const bw = b.x2 - b.x + 1
       if (bh < tallest * MIN_HEIGHT_RATIO || b.n < 4) return false
       if (bw < 2 || bw < bh * MIN_ASPECT) return false
+      /*
+       * 우하단 구석의 스택 배지를 뺀다.
+       *
+       * 스킬 아이콘 오른쪽 아래에는 남은 횟수 배지가 상시 붙어 있고(새벽 실측 4x5px),
+       * 금색이라 쿨타임 숫자와 같이 잡힌다. 이게 섞이면
+       *  - 황혼: 배지의 작은 숫자를 쿨타임으로 읽어 사이클이 멋대로 시작되고
+       *  - 새벽: 배지 + 두 자리 = 덩어리 3개가 되어 쿨타임을 아예 못 읽는다.
+       * 쿨타임 숫자는 아이콘 가운데에 그려진다 — 실측 중심 (58%, 58%) 대 배지 (84%, 75%).
+       */
+      const cx = (b.x + b.x2) / 2 / w
+      const cy = (b.y + b.y2) / 2 / h
+      if (cx > CORNER_X && cy > CORNER_Y) return false
       return b.x > 0 && b.x2 < w - 1
     })
     .sort((a, b) => a.x - b.x)
