@@ -78,6 +78,17 @@ const VALUE_TOL = 1.5
  * 쿨이 3초 주기라 넉넉히 잡아도 사냥을 멈춘 상태와 확실히 구분된다.
  */
 const DUSK_ACTIVE_MS = 6000
+/** 황혼 쿨타임은 3초라 값이 1~3뿐이다. 이보다 크면 황혼이 아니다 */
+const DUSK_MAX_VALUE = 5
+/**
+ * '이 아이콘이 정말 황혼인가'의 유효기간.
+ *
+ * digitCount는 숫자로 읽히지 않은 금색 덩어리(단축키 글자·이펙트)도 세므로
+ * 그것만 믿으면 쿨타임이 아예 없는 아이콘에서도 사이클이 시작된다
+ * (황혼으로 공유 중 새벽 캐릭터로 바꾸면 상시 참이 돼 초기화해도 즉시 재시작됐다).
+ * 값이 제대로 읽힌 황혼 쿨타임을 최근에 본 적이 있을 때만 사이클을 돌린다.
+ */
+const DUSK_CONFIRM_TTL_MS = 30000
 
 export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cycleMs = 0 }) {
   const [stream, setStream] = useState(null)
@@ -117,6 +128,7 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
   const lastFrameRef = useRef(0)
   const lastDigitAtRef = useRef(0)   // 쿨타임 숫자를 마지막으로 본 시각 (황혼 사이클 재시작 판단용)
   const bigReadingRef = useRef(null) // 황혼 모드에서 읽힌 '큰 쿨타임' — 모드 불일치 판단용
+  const duskSeenAtRef = useRef(0)    // 황혼다운 쿨타임 값(1~3)을 마지막으로 '읽은' 시각
 
   const cbRef = useRef({ onInstall, onModeMismatch })
   useEffect(() => { cbRef.current = { onInstall, onModeMismatch } })
@@ -190,6 +202,7 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
      */
     lastDigitAtRef.current = 0
     bigReadingRef.current = null
+    duskSeenAtRef.current = 0
   }
 
   const stop = useCallback(() => {
@@ -517,6 +530,8 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
       const similarity = shapeSimilarity(shape, templateRef.current)
 
       if (digitCount > 0) lastDigitAtRef.current = now
+      // 값까지 제대로 읽힌 짧은 쿨타임 = 진짜 황혼이라는 증거
+      if (reading && reading.value <= DUSK_MAX_VALUE) duskSeenAtRef.current = now
 
       /*
        * 모드 불일치 자동 교정.
@@ -702,7 +717,9 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
        *
        * 사냥을 아예 멈춘 경우(쿨타임이 한동안 전혀 없음)에는 잇지 않고 다음 쿨타임을 기다린다.
        */
-      if (modeRef.current === 'dusk') {
+      // 황혼 쿨타임을 실제로 '읽은' 적이 있어야 한다 — 금색 덩어리만으로는 시작하지 않는다
+      const looksDusk = Date.now() - duskSeenAtRef.current <= DUSK_CONFIRM_TTL_MS
+      if (modeRef.current === 'dusk' && looksDusk) {
         const now = Date.now()
         const activeRecently = now - lastDigitAtRef.current <= DUSK_ACTIVE_MS
         if (!installRef.current) {
