@@ -80,16 +80,6 @@ const VALUE_TOL = 1.5
 const DUSK_ACTIVE_MS = 6000
 /** 황혼 쿨타임은 3초라 값이 1~3뿐이다. 이보다 크면 황혼이 아니다 */
 const DUSK_MAX_VALUE = 5
-/**
- * '이 아이콘이 정말 황혼인가'의 유효기간.
- *
- * digitCount는 숫자로 읽히지 않은 금색 덩어리도 세므로 그것만 믿으면
- * 쿨타임이 아예 없는 아이콘에서도 사이클이 시작된다 — 황혼으로 공유 중
- * 새벽 캐릭터로 바꾸면 상시 참이 돼 초기화해도 즉시 재시작됐다.
- *
- * 값이 제대로 읽힌 황혼 쿨타임(1~5초)을 최근에 본 적이 있을 때만 사이클을 돌린다.
- */
-const DUSK_CONFIRM_TTL_MS = 30000
 
 export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cycleMs = 0 }) {
   const [stream, setStream] = useState(null)
@@ -127,7 +117,6 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
   const lostSinceRef = useRef(null)
   const indexRef = useRef(0)
   const lastFrameRef = useRef(0)
-  const lastDigitAtRef = useRef(0)   // 쿨타임 숫자를 마지막으로 본 시각 (황혼 사이클 재시작 판단용)
   const bigReadingRef = useRef(null) // 황혼 모드에서 읽힌 '큰 쿨타임' — 모드 불일치 판단용
   const duskSeenAtRef = useRef(0)    // 황혼다운 쿨타임 값(1~3)을 마지막으로 '읽은' 시각
 
@@ -161,32 +150,24 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
     }
   }, [])
 
-  useEffect(() => { modeRef.current = mode; cycleMsRef.current = cycleMs }, [mode, cycleMs])
+  useEffect(() => {
+    modeRef.current = mode
+    cycleMsRef.current = cycleMs
+    /*
+     * 황혼 사이클 진행 중에 알림초를 바꾸면 사이클 길이(cycleMs)가 변하는데,
+     * 잠금은 시작 시점 스냅샷이라 옛 길이로 남는다 — 알림이 조기 취소되거나
+     * 다음 사이클이 옛 잠금까지 지연됐다. 진행 중이면 잠금도 같이 옮긴다.
+     */
+    if (mode === 'dusk' && installRef.current && lastInstallRef.current) {
+      lockUntilRef.current = lastInstallRef.current + cycleMs
+    }
+  }, [mode, cycleMs])
 
   const log = useCallback((message, tag, tagColor) => {
     setLogs((prev) => [{ at: Date.now(), message, tag, tagColor }, ...prev].slice(0, MAX_LOGS))
   }, [])
 
   /* ── 화면 공유 시작/중지 ────────────────────────────────── */
-
-  const start = useCallback(async () => {
-    setError(null)
-    try {
-      const media = await navigator.mediaDevices.getDisplayMedia({
-        // 창 목록이 먼저 뜨게 하는 힌트. 어떤 창을 고를지는 브라우저 UI에서 사용자가 정한다
-        video: { displaySurface: 'window', frameRate: { ideal: 30 } },
-        audio: false,
-      })
-      media.getVideoTracks()[0]?.addEventListener('ended', () => setStream(null))
-      setStream(media)
-      log('화면 공유 시작', '연결됨', 'ok')
-      return true
-    } catch (e) {
-      // 사용자가 선택창을 닫은 건 오류가 아니다
-      if (e?.name !== 'NotAllowedError') setError(e?.message || '화면 공유를 시작하지 못했습니다')
-      return false
-    }
-  }, [log])
 
   const resetDetector = () => {
     lastReadRef.current = null
@@ -201,10 +182,40 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
      * 초기화 직후에도 조건이 그대로 참이라 다음 tick(100ms)에 곧바로 다시 시작해
      * 아무리 눌러도 멈추지 않는다. 리셋은 본 기억까지 지워야 한다.
      */
-    lastDigitAtRef.current = 0
     bigReadingRef.current = null
     duskSeenAtRef.current = 0
   }
+
+  const start = useCallback(async () => {
+    setError(null)
+    try {
+      const media = await navigator.mediaDevices.getDisplayMedia({
+        // 창 목록이 먼저 뜨게 하는 힌트. 어떤 창을 고를지는 브라우저 UI에서 사용자가 정한다
+        video: { displaySurface: 'window', frameRate: { ideal: 30 } },
+        audio: false,
+      })
+      // 브라우저의 '공유 중지' 바로 끊겨도 앱의 중단 버튼과 같은 정리를 거친다.
+      // setStream(null)만 하면 install·잠금이 남아 PiP가 유령 카운트다운을 계속 돌리고,
+      // 재공유 시 낡은 상태가 새 세션으로 이월된다.
+      media.getVideoTracks()[0]?.addEventListener('ended', () => {
+        setStream(null)
+        resetDetector()
+        lastInstallRef.current = 0
+        installRef.current = null
+        trackerRef.current.reset()
+        setInstall(null)
+        log('화면 공유가 중단되었습니다', '연결 끊김', 'warn')
+      })
+      setStream(media)
+      log('화면 공유 시작', '연결됨', 'ok')
+      return true
+    } catch (e) {
+      // 사용자가 선택창을 닫은 건 오류가 아니다
+      if (e?.name !== 'NotAllowedError') setError(e?.message || '화면 공유를 시작하지 못했습니다')
+      return false
+    }
+  }, [log])
+
 
   const stop = useCallback(() => {
     stream?.getTracks().forEach((t) => t.stop())
@@ -530,10 +541,13 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
       const shape = toShapeVector(pixels)
       const similarity = shapeSimilarity(shape, templateRef.current)
 
-      if (digitCount > 0) lastDigitAtRef.current = now
       // 값까지 제대로 읽힌 짧은 쿨타임 = 진짜 황혼이라는 증거
       // (우하단 스택 배지는 digits.js에서 위치로 걸러지므로 여기까지 오지 않는다)
-      if (reading && reading.value <= DUSK_MAX_VALUE) duskSeenAtRef.current = now
+      // 새벽 카운트다운의 꼬리(5→1초)도 값은 작으므로, 황혼 모드일 때만 증거로 삼는다.
+      if (modeRef.current === 'dusk' && reading && reading.value <= DUSK_MAX_VALUE) {
+        duskSeenAtRef.current = now
+        bigReadingRef.current = null // 정상 황혼 값이 확인되면 오전환 무장도 푼다
+      }
 
       /*
        * 모드 불일치 자동 교정.
@@ -545,14 +559,19 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
        * 한 번은 오독일 수 있으니 서로 다른 시각의 두 번을 보고 확정한다.
        */
       if (modeRef.current === 'dusk' && reading && reading.value >= CAND_MIN_VALUE) {
+        /*
+         * 두 번의 큰 값은 서로 '가까워야' 한다. 상한 없이 두면 무장이 세션 내내 남아,
+         * 몇 분 간격의 단발 오독 두 번만으로 사냥 중에 모드가 넘어가 버린다.
+         * 창을 벗어난 큰 값은 새 1번째 관측으로 다시 센다.
+         */
         const prev = bigReadingRef.current
-        if (prev && now - prev > 400) {
+        if (prev && now - prev > 400 && now - prev < 3000) {
           bigReadingRef.current = null
           log(`쿨타임 ${reading.value}초 — 황혼이 아니라 새벽 아이콘입니다`, '모드 교정', 'warn')
           cbRef.current.onModeMismatch?.('dawn')
           return
         }
-        if (!prev) bigReadingRef.current = now
+        if (!prev || now - prev >= 3000) bigReadingRef.current = now
       }
 
       if (similarity < DETECT.matchThreshold && !digitCount) {
@@ -564,7 +583,9 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
 
       // 숫자가 바뀌는 순간에 맞춰 설치 시각을 되돌린다.
       // 화면 공유 지연이나 아이콘이 어두워지기까지의 시차와 무관하게 스스로 맞는다.
-      if (installRef.current && !trackerRef.current.locked) {
+      // 황혼은 보정 대상이 아니다 — 3→2→1 카운트다운이 규칙을 만족해 버려서
+      // 사이클 앵커가 쿨마다 ±0.5초씩 무작위로 점프했다(1초 격자와 무관한 앵커라 shift가 무의미).
+      if (installRef.current && !trackerRef.current.locked && modeRef.current !== 'dusk') {
         // 지금 보고 있는 화면은 공유 지연만큼 과거다. 설치 시각도 같은 만큼 당겨 뒀으므로
         // 숫자가 바뀐 시각도 똑같이 당겨야 둘의 간격이 실제와 맞는다.
         const seenAt = now - Math.round(latencyRef.current)
@@ -719,14 +740,18 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
        *
        * 사냥을 아예 멈춘 경우(쿨타임이 한동안 전혀 없음)에는 잇지 않고 다음 쿨타임을 기다린다.
        */
-      // 황혼 쿨타임을 실제로 '읽은' 적이 있어야 한다 — 금색 덩어리만으로는 시작하지 않는다
-      const looksDusk = Date.now() - duskSeenAtRef.current <= DUSK_CONFIRM_TTL_MS
-      if (modeRef.current === 'dusk' && looksDusk) {
+      /*
+       * 기준은 '값이 읽힌' 쿨타임 하나다. 금색 덩어리(digitCount)는 이펙트·배지도
+       * 세므로 그걸 재시작 기준으로 쓰면, 사냥을 멈춘 뒤 이펙트가 스치기만 해도
+       * 실제 쿨타임 없이 새 2분이 시작됐다. 황혼 값(1~3)은 쿨이 도는 내내 읽히므로
+       * 이 기준으로도 이어붙이기가 끊기지 않는다.
+       */
+      if (modeRef.current === 'dusk') {
         const now = Date.now()
-        const activeRecently = now - lastDigitAtRef.current <= DUSK_ACTIVE_MS
+        const activeRecently = now - duskSeenAtRef.current <= DUSK_ACTIVE_MS
         if (!installRef.current) {
           // 첫 사이클 — 쿨타임이 돌기 시작하면 시작
-          if (activeRecently) startDuskCycle(lastDigitAtRef.current, '쿨타임 시작')
+          if (activeRecently) startDuskCycle(duskSeenAtRef.current, '쿨타임 시작')
         } else if (now >= lockUntilRef.current) {
           /*
            * 한 바퀴가 끝났다. 상승엣지(숫자가 '새로' 뜨는 순간)를 기다리면 놓친다 —
@@ -742,8 +767,8 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
            * 단 사이클이 끝나기 '전에' 본 쿨타임은 기점이 될 수 없다 —
            * 그걸 쓰면 다시 과거로 앵커돼 같은 증상이 난다. 끝난 뒤에 본 것만 센다.
            */
-          if (lastDigitAtRef.current >= lockUntilRef.current) {
-            startDuskCycle(lastDigitAtRef.current, '이어서')
+          if (duskSeenAtRef.current >= lockUntilRef.current) {
+            startDuskCycle(duskSeenAtRef.current, '이어서')
           }
         }
       }

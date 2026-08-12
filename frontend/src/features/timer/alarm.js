@@ -73,7 +73,9 @@ export async function preloadSounds() {
       const buffer = await audio.decodeAudioData(await res.arrayBuffer())
       buffers.set(value, { buffer, offset: leadingSilence(buffer) })
     } catch {
-      buffers.set(value, null)
+      // 실패를 캐시하면 일시적 네트워크 오류가 "새로고침 전까지 전부 무음"이 된다.
+      // 키를 남기지 않아야 다음 preloadSounds가 다시 시도한다.
+      buffers.delete(value)
     }
   }))
 }
