@@ -1,9 +1,47 @@
+import { useState } from 'react'
+
 /**
  * 게임창 스타일 공용 입력/레이아웃 위젯.
  *
  * 여러 기능(헥사·경험치…)이 같은 모양의 숫자 입력·세그먼트·토글·카드 헤더를 쓴다.
  * 도메인 지식이 없는 순수 위젯이라 특정 기능 폴더가 아니라 여기에 둔다.
  */
+
+/**
+ * 소수 입력.
+ *
+ * 값을 숫자로만 들고 있으면 "0."을 칠 수 없다 — parseFloat("0.")이 0이라
+ * 점을 찍는 순간 상태가 0으로 덮이고 화면의 점이 지워진다.
+ * 그래서 편집 중에는 사용자가 친 문자열을 그대로 두고, 숫자는 따로 올려보낸다.
+ * 포커스를 벗어나면 정규화된 숫자로 돌아간다.
+ */
+export function DecimalInput({ value, onChange, max = 100, className, style }) {
+  const [text, setText] = useState(null)   // null이면 '편집 중 아님'
+
+  const handle = (raw) => {
+    // 숫자와 점만, 점은 하나만 남긴다
+    let v = raw.replace(/[^\d.]/g, '')
+    const first = v.indexOf('.')
+    if (first !== -1) v = v.slice(0, first + 1) + v.slice(first + 1).replace(/\./g, '')
+    const num = v === '' || v === '.' ? 0 : Math.min(parseFloat(v) || 0, max)
+    // 상한을 넘겼으면 보정된 값을 화면에도 반영한다
+    setText(parseFloat(v) > max ? String(max) : v)
+    onChange(num)
+  }
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={text ?? String(value ?? 0)}
+      onChange={(e) => handle(e.target.value)}
+      onFocus={(e) => setText(e.target.value)}
+      onBlur={() => setText(null)}
+      className={className}
+      style={style}
+    />
+  )
+}
 
 /** 카드 배경·테두리 (게임창 안쪽 패널) */
 export const CARD = { background: 'var(--mpl-card)', border: '1px solid var(--mpl-card-line)' }

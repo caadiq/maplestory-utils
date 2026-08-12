@@ -11,7 +11,7 @@ import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import { useCharacterLookup } from '../../../hooks/useCharacterLookup'
 import { useCharacterRoster } from '../../../hooks/useCharacterRoster'
 import { useExpStore, expInitialState } from '../store'
-import { NumInput } from '../../../components/common/widgets'
+import { NumInput, DecimalInput } from '../../../components/common/widgets'
 import {
   EPIC_STAGES, defaultSettings, zoneOn,
   simulate, breakdown, fmtPct, weekKeyKST, parkSpecialActive,
@@ -133,22 +133,25 @@ function Field({ label, children }) {
 }
 
 /** 칸을 꽉 채우는 숫자 입력 (그리드 안에서 폭을 맞춘다) */
+const FULL_INPUT_CLASS = 'w-full h-[38px] rounded-md border px-3 text-[14.5px] text-right tabular-nums outline-none focus:border-[var(--input-border-focus)]'
+const FULL_INPUT_STYLE = { background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-strong)' }
+
+/** 칸을 꽉 채우는 숫자 입력 (그리드 안에서 폭을 맞춘다) */
 function FullInput({ value, onChange, decimal, max }) {
+  if (decimal) {
+    return (
+      <DecimalInput value={value} onChange={onChange} max={max}
+        className={FULL_INPUT_CLASS} style={FULL_INPUT_STYLE} />
+    )
+  }
   return (
     <input
       type="text"
-      inputMode={decimal ? 'decimal' : 'numeric'}
+      inputMode="numeric"
       value={String(value ?? 0)}
-      onChange={(e) => {
-        if (decimal) {
-          const v = e.target.value.replace(/[^\d.]/g, '')
-          onChange(v === '' ? 0 : Math.min(parseFloat(v) || 0, max))
-        } else {
-          onChange(Math.min(parseInt(e.target.value.replace(/[^\d]/g, ''), 10) || 0, max))
-        }
-      }}
-      className="w-full h-[38px] rounded-md border px-3 text-[14.5px] text-right tabular-nums outline-none focus:border-[var(--input-border-focus)]"
-      style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-strong)' }}
+      onChange={(e) => onChange(Math.min(parseInt(e.target.value.replace(/[^\d]/g, ''), 10) || 0, max))}
+      className={FULL_INPUT_CLASS}
+      style={FULL_INPUT_STYLE}
     />
   )
 }
