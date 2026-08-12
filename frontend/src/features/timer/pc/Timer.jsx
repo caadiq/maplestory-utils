@@ -115,12 +115,11 @@ export default function Timer() {
     onInstall: handleInstall,
     /*
      * 같은 칸의 아이콘이 다른 모드로 바뀐 경우(캐릭터 변경) 스스로 맞춘다.
-     * 모드만 바꾸면 이미 잘못 시작된 사이클이 남으므로 함께 되돌린다.
+     * 사이클·예약 정리는 아래 '모드 변경' effect가 모든 경로에 대해 일괄 수행한다.
      */
     onModeMismatch: (m) => {
       if (settingsRef.current.mode === m) return
       set({ mode: m })
-      resetCycleRef.current?.()
     },
     mode: settings.mode,
     cycleMs,
@@ -215,11 +214,29 @@ export default function Timer() {
     if (!install || !stream) clearScheduled()
   }, [install, stream, clearScheduled])
 
-  // 설정을 바꾸면 진행 중인 예약도 새 값으로 다시 잡는다
+  // 설정을 바꾸면 진행 중인 예약도 새 값으로 다시 잡는다.
+  // 변경으로 사이클이 이미 끝난 셈이 되면(elapsed > 새 cycleMs) 옛 예약을 거둬야 한다 —
+  // 화면은 '종료'인데 소리만 옛 시각에 울리는 일이 있었다.
   useEffect(() => {
-    if (active && install) scheduleFor(settings, installedAt)
+    if (!install) return
+    if (active) scheduleFor(settings, installedAt)
+    else clearScheduled()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.offsetSec, settings.sound, settings.volume, settings.level])
+
+  /*
+   * 모드가 바뀌면(수동 드롭다운·자동 탐색·불일치 교정 어느 경로든) 진행 중인
+   * 사이클과 예약을 정리한다. 사이클 길이·알림 수식이 모드마다 달라서,
+   * 옛 모드 기준의 예약이 남으면 표시와 무관한 시각에 소리가 울린다.
+   */
+  const prevModeRef = useRef(settings.mode)
+  useEffect(() => {
+    if (prevModeRef.current === settings.mode) return
+    prevModeRef.current = settings.mode
+    clearScheduled()
+    resetCycleRef.current?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.mode])
 
   /* ── 감시 중 ────────────────────────────────────────────── */
 
