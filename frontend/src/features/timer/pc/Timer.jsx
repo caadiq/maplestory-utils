@@ -4,7 +4,9 @@ import MapleWindow from '../../../components/pc/MapleWindow'
 import Select from '../../../components/common/Select'
 import { TimerResetIcon, PipIcon, TargetIcon, ScreenOffIcon, BellIcon, IconButton } from './icons'
 import { useJanusDetector } from '../useJanusDetector'
+import { useRuneDetector, runeKindLabel } from '../useRuneDetector'
 import { usePipWindow } from '../usePipWindow'
+import { Toggle } from '../../../components/common/widgets'
 import RegionPicker from './RegionPicker'
 import RegionPickerModal from './RegionPickerModal'
 import CandidatePicker from './CandidatePicker'
@@ -127,6 +129,21 @@ export default function Timer() {
 
   useEffect(() => { resetCycleRef.current = resetCycle }, [resetCycle])
 
+  /*
+   * 룬 등장 감지 — 야누스와 독립으로, 공유 화면 상단 띠에서 "등장" 문구를 지켜본다.
+   * 감지되면 즉시 울린다 (예약할 것이 없다 — 문구가 떴다는 것 자체가 알림 시점).
+   */
+  useRuneDetector({
+    videoRef,
+    stream,
+    enabled: settings.runeEnabled,
+    onRune: (hit) => {
+      const s = settingsRef.current
+      playSound(resolveSound(s.runeSound), s.volume)
+      log(`${runeKindLabel(hit.kind)} 등장 감지`, `일치 ${hit.score.toFixed(2)}`, 'ok')
+    },
+  })
+
   /* ── 표시값 ─────────────────────────────────────────────── */
 
   const soundValue = resolveSound(settings.sound)
@@ -201,6 +218,11 @@ export default function Timer() {
     // 아직 못 받았을 수 있다 — 받아두고 눌러야 소리가 난다
     await preloadSounds()
     playSound(soundValue, settings.volume)
+  }
+
+  const handleRuneTest = async () => {
+    await preloadSounds()
+    playSound(resolveSound(settings.runeSound), settings.volume)
   }
 
   useEffect(() => () => clearScheduled(), [clearScheduled])
@@ -420,6 +442,25 @@ export default function Timer() {
               </span>
             </div>
           </div>
+        </SettingRow>
+
+        <SettingRow
+          name="룬 알림"
+          desc={<>화면에 <b style={{ color: 'var(--text-muted)' }}>룬 등장 문구</b>가 뜨면 바로 알립니다 — 유튜브를 보다가도 놓치지 않게</>}
+        >
+          {settings.runeEnabled && (
+            <>
+              <div className="w-[126px]">
+                <Select
+                  options={SOUND_OPTIONS}
+                  value={resolveSound(settings.runeSound)}
+                  onChange={(v) => set({ runeSound: v })}
+                />
+              </div>
+              <IconButton tone="tan" label="소리 테스트" size={36} onClick={handleRuneTest}><BellIcon /></IconButton>
+            </>
+          )}
+          <Toggle on={settings.runeEnabled} onChange={(v) => set({ runeEnabled: v })} />
         </SettingRow>
       </div>
       </div>

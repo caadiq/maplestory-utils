@@ -222,6 +222,10 @@ export const DEFAULT_SETTINGS = {
   /** 목록에 없는 값이면 첫 번째 소리로 대체된다 (alarm.js resolveSound) */
   sound: null,
   volume: 0.7,
+  /** 룬 등장 문구 감지 — 화면 공유 중에만 돈다 (야누스 영역 지정과는 무관) */
+  runeEnabled: true,
+  /** 야누스 알림과 구분되도록 따로 고른다. null이면 첫 번째 소리 */
+  runeSound: null,
 }
 
 export function loadSettings() {
