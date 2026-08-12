@@ -13,7 +13,7 @@ import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import { useCharacterLookup } from '../../../hooks/useCharacterLookup'
 import { useCharacterRoster } from '../../../hooks/useCharacterRoster'
 import { useExpStore, expInitialState } from '../store'
-import { NumInput, SecTitle, CARD } from '../../../components/common/widgets'
+import { NumInput, SecTitle, CARD, DecimalInput } from '../../../components/common/widgets'
 import {
   EPIC_STAGES, defaultSettings, zoneOn,
   simulate, breakdown, fmtPct, weekKeyKST, parkSpecialActive,
@@ -425,13 +425,10 @@ export default function ExpCalculator() {
                 pct={fmtPct(bd.hunt)} pctColor={C_WEEK} totalLabel="일일 합계">
                 <div className="grid grid-cols-2 gap-2">
                   <Field label="1소재당 획득 경험치 (%)">
-                    <input
-                      type="text" inputMode="decimal"
-                      value={String(s.hunt.pctPerRun ?? 0)}
-                      onChange={(e) => {
-                        const v = e.target.value.replace(/[^\d.]/g, '')
-                        patchDeep('hunt', { pctPerRun: v === '' ? 0 : Math.min(parseFloat(v) || 0, 100) })
-                      }}
+                    <DecimalInput
+                      value={s.hunt.pctPerRun}
+                      max={100}
+                      onChange={(v) => patchDeep('hunt', { pctPerRun: v })}
                       className="w-full h-10 rounded-md border px-3 text-base text-right tabular-nums outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
                       style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-strong)' }}
                     />
