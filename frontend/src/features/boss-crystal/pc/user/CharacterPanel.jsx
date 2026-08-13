@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Reorder, useDragControls } from 'framer-motion'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
-import { api } from '../../../../api/client'
 import ConfirmDialog from '../../../../components/common/ConfirmDialog'
 import Tooltip from '../../../../components/common/Tooltip'
 import CharacterSuggestDropdown from '../../../../components/common/CharacterSuggestDropdown'
