@@ -1,6 +1,6 @@
 # 🍄 메이플스토리 유틸리티
 
-메이플스토리 플레이에 필요한 계산기 모음입니다. NEXON Open API로 캐릭터 정보를 불러와 보스 수익·심볼·헥사·경험치·해방을 계산하고, 화면 인식으로 동작하는 재획 타이머까지 제공하는 풀스택 서비스입니다.
+메이플스토리 플레이에 필요한 계산기 모음입니다. NEXON Open API로 캐릭터 정보를 불러와 보스 수익·심볼·헥사·해방을 계산하고, 화면 인식으로 동작하는 재획 타이머까지 제공하는 풀스택 서비스입니다.
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite)
@@ -18,7 +18,6 @@
 - 💎 **주간 보스 수익 계산기** — 보스·난이도·파티원별 결정석 수익 정산. 캐릭터 12개/계정 한도와 시즌 보스(챌린저스) 예외까지 반영
 - 🔮 **심볼 계산기** — 아케인·어센틱·그랜드 어센틱 심볼의 남은 심볼 수·메소·완료 예상일. 장착 심볼과 일퀘 보너스(이벤트 스킬·에테리온 아티팩트)를 API에서 자동 반영
 - ⬡ **헥사 강화 계산기** — 6차 코어별 솔 에르다·조각 소모량과 진행도, 주간 수급량 기반 완료 시점 산정. 보스 수익을 조각 구매로 환산해 반영
-- 📈 **경험치 계산기** — 사냥·일퀘·몬파·에픽던전·사우나·비약 등 컨텐츠별 획득량을 합산해 목표 레벨 도달일 예측. 랭킹 API로 최근 9일 성장 곡선을 그립니다
 - ⚔️ **해방 날짜 계산기** — 제네시스 무기 해방 8단계(총 6,500) 진행도 추적, 주간 보스 스케줄로 완료 예상 주차 산정 (제네시스 패스 배수 반영)
 - 🔨 **장비 강화 기록** — 스타포스·큐브·잠재능력 이력을 아이템 단위로 묶어 사용 메소·성공률·등급업 확률 분석 (전체 기간, 날짜별 영구 캐시)
 - ⏱️ **재획 타이머** — 게임 화면을 인식해 솔 야누스 사이클을 재고 회수 전에 알립니다. 새벽(설치기)·황혼(추가타) 모드 자동 판별, PiP 미니바
@@ -79,7 +78,6 @@ maplestory-utils/
 │       │   ├── boss-crystal/ # 주간 보스 수익 계산기
 │       │   ├── symbol/       # 심볼 계산기
 │       │   ├── hexa-matrix/  # 헥사 강화 계산기
-│       │   ├── exp-calculator/ # 경험치 계산기 (성장 그래프)
 │       │   ├── liberation/   # 해방 / 제네시스 진행도
 │       │   ├── enchant/      # 장비 강화 기록
 │       │   ├── timer/        # 재획 타이머 (화면 인식 — 백엔드 없음)
@@ -96,14 +94,13 @@ maplestory-utils/
 │
 ├── backend/                  # Node.js(ESM) + Express 5 백엔드
 │   ├── routes/               # auth, me, character, boss-crystal, symbol, hexa,
-│   │                         #   exp, enchant, liberation(genesis-pass), notices,
+│   │                         #   enchant, liberation(genesis-pass), notices,
 │   │                         #   sunday-maple, images, menus, admin
-│   ├── services/             # character, exp, hexa, enchant, image,
+│   ├── services/             # character, hexa, enchant, image,
 │   │                         #   sundayMaple(+cron), sessionCleanup
 │   ├── models/               # Sequelize 모델
 │   ├── lib/                  # db · s3 · nexon(공용 API 클라이언트)
 │   ├── middleware/           # 세션 인증
-│   ├── data/                 # exp-data.json (레벨·컨텐츠별 경험치 원본값)
 │   └── server.js             # 엔트리포인트
 │
 ├── docs/images/              # 시스템 구조도 (architecture.html → png)
