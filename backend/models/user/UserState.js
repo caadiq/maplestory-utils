@@ -5,7 +5,7 @@ import { sequelize } from '../../lib/db.js';
 export const UserState = sequelize.define('UserState', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
   user_id: { type: DataTypes.INTEGER, allowNull: false },
-  feature: { type: DataTypes.ENUM('boss-crystal', 'symbol', 'liberation', 'hexa-matrix', 'exp-calculator'), allowNull: false },
+  feature: { type: DataTypes.ENUM('boss-crystal', 'symbol', 'liberation', 'hexa-matrix'), allowNull: false },
   payload: { type: DataTypes.JSON, allowNull: false },
 }, {
   tableName: 'user_states',
