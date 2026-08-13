@@ -5,6 +5,7 @@ import Select from '../../../components/common/Select'
 import { TimerResetIcon, PipIcon, TargetIcon, ScreenOffIcon, BellIcon, IconButton } from './icons'
 import { useJanusDetector } from '../useJanusDetector'
 import { useRuneDetector, runeKindLabel } from '../useRuneDetector'
+import runeIcon from '../rune-icon.png'
 import { usePipWindow } from '../usePipWindow'
 import { Toggle } from '../../../components/common/widgets'
 import RegionPicker from './RegionPicker'
@@ -444,7 +445,7 @@ export default function Timer() {
 
       <div className="rounded-[11px] overflow-hidden" style={CARD}>
         <SectionBar
-          icon={<span className="w-[10px] h-[10px] rounded-full" style={{ background: 'linear-gradient(180deg, #86e394, #2f9d4e)' }} />}
+          icon={<img src={runeIcon} alt="" className="w-[18px] h-[18px] rounded-[4px]" />}
           title="룬 알림"
           on={settings.runeEnabled}
           onChange={(v) => set({ runeEnabled: v })}
