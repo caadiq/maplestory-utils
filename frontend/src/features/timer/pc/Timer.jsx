@@ -83,6 +83,7 @@ export default function Timer() {
    */
   const scheduleFor = useCallback((s, installedAt) => {
     clearScheduled()
+    if (!s.alarmEnabled) return
     const fireInSec = ((durationForSettings(s) - s.offsetSec) * 1000
       - durationLagFor(s) + ALARM_DISPLAY_BIAS_MS - (Date.now() - installedAt)) / 1000
     if (fireInSec > 0) {
@@ -139,7 +140,7 @@ export default function Timer() {
     enabled: settings.runeEnabled,
     onRune: (hit) => {
       const s = settingsRef.current
-      playSound(resolveSound(s.runeSound), s.volume)
+      playSound(resolveSound(s.runeSound), s.runeVolume)
       log(`${runeKindLabel(hit.kind)} 등장 감지`, `일치 ${hit.score.toFixed(2)}`, 'ok')
     },
   })
@@ -222,7 +223,7 @@ export default function Timer() {
 
   const handleRuneTest = async () => {
     await preloadSounds()
-    playSound(resolveSound(settings.runeSound), settings.volume)
+    playSound(resolveSound(settings.runeSound), settings.runeVolume)
   }
 
   useEffect(() => () => clearScheduled(), [clearScheduled])
@@ -244,7 +245,7 @@ export default function Timer() {
     if (active) scheduleFor(settings, installedAt)
     else clearScheduled()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.offsetSec, settings.sound, settings.volume, settings.level])
+  }, [settings.offsetSec, settings.sound, settings.volume, settings.level, settings.alarmEnabled])
 
   /*
    * 모드가 바뀌면(수동 드롭다운·자동 탐색·불일치 교정 어느 경로든) 진행 중인
@@ -374,10 +375,17 @@ export default function Timer() {
         )}
       </div>
 
-      {/* 설정 */}
+      {/* 설정 — 알림별 카드. 헤더 스위치로 소리만 켜고 끈다 (감지·타이머 표시는 유지) */}
       <div className="rounded-[11px] overflow-hidden" style={CARD}>
-        <div className="px-4 py-2.5 text-[13.5px] font-extrabold" style={SLATE_BAR}>⚙️ 설정</div>
-
+        <SectionBar
+          icon={modeIcon(settings.mode) && (
+            <img src={modeIcon(settings.mode)} alt="" className="w-[18px] h-[18px] rounded-[4px]" />
+          )}
+          title="야누스 알림"
+          on={settings.alarmEnabled}
+          onChange={(v) => set({ alarmEnabled: v })}
+        />
+        <div style={settings.alarmEnabled ? undefined : { opacity: 0.45, pointerEvents: 'none' }}>
         <SettingRow
           name="야누스 모드"
           desc={settings.mode === 'dusk'
@@ -423,45 +431,38 @@ export default function Timer() {
         </SettingRow>
 
         <SettingRow name="알림 소리" desc="백그라운드 탭에서도 정확한 시각에 울립니다">
-          <div className="flex flex-col gap-2 items-end">
-            <div className="flex items-center gap-2">
-              <div className="w-[126px]">
-                <Select options={SOUND_OPTIONS} value={soundValue} onChange={(v) => set({ sound: v })} />
-              </div>
-              <IconButton tone="tan" label="소리 테스트" size={36} onClick={handleTest}><BellIcon /></IconButton>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <input
-                type="range" min={0} max={100} value={Math.round(settings.volume * 100)}
-                onChange={(e) => set({ volume: Number(e.target.value) / 100 })}
-                className="janus-range w-[130px]"
-                aria-label="소리 크기"
-              />
-              <span className="text-[13px] font-bold tabular-nums w-[38px] text-right" style={{ color: 'var(--text-muted)' }}>
-                {Math.round(settings.volume * 100)}%
-              </span>
-            </div>
-          </div>
+          <SoundControl
+            sound={soundValue}
+            volume={settings.volume}
+            onSound={(v) => set({ sound: v })}
+            onVolume={(v) => set({ volume: v })}
+            onTest={handleTest}
+          />
         </SettingRow>
+        </div>
+      </div>
 
+      <div className="rounded-[11px] overflow-hidden" style={CARD}>
+        <SectionBar
+          icon={<span className="w-[10px] h-[10px] rounded-full" style={{ background: 'linear-gradient(180deg, #86e394, #2f9d4e)' }} />}
+          title="룬 알림"
+          on={settings.runeEnabled}
+          onChange={(v) => set({ runeEnabled: v })}
+        />
+        <div style={settings.runeEnabled ? undefined : { opacity: 0.45, pointerEvents: 'none' }}>
         <SettingRow
-          name="룬 알림"
+          name="알림 소리"
           desc={<>화면에 <b style={{ color: 'var(--text-muted)' }}>룬 등장 문구</b>가 뜨면 바로 알립니다 — 유튜브를 보다가도 놓치지 않게</>}
         >
-          {settings.runeEnabled && (
-            <>
-              <div className="w-[126px]">
-                <Select
-                  options={SOUND_OPTIONS}
-                  value={resolveSound(settings.runeSound)}
-                  onChange={(v) => set({ runeSound: v })}
-                />
-              </div>
-              <IconButton tone="tan" label="소리 테스트" size={36} onClick={handleRuneTest}><BellIcon /></IconButton>
-            </>
-          )}
-          <Toggle on={settings.runeEnabled} onChange={(v) => set({ runeEnabled: v })} />
+          <SoundControl
+            sound={resolveSound(settings.runeSound)}
+            volume={settings.runeVolume}
+            onSound={(v) => set({ runeSound: v })}
+            onVolume={(v) => set({ runeVolume: v })}
+            onTest={handleRuneTest}
+          />
         </SettingRow>
+        </div>
       </div>
       </div>
 
@@ -587,6 +588,41 @@ function Badge({ tone, children }) {
   )
 }
 
+
+/** 알림 카드 머리띠 — 제목과 켬/끔 스위치. 꺼도 감지·표시는 돌고 소리만 쉰다 */
+function SectionBar({ icon, title, on, onChange }) {
+  return (
+    <div className="px-4 py-2 flex items-center justify-between" style={SLATE_BAR}>
+      <span className="flex items-center gap-2 text-[13.5px] font-extrabold">{icon}{title}</span>
+      <Toggle on={on} onChange={onChange} />
+    </div>
+  )
+}
+
+/** 소리 선택 + 테스트 + 크기 — 음원마다 원래 크기가 달라 알림별로 따로 조절한다 */
+function SoundControl({ sound, volume, onSound, onVolume, onTest }) {
+  return (
+    <div className="flex flex-col gap-2 items-end">
+      <div className="flex items-center gap-2">
+        <div className="w-[126px]">
+          <Select options={SOUND_OPTIONS} value={sound} onChange={onSound} />
+        </div>
+        <IconButton tone="tan" label="소리 테스트" size={36} onClick={onTest}><BellIcon /></IconButton>
+      </div>
+      <div className="flex items-center gap-2.5">
+        <input
+          type="range" min={0} max={100} value={Math.round(volume * 100)}
+          onChange={(e) => onVolume(Number(e.target.value) / 100)}
+          className="janus-range w-[130px]"
+          aria-label="소리 크기"
+        />
+        <span className="text-[13px] font-bold tabular-nums w-[38px] text-right" style={{ color: 'var(--text-muted)' }}>
+          {Math.round(volume * 100)}%
+        </span>
+      </div>
+    </div>
+  )
+}
 
 /** 설정 한 줄 — 이름 / 설명 / 컨트롤 */
 function SettingRow({ name, desc, children }) {
