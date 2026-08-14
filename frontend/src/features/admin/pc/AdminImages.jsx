@@ -33,10 +33,11 @@ export default function AdminImages() {
     return () => clearTimeout(t)
   }, [search])
 
-  // 페이지 전환 시 선택 초기화 (다른 페이지 선택분이 삭제에서 누락되는 것 방지)
+  // 페이지·검색이 바뀌면 선택 초기화 — 화면에 없는 항목이 선택된 채 남으면
+  // "N개 선택" 표시와 전체선택 토글이 실제 목록과 어긋난다
   useEffect(() => {
     setSelectedIds(new Set())
-  }, [page])
+  }, [page, debouncedSearch])
 
   const { data: imagesData, isLoading } = useQuery({
     queryKey: ['admin', 'images', { page, search: debouncedSearch }],
@@ -53,6 +54,16 @@ export default function AdminImages() {
 
   const images = imagesData?.items || []
   const totalPages = imagesData?.total_pages || 1
+
+  /*
+   * 페이지가 범위를 벗어나면 마지막 페이지로 되돌린다.
+   * 마지막 페이지의 항목을 전부 선택 삭제하면 총 페이지 수가 줄어드는데,
+   * page가 그대로면 서버가 빈 배열을 줘서 "이미지가 없습니다"만 뜨고
+   * (페이지네이션은 그 분기에서 렌더되지 않아) 돌아갈 길이 없었다.
+   */
+  useEffect(() => {
+    if (imagesData && page > totalPages) setPage(totalPages)
+  }, [imagesData, page, totalPages])
 
   const { data: allNamesArray = [] } = useQuery({
     queryKey: ['admin', 'images', 'names'],
