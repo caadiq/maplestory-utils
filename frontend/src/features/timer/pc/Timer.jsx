@@ -2,9 +2,10 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import MapleWindow from '../../../components/pc/MapleWindow'
 import Select from '../../../components/common/Select'
-import { TimerResetIcon, PipIcon, TargetIcon, ScreenOffIcon, BellIcon, IconButton } from './icons'
+import { TimerResetIcon, PipIcon, TargetIcon, ScreenOffIcon, BellIcon, BoosterIcon, IconButton } from './icons'
 import { useJanusDetector } from '../useJanusDetector'
 import { useRuneDetector, runeKindLabel } from '../useRuneDetector'
+import { useBoosterDetector } from '../useBoosterDetector'
 import runeIcon from '../rune-icon.png'
 import { usePipWindow } from '../usePipWindow'
 import { Toggle } from '../../../components/common/widgets'
@@ -146,6 +147,21 @@ export default function Timer() {
     },
   })
 
+  /*
+   * VIP 부스터 — 남은시간을 읽어 0초가 되는 순간에 울리도록 미리 예약한다.
+   * 마지막 순간에 박스가 가려도(이펙트·인벤토리 창) 정시에 울린다.
+   */
+  useBoosterDetector({
+    videoRef,
+    stream,
+    enabled: settings.boosterEnabled,
+    onSchedule: (delaySec) => {
+      const s = settingsRef.current
+      return scheduleSound(resolveSound(s.boosterSound), s.boosterVolume, delaySec)
+    },
+    onDetect: (hit) => log(`VIP 부스터 ${hit.seconds}초 남음`, '부스터', 'muted'),
+  })
+
   /* ── 표시값 ─────────────────────────────────────────────── */
 
   const soundValue = resolveSound(settings.sound)
@@ -225,6 +241,11 @@ export default function Timer() {
   const handleRuneTest = async () => {
     await preloadSounds()
     playSound(resolveSound(settings.runeSound), settings.runeVolume)
+  }
+
+  const handleBoosterTest = async () => {
+    await preloadSounds()
+    playSound(resolveSound(settings.boosterSound), settings.boosterVolume)
   }
 
   useEffect(() => () => clearScheduled(), [clearScheduled])
@@ -461,6 +482,29 @@ export default function Timer() {
             onSound={(v) => set({ runeSound: v })}
             onVolume={(v) => set({ runeVolume: v })}
             onTest={handleRuneTest}
+          />
+        </SettingRow>
+        </div>
+      </div>
+
+      <div className="rounded-[11px] overflow-hidden" style={CARD}>
+        <SectionBar
+          icon={<BoosterIcon />}
+          title="VIP 부스터 알림"
+          on={settings.boosterEnabled}
+          onChange={(v) => set({ boosterEnabled: v })}
+        />
+        <div style={settings.boosterEnabled ? undefined : { opacity: 0.45, pointerEvents: 'none' }}>
+        <SettingRow
+          name="알림 소리"
+          desc={<>부스터 <b style={{ color: 'var(--text-muted)' }}>남은시간이 0</b>이 되는 순간에 알립니다</>}
+        >
+          <SoundControl
+            sound={resolveSound(settings.boosterSound)}
+            volume={settings.boosterVolume}
+            onSound={(v) => set({ boosterSound: v })}
+            onVolume={(v) => set({ boosterVolume: v })}
+            onTest={handleBoosterTest}
           />
         </SettingRow>
         </div>

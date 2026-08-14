@@ -230,6 +230,14 @@ export const DEFAULT_SETTINGS = {
   runeSound: null,
   /** 소리 크기는 알림마다 따로 — 음원별로 원래 크기가 달라 공용으로는 못 맞춘다 */
   runeVolume: 0.7,
+  /**
+   * VIP 부스터 종료 알림.
+   * 축복룬 지속시간에는 부스터를 두 번 쓰는데, 첫 번째가 끝난 걸 놓치면 두 번째를 못 쓴다.
+   * 알림은 남은시간이 0이 되는 순간에 울린다 — 다음 부스터를 쓰기까지 1분 가까운 여유가 있다.
+   */
+  boosterEnabled: true,
+  boosterSound: null,
+  boosterVolume: 0.7,
 }
 
 export function loadSettings() {
