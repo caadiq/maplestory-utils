@@ -5,9 +5,9 @@
 import { scanBooster } from './boosterCore'
 
 self.onmessage = (e) => {
-  const { id, band, label, digits, cells } = e.data
+  const { id, band, variants, lockedScale } = e.data
   try {
-    self.postMessage({ id, hit: scanBooster(band, label, digits, cells) })
+    self.postMessage({ id, hit: scanBooster(band, variants, lockedScale) })
   } catch (err) {
     self.postMessage({ id, hit: null, error: String(err) })
   }

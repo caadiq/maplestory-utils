@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { normalize } from './locateCore'
-import { BOOSTER, DIGIT_CELLS, toLuma, boosterScale, scanBooster } from './boosterCore'
+import { BOOSTER, DIGIT_CELLS, SCALE_STEPS, toLuma, boosterScale, scanBooster } from './boosterCore'
 
 /**
  * 화면 공유 스트림에서 VIP 부스터의 "남은시간" 박스를 지켜보다가 0초에 알린다.
@@ -28,14 +28,14 @@ const RESCHEDULE_TOLERANCE_MS = 1500
 /** 탐색 워커 — 못 만들면 같은 계산을 제자리에서 돈다 */
 let boosterWorker = null
 let boosterSeq = 0
-function runScan(band, label, digits, cells) {
-  if (typeof Worker === 'undefined') return Promise.resolve(scanBooster(band, label, digits, cells))
+function runScan(band, variants, lockedScale) {
+  if (typeof Worker === 'undefined') return Promise.resolve(scanBooster(band, variants, lockedScale))
   try {
     if (!boosterWorker) {
       boosterWorker = new Worker(new URL('./booster.worker.js', import.meta.url), { type: 'module' })
     }
   } catch {
-    return Promise.resolve(scanBooster(band, label, digits, cells))
+    return Promise.resolve(scanBooster(band, variants, lockedScale))
   }
   const id = ++boosterSeq
   const worker = boosterWorker
@@ -60,12 +60,12 @@ function runScan(band, label, digits, cells) {
     const onError = () => {
       worker.terminate()
       if (boosterWorker === worker) boosterWorker = null
-      finish(scanBooster(band, label, digits, cells))
+      finish(scanBooster(band, variants, lockedScale))
     }
     worker.addEventListener('message', onMessage)
     worker.addEventListener('error', onError)
     timer = setTimeout(() => finish(null), 10000) // 무응답 안전장치 — busy 잠금 방지
-    worker.postMessage({ id, band, label, digits, cells })
+    worker.postMessage({ id, band, variants, lockedScale })
   })
 }
 
@@ -86,6 +86,7 @@ export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, 
   // 지금 예약된 종료 시각과 그 취소 함수
   const endAtRef = useRef(0)
   const cancelRef = useRef(null)
+  const lockedScaleRef = useRef(null)
 
   const buildTemplates = useCallback(async (vh) => {
     const scale = boosterScale(vh)
@@ -101,30 +102,46 @@ export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, 
     }
 
     const [labelImg, digitsImg] = await Promise.all([loadImage(labelUrl), loadImage(digitsUrl)])
-
-    const tw = Math.max(8, Math.round(labelImg.naturalWidth * scale))
-    const th = Math.max(8, Math.round(labelImg.naturalHeight * scale))
-    const labelVec = grab(labelImg, 0, 0, labelImg.naturalWidth, labelImg.naturalHeight, tw, th)
-    if (!labelVec) return null
-
     const cellW = digitsImg.naturalWidth / DIGIT_COUNT
     const cellH = digitsImg.naturalHeight
-    const dw = Math.max(6, Math.round(cellW * scale))
-    const dh = Math.max(6, Math.round(cellH * scale))
-    const digits = []
-    for (let d = 0; d < DIGIT_COUNT; d++) {
-      const vec = grab(digitsImg, d * cellW, 0, cellW, cellH, dw, dh)
-      if (vec) digits.push({ digit: d, vec, w: dw, h: dh })
-    }
-    if (digits.length !== DIGIT_COUNT) return null
 
-    // 숫자 칸 오프셋도 같은 배율로 — 라벨 위치에서 상대로 자른다
-    const s = (v) => Math.round(v * scale)
-    const cells = {
-      tens: { dx: s(DIGIT_CELLS.tens.dx), dy: s(DIGIT_CELLS.tens.dy), w: dw, h: dh },
-      ones: { dx: s(DIGIT_CELLS.ones.dx), dy: s(DIGIT_CELLS.ones.dy), w: dw, h: dh },
+    /*
+     * 배율 후보마다 템플릿 한 벌씩. 게임 창을 통째로 공유하면 제목 표시줄이 섞여
+     * 캡처 세로 크기로 계산한 배율이 실제와 어긋나므로, 화면에서 제일 잘 맞는 배율을 고른다.
+     * 한 번 만들어두고 계속 쓰므로(해상도가 바뀔 때만 다시 만든다) 만드는 비용은 문제되지 않는다.
+     */
+    const variants = []
+    for (const step of SCALE_STEPS) {
+      const sc = scale * step
+      const tw = Math.max(8, Math.round(labelImg.naturalWidth * sc))
+      const th = Math.max(8, Math.round(labelImg.naturalHeight * sc))
+      const labelVec = grab(labelImg, 0, 0, labelImg.naturalWidth, labelImg.naturalHeight, tw, th)
+      if (!labelVec) continue
+
+      const dw = Math.max(6, Math.round(cellW * sc))
+      const dh = Math.max(6, Math.round(cellH * sc))
+      const digits = []
+      for (let d = 0; d < DIGIT_COUNT; d++) {
+        const vec = grab(digitsImg, d * cellW, 0, cellW, cellH, dw, dh)
+        if (vec) digits.push({ digit: d, vec })
+      }
+      if (digits.length !== DIGIT_COUNT) continue
+
+      const px = (v) => Math.round(v * sc)
+      variants.push({
+        scale: step,
+        label: { vec: labelVec, tw, th },
+        digits,
+        cells: {
+          tens: { dx: px(DIGIT_CELLS.tens.dx), dy: px(DIGIT_CELLS.tens.dy), w: dw, h: dh },
+          ones: { dx: px(DIGIT_CELLS.ones.dx), dy: px(DIGIT_CELLS.ones.dy), w: dw, h: dh },
+        },
+      })
     }
-    return { label: { vec: labelVec, tw, th }, digits, cells }
+    if (!variants.length) return null
+    // 예상 배율(1.0)을 맨 앞으로 — 1단계 탐색은 이걸로 한다
+    variants.sort((a, b) => Math.abs(a.scale - 1) - Math.abs(b.scale - 1))
+    return variants
   }, [])
 
   // 공유가 끊기거나 기능을 끄면 예약도 거둔다
@@ -177,13 +194,13 @@ export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, 
       if (tplCacheRef.current.vh !== vh) {
         tplCacheRef.current = { vh, promise: buildTemplates(vh) }
       }
-      let tpl = null
+      let variants = null
       try {
-        tpl = await tplCacheRef.current.promise
+        variants = await tplCacheRef.current.promise
       } catch {
-        tpl = null
+        variants = null
       }
-      if (!tpl) {
+      if (!variants?.length) {
         // 실패를 캐시에 남기면 일시적 네트워크 오류 한 번이 새로고침 전까지 기능을 죽인다.
         // 캐시를 비워 다음 스캔이 다시 시도하게 한다 (alarm.js의 buffers.delete와 같은 원칙)
         tplCacheRef.current = { vh: 0, promise: null }
@@ -211,17 +228,20 @@ export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, 
       busyRef.current = true
       let hit = null
       try {
-        hit = await runScan(band, tpl.label, tpl.digits, tpl.cells)
+        hit = await runScan(band, variants, lockedScaleRef.current)
       } finally {
         busyRef.current = false
       }
       if (!alive) return
 
       // 어디까지 갔는지 매번 알려준다 — 화면에 상태로 띄워 원인을 볼 수 있게
+      // 맞는 배율을 찾았으면 기억해 다음부터 그 배율로 먼저 본다
+      if (hit?.scale) lockedScaleRef.current = hit.scale
       cbRef.current.onStatus?.({
         reason: hit?.reason ?? 'none',
         seconds: hit?.seconds ?? null,
         labelScore: hit?.labelScore ?? 0,
+        scale: hit?.scale ?? null,
         vw,
         vh,
       })
