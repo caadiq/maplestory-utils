@@ -80,17 +80,6 @@ const TONES = {
   tan: 'linear-gradient(180deg, var(--mpl-tan-from), var(--mpl-tan-to))',
 }
 
-/** VIP 부스터 — 남은시간 박스가 스톱워치 모양이라 그대로 따라간 모래시계 대신 '시간 + 상승' */
-export function BoosterIcon({ size = 18 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden>
-      <circle cx="9" cy="11" r="6.4" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M9 7.4V11l2.3 1.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M15.6 6.2l2.2-3.2 2.2 3.2z" fill="currentColor" transform="translate(-2.6 0)" />
-    </svg>
-  )
-}
-
 /** 아이콘만 있는 정사각 버튼 */
 export function IconButton({ tone, label, onClick, size = 40, children }) {
   return (
