@@ -327,7 +327,7 @@ export default function Timer() {
                 backdropFilter: 'blur(4px)',
               }}
             >
-              <IconButton tone="slate" label="타이머 초기화 — 잘못 시작됐을 때" onClick={resetCycle}><TimerResetIcon /></IconButton>
+              <IconButton tone="slate" label="타이머 초기화" onClick={resetCycle}><TimerResetIcon /></IconButton>
               {pip.supported && (
                 <IconButton
                   tone="sky"
