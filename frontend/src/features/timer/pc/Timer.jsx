@@ -152,6 +152,8 @@ export default function Timer() {
     },
     mode: settings.mode,
     cycleMs,
+    // 스위치를 끄면 소리뿐 아니라 감지·타이머까지 멈춘다 (룬·부스터 스위치와 같은 동작)
+    enabled: settings.alarmEnabled,
   })
 
   useEffect(() => { resetCycleRef.current = resetCycle }, [resetCycle])
@@ -319,9 +321,11 @@ export default function Timer() {
       titleRight={(
         <div className="flex items-center gap-2">
           {stale && <Badge tone="warn">⚠ 화면이 갱신되지 않음</Badge>}
-          <Badge tone={active ? 'live' : 'wait'}>{active
-            ? `● ${settings.mode === 'dusk' ? '회수까지' : '유지 중'} · ${install.index}회차`
-            : (settings.mode === 'dusk' ? '● 쿨타임 대기' : '● 설치 대기')}</Badge>
+          <Badge tone={!settings.alarmEnabled ? 'wait' : active ? 'live' : 'wait'}>{!settings.alarmEnabled
+            ? '○ 야누스 알림 꺼짐'
+            : active
+              ? `● ${settings.mode === 'dusk' ? '회수까지' : '유지 중'} · ${install.index}회차`
+              : (settings.mode === 'dusk' ? '● 쿨타임 대기' : '● 설치 대기')}</Badge>
         </div>
       )}
     >
@@ -403,7 +407,7 @@ export default function Timer() {
           </div>
         )}
 
-        {stream && !region && (
+        {stream && !region && settings.alarmEnabled && (
           <div
             className="absolute left-0 right-0 top-0 px-3 py-2 text-[12.5px] font-bold"
             style={{ background: 'rgba(10,16,22,.85)', color: '#ffe437' }}
@@ -412,7 +416,7 @@ export default function Timer() {
           </div>
         )}
 
-        {stream && region && (stale || iconLost) && (
+        {stream && region && settings.alarmEnabled && (stale || iconLost) && (
           <div
             className="absolute left-0 right-0 top-0 px-3 py-2 text-[12.5px] font-bold"
             style={{ background: 'rgba(10,16,22,.85)', color: '#ffcb6b' }}
