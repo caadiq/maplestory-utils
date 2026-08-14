@@ -418,7 +418,7 @@ export default function Timer() {
         <SettingRow
           name="알림 시점"
           desc={settings.mode === 'dusk'
-            ? <>아이템이 사라지기 <b style={{ color: 'var(--text-muted)' }}>{settings.offsetSec}초</b> 전에 알립니다 — 회수할 시간을 감안해 잡으세요</>
+            ? <>아이템이 사라지기 <b style={{ color: 'var(--text-muted)' }}>{settings.offsetSec}초</b> 전에 알립니다</>
             : <>지속시간이 <b style={{ color: 'var(--text-muted)' }}>{settings.offsetSec}초</b> 남았을 때 알립니다 — 젠 주기 × 젠 수로 잡으세요</>}
         >
           <NumberField
@@ -453,7 +453,7 @@ export default function Timer() {
         <div style={settings.runeEnabled ? undefined : { opacity: 0.45, pointerEvents: 'none' }}>
         <SettingRow
           name="알림 소리"
-          desc={<>화면에 <b style={{ color: 'var(--text-muted)' }}>룬 등장 문구</b>가 뜨면 바로 알립니다 — 유튜브를 보다가도 놓치지 않게</>}
+          desc={<>화면에 <b style={{ color: 'var(--text-muted)' }}>룬 등장 문구</b>가 뜨면 바로 알립니다</>}
         >
           <SoundControl
             sound={resolveSound(settings.runeSound)}
