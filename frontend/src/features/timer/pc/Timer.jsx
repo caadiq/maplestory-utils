@@ -79,6 +79,8 @@ export default function Timer() {
 
   const runeIconUrl = useStoredIcon('룬')
   const boosterIconUrl = useStoredIcon('VIP 부스터')
+  // 부스터 감지가 지금 어디까지 갔는지 (화면에 그대로 보여준다)
+  const [boosterStatus, setBoosterStatus] = useState(null)
 
   // 콜백 안에서 최신 설정을 보기 위한 참조 (모드 자동 전환 판정용)
   const settingsRef = useRef(settings)
@@ -184,6 +186,7 @@ export default function Timer() {
       return scheduleSound(resolveSound(s.boosterSound), s.boosterVolume, delaySec)
     },
     onDetect: (hit) => log(`부스터 ${hit.seconds}초 남음`, '부스터', 'muted'),
+    onStatus: setBoosterStatus,
   })
 
   /* ── 표시값 ─────────────────────────────────────────────── */
@@ -517,6 +520,7 @@ export default function Timer() {
           title="부스터 알림"
           on={settings.boosterEnabled}
           onChange={(v) => set({ boosterEnabled: v })}
+          right={stream && settings.boosterEnabled && <BoosterStatus status={boosterStatus} />}
         />
         <div style={settings.boosterEnabled ? undefined : { opacity: 0.45, pointerEvents: 'none' }}>
         <SettingRow
@@ -659,12 +663,42 @@ function Badge({ tone, children }) {
 
 
 /** 알림 카드 머리띠 — 제목과 켬/끔 스위치. 꺼도 감지·표시는 돌고 소리만 쉰다 */
-function SectionBar({ icon, title, on, onChange }) {
+function SectionBar({ icon, title, on, onChange, right }) {
   return (
     <div className="px-4 py-2 flex items-center justify-between" style={SLATE_BAR}>
       <span className="flex items-center gap-2 text-[13.5px] font-extrabold">{icon}{title}</span>
-      <Toggle on={on} onChange={onChange} />
+      <span className="flex items-center gap-2.5">
+        {right}
+        <Toggle on={on} onChange={onChange} />
+      </span>
     </div>
+  )
+}
+
+/**
+ * 부스터 감지 상태 — 공유 중일 때만 띄운다.
+ * 안 울릴 때 어디서 막힌 건지(화면에서 박스를 못 찾는 건지, 찾고도 숫자를 못 읽는 건지)
+ * 바로 보이게 하려고 둔다.
+ */
+function BoosterStatus({ status }) {
+  if (!status) return <StatusPill tone="wait">대기</StatusPill>
+  if (status.reason === 'ok') return <StatusPill tone="live">남은시간 {status.seconds}초</StatusPill>
+  if (status.reason === 'digit') {
+    return <StatusPill tone="warn">숫자 인식 실패 (일치 {status.labelScore.toFixed(2)})</StatusPill>
+  }
+  return <StatusPill tone="wait">박스 없음 {status.vh ? `· ${status.vw}×${status.vh}` : ''}</StatusPill>
+}
+
+function StatusPill({ tone, children }) {
+  const styles = {
+    live: { color: '#b6e77c', background: 'rgba(159,212,94,.18)' },
+    warn: { color: '#ffcb6b', background: 'rgba(255,203,107,.18)' },
+    wait: { color: '#cfdae4', background: 'rgba(207,218,228,.16)' },
+  }
+  return (
+    <span className="text-[12px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap tabular-nums" style={styles[tone]}>
+      {children}
+    </span>
   )
 }
 

@@ -76,9 +76,9 @@ const loadImage = (src) => new Promise((resolve, reject) => {
   img.src = src
 })
 
-export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, onSchedule, onDetect }) {
-  const cbRef = useRef({ onSchedule, onDetect })
-  useEffect(() => { cbRef.current = { onSchedule, onDetect } })
+export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, onSchedule, onDetect, onStatus }) {
+  const cbRef = useRef({ onSchedule, onDetect, onStatus })
+  useEffect(() => { cbRef.current = { onSchedule, onDetect, onStatus } })
 
   // 템플릿은 화면 세로 크기에 따라 배율이 달라진다 — 크기별로 한 번만 만든다
   const tplCacheRef = useRef({ vh: 0, promise: null })
@@ -215,7 +215,17 @@ export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, 
       } finally {
         busyRef.current = false
       }
-      if (!alive || !hit) return
+      if (!alive) return
+
+      // 어디까지 갔는지 매번 알려준다 — 화면에 상태로 띄워 원인을 볼 수 있게
+      cbRef.current.onStatus?.({
+        reason: hit?.reason ?? 'none',
+        seconds: hit?.seconds ?? null,
+        labelScore: hit?.labelScore ?? 0,
+        vw,
+        vh,
+      })
+      if (!hit || hit.seconds == null) return
 
       /*
        * 정수부만 읽으므로 실제 남은 시간은 [n, n+1)이다. 가운데인 +0.5초를 종료로 본다.
