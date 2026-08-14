@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '../../../api/client'
 import MapleWindow from '../../../components/pc/MapleWindow'
 import Select from '../../../components/common/Select'
-import { TimerResetIcon, PipIcon, TargetIcon, ScreenOffIcon, BellIcon, BoosterIcon, IconButton } from './icons'
+import { TimerResetIcon, PipIcon, TargetIcon, ScreenOffIcon, BellIcon, IconButton } from './icons'
 import { useJanusDetector } from '../useJanusDetector'
 import { useRuneDetector, runeKindLabel } from '../useRuneDetector'
 import { useBoosterDetector } from '../useBoosterDetector'
-import runeIcon from '../rune-icon.png'
 import { usePipWindow } from '../usePipWindow'
 import { Toggle } from '../../../components/common/widgets'
 import RegionPicker from './RegionPicker'
@@ -26,6 +27,24 @@ const modeIcon = (m) => Object.entries(MODE_ICONS).find(([p]) => p.includes(`jan
 const MODE_OPTIONS = Object.entries(MODE_LABELS).map(([value, label]) => ({
   value, label, subIcon: modeIcon(value),
 }))
+
+/**
+ * 알림 카드 머리띠 아이콘 — 관리자 이미지 저장소에서 가져온다.
+ * 야누스 아이콘만 감지 원본이라 코드에 함께 두고, 나머지는 이미지 관리에서 교체할 수 있게 둔다.
+ */
+function useStoredIcon(name) {
+  const { data } = useQuery({
+    queryKey: ['image', name],
+    queryFn: () => api(`/api/images/${encodeURIComponent(name)}`).catch(() => null),
+    staleTime: Infinity,
+  })
+  return data?.url ?? null
+}
+
+function CardIcon({ url }) {
+  if (!url) return null
+  return <img src={url} alt="" className="w-[18px] h-[18px] object-contain" />
+}
 
 const CARD = { background: 'var(--mpl-card)', border: '1px solid var(--mpl-card-line)' }
 const SLATE_BAR = {
@@ -57,6 +76,9 @@ export default function Timer() {
   const [picking, setPicking] = useState(false)
   const [candidates, setCandidates] = useState(null)
   const [locating, setLocating] = useState(false)
+
+  const runeIconUrl = useStoredIcon('룬')
+  const boosterIconUrl = useStoredIcon('VIP 부스터')
 
   // 콜백 안에서 최신 설정을 보기 위한 참조 (모드 자동 전환 판정용)
   const settingsRef = useRef(settings)
@@ -466,7 +488,7 @@ export default function Timer() {
 
       <div className="rounded-[11px] overflow-hidden" style={CARD}>
         <SectionBar
-          icon={<img src={runeIcon} alt="" className="w-[18px] h-[18px] rounded-[4px]" />}
+          icon={<CardIcon url={runeIconUrl} />}
           title="룬 알림"
           on={settings.runeEnabled}
           onChange={(v) => set({ runeEnabled: v })}
@@ -489,7 +511,7 @@ export default function Timer() {
 
       <div className="rounded-[11px] overflow-hidden" style={CARD}>
         <SectionBar
-          icon={<BoosterIcon />}
+          icon={<CardIcon url={boosterIconUrl} />}
           title="VIP 부스터 알림"
           on={settings.boosterEnabled}
           onChange={(v) => set({ boosterEnabled: v })}
