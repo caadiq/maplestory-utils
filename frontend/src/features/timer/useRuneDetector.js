@@ -33,14 +33,34 @@ function runScan(band, templates) {
     return Promise.resolve(scanRuneBand(band, templates))
   }
   const id = ++runeSeq
+  const worker = runeWorker
   return new Promise((resolve) => {
+    let timer = null
+    const finish = (v) => {
+      worker.removeEventListener('message', onMessage)
+      worker.removeEventListener('error', onError)
+      clearTimeout(timer)
+      resolve(v)
+    }
     const onMessage = (e) => {
       if (e.data?.id !== id) return
-      runeWorker.removeEventListener('message', onMessage)
-      resolve(e.data.hit ?? null)
+      if (e.data.error) console.warn('rune worker:', e.data.error)
+      finish(e.data.hit ?? null)
     }
-    runeWorker.addEventListener('message', onMessage)
-    runeWorker.postMessage({ id, band, templates })
+    /*
+     * 워커 스크립트 로드 실패(배포 후 낡은 탭의 청크 404 등)는 throw가 아니라
+     * error 이벤트로만 온다. 안 받으면 Promise가 영원히 안 끝나 busy가 잠긴 채
+     * 감지가 조용히 영구 정지한다. 그 자리에서 직접 계산으로 대체한다.
+     */
+    const onError = () => {
+      worker.terminate()
+      if (runeWorker === worker) runeWorker = null
+      finish(scanRuneBand(band, templates))
+    }
+    worker.addEventListener('message', onMessage)
+    worker.addEventListener('error', onError)
+    timer = setTimeout(() => finish(null), 10000) // 무응답 안전장치 — busy 잠금 방지
+    worker.postMessage({ id, band, templates })
   })
 }
 
@@ -95,8 +115,19 @@ export function useRuneDetector({ videoRef, stream, enabled, onRune }) {
       if (tplCacheRef.current.vh !== vh) {
         tplCacheRef.current = { vh, promise: buildTemplates(vh) }
       }
-      const templates = await tplCacheRef.current.promise
-      if (!alive || !templates?.length) return
+      let templates = null
+      try {
+        templates = await tplCacheRef.current.promise
+      } catch {
+        templates = null
+      }
+      if (!templates?.length) {
+        // 실패(이미지 로드 불발 → 빈 배열)를 캐시에 남기면 새로고침 전까지 감지가 죽는다.
+        // 캐시를 비워 다음 스캔이 다시 시도하게 한다
+        tplCacheRef.current = { vh: 0, promise: null }
+        return
+      }
+      if (!alive) return
 
       const b = RUNE.band
       const sx = Math.round(b.x0 * vw)
