@@ -9,10 +9,10 @@ import { PageHeader, Button, EmptyBox } from './components/ui'
 
 /**
  * 한 페이지에 보여줄 개수.
- * 열 수(4·6·8)로 모두 나누어떨어져야 마지막 줄이 비지 않는다 — 24는 셋 다 만족한다.
- * 바꿀 때는 열 수도 같이 봐야 한다 (7열이던 시절 24개는 마지막 줄에 4칸이 비었다).
+ * 열 수(4·7)로 모두 나누어떨어져야 마지막 줄이 비지 않는다 — 28은 둘 다 만족한다.
+ * 바꿀 때는 열 수도 같이 봐야 한다 (7열에 24개면 마지막 줄에 4칸이 빈다).
  */
-const PAGE_SIZE = 24
+const PAGE_SIZE = 28
 
 export default function AdminImages() {
   const queryClient = useQueryClient()
@@ -181,7 +181,7 @@ export default function AdminImages() {
 
       {/* 이미지 그리드 */}
       {isLoading ? (
-        <div className="grid gap-2.5 grid-cols-4 sm:grid-cols-6 lg:grid-cols-8">
+        <div className="grid gap-2.5 grid-cols-4 sm:grid-cols-7">
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
@@ -198,7 +198,7 @@ export default function AdminImages() {
         />
       ) : (
         <>
-          <div className="grid gap-2.5 grid-cols-4 sm:grid-cols-6 lg:grid-cols-8">
+          <div className="grid gap-2.5 grid-cols-4 sm:grid-cols-7">
             {images.map((image) => (
               <ImageCard
                 key={image.id}

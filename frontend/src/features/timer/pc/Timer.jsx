@@ -181,7 +181,7 @@ export default function Timer() {
       const s = settingsRef.current
       return scheduleSound(resolveSound(s.boosterSound), s.boosterVolume, delaySec)
     },
-    onDetect: (hit) => log(`VIP 부스터 ${hit.seconds}초 남음`, '부스터', 'muted'),
+    onDetect: (hit) => log(`부스터 ${hit.seconds}초 남음`, '부스터', 'muted'),
   })
 
   /* ── 표시값 ─────────────────────────────────────────────── */
@@ -512,7 +512,7 @@ export default function Timer() {
       <div className="rounded-[11px] overflow-hidden" style={CARD}>
         <SectionBar
           icon={<CardIcon url={boosterIconUrl} />}
-          title="VIP 부스터 알림"
+          title="부스터 알림"
           on={settings.boosterEnabled}
           onChange={(v) => set({ boosterEnabled: v })}
         />
