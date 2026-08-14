@@ -100,7 +100,7 @@ const DUSK_ACTIVE_MS = 6000
 /** 황혼 쿨타임은 3초라 값이 1~3뿐이다. 이보다 크면 황혼이 아니다 */
 const DUSK_MAX_VALUE = 5
 
-export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cycleMs = 0 }) {
+export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cycleMs = 0, enabled = true }) {
   const [stream, setStream] = useState(null)
   const [region, setRegion] = useState(null)   // {x,y,w,h} — 0~1 정규화
   const [install, setInstall] = useState(null) // {index, at}
@@ -245,6 +245,22 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
     trackerRef.current.reset()
     setInstall(null)
   }, [stream])
+
+  /*
+   * 알림을 끄면 감지를 멈추고 진행 중인 사이클도 지운다.
+   * 감지만 멈추고 사이클을 남기면 화면에 카운트다운이 그대로 흐르고,
+   * 다시 켰을 때 이미 끝난 옛 사이클이 되살아난다.
+   */
+  useEffect(() => {
+    if (enabled) return
+    resetDetector()
+    lastInstallRef.current = 0
+    installRef.current = null
+    trackerRef.current.reset()
+    setInstall(null)
+    setIconLost(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled])
 
   /** 오검출이 났을 때 되돌리기 */
   const resetCycle = useCallback(() => {
@@ -416,7 +432,7 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
 
 
   useEffect(() => {
-    if (!stream || !region) return
+    if (!stream || !region || !enabled) return
 
     const video = videoRef.current
     if (!video) return
@@ -802,7 +818,7 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
         video.cancelVideoFrameCallback(rvfcHandle)
       }
     }
-  }, [stream, region, log])
+  }, [stream, region, log, enabled])
 
   return {
     stream, region, setRegion,
