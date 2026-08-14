@@ -75,7 +75,7 @@ export default function QuestSelector({ chapters, imageBase, value, onChange }) 
               boxShadow: 'var(--popup-shadow)',
             }}
           >
-            <OverlayScrollbarsComponent className="py-1" style={{ maxHeight: 288 }} options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'hidden', y: 'scroll' } }} defer>
+            <OverlayScrollbarsComponent className="py-1" style={{ maxHeight: 288 }} options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'hidden', y: 'scroll' } }}>
           {chapters.map((chapter) => {
             const isSelected = chapter.idx === value
             return (
