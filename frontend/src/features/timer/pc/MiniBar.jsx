@@ -63,7 +63,7 @@ export default function MiniBar({ active, remainingMs, progress, cycleIndex, syn
       </div>
 
       <div className="flex gap-2">
-        <IconButton tone="slate" label="타이머 초기화 — 잘못 시작됐을 때" onClick={onReset}>
+        <IconButton tone="slate" label="타이머 초기화" onClick={onReset}>
           <TimerResetIcon />
         </IconButton>
       </div>
