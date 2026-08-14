@@ -82,11 +82,16 @@ export default function Select({ value, onChange, options, disabled, className =
             ),
           }}
         >
+          {/*
+            defer(브라우저가 한가할 때 초기화)를 쓰지 않는다.
+            목록은 사용자가 연 순간부터 스크롤돼야 하는데, 재획 타이머처럼 감지 루프가
+            쉬지 않고 도는 화면에서는 한가한 순간이 1~2초 뒤에나 와서 그때까지 스크롤이 먹지 않았다.
+            팝업은 열 때만 마운트되고 항목도 몇 개뿐이라 바로 초기화해도 부담이 없다.
+          */}
           <OverlayScrollbarsComponent
             className="py-1"
             style={{ maxHeight: 240 }}
             options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'hidden', y: 'scroll' } }}
-            defer
           >
             {options.map((opt) => {
               const isActive = opt.value === value
