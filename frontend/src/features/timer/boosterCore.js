@@ -37,7 +37,7 @@ export const BOOSTER = {
    * 라벨을 찾을 범위 — 박스는 화면 중앙 상단 고정 위치에 뜬다.
    * 실측(1080p) 라벨 좌상단은 (818, 86). 창모드 제목 표시줄과 해상도 오차를 감안해 넓게 잡았다.
    */
-  band: { x0: 0.36, x1: 0.56, y0: 0.045, y1: 0.155 },
+  band: { x0: 0.34, x1: 0.60, y0: 0.03, y1: 0.22 },
   /** 문구는 100초 내내 떠 있다 — 1초에 한 번이면 충분하고 가벼움 */
   scanIntervalMs: 1000,
   /** 부스터 최대 길이(초). 읽은 값이 이보다 크면 오독으로 본다 */
@@ -117,6 +117,11 @@ function readCell(gray, w, h, cell, digits) {
  * digits  : [{ digit, vec, w, h }] — 0~9, 같은 크기
  * 반환: { seconds, labelScore, x, y } | null
  */
+/**
+ * 판정 결과. seconds가 null이어도 어디까지 갔는지 알 수 있어야 한다 —
+ * 화면에 상태로 띄워 "박스를 못 찾음"과 "찾았는데 숫자를 못 읽음"을 구분한다.
+ * reason: 'ok' | 'digit'(박스는 찾았으나 숫자 실패) | 'none'(박스 못 찾음)
+ */
 export function scanBooster({ data, w, h }, label, digits, cells) {
   const gray = toLuma(data)
   const integral = buildIntegral(gray, w, h)
@@ -126,7 +131,7 @@ export function scanBooster({ data, w, h }, label, digits, cells) {
   const coarse = findMatches(gray, w, h, integral, labelVec, label.tw, label.th, {
     step: 2, minScore: BOOSTER.coarseScore,
   }).slice(0, BOOSTER.coarseKeep)
-  if (!coarse.length) return null
+  if (!coarse.length) return { seconds: null, reason: 'none', labelScore: 0 }
 
   // 후보 주변을 1px로 다시 본다. 숫자 칸을 라벨 위치 기준으로 자르므로
   // 몇 px 어긋나면 그대로 오독이 된다 — 자리를 정확히 잡는 것이 판정만큼 중요하다.
@@ -139,24 +144,25 @@ export function scanBooster({ data, w, h }, label, digits, cells) {
     })[0]
     if (best && (!refined || best.score > refined.score)) refined = best
   }
-  if (!refined) return null
+  if (!refined) return { seconds: null, reason: 'none', labelScore: coarse[0].score }
 
+  const fail = { seconds: null, reason: 'digit', labelScore: refined.score }
   const at = (c) => ({ x: refined.x + c.dx, y: refined.y + c.dy, cw: c.w, ch: c.h })
   const tens = readCell(gray, w, h, at(cells.tens), digits)
   const ones = readCell(gray, w, h, at(cells.ones), digits)
-  if (!ones) return null
+  if (!ones) return fail
 
   const good = (r) => r && r.digit != null
     && r.score >= BOOSTER.digitScore && r.margin >= BOOSTER.digitMargin
-  if (!good(ones)) return null
+  if (!good(ones)) return fail
 
   // 십의 자리는 값이 10 미만이면 꺼진다 — 못 읽은 것과 구분해야 한다.
   // 꺼진 칸은 단색이라 digit이 null로 온다(점수 0). 반대로 뭔가 있는데 확신이 낮으면 버린다.
   let seconds
   if (tens && tens.digit == null) seconds = ones.digit
   else if (good(tens)) seconds = tens.digit * 10 + ones.digit
-  else return null
+  else return fail
 
-  if (seconds > BOOSTER.maxSeconds) return null
-  return { seconds, labelScore: refined.score, x: refined.x, y: refined.y }
+  if (seconds > BOOSTER.maxSeconds) return fail
+  return { seconds, reason: 'ok', labelScore: refined.score, x: refined.x, y: refined.y }
 }
