@@ -38,14 +38,34 @@ function runScan(band, label, digits, cells) {
     return Promise.resolve(scanBooster(band, label, digits, cells))
   }
   const id = ++boosterSeq
+  const worker = boosterWorker
   return new Promise((resolve) => {
+    let timer = null
+    const finish = (v) => {
+      worker.removeEventListener('message', onMessage)
+      worker.removeEventListener('error', onError)
+      clearTimeout(timer)
+      resolve(v)
+    }
     const onMessage = (e) => {
       if (e.data?.id !== id) return
-      boosterWorker.removeEventListener('message', onMessage)
-      resolve(e.data.hit ?? null)
+      if (e.data.error) console.warn('booster worker:', e.data.error)
+      finish(e.data.hit ?? null)
     }
-    boosterWorker.addEventListener('message', onMessage)
-    boosterWorker.postMessage({ id, band, label, digits, cells })
+    /*
+     * 워커 스크립트 로드 실패(배포 후 낡은 탭의 청크 404 등)는 throw가 아니라
+     * error 이벤트로만 온다. 안 받으면 이 Promise가 영원히 안 끝나고,
+     * busy 플래그가 잠긴 채 감지가 조용히 영구 정지한다. 그 자리에서 직접 계산으로 대체한다.
+     */
+    const onError = () => {
+      worker.terminate()
+      if (boosterWorker === worker) boosterWorker = null
+      finish(scanBooster(band, label, digits, cells))
+    }
+    worker.addEventListener('message', onMessage)
+    worker.addEventListener('error', onError)
+    timer = setTimeout(() => finish(null), 10000) // 무응답 안전장치 — busy 잠금 방지
+    worker.postMessage({ id, band, label, digits, cells })
   })
 }
 
@@ -56,7 +76,7 @@ const loadImage = (src) => new Promise((resolve, reject) => {
   img.src = src
 })
 
-export function useBoosterDetector({ videoRef, stream, enabled, onSchedule, onDetect }) {
+export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, onSchedule, onDetect }) {
   const cbRef = useRef({ onSchedule, onDetect })
   useEffect(() => { cbRef.current = { onSchedule, onDetect } })
 
@@ -115,6 +135,29 @@ export function useBoosterDetector({ videoRef, stream, enabled, onSchedule, onDe
     endAtRef.current = 0
   }, [stream, enabled])
 
+  // 페이지를 떠날 때도 거둔다 — 예약은 오디오 하드웨어 시계에 걸려 있어서
+  // 언마운트로 화면이 다 정리된 뒤에도 그대로 울린다 (야누스 알림에서 실제로 겪은 버그)
+  useEffect(() => () => {
+    cancelRef.current?.()
+    cancelRef.current = null
+  }, [])
+
+  /*
+   * 소리·크기를 바꾸면 진행 중인 예약을 새 설정으로 다시 단다.
+   * 예약은 만드는 순간 음원·볼륨이 확정되는데, 남은 시각은 그대로라 다음 스캔이
+   * 허용 오차에 걸려 재예약해 주지도 않는다 — 바꾼 소리는 여기서만 반영된다.
+   */
+  const sigRef = useRef(soundSignature)
+  useEffect(() => {
+    if (sigRef.current === soundSignature) return
+    sigRef.current = soundSignature
+    if (!cancelRef.current) return
+    cancelRef.current()
+    cancelRef.current = endAtRef.current > Date.now()
+      ? (cbRef.current.onSchedule?.((endAtRef.current - Date.now()) / 1000) ?? null)
+      : null
+  }, [soundSignature])
+
   useEffect(() => {
     if (!stream || !enabled) return
 
@@ -134,8 +177,19 @@ export function useBoosterDetector({ videoRef, stream, enabled, onSchedule, onDe
       if (tplCacheRef.current.vh !== vh) {
         tplCacheRef.current = { vh, promise: buildTemplates(vh) }
       }
-      const tpl = await tplCacheRef.current.promise
-      if (!alive || !tpl) return
+      let tpl = null
+      try {
+        tpl = await tplCacheRef.current.promise
+      } catch {
+        tpl = null
+      }
+      if (!tpl) {
+        // 실패를 캐시에 남기면 일시적 네트워크 오류 한 번이 새로고침 전까지 기능을 죽인다.
+        // 캐시를 비워 다음 스캔이 다시 시도하게 한다 (alarm.js의 buffers.delete와 같은 원칙)
+        tplCacheRef.current = { vh: 0, promise: null }
+        return
+      }
+      if (!alive) return
 
       const b = BOOSTER.band
       const sx = Math.round(b.x0 * vw)

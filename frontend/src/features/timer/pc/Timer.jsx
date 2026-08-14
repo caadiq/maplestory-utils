@@ -177,6 +177,8 @@ export default function Timer() {
     videoRef,
     stream,
     enabled: settings.boosterEnabled,
+    // 진행 중 예약에 소리·크기 변경을 반영하기 위한 신호 — 값이 바뀌면 훅이 다시 단다
+    soundSignature: `${resolveSound(settings.boosterSound)}|${settings.boosterVolume}`,
     onSchedule: (delaySec) => {
       const s = settingsRef.current
       return scheduleSound(resolveSound(s.boosterSound), s.boosterVolume, delaySec)

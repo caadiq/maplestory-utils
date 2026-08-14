@@ -35,14 +35,33 @@ function runLocate(payload) {
     return Promise.resolve(locateIcon(payload))
   }
   const id = ++locateSeq
+  const worker = locateWorker
   return new Promise((resolve) => {
+    let timer = null
+    const finish = (v) => {
+      worker.removeEventListener('message', onMessage)
+      worker.removeEventListener('error', onError)
+      clearTimeout(timer)
+      resolve(v)
+    }
     const onMessage = (e) => {
       if (e.data?.id !== id) return
-      locateWorker.removeEventListener('message', onMessage)
-      resolve(e.data.hits || [])
+      finish(e.data.hits || [])
     }
-    locateWorker.addEventListener('message', onMessage)
-    locateWorker.postMessage({ id, payload })
+    /*
+     * 워커 스크립트 로드 실패는 error 이벤트로만 온다. 안 받으면 이 Promise가
+     * 영원히 안 끝나서 "아이콘을 찾는 중…" 전체 화면 오버레이가 영구히 남는다.
+     * 그 자리에서 직접 계산으로 대체한다.
+     */
+    const onError = () => {
+      worker.terminate()
+      if (locateWorker === worker) locateWorker = null
+      finish(locateIcon(payload))
+    }
+    worker.addEventListener('message', onMessage)
+    worker.addEventListener('error', onError)
+    timer = setTimeout(() => finish([]), 15000) // 무응답 안전장치 — 오버레이 영구 잠금 방지
+    worker.postMessage({ id, payload })
   })
 }
 
