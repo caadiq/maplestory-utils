@@ -55,6 +55,16 @@ export const DIGIT_CELLS = {
   ones: { dx: 138, dy: -4, w: 24, h: 57 },
 }
 
+/**
+ * 훑어볼 배율 후보 (예상 배율 대비 비율).
+ *
+ * 캡처 화면의 세로 크기로 배율을 계산하는데, 게임 창을 통째로 공유하면 제목 표시줄과
+ * 테두리가 함께 들어와 실제 게임 UI보다 몇 %씩 어긋난다. 라벨은 그래도 찾아지지만
+ * (실측 0.84) 숫자 칸은 몇 px만 밀려도 통째로 못 읽는다.
+ * 그래서 배율을 가정하지 않고 라벨이 가장 잘 맞는 배율을 화면에서 직접 고른다.
+ */
+export const SCALE_STEPS = [0.88, 0.91, 0.94, 0.97, 1.0, 1.03, 1.06, 1.09, 1.12, 1.16]
+
 /** RGBA → 밝기. 숫자도 라벨도 어두운 패널 위의 밝은 글자다 */
 export function toLuma(data, out) {
   const n = data.length / 4
@@ -72,7 +82,7 @@ export function boosterScale(videoHeight) {
 }
 
 /** 잘라낸 한 칸을 0~9 템플릿과 대조 — { digit, score, margin } */
-function readCell(gray, w, h, cell, digits) {
+function readCellAt(gray, w, h, cell, digits) {
   const { x, y, cw, ch } = cell
   if (x < 0 || y < 0 || x + cw > w || y + ch > h) return null
 
@@ -111,6 +121,24 @@ function readCell(gray, w, h, cell, digits) {
 }
 
 /**
+ * 칸 위치를 1px씩 흔들어 가장 잘 맞는 자리를 쓴다.
+ * 배율을 곱하면서 생기는 반올림 오차만으로도 글자가 한 칸 어긋나 판독이 실패한다.
+ */
+function readCell(gray, w, h, cell, digits) {
+  let best = null
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const r = readCellAt(gray, w, h, { ...cell, x: cell.x + dx, y: cell.y + dy }, digits)
+      if (!r) continue
+      // 꺼진 칸(단색)은 흔들어도 계속 단색이다 — 그대로 돌려준다
+      if (r.digit == null) return r
+      if (!best || r.score > best.score) best = r
+    }
+  }
+  return best
+}
+
+/**
  * band(RGBA 조각) 안에서 부스터 박스를 찾아 남은 초를 읽는다.
  *
  * label   : { vec, tw, th } — 정규화된 밝기 벡터
@@ -122,34 +150,61 @@ function readCell(gray, w, h, cell, digits) {
  * 화면에 상태로 띄워 "박스를 못 찾음"과 "찾았는데 숫자를 못 읽음"을 구분한다.
  * reason: 'ok' | 'digit'(박스는 찾았으나 숫자 실패) | 'none'(박스 못 찾음)
  */
-export function scanBooster({ data, w, h }, label, digits, cells) {
+/**
+ * variants: [{ scale, label:{vec,tw,th}, digits:[{digit,vec}], cells:{tens,ones} }]
+ *   — 배율 후보별 템플릿 묶음. 첫 원소가 예상 배율(1.0)이다.
+ * lockedScale: 직전에 성공한 배율. 있으면 그 배율부터 본다(매번 전 배율을 훑지 않도록).
+ */
+export function scanBooster({ data, w, h }, variants, lockedScale = null) {
   const gray = toLuma(data)
   const integral = buildIntegral(gray, w, h)
-  // 워커를 거치면서 일반 배열로 풀릴 수 있다
-  const labelVec = label.vec instanceof Float32Array ? label.vec : new Float32Array(label.vec)
+  const vec = (v) => (v instanceof Float32Array ? v : new Float32Array(v))
 
-  const coarse = findMatches(gray, w, h, integral, labelVec, label.tw, label.th, {
+  // 1단계 — 예상 배율(또는 직전에 성공한 배율)로 라벨 자리부터 찾는다.
+  // 배율이 조금 어긋나도 라벨은 찾아진다(실측 0.84). 정확한 배율은 2단계에서 고른다.
+  const probe = variants.find((v) => v.scale === lockedScale) || variants[0]
+  const probeVec = vec(probe.label.vec)
+  const coarse = findMatches(gray, w, h, integral, probeVec, probe.label.tw, probe.label.th, {
     step: 2, minScore: BOOSTER.coarseScore,
   }).slice(0, BOOSTER.coarseKeep)
   if (!coarse.length) return { seconds: null, reason: 'none', labelScore: 0 }
 
-  // 후보 주변을 1px로 다시 본다. 숫자 칸을 라벨 위치 기준으로 자르므로
-  // 몇 px 어긋나면 그대로 오독이 된다 — 자리를 정확히 잡는 것이 판정만큼 중요하다.
-  let refined = null
+  let anchor = null
   for (const c of coarse) {
-    const best = findMatches(gray, w, h, integral, labelVec, label.tw, label.th, {
+    const best = findMatches(gray, w, h, integral, probeVec, probe.label.tw, probe.label.th, {
       step: 1,
-      minScore: BOOSTER.labelScore,
+      minScore: BOOSTER.coarseScore,
       bounds: { x0: c.x - 2, y0: c.y - 2, x1: c.x + 2, y1: c.y + 2 },
     })[0]
-    if (best && (!refined || best.score > refined.score)) refined = best
+    if (best && (!anchor || best.score > anchor.score)) anchor = best
   }
-  if (!refined) return { seconds: null, reason: 'none', labelScore: coarse[0].score }
+  if (!anchor || anchor.score < BOOSTER.labelScore) {
+    return { seconds: null, reason: 'none', labelScore: anchor?.score ?? coarse[0].score }
+  }
 
-  const fail = { seconds: null, reason: 'digit', labelScore: refined.score }
-  const at = (c) => ({ x: refined.x + c.dx, y: refined.y + c.dy, cw: c.w, ch: c.h })
-  const tens = readCell(gray, w, h, at(cells.tens), digits)
-  const ones = readCell(gray, w, h, at(cells.ones), digits)
+  /*
+   * 2단계 — 찾은 자리 주변에서 배율 후보를 전부 대보고 가장 잘 맞는 것을 고른다.
+   * 배율이 달라지면 템플릿 크기가 달라져 좌상단도 같이 움직이므로 주변을 넓게 본다.
+   * 숫자 칸은 이 배율·이 자리 기준으로 잘라야 몇 px 어긋남 없이 읽힌다.
+   */
+  let bestFit = null
+  for (const v of variants) {
+    const hit = findMatches(gray, w, h, integral, vec(v.label.vec), v.label.tw, v.label.th, {
+      step: 1,
+      minScore: BOOSTER.coarseScore,
+      bounds: { x0: anchor.x - 10, y0: anchor.y - 6, x1: anchor.x + 10, y1: anchor.y + 6 },
+    })[0]
+    if (hit && (!bestFit || hit.score > bestFit.score)) bestFit = { ...hit, variant: v }
+  }
+  if (!bestFit || bestFit.score < BOOSTER.labelScore) {
+    return { seconds: null, reason: 'none', labelScore: bestFit?.score ?? anchor.score }
+  }
+
+  const v = bestFit.variant
+  const fail = { seconds: null, reason: 'digit', labelScore: bestFit.score, scale: v.scale }
+  const at = (c) => ({ x: bestFit.x + c.dx, y: bestFit.y + c.dy, cw: c.w, ch: c.h })
+  const tens = readCell(gray, w, h, at(v.cells.tens), v.digits)
+  const ones = readCell(gray, w, h, at(v.cells.ones), v.digits)
   if (!ones) return fail
 
   const good = (r) => r && r.digit != null
@@ -164,5 +219,5 @@ export function scanBooster({ data, w, h }, label, digits, cells) {
   else return fail
 
   if (seconds > BOOSTER.maxSeconds) return fail
-  return { seconds, reason: 'ok', labelScore: refined.score, x: refined.x, y: refined.y }
+  return { seconds, reason: 'ok', labelScore: bestFit.score, scale: v.scale, x: bestFit.x, y: bestFit.y }
 }
