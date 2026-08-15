@@ -4,8 +4,7 @@
  * setTimeout은 백그라운드 탭에서 1초 단위로 뭉개져서 알림이 밀린다.
  * AudioContext는 오디오 하드웨어 시계로 돌아가서 탭이 가려져도 예약 시각이 지켜진다.
  *
- * 소리는 sounds/ 폴더의 음원 파일뿐이다. 폴더를 통째로 훑으므로
- * 파일을 넣고 다시 빌드하면 코드를 건드리지 않아도 목록에 뜬다.
+ * 음원은 관리자 화면에서 올린 것을 서버에서 받아 쓴다 (RustFS 저장 + DB 관리).
  */
 
 let ctx = null
@@ -21,26 +20,45 @@ export function ensureAudio() {
   return ctx
 }
 
-/**
- * 이름표는 파일명 순서대로 "알림 1, 2, …"를 붙이지만,
- * 저장되는 값은 파일명이라 나중에 파일을 추가해 번호가 밀려도
- * 이미 고른 소리는 그대로 유지된다.
+/*
+ * 음원 목록은 서버에서 받아온다 (관리자 화면에서 추가·정렬).
+ * 예전에는 번들 폴더를 훑었는데 음원 하나 추가하려고 코드를 고치고 다시 빌드해야 했다.
+ *
+ * 저장되는 값은 표시 이름이 아니라 key다 — 이름을 바꾸거나 순서를 옮겨도
+ * 이미 고른 소리가 그대로 유지된다.
  */
-const soundFiles = import.meta.glob('./sounds/*.{mp3,ogg,wav,m4a}', {
-  eager: true, query: '?url', import: 'default',
-})
+let sounds = []
+const listeners = new Set()
 
-export const SOUND_OPTIONS = Object.keys(soundFiles)
-  .sort((a, b) => a.localeCompare(b))
-  .map((path, i) => ({
-    value: path.split('/').pop().replace(/\.[^.]+$/, ''),
-    label: `알림 ${i + 1}`,
-    url: soundFiles[path],
-  }))
+/** 지금 알고 있는 목록 (드롭다운 옵션 형태) */
+export function getSoundOptions() {
+  return sounds.map((s) => ({ value: s.key, label: s.name, kind: s.kind, url: s.url }))
+}
 
-/** 저장된 값이 지금 목록에 없으면(파일을 지운 경우) 첫 번째로 되돌린다 */
+/** 목록이 갱신되면 알려준다 — 화면이 다시 그리도록 */
+export function subscribeSounds(fn) {
+  listeners.add(fn)
+  return () => listeners.delete(fn)
+}
+
+let loading = null
+export function loadSounds() {
+  if (loading) return loading
+  loading = fetch('/api/timer/sounds')
+    .then((r) => (r.ok ? r.json() : []))
+    .then((list) => {
+      sounds = Array.isArray(list) ? list : []
+      for (const fn of listeners) fn()
+      return sounds
+    })
+    .catch(() => sounds)
+    .finally(() => { loading = null })
+  return loading
+}
+
+/** 저장된 값이 지금 목록에 없으면(지운 경우) 첫 번째로 되돌린다 */
 export function resolveSound(value) {
-  return SOUND_OPTIONS.some((o) => o.value === value) ? value : SOUND_OPTIONS[0]?.value
+  return sounds.some((s) => s.key === value) ? value : sounds[0]?.key
 }
 
 /* ── 로딩 ─────────────────────────────────────────────────── */
@@ -66,7 +84,8 @@ function leadingSilence(buffer) {
 export async function preloadSounds() {
   const audio = ensureAudio()
   if (!audio) return
-  await Promise.all(SOUND_OPTIONS.map(async ({ value, url }) => {
+  await loadSounds()
+  await Promise.all(sounds.map(async ({ key: value, url }) => {
     if (buffers.has(value)) return
     try {
       const res = await fetch(url)

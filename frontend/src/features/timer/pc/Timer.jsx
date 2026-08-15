@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../api/client'
@@ -19,7 +19,7 @@ import {
   LEVEL_TIERS, tierForLevel, ALARM_DISPLAY_BIAS_MS, durationLagFor, MODE_LABELS,
 } from '../logic'
 import { LOCATE } from '../locateCore'
-import { ensureAudio, scheduleSound, playSound, preloadSounds, resolveSound, SOUND_OPTIONS } from '../alarm'
+import { ensureAudio, scheduleSound, playSound, preloadSounds, resolveSound, getSoundOptions, subscribeSounds, loadSounds } from '../alarm'
 
 /* 모드 드롭다운 — 라벨 앞에 실제 스킬 아이콘을 붙인다 */
 const MODE_ICONS = import.meta.glob('../icon/janus-*.png', { eager: true, query: '?url', import: 'default' })
@@ -76,6 +76,23 @@ export default function Timer() {
   const [picking, setPicking] = useState(false)
   const [candidates, setCandidates] = useState(null)
   const [locating, setLocating] = useState(false)
+
+  // 알림음 목록은 서버에서 온다 — 관리자 화면에서 추가·정렬한 것이 그대로 보인다
+  const [rawSounds, setRawSounds] = useState(getSoundOptions)
+  useEffect(() => {
+    const off = subscribeSounds(() => setRawSounds(getSoundOptions()))
+    loadSounds()
+    return off
+  }, [])
+  /*
+   * 효과음과 음성(TTS)을 나눠 보여준다 — 종류가 섞이면 목록에서 찾기 어렵다.
+   * Select가 groupStart를 만나면 구분선을 그어 준다.
+   */
+  const soundOptions = useMemo(() => {
+    const alarms = rawSounds.filter((o) => o.kind !== 'tts')
+    const tts = rawSounds.filter((o) => o.kind === 'tts')
+    return [...alarms, ...tts.map((o, i) => (i === 0 ? { ...o, groupStart: true } : o))]
+  }, [rawSounds])
 
   const runeIconUrl = useStoredIcon('룬')
   const boosterIconUrl = useStoredIcon('VIP 부스터')
@@ -485,6 +502,7 @@ export default function Timer() {
 
         <SettingRow name="알림 소리" desc="백그라운드 탭에서도 정확한 시각에 울립니다">
           <SoundControl
+            options={soundOptions}
             sound={soundValue}
             volume={settings.volume}
             onSound={(v) => set({ sound: v })}
@@ -508,6 +526,7 @@ export default function Timer() {
           desc={<>화면에 <b style={{ color: 'var(--text-muted)' }}>룬 등장 문구</b>가 뜨면 바로 알립니다</>}
         >
           <SoundControl
+            options={soundOptions}
             sound={resolveSound(settings.runeSound)}
             volume={settings.runeVolume}
             onSound={(v) => set({ runeSound: v })}
@@ -532,6 +551,7 @@ export default function Timer() {
           desc={<>부스터 <b style={{ color: 'var(--text-muted)' }}>남은시간이 0</b>이 되는 순간에 알립니다</>}
         >
           <SoundControl
+            options={soundOptions}
             sound={resolveSound(settings.boosterSound)}
             volume={settings.boosterVolume}
             onSound={(v) => set({ boosterSound: v })}
@@ -707,12 +727,12 @@ function StatusPill({ tone, children }) {
 }
 
 /** 소리 선택 + 테스트 + 크기 — 음원마다 원래 크기가 달라 알림별로 따로 조절한다 */
-function SoundControl({ sound, volume, onSound, onVolume, onTest }) {
+function SoundControl({ sound, volume, options, onSound, onVolume, onTest }) {
   return (
     <div className="flex flex-col gap-2 items-end">
       <div className="flex items-center gap-2">
         <div className="w-[126px]">
-          <Select options={SOUND_OPTIONS} value={sound} onChange={onSound} />
+          <Select options={options} value={sound} onChange={onSound} />
         </div>
         <IconButton tone="tan" label="소리 테스트" size={36} onClick={onTest}><BellIcon /></IconButton>
       </div>

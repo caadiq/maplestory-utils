@@ -11,6 +11,7 @@ import sundayMapleRoutes from './routes/sunday-maple.js';
 import genesisPassRoutes from './routes/genesis-pass.js';
 import enchantRoutes from './routes/enchant.js';
 import hexaRoutes from './routes/hexa.js';
+import timerRoutes from './routes/timer.js';
 import authRoutes from './routes/auth.js';
 import meRoutes from './routes/me.js';
 import { sequelize } from './lib/db.js';
@@ -43,6 +44,7 @@ app.use('/api/sunday-maple', sundayMapleRoutes);
 app.use('/api/genesis-pass', genesisPassRoutes);
 app.use('/api/enchant', enchantRoutes);
 app.use('/api/hexa', hexaRoutes);
+app.use('/api/timer', timerRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (_req, res) => {

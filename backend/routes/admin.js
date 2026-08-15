@@ -10,6 +10,7 @@ import bossCrystalRouter from './admin/boss-crystal.js';
 import challengerSeasonsRouter from './admin/challenger-seasons.js';
 import symbolRouter from './admin/symbol.js';
 import genesisPassRouter from './admin/genesis-pass.js';
+import timerRouter from './admin/timer.js';
 import { UPLOAD_FILE_SIZE_LIMIT } from '../constants.js';
 
 const router = Router();
@@ -26,6 +27,7 @@ router.use('/boss-crystal', bossCrystalRouter);
 router.use('/challenger-seasons', challengerSeasonsRouter);
 router.use('/symbol', symbolRouter);
 router.use('/genesis-pass', genesisPassRouter);
+router.use('/timer', timerRouter);
 
 /* ── 이미지 관리 ── */
 
