@@ -8,6 +8,7 @@ import { EnchantHistoryCache } from './enchant/HistoryCache.js';
 import { Symbol } from './symbol/Symbol.js';
 import { SymbolLevel } from './symbol/SymbolLevel.js';
 import { GenesisPass } from './genesis-pass/GenesisPass.js';
+import { TimerSound } from './timer/Sound.js';
 import { User } from './user/User.js';
 import { Session } from './user/Session.js';
 import { UserCharacter } from './user/UserCharacter.js';
@@ -51,4 +52,4 @@ Symbol.hasMany(SymbolLevel, {
 });
 SymbolLevel.belongsTo(Symbol, { foreignKey: 'symbol_id', as: 'symbol' });
 
-export { Image, Menu, SundayMaple, BossCrystalBoss, BossCrystalBossDifficulty, ChallengerSeason, EnchantHistoryCache, Symbol, SymbolLevel, GenesisPass, User, Session, UserCharacter, UserState };
+export { Image, Menu, SundayMaple, BossCrystalBoss, BossCrystalBossDifficulty, ChallengerSeason, EnchantHistoryCache, Symbol, SymbolLevel, GenesisPass, TimerSound, User, Session, UserCharacter, UserState };
