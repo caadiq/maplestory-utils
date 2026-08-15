@@ -80,7 +80,7 @@ export default function TimerAdmin() {
   })
 
   return (
-    <div className="max-w-[700px]">
+    <div className="max-w-[700px] mx-auto">
       <PageHeader
         title="알림음 관리"
         description="재획 타이머에서 고를 수 있는 소리입니다. 사용자에게는 순서대로 번호가 붙습니다"
