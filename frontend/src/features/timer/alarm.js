@@ -30,9 +30,26 @@ export function ensureAudio() {
 let sounds = []
 const listeners = new Set()
 
-/** 지금 알고 있는 목록 (드롭다운 옵션 형태) */
+/**
+ * 지금 알고 있는 목록 (드롭다운 옵션 형태).
+ *
+ * 표시 이름은 종류별 순번으로 매긴다 — 관리자가 올린 파일명은 알아보기 어렵고,
+ * 목록에서는 "알림 3"처럼 번호로 고르는 편이 낫다. 순서를 바꾸면 번호도 따라 바뀌지만
+ * 저장되는 값은 key라 이미 고른 소리는 그대로 유지된다.
+ */
 export function getSoundOptions() {
-  return sounds.map((s) => ({ value: s.key, label: s.name, kind: s.kind, url: s.url }))
+  const counts = { alarm: 0, tts: 0 }
+  return sounds.map((s) => {
+    const kind = s.kind === 'tts' ? 'tts' : 'alarm'
+    counts[kind] += 1
+    return {
+      value: s.key,
+      label: `${kind === 'tts' ? '음성' : '알림'} ${counts[kind]}`,
+      kind,
+      url: s.url,
+      file: s.name,
+    }
+  })
 }
 
 /** 목록이 갱신되면 알려준다 — 화면이 다시 그리도록 */

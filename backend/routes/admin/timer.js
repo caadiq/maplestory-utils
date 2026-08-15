@@ -48,8 +48,9 @@ router.post('/sounds', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: '파일이 없습니다' });
 
   const kind = KINDS.includes(req.body.kind) ? req.body.kind : 'alarm';
-  const name = (req.body.name || req.file.originalname.replace(/\.[^.]+$/, '')).trim();
-  if (!name) return res.status(400).json({ error: '이름이 필요합니다' });
+  // 이름은 따로 받지 않는다 — 화면에 보이는 건 순서대로 매기는 번호이고,
+  // 여기 이름은 "어떤 파일인지" 알아보기 위한 것이라 올린 파일명이 가장 정확하다
+  const name = req.file.originalname.trim() || '이름 없음';
 
   const ext = (req.file.originalname.split('.').pop() || '').toLowerCase();
   if (!EXT_TYPES[ext]) {
@@ -82,17 +83,12 @@ router.post('/sounds', upload.single('file'), async (req, res) => {
   }
 });
 
-/** 이름·종류만 수정한다 (음원 자체를 바꾸려면 새로 올리고 지우는 편이 안전하다) */
+/** 종류만 바꾼다 (이름은 파일명 그대로, 음원 교체는 새로 올리고 지우는 편이 안전하다) */
 router.patch('/sounds/:id', async (req, res) => {
   try {
     const row = await TimerSound.findByPk(req.params.id);
     if (!row) return res.status(404).json({ error: '알림음을 찾을 수 없습니다' });
 
-    if (req.body.name != null) {
-      const name = String(req.body.name).trim();
-      if (!name) return res.status(400).json({ error: '이름이 필요합니다' });
-      row.name = name;
-    }
     if (req.body.kind != null) {
       if (!KINDS.includes(req.body.kind)) return res.status(400).json({ error: '알 수 없는 종류입니다' });
       row.kind = req.body.kind;
