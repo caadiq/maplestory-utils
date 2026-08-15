@@ -12,13 +12,14 @@ import { PageHeader, Panel, Button, EmptyBox, GripIcon } from '../../admin/pc/co
  * 예전에는 음원이 프론트엔드 번들에 들어 있어 하나 추가하려면 코드를 고치고 다시 빌드해야 했다.
  * 여기서 올린 음원은 RustFS에 저장되고 사용자 화면의 드롭다운에 바로 나온다.
  *
- * 종류(알림음/음성)를 나누는 이유: 목록이 섞이면 찾기 어렵다.
- * 사용자 드롭다운에서 효과음과 음성을 구분선으로 갈라 보여준다.
+ * 이름은 따로 정하지 않는다 — 사용자에게는 순서대로 "알림 1, 2 …"로 보이고,
+ * 여기 목록의 파일명은 어떤 파일인지 알아보기 위한 것이다.
+ * 종류(알림음/음성)는 사용자 드롭다운에서 구분선으로 갈라 보여주려고 나눈다.
  */
 
 const KIND_OPTIONS = [
   { value: 'alarm', label: '알림음' },
-  { value: 'tts', label: '음성 (TTS)' },
+  { value: 'tts', label: '음성' },
 ]
 
 export default function TimerAdmin() {
@@ -37,9 +38,9 @@ export default function TimerAdmin() {
   // 드래그 중에는 서버 순서로 되돌리지 않도록, 목록이 실제로 바뀔 때만 반영한다
   useEffect(() => {
     setOrdered((prev) => {
-      const sameOrder = prev.length === sounds.length
-        && prev.every((p, i) => p.id === sounds[i].id && p.name === sounds[i].name && p.kind === sounds[i].kind)
-      return sameOrder ? prev : sounds
+      const same = prev.length === sounds.length
+        && prev.every((p, i) => p.id === sounds[i].id && p.kind === sounds[i].kind)
+      return same ? prev : sounds
     })
   }, [sounds])
 
@@ -70,13 +71,21 @@ export default function TimerAdmin() {
     setPlayingKey(s.key)
   }
 
+  // 사용자에게 보일 번호 — 종류별로 따로 센다 (드롭다운 표기와 같은 규칙)
+  const counts = { alarm: 0, tts: 0 }
+  const labels = ordered.map((s) => {
+    const kind = s.kind === 'tts' ? 'tts' : 'alarm'
+    counts[kind] += 1
+    return `${kind === 'tts' ? '음성' : '알림'} ${counts[kind]}`
+  })
+
   return (
-    <div>
+    <div className="max-w-[700px]">
       <PageHeader
         title="알림음 관리"
-        description="재획 타이머에서 고를 수 있는 소리입니다. 올린 순서대로 목록에 나옵니다"
+        description="재획 타이머에서 고를 수 있는 소리입니다. 사용자에게는 순서대로 번호가 붙습니다"
       >
-        <Button onClick={() => setUploadOpen(true)}>+ 알림음 추가</Button>
+        <Button onClick={() => setUploadOpen(true)}>+ 추가</Button>
       </PageHeader>
 
       {isLoading ? null : ordered.length === 0 ? (
@@ -88,27 +97,22 @@ export default function TimerAdmin() {
       ) : (
         <Panel columns={(
           <>
-            <span className="w-[18px]" />
-            <span className="w-[124px]">종류</span>
-            <span className="flex-1">이름</span>
-            <span className="w-[150px]">미리듣기</span>
-            <span className="w-[64px] text-right">삭제</span>
+            <span className="w-[16px]" />
+            <span className="w-[58px]">표시</span>
+            <span className="w-[92px]">종류</span>
+            <span className="flex-1">파일</span>
+            <span className="w-[62px]" />
           </>
         )}>
-          <Reorder.Group
-            as="div"
-            axis="y"
-            values={ordered}
-            onReorder={setOrdered}
-          >
+          <Reorder.Group as="div" axis="y" values={ordered} onReorder={setOrdered}>
             {ordered.map((s, i) => (
               <SoundRow
                 key={s.id}
                 sound={s}
+                label={labels[i]}
                 index={i}
                 playing={playingKey === s.key}
                 onPreview={() => preview(s)}
-                onRename={(name) => name !== s.name && patch.mutate({ id: s.id, name })}
                 onKind={(kind) => kind !== s.kind && patch.mutate({ id: s.id, kind })}
                 onDelete={() => setConfirmDelete(s)}
                 onDragDone={() => reorder.mutate(ordered.map((x) => x.id))}
@@ -122,7 +126,6 @@ export default function TimerAdmin() {
         <UploadDialog
           onClose={() => setUploadOpen(false)}
           onDone={() => { setUploadOpen(false); invalidate() }}
-          nextIndex={ordered.length + 1}
         />
       )}
 
@@ -142,16 +145,13 @@ export default function TimerAdmin() {
   )
 }
 
-/** 목록 한 줄 — 핸들로만 드래그해 이름 입력·미리듣기와 충돌하지 않는다 */
-function SoundRow({ sound, index, playing, onPreview, onRename, onKind, onDelete, onDragDone }) {
+/** 목록 한 줄 — 핸들로만 드래그해 드롭다운·버튼과 충돌하지 않는다 */
+function SoundRow({ sound, label, index, playing, onPreview, onKind, onDelete, onDragDone }) {
   const dragControls = useDragControls()
-  const [name, setName] = useState(sound.name)
-  useEffect(() => { setName(sound.name) }, [sound.name])
-
   return (
     <Reorder.Item as="div" value={sound} dragListener={false} dragControls={dragControls} onDragEnd={onDragDone}>
       <div
-        className="flex items-center gap-3 px-4 py-2.5 border-b last:border-b-0"
+        className="flex items-center gap-3 px-4 py-2 border-b last:border-b-0"
         style={{
           borderColor: 'var(--mpl-card-line)',
           background: index % 2 === 1 ? 'var(--mpl-row)' : 'var(--mpl-card)',
@@ -160,58 +160,64 @@ function SoundRow({ sound, index, playing, onPreview, onRename, onKind, onDelete
         <span
           onPointerDown={(e) => { e.preventDefault(); dragControls.start(e) }}
           title="드래그하여 순서 변경"
-          className="w-[18px] shrink-0 cursor-grab active:cursor-grabbing"
+          className="w-[16px] shrink-0 cursor-grab active:cursor-grabbing"
           style={{ touchAction: 'none', color: 'var(--text-dim)' }}
         >
           <GripIcon />
         </span>
 
-        <span className="w-[124px] shrink-0">
-          <Select
-            options={KIND_OPTIONS}
-            value={sound.kind}
-            onChange={onKind}
-            className="text-[13px]"
-          />
+        <span className="w-[58px] shrink-0 text-[13.5px] font-bold" style={{ color: 'var(--text-strong)' }}>
+          {label}
         </span>
 
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={() => onRename(name.trim() || sound.name)}
-          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
-          className="flex-1 min-w-0 rounded-lg border px-3 py-2 text-[14px] outline-none"
-          style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-strong)' }}
-        />
-
-        <span className="w-[150px] shrink-0">
-          <Button variant="ghost" size="sm" onClick={onPreview}>
-            {playing ? '■ 정지' : '▶ 미리듣기'}
-          </Button>
+        <span className="w-[92px] shrink-0">
+          <Select options={KIND_OPTIONS} value={sound.kind} onChange={onKind} />
         </span>
 
-        <span className="w-[64px] shrink-0 text-right">
-          <Button variant="dangerGhost" size="sm" onClick={onDelete}>삭제</Button>
+        <span
+          className="flex-1 min-w-0 truncate text-[13px]"
+          style={{ color: 'var(--text-dim)' }}
+          title={sound.name}
+        >
+          {sound.name}
+        </span>
+
+        <span className="w-[62px] shrink-0 flex items-center justify-end gap-1">
+          <IconBtn label={playing ? '정지' : '미리듣기'} onClick={onPreview}>
+            {playing ? '■' : '▶'}
+          </IconBtn>
+          <IconBtn label="삭제" danger onClick={onDelete}>✕</IconBtn>
         </span>
       </div>
     </Reorder.Item>
   )
 }
 
-/** 파일 하나를 올린다 — 이름과 종류를 정해서 */
-function UploadDialog({ onClose, onDone, nextIndex }) {
+function IconBtn({ label, danger, onClick, children }) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      onClick={onClick}
+      className="w-7 h-7 rounded-lg grid place-items-center text-[12px] font-bold hover:brightness-[1.03]"
+      style={{
+        background: 'var(--mpl-card)',
+        color: danger ? 'var(--mpl-red-to)' : 'var(--text-muted)',
+        boxShadow: `inset 0 0 0 1px ${danger ? '#f0c2bd' : 'var(--mpl-card-line)'}`,
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
+/** 파일 하나를 올린다 — 종류만 정하면 된다 (이름은 파일명 그대로) */
+function UploadDialog({ onClose, onDone }) {
   const [file, setFile] = useState(null)
-  const [name, setName] = useState('')
   const [kind, setKind] = useState('alarm')
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
-
-  const pick = (f) => {
-    if (!f) return
-    setFile(f)
-    // 이름을 안 정하면 종류에 맞는 번호를 붙여 준다
-    if (!name) setName(kind === 'tts' ? `음성 ${nextIndex}` : `알림 ${nextIndex}`)
-  }
 
   const submit = async () => {
     if (!file) { setError('파일을 골라 주세요'); return }
@@ -220,7 +226,6 @@ function UploadDialog({ onClose, onDone, nextIndex }) {
     try {
       const form = new FormData()
       form.append('file', file)
-      form.append('name', name.trim() || file.name.replace(/\.[^.]+$/, ''))
       form.append('kind', kind)
       const res = await fetch('/api/admin/timer/sounds', {
         method: 'POST',
@@ -239,17 +244,25 @@ function UploadDialog({ onClose, onDone, nextIndex }) {
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center px-4" style={{ background: 'var(--dialog-backdrop)' }}>
-      <div className="w-full max-w-[440px] rounded-xl overflow-hidden" style={{ background: 'var(--mpl-card)', border: '1px solid var(--mpl-card-line)' }}>
-        <div className="px-4 py-3 text-[15px] font-bold" style={{ background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))', color: '#fff' }}>
+      <div
+        className="w-full max-w-[380px] rounded-xl overflow-hidden"
+        style={{ background: 'var(--mpl-card)', border: '1px solid var(--mpl-card-line)' }}
+      >
+        <div
+          className="px-4 py-3 text-[15px] font-bold"
+          style={{ background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))', color: '#fff' }}
+        >
           알림음 추가
         </div>
         <div className="p-4 flex flex-col gap-3">
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>파일 (mp3 · ogg · wav · m4a)</span>
+            <span className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>
+              파일 (mp3 · ogg · wav · m4a)
+            </span>
             <input
               type="file"
               accept=".mp3,.ogg,.wav,.m4a,audio/*"
-              onChange={(e) => pick(e.target.files?.[0])}
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               className="text-[13px]"
               style={{ color: 'var(--text-muted)' }}
             />
@@ -258,19 +271,6 @@ function UploadDialog({ onClose, onDone, nextIndex }) {
           <label className="flex flex-col gap-1.5">
             <span className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>종류</span>
             <Select options={KIND_OPTIONS} value={kind} onChange={setKind} />
-          </label>
-
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>
-              이름 <span className="font-semibold" style={{ color: 'var(--text-dim)' }}>— 사용자 드롭다운에 그대로 보입니다</span>
-            </span>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={kind === 'tts' ? `음성 ${nextIndex}` : `알림 ${nextIndex}`}
-              className="rounded-lg border px-3 py-2 text-[14px] outline-none"
-              style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-strong)' }}
-            />
           </label>
 
           {error && <p className="text-[13px]" style={{ color: 'var(--danger-text)' }}>{error}</p>}
