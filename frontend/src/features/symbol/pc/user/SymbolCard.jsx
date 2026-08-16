@@ -128,9 +128,9 @@ function SymbolCard({ symbol, equipped, charId }) {
             레벨 안 진행도는 레벨업마다 0으로 돌아가 만렙이 얼마나 남았는지 알 수 없다 —
             이 계산기를 보는 이유가 그건데도 늘 100%에 가깝게 차 있었다.
           */}
-          <Tooltip text={`만렙까지 ${investedToMax.toLocaleString()} / ${totalToMax.toLocaleString()}개`}>
-            <span className="font-bold" style={{ color: 'var(--text-muted)' }}>
-              만렙 {isMax ? 100 : Math.floor(maxProgress)}%
+          <Tooltip text={`${investedToMax.toLocaleString()} / ${totalToMax.toLocaleString()}개`}>
+            <span style={{ color: 'var(--text-muted)' }}>
+              {isMax ? 100 : Math.floor(maxProgress)}%
             </span>
           </Tooltip>
         </div>
