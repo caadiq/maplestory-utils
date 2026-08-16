@@ -235,15 +235,15 @@ body{
 
 <div class="flow">
   <div class="flow-h">
-    <span class="ft">강화 이력 조회 흐름</span>
-    <span class="fs2">넥슨 API는 서버에서만 호출하고, 변하지 않는 과거 데이터는 다시 받지 않습니다</span>
+    <span class="ft">기능 공통 요청 흐름</span>
+    <span class="fs2">여섯 기능 모두 같은 길을 지납니다 — 넥슨 API 키는 서버 밖으로 나가지 않습니다</span>
   </div>
   <div class="steps">
-        <div class="st"><div class="sn">STEP 1</div><div class="sh">조회 요청</div><div class="sd">닉네임을 입력하면<br>브라우저가 백엔드에 요청</div></div>
+        <div class="st"><div class="sn">STEP 1</div><div class="sh">캐릭터 조회</div><div class="sd">닉네임을 입력하면<br>브라우저가 백엔드에 요청</div></div>
         <div class="st"><div class="sn">STEP 2</div><div class="sh">넥슨 API 호출</div><div class="sd">API 키는 서버에만 두고<br>백엔드가 대신 호출</div></div>
-        <div class="st"><div class="sn">STEP 3</div><div class="sh">날짜별 캐시 판단</div><div class="sd">과거 날짜는 DB에 영구 보관<br>오늘 자만 매번 재조회</div></div>
-        <div class="st"><div class="sn">STEP 4</div><div class="sh">아이콘 보강</div><div class="sd">계정에 없는 아이템은<br>maplestory.io로 폴백</div></div>
-        <div class="st"><div class="sn">STEP 5</div><div class="sh">결과 렌더</div><div class="sd">스타포스 · 큐브 이력을<br>게임창 UI로 표시</div></div>
+        <div class="st"><div class="sn">STEP 3</div><div class="sh">캐시 판단</div><div class="sd">변하지 않는 과거 데이터는<br>DB에 영구 보관</div></div>
+        <div class="st"><div class="sn">STEP 4</div><div class="sh">기준값 병합</div><div class="sd">보스·심볼·비용 등<br>관리자가 넣은 값과 합산</div></div>
+        <div class="st"><div class="sn">STEP 5</div><div class="sh">계산 · 렌더</div><div class="sd">계산은 브라우저에서<br>게임창 UI로 표시</div></div>
   </div>
 </div>
 
