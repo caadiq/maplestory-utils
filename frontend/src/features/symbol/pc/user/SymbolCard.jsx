@@ -26,6 +26,7 @@ function SymbolCard({ symbol, equipped, charId }) {
   const {
     dailyDone, weeklyCount, baseDefault, eventBonus, artifactBonus, hasDailyOverride, daily, extra,
     level, growth, requireGrowth, isMax,
+    maxProgress, investedToMax, totalToMax,
     remainingMeso, arrearMeso, reachableLevel, effectivelyMax, interactable,
     remainingAfterExtra, daysLeft, completeDate,
   } = metrics
@@ -122,17 +123,22 @@ function SymbolCard({ symbol, equipped, charId }) {
               성장치 {growth} / {requireGrowth}
             </span>
           )}
-          {!isMax && !effectivelyMax && (
-            <span style={{ color: 'var(--text-muted)' }}>
-              {requireGrowth ? Math.min(Math.floor((growth / requireGrowth) * 100), 100) : 0}%
+          {/*
+            퍼센트와 막대는 '만렙까지'를 나타낸다.
+            레벨 안 진행도는 레벨업마다 0으로 돌아가 만렙이 얼마나 남았는지 알 수 없다 —
+            이 계산기를 보는 이유가 그건데도 늘 100%에 가깝게 차 있었다.
+          */}
+          <Tooltip text={`만렙까지 ${investedToMax.toLocaleString()} / ${totalToMax.toLocaleString()}개`}>
+            <span className="font-bold" style={{ color: 'var(--text-muted)' }}>
+              만렙 {isMax ? 100 : Math.floor(maxProgress)}%
             </span>
-          )}
+          </Tooltip>
         </div>
         <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--progress-track)' }}>
           <div
             className="h-full transition-all"
             style={{
-              width: isMax || effectivelyMax ? '100%' : `${Math.min((growth / requireGrowth) * 100, 100)}%`,
+              width: isMax ? '100%' : `${Math.min(maxProgress, 100)}%`,
               background: isMax
                 ? 'linear-gradient(180deg, #ffd76e, #f0a828)'
                 : effectivelyMax

@@ -55,6 +55,22 @@ export function symbolMetrics({ symbol, progress, equipped, eventSkill, artifact
     }
     reachableLevel = lv
   }
+  /*
+   * 만렙까지의 진행도.
+   *
+   * 레벨 안에서의 진행도(성장치/다음 레벨 필요치)는 레벨업마다 0으로 돌아가서
+   * "만렙까지 얼마나 왔나"를 알 수 없다 — 이 계산기의 목적이 그건데도.
+   * 그래서 1레벨부터 만렙까지 드는 총 심볼 수를 기준으로 잡는다.
+   */
+  let totalToMax = 0
+  for (const l of symbol.levels || []) {
+    if (l.level < symbol.max_level) totalToMax += l.required_count || 0
+  }
+  const investedToMax = Math.max(totalToMax - remainingSymbols, 0)
+  const maxProgress = equipped
+    ? (isMax ? 100 : (totalToMax ? (investedToMax / totalToMax) * 100 : 0))
+    : 0
+
   const effectivelyMax = equipped && !isMax && reachableLevel >= symbol.max_level
   const interactable = equipped && !isMax && !effectivelyMax
   const remainingAfterExtra = Math.max(remainingSymbols - extra, 0)
@@ -76,6 +92,7 @@ export function symbolMetrics({ symbol, progress, equipped, eventSkill, artifact
   return {
     equipped, dailyDone, weeklyCount, baseDefault, eventBonus, artifactBonus, hasDailyOverride, daily, extra,
     level, growth, requireGrowth, isMax,
+    totalToMax, investedToMax, maxProgress,
     remainingSymbols, remainingMeso, arrearMeso, reachableLevel, effectivelyMax, interactable,
     remainingAfterExtra, daysLeft, completeDate,
   }
