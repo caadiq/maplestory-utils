@@ -242,8 +242,6 @@ export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, 
         seconds: hit?.seconds ?? null,
         labelScore: hit?.labelScore ?? 0,
         scale: hit?.scale ?? null,
-        vw,
-        vh,
       })
       if (!hit || hit.seconds == null) return
 

@@ -205,7 +205,17 @@ export default function Timer() {
       return scheduleSound(resolveSound(s.boosterSound), s.boosterVolume, delaySec)
     },
     onDetect: (hit) => log(`부스터 ${hit.seconds}초 남음`, '부스터', 'muted'),
-    onStatus: setBoosterStatus,
+    /*
+     * 스캔은 1초마다 도는데 대부분은 부스터가 없는 상태다.
+     * 그때마다 상태를 갈아끼우면 화면만 계속 다시 그려지므로, 보여줄 내용이
+     * 실제로 달라졌을 때만 바꾼다.
+     */
+    onStatus: (st) => setBoosterStatus((prev) => {
+      const next = st.reason === 'ok' || st.reason === 'digit' ? st : null
+      if (!prev && !next) return prev
+      if (prev && next && prev.reason === next.reason && prev.seconds === next.seconds) return prev
+      return next
+    }),
   })
 
   /* ── 표시값 ─────────────────────────────────────────────── */
@@ -705,12 +715,13 @@ function SectionBar({ icon, title, on, onChange, right }) {
  * 바로 보이게 하려고 둔다.
  */
 function BoosterStatus({ status }) {
-  if (!status) return <StatusPill tone="wait">대기</StatusPill>
+  // 부스터가 안 돌 때(대부분의 시간)는 아무것도 띄우지 않는다 — 상시 표시할 값이 아니다
+  if (!status) return null
   if (status.reason === 'ok') return <StatusPill tone="live">남은시간 {status.seconds}초</StatusPill>
   if (status.reason === 'digit') {
     return <StatusPill tone="warn">숫자 인식 실패 (일치 {status.labelScore.toFixed(2)})</StatusPill>
   }
-  return <StatusPill tone="wait">박스 없음 {status.vh ? `· ${status.vw}×${status.vh}` : ''}</StatusPill>
+  return null
 }
 
 function StatusPill({ tone, children }) {
