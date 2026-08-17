@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import Select from '../../../components/common/Select'
+import Tooltip from '../../../components/common/Tooltip'
 import { fmtPct } from '../logic'
 import { WK_DAY, fmtDate, mdLabel, journeyStats, chartGeometry } from '../journey'
 
@@ -29,6 +30,17 @@ function Stat({ label, value, color }) {
   )
 }
 
+/**
+ * 합계가 어느 스킬에서 얼마씩 왔는지 — 같은 항목이 여러 스킬에 걸쳐 있어
+ * 숫자만 보면 근거를 알 수 없다 (심볼 계산기의 일퀘 툴팁과 같은 방식).
+ */
+function sourceText(bonus, key) {
+  return (bonus.sources || [])
+    .filter((src) => src[key] > 0)
+    .map((src) => `${src.skill_name} +${src[key]}%`)
+    .join(' + ')
+}
+
 function BonusChips({ bonus }) {
   if (!bonus) {
     return (
@@ -42,22 +54,23 @@ function BonusChips({ bonus }) {
    * 색만 보고도 이어진다. 전부 하늘색이면 배지·차트와 뭉쳐 보인다.
    */
   const chips = [
-    ['몬파', bonus.monsterPark, C_WEEK],
-    ['에픽던전', bonus.epicDungeon, C_WEEK],
-    ['아케인 일퀘', bonus.arcaneDaily, C_DAY],
-    ['그란디스 일퀘', bonus.grandisDaily, C_DAY],
-  ].filter(([, v]) => v > 0)
+    ['몬파', 'monsterPark', bonus.monsterPark, C_WEEK],
+    ['에픽던전', 'epicDungeon', bonus.epicDungeon, C_WEEK],
+    ['아케인 일퀘', 'arcaneDaily', bonus.arcaneDaily, C_DAY],
+    ['그란디스 일퀘', 'grandisDaily', bonus.grandisDaily, C_DAY],
+  ].filter(([, , v]) => v > 0)
   if (!chips.length) return null
   return (
     <span className="flex items-center gap-1.5 flex-wrap">
-      {chips.map(([name, v, color]) => (
-        <span
-          key={name}
-          className="text-[12px] font-bold px-2 py-0.5 rounded-full"
-          style={{ background: `color-mix(in srgb, ${color} 14%, transparent)`, color }}
-        >
-          {name} +{v}%
-        </span>
+      {chips.map(([name, key, v, color]) => (
+        <Tooltip key={name} text={sourceText(bonus, key)}>
+          <span
+            className="text-[12px] font-bold px-2 py-0.5 rounded-full"
+            style={{ background: `color-mix(in srgb, ${color} 14%, transparent)`, color }}
+          >
+            {name} +{v}%
+          </span>
+        </Tooltip>
       ))}
     </span>
   )
@@ -94,7 +107,8 @@ export default function ExpJourney({ char, history, dateCreate, breakdown, bonus
 
   const [hover, setHover] = useState(null) // index into coords
 
-  const pct = (p) => `${p.toFixed(1)}%`
+  // 인게임 표기와 같게 소수 3자리
+  const pct = (p) => `${p.toFixed(3)}%`
   const HXW = 100 / V.W // %/유닛
   const HYH = 100 / V.H
 
