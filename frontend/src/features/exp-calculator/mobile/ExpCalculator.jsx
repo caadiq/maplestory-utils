@@ -691,7 +691,7 @@ export default function MobileExpCalculator() {
             </Card>
 
             <Card icon="farm_mech" grad={TAN} title="농장" sub="입장권 소모"
-              pct={fmtPct(bd.golden.total + bd.blue.total + bd.mech.total)} pctColor={C_ONCE}>
+              pct={fmtPct(bd.golden.total + bd.blue.total + bd.mech.total + bd.crimson.total)} pctColor={C_ONCE}>
               <div>
                 <TwoLineRow icon="farm_gold" label="황금 딸기 농장" locked={bd.golden.locked}
                   note={bd.golden.locked ? '최대 레벨 초과' : `1회당 ${fmtPct(bd.golden.one)}`}
@@ -705,6 +705,10 @@ export default function MobileExpCalculator() {
                   note={bd.mech.locked ? `Lv.${data.farms.mech.minLevel} 필요` : `1회당 ${fmtPct(bd.mech.one)}`}
                   control={<NumInput value={s.items.farmMech} onChange={(v) => patchDeep('items', { farmMech: v })} min={0} max={999} chars={3} unit="회" />}
                   value={fmtPct(bd.mech.total)} valueColor={C_ONCE} />
+                <TwoLineRow icon="farm_crimson" label="크림슨 메카베리 농장" locked={bd.crimson.locked}
+                  note={bd.crimson.locked ? `Lv.${data.farms.crimson.minLevel} 필요` : `1회당 ${fmtPct(bd.crimson.one)}`}
+                  control={<NumInput value={s.items.farmCrimson} onChange={(v) => patchDeep('items', { farmCrimson: v })} min={0} max={999} chars={3} unit="회" />}
+                  value={fmtPct(bd.crimson.total)} valueColor={C_ONCE} />
               </div>
             </Card>
           </>
