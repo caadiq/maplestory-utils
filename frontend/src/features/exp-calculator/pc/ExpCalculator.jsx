@@ -1,44 +1,245 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, createContext, useContext } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../api/client'
 import MapleWindow from '../../../components/pc/MapleWindow'
 import Select from '../../../components/common/Select'
 import CharacterSuggestDropdown from '../../../components/common/CharacterSuggestDropdown'
+import ConfirmDialog from '../../../components/common/ConfirmDialog'
+import { Reorder } from 'framer-motion'
+import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
+import CharacterCard from '../../symbol/pc/user/CharacterCard'
+import { useFeatureSync } from '../../../hooks/useFeatureSync'
+import { useCharacterLookup } from '../../../hooks/useCharacterLookup'
 import { useCharacterRoster } from '../../../hooks/useCharacterRoster'
-import { CARD, NumInput, Seg, SecTitle } from '../../../components/common/widgets'
-import { buildItems, summarize, formatExp, formatPct, levelExp, EPIC_STAGES } from '../logic'
+import { useExpStore, expInitialState } from '../store'
+import { NumInput, SecTitle, CARD, DecimalInput } from '../../../components/common/widgets'
+import {
+  EPIC_STAGES, defaultSettings, zoneOn,
+  breakdown, fmtPct, weekKeyKST, parkSpecialActive,
+} from '../logic'
+
+
+const SKY = 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))'
+const PUR = 'linear-gradient(180deg, var(--mpl-purple-from), var(--mpl-purple-to))'
+const TAN = 'linear-gradient(180deg, #e6c976, #c8a34e)'
+const C_DAY = 'var(--accent-bright)'
+const C_WEEK = '#9247c9'
+const C_ONCE = '#e8a20c'
+
+/* 드롭다운 앞 아이콘 매핑 */
+const EPIC_ICON = { high_mountain: 'ed_highmountain', angler_company: 'ed_angler', nightmare_paradise: 'ed_nightmare' }
+/* 몬파 지역 아이콘 — 대부분 일퀘 심볼과 지역 id가 같고, 셀라스만 몬파 전용 */
+const PARK_ICON_PREFIX = {
+  yeoro: 'arc', chewchew: 'arc', lacheln: 'arc', arcana: 'arc', morass: 'arc', esfera: 'arc',
+  moonbridge: 'ten', maze: 'ten', limen: 'ten', sellas: 'mp',
+  cernium: 'gra', arcs: 'gra', odium: 'gra', dowonkyung: 'gra', arteria: 'gra', carcion: 'gra', tallahart: 'gra',
+}
+const parkIconId = (id) => `${PARK_ICON_PREFIX[id]}_${id}`
+
+/* ── 소품 ── */
+
+/*
+ * 아이콘은 프런트 번들이 아니라 S3(rustfs)에서 온다 — /api/exp/data 가 슬러그→URL로 내려준다.
+ * 컨텍스트로 넘겨 카드마다 props를 실어 나르지 않게 했다.
+ */
+const IconCtx = createContext({})
+
+function Ico({ id, size = 38 }) {
+  const icons = useContext(IconCtx)
+  const url = icons[id]
+  return url
+    ? <img src={url} alt="" className="object-contain" style={{ width: size, height: size, imageRendering: 'pixelated' }} />
+    : null
+}
 
 /**
- * 경험치 계산기 — "지금 이걸 몇 개 쓰면 얼마나 오르나".
- *
- * 예측(도달일)은 하지 않는다. 일회성 아이템을 언제 쓸지 알 수 없어 예측이 흔들렸다.
- *
- * 보너스(보약·아티팩트)는 **캐릭터를 골랐을 때만** 반영한다 —
- * 보약은 서버·캐릭터마다 찍은 단계가 달라서 레벨만으로는 정할 수 없다.
- * 레벨만 입력하면 보너스 없는 기본값을 본다.
+ * 컨텐츠 카드 — 심볼 계산기 SymbolCard 문법.
+ * 합계(pct)는 항상 카드 맨 아래 줄에 표시한다.
+ * toggle을 주면 헤더 우측이 on/off 스위치가 된다.
  */
-
-const LEVELS = Array.from({ length: 100 }, (_, i) => ({ value: 200 + i, label: `Lv.${200 + i}` }))
-const STORE_KEY = 'maple.exp.state'
-
-const loadState = () => {
-  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {} } catch { return {} }
+function ContentCard({ icon, grad, title, sub, pct, pctColor, totalLabel = '합계', toggle, onToggle, children }) {
+  const off = toggle === false
+  return (
+    <div className="rounded-2xl border p-5"
+      style={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)', boxShadow: 'var(--panel-shadow)' }}>
+      <div className={`flex items-center gap-3 ${children ? 'mb-3.5' : ''}`}>
+        <div className="w-[52px] h-[52px] rounded-xl overflow-hidden shrink-0 flex items-center justify-center"
+          style={{ background: grad, boxShadow: 'inset 0 1px 0 rgba(255,255,255,.4)', opacity: off ? 0.45 : 1 }}>
+          <Ico id={icon} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[15px] font-semibold truncate">{title}</div>
+          <div className="text-[12.5px] mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{sub}</div>
+        </div>
+        {toggle != null && <MiniToggle on={toggle} onChange={onToggle} />}
+      </div>
+      {children}
+      <div className="flex items-center justify-between pt-2.5 mt-3 border-t"
+        style={{ borderColor: 'var(--row-divider)' }}>
+        <span className="text-[13.5px]" style={{ color: 'var(--text-muted)' }}>{totalLabel}</span>
+        <span className="text-base font-bold tabular-nums" style={{ color: off ? 'var(--text-dim)' : pctColor }}>{pct}</span>
+      </div>
+    </div>
+  )
 }
-const saveState = (s) => {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(s)) } catch { /* 저장 실패 무시 */ }
+
+/** 균등폭 세그먼트 — 라벨 길이와 무관하게 칸 너비가 같고 가로를 꽉 채운다 */
+function SegFull({ options, value, onChange }) {
+  return (
+    <div className="flex w-full h-10 rounded-md overflow-hidden border text-[12.5px] font-bold"
+      style={{ borderColor: 'var(--input-border)' }}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          className="flex-1 min-w-0 whitespace-nowrap"
+          style={o.value === value
+            ? { background: 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))', color: '#fff' }
+            : { background: 'var(--input-bg)', color: 'var(--text-muted)' }}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** 라벨 위 + 필드 아래 (심볼 카드 입력 폼) */
+function Field({ label, children }) {
+  return (
+    <div className="space-y-1 min-w-0">
+      <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>{label}</label>
+      {children}
+    </div>
+  )
+}
+
+/** 구분선 있는 결과/토글 행 (valueWidth로 값 칸 폭 조절 — 라벨이 길면 좁힌다) */
+function Row({ icon, iconSize = 22, label, sub, value, valueColor = 'var(--text-emphasis)', toggle, onToggle, locked, control, valueWidth = 74 }) {
+  return (
+    <div className={`flex items-center justify-between gap-2 py-2 border-t first:border-t-0 ${locked ? 'opacity-45' : ''}`}
+      style={{ borderColor: 'var(--row-divider)' }}>
+      <span className="flex items-center gap-2 text-[13.5px] min-w-0" style={{ color: 'var(--text-muted)' }}>
+        {toggle != null && !locked && <MiniToggle on={toggle} onChange={onToggle} />}
+        {toggle != null && locked && <span className="w-[34px] shrink-0" />}
+        {icon && <Ico id={icon} size={iconSize} />}
+        <span className="truncate">{label}</span>
+        {sub && <span className="text-[12px] shrink-0" style={{ color: 'var(--text-dim)' }}>{sub}</span>}
+      </span>
+      <span className="flex items-center gap-1.5 shrink-0">
+        {control}
+        <span className="tabular-nums font-medium text-[13.5px] text-right" style={{ color: valueColor, minWidth: valueWidth }}>{value}</span>
+      </span>
+    </div>
+  )
+}
+
+/** 폭 고정 입력 슬롯 — 단위 글자 수가 달라도(개 / 시간/주) 카드 안 입력칸 너비를 맞춘다 */
+function FixedControl({ width = 116, children }) {
+  return (
+    <span className="inline-block [&>div]:w-full [&>div]:justify-end" style={{ width }}>{children}</span>
+  )
+}
+
+/**
+ * 2줄 행 — 윗줄: 아이콘 + 이름 + 입력 / 아랫줄: 단가 + 결과값.
+ * 이름이 길거나 입력칸이 넓어 한 줄에 안 들어갈 때 쓴다.
+ */
+function TwoLineRow({ icon, label, control, note, value, valueColor, locked }) {
+  return (
+    <div className={`pt-2.5 border-t first:border-t-0 first:pt-0 ${locked ? 'opacity-45' : ''}`}
+      style={{ borderColor: 'var(--row-divider)' }}>
+      <div className="flex items-center gap-2">
+        <Ico id={icon} size={24} />
+        <span className="truncate" style={{ color: 'var(--text-muted)' }}>{label}</span>
+        {!locked && <span className="ml-auto shrink-0">{control}</span>}
+      </div>
+      <div className="flex items-baseline justify-between mt-1">
+        <span className="text-[12px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{note}</span>
+        <span className="tabular-nums font-medium" style={{ color: locked ? 'var(--text-dim)' : valueColor }}>
+          {locked ? '—' : value}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+/** 사이트 라임 토글 (심볼 일퀘 완료 버튼과 동일 계열) */
+function MiniToggle({ on, onChange }) {
+  return (
+    <button type="button" onClick={() => onChange(!on)}
+      className="relative w-[34px] h-[22px] rounded-full shrink-0 transition-colors"
+      style={{ background: on ? 'linear-gradient(180deg, var(--mpl-lime-from), var(--mpl-lime-to))' : 'var(--toggle-off, #c3ced9)' }}>
+      <span className="absolute top-[3px] w-4 h-4 rounded-full bg-white shadow transition-all"
+        style={{ left: on ? 14 : 3, boxShadow: '0 1px 2px rgba(0,0,0,.25)' }} />
+    </button>
+  )
+}
+
+/* ── 페이지 ── */
+
+const LEVEL_OPTIONS = Array.from({ length: 100 }, (_, i) => ({ value: 200 + i, label: `Lv.${200 + i}` }))
+
+/**
+ * 적용 중인 보너스 — 어디에 얼마가 붙는지 보여준다.
+ * 스킬 효과 텍스트에서 읽은 값이라 게임과 대조할 수 있게 그대로 드러낸다.
+ */
+function BonusChips({ char, bonus }) {
+  if (!char) {
+    return (
+      <span className="text-[12.5px]" style={{ color: 'var(--text-dim)' }}>
+        보너스 미반영 — 캐릭터를 고르면 보약·아티팩트가 반영됩니다
+      </span>
+    )
+  }
+  if (!bonus) return null
+  const chips = [
+    ['몬파', bonus.monsterPark],
+    ['에픽던전', bonus.epicDungeon],
+    ['아케인 일퀘', bonus.arcaneDaily],
+    ['그란디스 일퀘', bonus.grandisDaily],
+  ].filter(([, v]) => v > 0)
+  if (!chips.length) return null
+  return (
+    <span className="flex items-center gap-1.5 flex-wrap">
+      {chips.map(([name, v]) => (
+        <span
+          key={name}
+          className="text-[12px] font-bold px-2 py-0.5 rounded-full"
+          style={{ background: 'rgba(94,205,245,.16)', color: 'var(--mpl-sky-to)' }}
+        >
+          {name} +{v}%
+        </span>
+      ))}
+    </span>
+  )
 }
 
 export default function ExpCalculator() {
-  const saved = useMemo(() => loadState(), [])
-  const [character, setCharacter] = useState(saved.character ?? null)
-  const [bonus, setBonus] = useState(saved.bonus ?? null)
-  const [level, setLevel] = useState(saved.level ?? 260)
-  const [epicStage, setEpicStage] = useState(saved.epicStage ?? 2)
-  const [counts, setCounts] = useState(saved.counts ?? {})
+  const { hydrated } = useFeatureSync({ feature: 'exp-calculator', store: useExpStore, initial: expInitialState })
+  const characters = useExpStore((s) => s.characters)
+  const selectedName = useExpStore((s) => s.selectedName)
+  const allSettings = useExpStore((s) => s.settings)
+  const addCharacter = useExpStore((s) => s.addCharacter)
+  const removeCharacter = useExpStore((s) => s.removeCharacter)
+  const setCharacters = useExpStore((s) => s.setCharacters)
+  const selectCharacter = useExpStore((s) => s.selectCharacter)
+  const patchSettings = useExpStore((s) => s.patchSettings)
 
-  useEffect(() => {
-    saveState({ character, bonus, level, epicStage, counts })
-  }, [character, bonus, level, epicStage, counts])
+  const [confirmRemove, setConfirmRemove] = useState(null)
+  /*
+   * 보는 기준 레벨. 캐릭터를 고르면 그 레벨로 맞추고, 상위 레벨을 직접 골라
+   * "그때는 얼마인지"도 볼 수 있다.
+   */
+  const [level, setLevel] = useState(260)
+  const {
+    addName, setAddName, addError, setAddError,
+    dropdownOpen, setDropdownOpen, addAnchorRef, searchMutation, handleSearch,
+  } = useCharacterRoster({
+    endpoint: (name) => `/api/exp/lookup?name=${encodeURIComponent(name)}`,
+    onResult: (res) => { addCharacter({ ...res.character, exp_rate: res.exp_rate }) },
+  })
 
   const { data } = useQuery({
     queryKey: ['exp', 'data'],
@@ -46,263 +247,396 @@ export default function ExpCalculator() {
     staleTime: Infinity,
   })
 
-  const {
-    addName, setAddName, addError, dropdownOpen, setDropdownOpen,
-    addAnchorRef, searchMutation, handleSearch,
-  } = useCharacterRoster({
-    endpoint: (name) => `/api/exp/lookup?name=${encodeURIComponent(name)}`,
-    onResult: (res) => {
-      setCharacter(res.character)
-      setBonus(res.bonus)
-      setLevel(res.character.character_level)
-    },
+  /*
+   * 이번 주 스페셜 썬데이 여부 — 안내용.
+   * API는 '스페셜 썬데이 주간'인지만 알려주고 혜택 내역(몬파 +250% 등)은 이미지에만 있어서
+   * 자동으로 켜지는 않고, 사용자가 토글로 직접 켜도록 힌트만 표시한다.
+   */
+  const { data: sunday } = useQuery({
+    queryKey: ['sunday-maple', 'current'],
+    queryFn: () => api('/api/sunday-maple/current'),
+    staleTime: 30 * 60 * 1000,
+  })
+  const sundaySpecialWeek = sunday?.available && sunday.variant === 'special'
+
+  /*
+   * 선택 캐릭터 재조회 — 넥슨 데이터는 전일 기준이라 추가 시점 스냅샷으로 두면 굳는다.
+   * 마지막 응답을 로컬에 캐시해 새로고침 직후에도 깜빡임 없이 그리고 뒤에서 갱신한다. (헥사와 동일 패턴)
+   */
+  const { data: lookup } = useCharacterLookup({
+    queryKey: ['exp', 'lookup', selectedName],
+    cacheKey: `maple.exp.data.${selectedName}`,
+    endpoint: `/api/exp/lookup?name=${encodeURIComponent(selectedName)}`,
+    enabled: hydrated && !!selectedName,
   })
 
-  const items = useMemo(
-    () => buildItems(data, level, character ? bonus : null, { epicStage }),
-    [data, level, character, bonus, epicStage],
+  // 재조회 결과로 목록의 레벨·경험치도 최신화
+  useEffect(() => {
+    if (!lookup?.character) return
+    setCharacters((chars) => chars.map((c) => (
+      c.character_name === lookup.character.character_name
+        ? { ...c, ...lookup.character, id: c.id, exp_rate: lookup.exp_rate }
+        : c
+    )))
+  }, [lookup]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const stored = characters.find((c) => c.character_name === selectedName) || null
+  // 표시·계산은 재조회 값 우선 (전일 기준 최신)
+  const fresh = lookup?.character?.character_name === selectedName ? lookup : null
+  const char = useMemo(
+    () => (stored && fresh
+      ? { ...stored, ...fresh.character, id: stored.id, exp_rate: fresh.exp_rate }
+      : stored),
+    [stored, fresh],
   )
-  const result = useMemo(() => summarize(items, counts, data, level), [items, counts, data, level])
-  const groups = useMemo(() => {
-    const map = new Map()
-    for (const it of items) {
-      if (!map.has(it.group)) map.set(it.group, [])
-      map.get(it.group).push(it)
-    }
-    return [...map]
-  }, [items])
+  /*
+   * 스페셜 썬데이는 켠 주에만 유효 — 월요일 00시(KST)가 지나면 저장값이 남아 있어도
+   * 꺼진 것으로 보고 계산한다. 여기서 한 번 정규화해서 아래 로직·UI가 같은 값을 본다.
+   */
+  const weekKey = weekKeyKST(new Date())
+  const rawSettings = (char && allSettings[char.id]) || defaultSettings(char?.character_level || 260)
+  const s = useMemo(() => {
+    const p = rawSettings.weekly.park
+    const active = parkSpecialActive(p, weekKey)
+    if (active === !!p.sundaySpecial) return rawSettings
+    return { ...rawSettings, weekly: { ...rawSettings.weekly, park: { ...p, sundaySpecial: active } } }
+  }, [rawSettings, weekKey])
+  useEffect(() => {
+    if (char?.character_level) setLevel(char.character_level)
+  }, [char?.character_name, char?.character_level])
 
-  const need = levelExp(data, level)
-  const setCount = (key, v) => setCounts((c) => ({ ...c, [key]: v }))
-  const clearAll = () => setCounts({})
+  const patch = (p) => char && patchSettings(char.id, p)
+  const patchDeep = (key, p) => patch((prev) => ({ ...prev, [key]: { ...prev[key], ...p } }))
 
-  const detach = () => {
-    setCharacter(null)
-    setBonus(null)
-  }
+  // 보약·아티팩트 보너스는 캐릭터를 골랐을 때만 반영한다 (서버·캐릭터마다 다르다)
+  const bonus = char ? (fresh?.bonus ?? null) : null
+  const bd = useMemo(
+    () => (data ? breakdown(data, level, s, bonus) : null),
+    [data, level, s, bonus],
+  )
+
+  const icons = data?.icons || {}
+
+  if (!hydrated || !data) return null
+  const zoneGroups = [
+    { key: 'arcane', title: '아케인리버 일일퀘스트', icon: 'arc_esfera' },
+    { key: 'tenebris', title: '테네브리스 일일퀘스트', icon: 'ten_limen' },
+    { key: 'grandis', title: '그란디스 일일퀘스트', icon: 'gra_carcion' },
+  ]
 
   return (
-    <MapleWindow
-      title="EXP CALCULATOR"
-      className="max-w-[1180px] mx-auto"
-      titleRight={need ? (
-        <span className="text-[12.5px] font-bold" style={{ color: '#cfdae4' }}>
-          Lv.{level} 필요 경험치 {formatExp(need)}
-        </span>
-      ) : null}
-    >
-      <div className="flex flex-col gap-3">
-        {/* 기준 — 캐릭터 / 레벨 / 보너스 */}
-        <div className="rounded-[11px] overflow-hidden" style={CARD}>
-          <SecTitle>기준</SecTitle>
-          <div className="px-4 py-3 flex items-center gap-4 flex-wrap">
-            <div className="relative" ref={addAnchorRef}>
+    <IconCtx.Provider value={icons}>
+    <div className="pb-10 max-w-[1040px] mx-auto">
+      <MapleWindow title="EXP CALCULATOR">
+        <div className="mpl-page-enter flex flex-col gap-3">
+
+          {/* 캐릭터 */}
+          <div className="rounded-[11px] overflow-hidden" style={CARD}>
+            <SecTitle>캐릭터</SecTitle>
+            <div className="p-3.5 flex flex-col gap-3">
               <form onSubmit={handleSearch} className="flex items-center gap-2">
-                <input
-                  value={addName}
-                  onChange={(e) => { setAddName(e.target.value); setDropdownOpen(true) }}
-                  placeholder="캐릭터 닉네임 (선택)"
-                  className="w-[200px] rounded-lg border px-3 py-2 text-[13.5px] outline-none"
-                  style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-strong)' }}
-                />
+                <div ref={addAnchorRef} className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--input-icon)' }}>
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                      <circle cx="8" cy="8" r="5" stroke="currentColor" strokeWidth="1.5" />
+                      <path d="M12 12L16 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    value={addName}
+                    onChange={(e) => { setAddName(e.target.value); if (addError) setAddError('') }}
+                    onFocus={() => setDropdownOpen(true)}
+                    onClick={() => setDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
+                    placeholder="캐릭터 닉네임 검색"
+                    className="w-full h-11 box-border rounded-full border pl-10 pr-5 text-[14px] outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
+                    style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-strong)' }}
+                  />
+                  <CharacterSuggestDropdown
+                    open={dropdownOpen}
+                    filter={addName}
+                    anchorRef={addAnchorRef}
+                    excludeNames={characters.map((c) => c.character_name)}
+                    onSelect={(n) => {
+                      setAddName(n)
+                      setDropdownOpen(false)
+                      setAddError('')
+                      searchMutation.mutate(n)
+                    }}
+                  />
+                </div>
                 <button
                   type="submit"
                   disabled={searchMutation.isPending}
-                  className="rounded-lg px-3.5 py-2 text-[13px] font-bold text-white disabled:opacity-50"
-                  style={{ background: 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))' }}
+                  className="shrink-0 rounded-full disabled:opacity-50 px-6 h-11 text-[14px] font-bold hover:brightness-105"
+                  style={{ background: SKY, color: '#fff', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.5), 0 2px 5px rgba(31,44,61,.2)' }}
                 >
-                  조회
+                  {searchMutation.isPending ? '...' : '조회'}
                 </button>
               </form>
-              <CharacterSuggestDropdown
-                anchorRef={addAnchorRef}
-                filter={addName}
-                open={dropdownOpen}
-                onSelect={(n) => { setAddName(n); setDropdownOpen(false); searchMutation.mutate(n) }}
-              />
-            </div>
+              {addError && <p className="text-[13px]" style={{ color: 'var(--danger-text)' }}>{addError}</p>}
 
-            {character && (
-              <span className="flex items-center gap-2 rounded-lg px-2.5 py-1.5" style={{ background: 'var(--mpl-row)' }}>
-                {character.world_icon && <img src={character.world_icon} alt="" className="w-4 h-4" style={{ imageRendering: 'pixelated' }} />}
-                <b className="text-[13.5px]" style={{ color: 'var(--text-strong)' }}>{character.character_name}</b>
-                <span className="text-[12.5px]" style={{ color: 'var(--text-dim)' }}>Lv.{character.character_level}</span>
-                <button type="button" onClick={detach} title="캐릭터 해제" className="text-[12px] font-bold px-1" style={{ color: 'var(--text-dim)' }}>✕</button>
-              </span>
-            )}
+              {characters.length > 0 && (
+                <OverlayScrollbarsComponent
+                  options={{ scrollbars: { theme: 'os-theme-maple os-theme-dark', autoHide: 'leave', autoHideDelay: 800 }, overflow: { x: 'scroll', y: 'hidden' } }}
+                  defer
+                >
+                  <Reorder.Group as="div" axis="x" values={characters} onReorder={setCharacters} className="flex items-start gap-3 pt-1 pb-1.5">
+                    {characters.map((c) => (
+                      <CharacterCard
+                        key={c.id || c.character_name}
+                        char={c}
+                        active={c.character_name === selectedName}
+                        onSelect={() => selectCharacter(c.character_name)}
+                        onRemove={() => setConfirmRemove(c)}
+                      />
+                    ))}
+                  </Reorder.Group>
+                </OverlayScrollbarsComponent>
+              )}
+              {characters.length === 0 && (
+                <p className="py-6 text-center text-[13px]" style={{ color: 'var(--text-dim)' }}>
+                  캐릭터를 조회하면 그 캐릭터의 보약·아티팩트 보너스가 반영됩니다
+                </p>
+              )}
 
-            <span className="flex items-center gap-2">
-              <span className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>레벨</span>
-              <div className="w-[110px]">
-                <Select options={LEVELS} value={level} onChange={setLevel} />
+              {/* 보는 기준 — 레벨은 캐릭터와 무관하게 바꿀 수 있다 */}
+              <div className="flex items-center gap-3 flex-wrap pt-1">
+                <span className="text-[13.5px] font-bold" style={{ color: 'var(--text-muted)' }}>기준 레벨</span>
+                <div className="w-[124px]">
+                  <Select options={LEVEL_OPTIONS} value={level} onChange={setLevel} />
+                </div>
+                {char && char.character_level !== level && (
+                  <button
+                    type="button"
+                    onClick={() => setLevel(char.character_level)}
+                    className="text-[12.5px] font-bold rounded-full px-2.5 py-1"
+                    style={{ background: 'var(--mpl-row)', color: 'var(--text-muted)' }}
+                  >
+                    현재 레벨({char.character_level})로
+                  </button>
+                )}
+                <BonusChips char={char} bonus={bonus} />
               </div>
-            </span>
-
-            <span className="flex items-center gap-2">
-              <span className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>에픽던전 단계</span>
-              <Seg options={EPIC_STAGES} value={epicStage} onChange={setEpicStage} />
-            </span>
-
-            {addError && (
-              <span className="text-[12.5px]" style={{ color: 'var(--danger-text)' }}>{addError}</span>
-            )}
-          </div>
-
-          <BonusBar character={character} bonus={bonus} />
-        </div>
-
-        {/* 항목 */}
-        {groups.map(([group, list]) => (
-          <div key={group} className="rounded-[11px] overflow-hidden" style={CARD}>
-            <SecTitle>{group}</SecTitle>
-            <div className="px-2 py-1">
-              {list.map((it) => (
-                <ItemRow
-                  key={it.key}
-                  item={it}
-                  need={need}
-                  count={counts[it.key] || 0}
-                  onCount={(v) => setCount(it.key, v)}
-                />
-              ))}
             </div>
           </div>
-        ))}
 
-        {/* 합계 */}
-        <div
-          className="rounded-[11px] px-5 py-4 flex items-center justify-between gap-6 flex-wrap sticky bottom-3"
-          style={{
-            background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))',
-            boxShadow: '0 6px 18px rgba(31,44,61,.3)',
-          }}
-        >
-          <span className="flex items-center gap-3">
-            <span className="text-[13px] font-extrabold" style={{ color: '#cfdae4' }}>합계</span>
-            <button
-              type="button"
-              onClick={clearAll}
-              className="text-[12px] font-bold rounded px-2 py-1"
-              style={{ background: 'rgba(255,255,255,.14)', color: '#e8f0f7' }}
-            >
-              전부 지우기
-            </button>
-          </span>
-          <span className="flex items-baseline gap-4 flex-wrap">
-            <b className="text-[22px] font-extrabold tabular-nums" style={{ color: '#ffffff' }}>{formatExp(result.total)}</b>
-            <b className="text-[20px] font-extrabold tabular-nums" style={{ color: 'var(--mpl-title-yellow)' }}>{formatPct(result.pct)}</b>
-            {result.levels >= 1 && (
-              <span className="text-[13px] font-bold" style={{ color: '#cfdae4' }}>≈ {result.levels.toFixed(2)}레벨</span>
-            )}
-          </span>
+          {/* 컨텐츠 카드 */}
+          {bd && (
+            <div className="grid grid-cols-1 min-[820px]:grid-cols-2 min-[1120px]:grid-cols-3 gap-3.5 items-start">
+
+              {/* ── 1열: 일일 컨텐츠 ── */}
+              <div className="flex flex-col gap-3.5">
+              {/* 일일 퀘스트 그룹 3장 */}
+              {zoneGroups.map((g) => (
+                <ContentCard key={g.key} icon={g.icon} grad="linear-gradient(180deg,#7cc7ea,#4da4d4)" title={g.title}
+                  sub={(() => {
+                    const open = data.daily[g.key].filter((z) => level >= z.minLevel)
+                    const on = open.filter((z) => zoneOn(s.daily, z.id)).length
+                    return `${on}/${open.length} 지역 선택됨`
+                  })()}
+                  pct={fmtPct(bd.zones[`${g.key}Total`])} pctColor={C_DAY}>
+                  <div className="text-[13.5px]">
+                    {data.daily[g.key].filter((z) => level >= z.minLevel).map((z) => {
+                      const zb = bd.zones[z.id]
+                      return (
+                        <Row
+                          key={z.id}
+                          icon={`${g.key === 'arcane' ? 'arc' : g.key === 'tenebris' ? 'ten' : 'gra'}_${z.id}`}
+                          label={z.name}
+                          toggle={zb.on}
+                          onToggle={(v) => patch((prev) => ({ ...prev, daily: { ...prev.daily, [z.id]: v } }))}
+                          value={fmtPct(zb.pct)}
+                          valueColor={zb.on ? C_DAY : 'var(--text-dim)'}
+                        />
+                      )
+                    })}
+                  </div>
+                </ContentCard>
+              ))}
+
+
+              </div>
+
+              {/* ── 2열: 주간 컨텐츠 ── */}
+              <div className="flex flex-col gap-3.5">
+              {/* 사냥 */}
+              <ContentCard icon="hunt" grad={PUR} title="사냥" sub="1소재 = 30분"
+                pct={fmtPct(bd.hunt)} pctColor={C_WEEK} totalLabel="일일 합계">
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="1소재당 획득 경험치 (%)">
+                    <DecimalInput
+                      value={s.hunt.pctPerRun}
+                      max={100}
+                      onChange={(v) => patchDeep('hunt', { pctPerRun: v })}
+                      className="w-full h-10 rounded-md border px-3 text-base text-right tabular-nums outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
+                      style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-strong)' }}
+                    />
+                  </Field>
+                  <Field label="하루 소재 수">
+                    <input
+                      type="text" inputMode="numeric"
+                      value={String(s.hunt.runsPerDay ?? 0)}
+                      onChange={(e) => patchDeep('hunt', { runsPerDay: Math.min(parseInt(e.target.value.replace(/[^\d]/g, ''), 10) || 0, 48) })}
+                      className="w-full h-10 rounded-md border px-3 text-base text-right tabular-nums outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
+                      style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-strong)' }}
+                    />
+                  </Field>
+                </div>
+              </ContentCard>
+
+              {/* 사우나 · 리조트 */}
+              <ContentCard icon="sauna" grad={PUR} title="리조트 · 사우나" sub="잠수 경험치"
+                pct={fmtPct(bd.mvp + bd.vip)} pctColor={C_WEEK}>
+                <div className="text-[13.5px]">
+                  <TwoLineRow icon="sauna" label="MVP 리조트" note={`1시간당 ${fmtPct(bd.saunaHourPct)}`}
+                    control={<FixedControl><NumInput value={s.weekly.mvpHours} onChange={(v) => patchDeep('weekly', { mvpHours: v })} min={0} max={99} chars={3} unit="시간/주" /></FixedControl>}
+                    value={fmtPct(bd.mvp)} valueColor={C_WEEK} />
+                  <TwoLineRow icon="sauna_vip" label="VIP 사우나 이용권" note={`1개(30분)당 ${fmtPct(bd.vipOne)}`}
+                    control={<FixedControl><NumInput value={s.items.vipTickets} onChange={(v) => patchDeep('items', { vipTickets: v })} min={0} max={999} chars={3} unit="개" /></FixedControl>}
+                    value={fmtPct(bd.vip)} valueColor={C_WEEK} />
+                </div>
+              </ContentCard>
+
+              {/* 몬스터파크 — 일요일 보너스는 자동 반영 (주 1회) */}
+              <ContentCard icon="mp" grad="linear-gradient(180deg,#b98fdd,#9868c7)" title="몬스터파크"
+                sub="일 2회 무료 · 최대 7회" pct={fmtPct(bd.park.total)} pctColor={C_WEEK} totalLabel="일 평균">
+                <div className="grid grid-cols-[3fr_2fr] gap-2">
+                  <Field label="지역">
+                    <Select
+                      value={bd.park.zone?.id || ''}
+                      onChange={(v) => patchDeep('weekly', { park: { ...s.weekly.park, zone: v } })}
+                      options={data.monsterPark.zones.filter((z) => level >= z.minLevel)
+                        .map((z) => ({ value: z.id, label: z.name, subIcon: icons[parkIconId(z.id)] })).reverse()}
+                    />
+                  </Field>
+                  <Field label="일일 횟수">
+                    <input
+                      type="text" inputMode="numeric"
+                      value={String(s.weekly.park.runs ?? 0)}
+                      onChange={(e) => patchDeep('weekly', {
+                        park: { ...s.weekly.park, runs: Math.min(parseInt(e.target.value.replace(/[^\d]/g, ''), 10) || 0, 7) },
+                      })}
+                      className="w-full h-10 rounded-md border px-3 text-base text-right tabular-nums outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
+                      style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-strong)' }}
+                    />
+                  </Field>
+                </div>
+                <div className="text-[13.5px] mt-2.5">
+                  <Row
+                    label="스페셜 썬데이"
+                    sub={sundaySpecialWeek ? '이번 주' : null}
+                    toggle={!!s.weekly.park.sundaySpecial}
+                    onToggle={(v) => patchDeep('weekly', { park: { ...s.weekly.park, sundaySpecial: v, sundaySpecialWeek: v ? weekKey : null } })}
+                    value={s.weekly.park.sundaySpecial ? '일요일 400%' : '일요일 150%'}
+                    valueColor={s.weekly.park.sundaySpecial ? C_WEEK : 'var(--text-dim)'}
+                    valueWidth={86}
+                  />
+                </div>
+              </ContentCard>
+
+              {/* 익스트림 몬스터파크 — 주간 1회 고정, 헤더 스위치 + 하단 합계 */}
+              <ContentCard icon="mp_extreme" grad="linear-gradient(180deg,#b98fdd,#9868c7)" title="익스트림 몬스터파크"
+                sub={bd.extreme.locked ? 'Lv.260 필요' : '주간 1회 · 목요일 초기화'}
+                pct={fmtPct(bd.extreme.total)} pctColor={C_WEEK} totalLabel="주간 합계"
+                toggle={!!s.weekly.extreme.on} onToggle={(v) => patchDeep('weekly', { extreme: { on: v } })} />
+
+              {/* 에픽던전 — 헤더 스위치로 진행 여부, 합계는 카드 하단 */}
+              <ContentCard icon="ed_nightmare" grad="linear-gradient(180deg,#b98fdd,#9868c7)" title="에픽던전"
+                sub="주간 1회 · 목요일 초기화" pct={fmtPct(bd.epic.total)} pctColor={C_WEEK} totalLabel="주간 합계"
+                toggle={s.weekly.epic.on} onToggle={(v) => patchDeep('weekly', { epic: { ...s.weekly.epic, on: v } })}>
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="던전">
+                    <Select
+                      value={s.weekly.epic.dungeon}
+                      onChange={(v) => patchDeep('weekly', { epic: { ...s.weekly.epic, dungeon: v } })}
+                      options={data.epicDungeon.dungeons.map((d) => ({
+                        value: d.id,
+                        label: level >= d.minLevel ? d.name : `${d.name} (Lv.${d.minLevel})`,
+                        subIcon: icons[EPIC_ICON[d.id]],
+                      }))}
+                    />
+                  </Field>
+                  <Field label="보상">
+                    <SegFull options={EPIC_STAGES} value={s.weekly.epic.stage}
+                      onChange={(v) => patchDeep('weekly', { epic: { ...s.weekly.epic, stage: v } })} />
+                  </Field>
+                </div>
+              </ContentCard>
+
+              </div>
+
+              {/* ── 3열: 일회성 아이템 ── */}
+              <div className="flex flex-col gap-3.5">
+              {/* 성장의 비약 — 종류별로 펼쳐서 개수 입력 */}
+              <ContentCard icon="elixir" grad={TAN} title="성장의 비약" sub="일회성 소모"
+                pct={fmtPct(bd.elixir + bd.e200 + bd.e250)} pctColor={C_ONCE}>
+                <div className="text-[13.5px]">
+                  {data.elixirs.map((e) => (
+                    <TwoLineRow key={e.id} icon={`elixir_${e.id}`} label={e.name}
+                      note={`1개당 ${fmtPct(bd.elixirOne[e.id])}`}
+                      control={<NumInput value={s.items.elixirCounts?.[e.id] || 0}
+                        onChange={(v) => patchDeep('items', { elixirCounts: { ...s.items.elixirCounts, [e.id]: v } })}
+                        min={0} max={999} chars={3} unit="개" />}
+                      value={fmtPct(bd.elixirEach[e.id])} valueColor={C_ONCE} />
+                  ))}
+                  <TwoLineRow icon="elixir200" label="200레벨 달성의 비약" note={`1개당 ${fmtPct(bd.e200One)}`}
+                    control={<NumInput value={s.items.e200lv} onChange={(v) => patchDeep('items', { e200lv: v })} min={0} max={999} chars={3} unit="개" />}
+                    value={fmtPct(bd.e200)} valueColor={C_ONCE} />
+                  <TwoLineRow icon="elixir250" label="250레벨 달성의 비약" note={`1개당 ${fmtPct(bd.e250One)}`}
+                    control={<NumInput value={s.items.e250lv} onChange={(v) => patchDeep('items', { e250lv: v })} min={0} max={999} chars={3} unit="개" />}
+                    value={fmtPct(bd.e250)} valueColor={C_ONCE} />
+                </div>
+              </ContentCard>
+
+              {/* EXP 교환권 */}
+              <ContentCard icon="coupon" grad={TAN} title="EXP 교환권" sub="일회성 소모"
+                pct={fmtPct(bd.couponN + bd.couponU)} pctColor={C_ONCE}>
+                <div className="text-[13.5px]">
+                  <TwoLineRow icon="coupon" label="EXP 교환권" note={`1개당 ${fmtPct(bd.couponNOne)}`}
+                    control={<NumInput value={s.items.couponNormal} onChange={(v) => patchDeep('items', { couponNormal: v })} min={0} max={99999} chars={5} unit="개" />}
+                    value={fmtPct(bd.couponN)} valueColor={C_ONCE} />
+                  <TwoLineRow icon="coupon_up" label="상급 EXP 교환권" note={`1개당 ${fmtPct(bd.couponUOne)}`}
+                    control={<NumInput value={s.items.couponUpper} onChange={(v) => patchDeep('items', { couponUpper: v })} min={0} max={99999} chars={5} unit="개" />}
+                    value={fmtPct(bd.couponU)} valueColor={C_ONCE} />
+                </div>
+              </ContentCard>
+
+              {/* 농장 */}
+              <ContentCard icon="farm_mech" grad={TAN} title="농장" sub="입장권 소모"
+                pct={fmtPct(bd.golden.total + bd.blue.total + bd.mech.total)} pctColor={C_ONCE}>
+                <div className="text-[13.5px]">
+                  <TwoLineRow icon="farm_gold" label="황금 딸기 농장" locked={bd.golden.locked}
+                    note={bd.golden.locked ? '최대 레벨 초과' : `1회당 ${fmtPct(bd.golden.one)}`}
+                    control={<NumInput value={s.items.farmGolden} onChange={(v) => patchDeep('items', { farmGolden: v })} min={0} max={999} chars={3} unit="회" />}
+                    value={fmtPct(bd.golden.total)} valueColor={C_ONCE} />
+                  <TwoLineRow icon="farm_blue" label="블루베리 농장" locked={bd.blue.locked}
+                    note={bd.blue.locked ? `Lv.${data.farms.blue.minLevel} 필요` : `1회당 ${fmtPct(bd.blue.one)}`}
+                    control={<NumInput value={s.items.farmBlue} onChange={(v) => patchDeep('items', { farmBlue: v })} min={0} max={999} chars={3} unit="회" />}
+                    value={fmtPct(bd.blue.total)} valueColor={C_ONCE} />
+                  <TwoLineRow icon="farm_mech" label="메카베리 농장" locked={bd.mech.locked}
+                    note={bd.mech.locked ? `Lv.${data.farms.mech.minLevel} 필요` : `1회당 ${fmtPct(bd.mech.one)}`}
+                    control={<NumInput value={s.items.farmMech} onChange={(v) => patchDeep('items', { farmMech: v })} min={0} max={999} chars={3} unit="회" />}
+                    value={fmtPct(bd.mech.total)} valueColor={C_ONCE} />
+                </div>
+              </ContentCard>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
-    </MapleWindow>
-  )
-}
+      </MapleWindow>
 
-/**
- * 적용 중인 보너스 — 어디에 얼마가 붙는지 보여준다.
- * 값이 스킬 텍스트에서 읽은 것이라, 게임과 대조할 수 있게 출처(스킬 이름)까지 남긴다.
- */
-function BonusBar({ character, bonus }) {
-  if (!character) {
-    return (
-      <div className="px-4 py-2.5 text-[12.5px] border-t" style={{ borderColor: 'var(--mpl-card-line)', color: 'var(--text-dim)' }}>
-        캐릭터를 조회하면 그 캐릭터의 <b style={{ color: 'var(--text-muted)' }}>보약·아티팩트 경험치 보너스</b>가 반영됩니다.
-        지금은 보너스 없는 기본값입니다.
-      </div>
-    )
-  }
-  if (!bonus) {
-    return (
-      <div className="px-4 py-2.5 text-[12.5px] border-t" style={{ borderColor: 'var(--mpl-card-line)', color: 'var(--text-dim)' }}>
-        이 캐릭터에서 경험치 보너스를 찾지 못했습니다 — 기본값으로 계산합니다.
-      </div>
-    )
-  }
-  const chips = [
-    ['몬스터파크', bonus.monsterPark],
-    ['에픽던전', bonus.epicDungeon],
-    ['아케인 일퀘', bonus.arcaneDaily],
-    ['그란디스 일퀘', bonus.grandisDaily],
-  ].filter(([, v]) => v > 0)
-
-  return (
-    <div className="px-4 py-2.5 border-t flex items-center gap-2 flex-wrap" style={{ borderColor: 'var(--mpl-card-line)' }}>
-      <span className="text-[12.5px] font-bold" style={{ color: 'var(--text-muted)' }}>적용 중인 보너스</span>
-      {chips.map(([name, v]) => (
-        <span key={name} className="text-[12px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(94,205,245,.16)', color: 'var(--mpl-sky-to)' }}>
-          {name} +{v}%
-        </span>
-      ))}
-      {bonus.hunting > 0 && (
-        <span className="text-[12px] px-2 py-0.5 rounded-full" style={{ background: 'var(--mpl-row)', color: 'var(--text-dim)' }}
-          title="사냥으로 얻는 경험치에만 붙습니다 — 아래 항목에는 반영하지 않습니다">
-          사냥 +{bonus.hunting}% (미반영)
-        </span>
-      )}
-      <span className="text-[11.5px]" style={{ color: 'var(--text-dim)' }}>
-        {bonus.sources?.map((s) => s.skill_name).join(' · ')}
-      </span>
+      <ConfirmDialog
+        open={!!confirmRemove}
+        title="캐릭터 삭제"
+        description={confirmRemove ? `${confirmRemove.character_name} 캐릭터를 목록에서 삭제할까요?` : ''}
+        confirmText="삭제"
+        destructive
+        onConfirm={() => { removeCharacter(confirmRemove.character_name); setConfirmRemove(null) }}
+        onClose={() => setConfirmRemove(null)}
+      />
     </div>
-  )
-}
-
-/** 항목 한 줄 — 1회(1개)당 값과 개수 입력, 그리고 그 줄의 합계 */
-function ItemRow({ item, need, count, onCount }) {
-  const eachPct = need && item.each != null ? (item.each / need) * 100 : 0
-  const sum = item.each != null ? item.each * (count || 0) : null
-  const dim = item.locked || item.each == null
-
-  return (
-    <div
-      className="flex items-center gap-3 px-2 py-2 border-b last:border-b-0"
-      style={{ borderColor: 'var(--mpl-card-line)', opacity: dim ? 0.45 : 1 }}
-    >
-      <span className="w-8 h-8 shrink-0 grid place-items-center rounded-lg overflow-hidden" style={{ background: 'var(--surface-nested)' }}>
-        {item.icon
-          ? <img src={item.icon} alt="" className="w-full h-full object-contain" draggable={false} />
-          : <span className="text-[11px]" style={{ color: 'var(--text-dim)' }}>?</span>}
-      </span>
-
-      <span className="w-[190px] shrink-0 min-w-0">
-        <b className="block truncate text-[13.5px]" style={{ color: 'var(--text-strong)' }}>{item.name}</b>
-        {(item.locked || item.note) && (
-          <span className="block text-[11.5px]" style={{ color: 'var(--text-dim)' }}>
-            {item.locked ? `Lv.${item.minLevel} 이상` : item.note}
-          </span>
-        )}
-      </span>
-
-      <span className="w-[150px] shrink-0 text-right tabular-nums text-[13px]" style={{ color: 'var(--text-muted)' }}>
-        {item.each == null ? '—' : formatExp(item.each)}
-      </span>
-      <span className="w-[74px] shrink-0 text-right tabular-nums text-[12.5px]" style={{ color: 'var(--text-dim)' }}>
-        {item.each == null ? '' : formatPct(eachPct)}
-      </span>
-      {item.bonusPct > 0 && (
-        <span className="text-[11px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(94,205,245,.16)', color: 'var(--mpl-sky-to)' }}>
-          +{item.bonusPct}%
-        </span>
-      )}
-
-      <span className="ml-auto flex items-center gap-3">
-        {sum > 0 && (
-          <span className="text-right tabular-nums">
-            <b className="block text-[13.5px]" style={{ color: 'var(--text-strong)' }}>{formatExp(sum)}</b>
-            <span className="block text-[11.5px]" style={{ color: 'var(--mpl-sky-to)' }}>{formatPct((sum / need) * 100)}</span>
-          </span>
-        )}
-        <NumInput
-          value={count}
-          onChange={onCount}
-          min={0}
-          max={9999}
-          chars={3}
-          unit={item.unit}
-        />
-      </span>
-    </div>
+    </IconCtx.Provider>
   )
 }
