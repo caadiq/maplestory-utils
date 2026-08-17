@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import { Image } from '../models/index.js';
 import { getPublicUrl } from '../lib/s3.js';
+import { nexonGet } from '../lib/nexon.js';
 
 // 경험치 데이터 (레벨 테이블·컨텐츠별 정수) — 서버 기동 시 1회 로드
 const dataPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '../data/exp-data.json');
@@ -100,4 +101,40 @@ export function parseExpBonus(skills) {
   }
 
   return sources.length ? { ...total, sources } : null;
+}
+
+/**
+ * 일자별 경험치 히스토리 — 랭킹 API가 과거 날짜의 레벨·레벨 내 경험치(절대값)를 준다.
+ * 성장 추이 차트용. 과거 값은 불변이라 메모리에 캐시한다.
+ */
+const historyCache = new Map(); // `${ocid}:${date}` -> { level, exp } | null(데이터 없음)
+
+function kstDateStr(daysAgo) {
+  const d = new Date(Date.now() + 9 * 3600 * 1000 - daysAgo * 86400 * 1000);
+  return d.toISOString().slice(0, 10);
+}
+
+export async function fetchHistory(ocid, days = 9) {
+  const dates = Array.from({ length: days }, (_, i) => kstDateStr(days - i)); // 과거 → 어제
+  const rows = await Promise.all(dates.map(async (date) => {
+    const key = `${ocid}:${date}`;
+    if (historyCache.has(key)) return { date, ...historyCache.get(key) || {} };
+    try {
+      const { data } = await nexonGet('/maplestory/v1/ranking/overall', { date, ocid });
+      const r = data.ranking?.[0];
+      const v = r ? { level: r.character_level, exp: Number(r.character_exp) } : null;
+      if (historyCache.size > 20000) historyCache.clear();
+      historyCache.set(key, v);
+      return { date, ...(v || {}) };
+    } catch {
+      return { date };
+    }
+  }));
+  return rows.filter((r) => r.level != null).map((r) => ({
+    date: r.date,
+    level: r.level,
+    exp_rate: expData.levelExp[String(r.level)]
+      ? Math.round((r.exp / expData.levelExp[String(r.level)]) * 100000) / 1000
+      : 0,
+  }));
 }

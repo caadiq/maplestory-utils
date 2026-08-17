@@ -16,6 +16,7 @@ import {
   EPIC_STAGES, defaultSettings, zoneOn,
   breakdown, fmtPct, weekKeyKST, parkSpecialActive,
 } from '../logic'
+import { WK_DAY, mdLabel, journeyStats, chartGeometry } from '../journey'
 
 /**
  * 경험치 계산기 — 모바일.
@@ -185,6 +186,15 @@ function SecLabel({ children }) {
 const LEVEL_OPTIONS = Array.from({ length: 100 }, (_, i) => ({ value: 200 + i, label: `Lv.${200 + i}` }))
 
 /** 적용 중인 보너스 — 스킬 효과에서 읽은 값이라 게임과 대조할 수 있게 그대로 보여준다 */
+function MiniStat({ label, value }) {
+  return (
+    <div className="text-center py-2.5 min-w-0">
+      <div className="text-[11.5px] font-bold truncate" style={{ color: 'var(--text-muted)' }}>{label}</div>
+      <div className="text-[14.5px] font-bold tabular-nums truncate" style={{ color: 'var(--accent-bright)' }}>{value}</div>
+    </div>
+  )
+}
+
 function BonusChips({ bonus }) {
   if (!bonus) return null
   const chips = [
@@ -208,6 +218,108 @@ function BonusChips({ bonus }) {
     </div>
   )
 }
+
+
+/**
+ * 등반 차트 — PC와 같은 좌표 계산(../journey)에 모바일 크기만 다르게.
+ * 손가락엔 hover가 없으니 점을 탭하면 툴팁이 뜨고 다시 탭하면 닫힌다.
+ * 예전에는 오른쪽에 목표까지의 예측선이 이어졌는데, 예측을 없애면서 실측 구간만 남았다.
+ */
+const CHART_DAYS = 5
+
+function Chart({ char, history, nowMs }) {
+  const V = { W: 400, H: 310, padL: 42, padR: 0, padT: 46, padB: 54 }
+  // 폭이 좁아 9일치를 다 그리면 점 간격이 19px뿐 — 최근 며칠만 그려 날짜를 전부 넣는다
+  const hist = history.slice(-CHART_DAYS)
+  const { coords, now, gridLevels, line, area, Y } =
+    chartGeometry({ history: hist, level: char.character_level, expRate: char.exp_rate, nowMs, V })
+  const [tip, setTip] = useState(null)
+  const HXW = 100 / V.W
+  const HYH = 100 / V.H
+  const baseY = V.H - V.padB
+
+  const p = tip != null ? coords[tip] : null
+  const prev = tip != null ? coords[tip - 1] : null
+  const delta = p && prev ? (p.cum - prev.cum) * 100 : null
+  const below = !!p?.isNow
+
+  return (
+    <div className="relative mt-2.5">
+      <svg viewBox={`0 0 ${V.W} ${V.H}`} className="w-full block overflow-visible" onClick={() => setTip(null)}>
+        <defs>
+          <linearGradient id="mexpfill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="var(--mpl-sky-from)" stopOpacity="0.3" />
+            <stop offset="1" stopColor="var(--mpl-sky-from)" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        {gridLevels.map((lv) => (
+          <g key={lv}>
+            <line x1={V.padL} y1={Y(lv)} x2={V.W - V.padR} y2={Y(lv)} stroke="var(--row-divider)" strokeWidth="1" strokeDasharray="3 4" />
+            <text x={V.padL - 9} y={Y(lv)} dominantBaseline="middle" textAnchor="end" fontSize="17.5" fill="var(--text-dim)">{lv}</text>
+          </g>
+        ))}
+        <path d={area} fill="url(#mexpfill)" />
+        <path d={line} fill="none" stroke="var(--mpl-sky-to)" strokeWidth="2" strokeLinejoin="round" />
+
+        {coords.slice(0, -1).map((c) => (
+          <text key={c.date} x={c.x} y={baseY + 24} fontSize="17" fill="var(--text-dim)" textAnchor="middle">{mdLabel(c.date)}</text>
+        ))}
+        <text x={now.x} y={baseY + 24} fontSize="17" fill="var(--accent-bright)" textAnchor="end" fontWeight="700">오늘</text>
+
+        {coords.slice(0, -1).map((c, i) => (
+          <circle key={c.date} cx={c.x} cy={c.y} r={tip === i ? 5 : 3.2} fill="var(--panel-bg)" stroke="var(--mpl-sky-to)" strokeWidth="2" />
+        ))}
+        {coords.map((c, i) => (
+          <circle key={`hit-${c.date}`} cx={c.x} cy={c.y} r="13" fill="transparent"
+            onClick={(e) => { e.stopPropagation(); setTip(tip === i ? null : i) }} />
+        ))}
+      </svg>
+
+      {/* 현재 캐릭터 마커 */}
+      <div className="absolute pointer-events-none" style={{
+        left: `calc(${(now.x * HXW).toFixed(2)}% - 32px)`,
+        top: `calc(${(now.y * HYH).toFixed(2)}% - 70px)`,
+        width: 64, height: 64, overflow: 'hidden', filter: 'drop-shadow(0 2px 3px rgba(31,44,61,.25))',
+      }}>
+        {char.character_image && (
+          <img src={char.character_image} alt="" className="w-full h-full object-contain scale-[2.4] -translate-y-[3%]" style={{ imageRendering: 'pixelated' }} />
+        )}
+      </div>
+      <div className="absolute pointer-events-none" style={{
+        left: `calc(${(now.x * HXW).toFixed(2)}% - 6px)`,
+        top: `calc(${(now.y * HYH).toFixed(2)}% - 13px)`,
+        width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '6px solid var(--accent-bright)',
+      }} />
+      <div className="absolute rounded-full pointer-events-none" style={{
+        left: `calc(${(now.x * HXW).toFixed(2)}% - 6px)`,
+        top: `calc(${(now.y * HYH).toFixed(2)}% - 6px)`,
+        width: 12, height: 12, background: 'var(--accent-bright)', border: '2.5px solid var(--panel-bg)',
+      }} />
+
+      {p && (
+        <div className="absolute pointer-events-none z-10 rounded-[10px] px-2.5 py-1.5 text-center whitespace-nowrap"
+          style={{
+            left: `calc(${(p.x * HXW).toFixed(2)}% )`,
+            top: `calc(${(p.y * HYH).toFixed(2)}% ${below ? '+' : '-'} 10px)`,
+            transform: `translate(-50%, ${below ? '0' : '-100%'})`,
+            background: '#22303f', color: '#fff', boxShadow: '0 6px 16px rgba(31,44,61,.3)',
+          }}>
+          <div className="text-[12px] font-bold opacity-75">
+            {p.date.replace(/-/g, '.')} ({WK_DAY[new Date(p.date).getDay()]}){p.isNow ? ' · 오늘' : ''}
+          </div>
+          <div className="text-[13.5px] font-bold tabular-nums leading-snug">Lv.{p.level} · {p.exp_rate.toFixed(1)}%</div>
+          {delta != null && <div className="text-[12px]" style={{ color: '#8fd8f5' }}>전일 대비 +{delta.toFixed(1)}%p</div>}
+          <div className={`absolute left-1/2 -translate-x-1/2 ${below ? '-top-[5px]' : '-bottom-[5px]'}`} style={{
+            width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
+            ...(below ? { borderBottom: '5px solid #22303f' } : { borderTop: '5px solid #22303f' }),
+          }} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ── 페이지 ── */
 
 export default function MobileExpCalculator() {
   const { hydrated } = useFeatureSync({ feature: 'exp-calculator', store: useExpStore, initial: expInitialState })
@@ -292,6 +404,14 @@ export default function MobileExpCalculator() {
 
   // 캐릭터 보기 — 패널에서 고른 레벨(기본은 현재 레벨) / 기본값 보기 — 검색줄 레벨
   const level = char ? (s.viewLevel || char.character_level) : baseLevel
+
+  // 실측 그래프용 — 렌더 중 시각 호출은 금지 → 최초 마운트 시 한 번만 고정
+  const nowMs = useMemo(() => new Date().getTime(), [])
+  const history = useMemo(() => fresh?.history || [], [fresh])
+  const stats = useMemo(
+    () => (char ? journeyStats(history, char.character_level + char.exp_rate / 100, nowMs) : { avg: null, week: null }),
+    [char, history, nowMs],
+  )
 
   // 보약·아티팩트 보너스는 캐릭터를 골랐을 때만 반영한다 (서버·캐릭터마다 다르다)
   const bonus = char ? (fresh?.bonus ?? null) : null
@@ -410,6 +530,16 @@ export default function MobileExpCalculator() {
               )}
             </div>
             <BonusChips bonus={bonus} />
+
+            {/* 통계 — 실측 */}
+            <div className="grid grid-cols-3 mt-2.5 rounded-xl border overflow-hidden [&>*:nth-child(n+2)]:border-l"
+              style={{ borderColor: 'var(--panel-border)', background: 'linear-gradient(180deg, var(--mpl-row), var(--panel-bg))' }}>
+              <MiniStat label="현재 경험치" value={`${char.exp_rate.toFixed(2)}%`} />
+              <MiniStat label="최근 7일" value={stats.week != null ? `+${stats.week.toFixed(1)}Lv` : '—'} />
+              <MiniStat label="하루 평균" value={stats.avg != null ? `+${(stats.avg * 100).toFixed(1)}%p` : '—'} />
+            </div>
+
+            <Chart char={char} history={history} nowMs={nowMs} />
           </div>
         )}
 

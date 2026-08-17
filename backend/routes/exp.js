@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { getOcid, nexonGet, handleNexonError } from '../lib/nexon.js';
 import { attachWorldIcons } from '../services/character.js';
-import { expData, loadIcons, parseExpBonus } from '../services/exp.js';
+import { expData, loadIcons, parseExpBonus, fetchHistory } from '../services/exp.js';
 
 const router = Router();
 
@@ -28,10 +28,11 @@ router.get('/lookup', async (req, res) => {
 
   try {
     const ocid = await getOcid(name);
-    const [{ data: basic }, skillRes] = await Promise.all([
+    const [{ data: basic }, skillRes, history] = await Promise.all([
       nexonGet('/maplestory/v1/character/basic', { ocid }),
       nexonGet('/maplestory/v1/character/skill', { ocid, character_skill_grade: '0' })
         .catch(() => ({ data: { character_skill: [] } })),
+      fetchHistory(ocid).catch(() => []),
     ]);
 
     const [character] = await attachWorldIcons([{
@@ -47,6 +48,8 @@ router.get('/lookup', async (req, res) => {
       character,
       exp_rate: Number(basic.character_exp_rate) || 0,
       bonus: parseExpBonus(skillRes.data?.character_skill),
+      date_create: basic.character_date_create || null,
+      history,
     });
   } catch (err) {
     handleNexonError(err, res, {
