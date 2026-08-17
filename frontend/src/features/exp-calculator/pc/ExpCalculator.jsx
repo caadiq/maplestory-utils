@@ -385,11 +385,11 @@ export default function ExpCalculator() {
                   {searchMutation.isPending ? '...' : '조회'}
                 </button>
                 {/* 기본값 보기 — 여기서 레벨을 고르면 캐릭터 선택이 풀리고 보너스 없는 값을 본다 */}
-                <div className="shrink-0 w-[120px]">
+                <div className="shrink-0 w-[156px]">
                   <Select
                     options={LEVEL_OPTIONS}
                     value={char ? null : baseLevel}
-                    placeholder="레벨 (기본값)"
+                    placeholder="레벨 선택"
                     onChange={(v) => { setBaseLevel(v); selectCharacter(null) }}
                   />
                 </div>
@@ -470,31 +470,6 @@ export default function ExpCalculator() {
 
               {/* ── 2열: 주간 컨텐츠 ── */}
               <div className="flex flex-col gap-3.5">
-              {/* 사냥 */}
-              <ContentCard icon="hunt" grad={PUR} title="사냥" sub="1소재 = 30분"
-                pct={fmtPct(bd.hunt)} pctColor={C_WEEK} totalLabel="일일 합계">
-                <div className="grid grid-cols-2 gap-2">
-                  <Field label="1소재당 획득 경험치 (%)">
-                    <DecimalInput
-                      value={s.hunt.pctPerRun}
-                      max={100}
-                      onChange={(v) => patchDeep('hunt', { pctPerRun: v })}
-                      className="w-full h-10 rounded-md border px-3 text-base text-right tabular-nums outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
-                      style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-strong)' }}
-                    />
-                  </Field>
-                  <Field label="하루 소재 수">
-                    <input
-                      type="text" inputMode="numeric"
-                      value={String(s.hunt.runsPerDay ?? 0)}
-                      onChange={(e) => patchDeep('hunt', { runsPerDay: Math.min(parseInt(e.target.value.replace(/[^\d]/g, ''), 10) || 0, 48) })}
-                      className="w-full h-10 rounded-md border px-3 text-base text-right tabular-nums outline-none focus:border-[var(--input-border-focus)] hover:border-[var(--input-border-hover)]"
-                      style={{ background: 'var(--input-bg)', borderColor: 'var(--input-border)', color: 'var(--text-strong)' }}
-                    />
-                  </Field>
-                </div>
-              </ContentCard>
-
               {/* 사우나 · 리조트 */}
               <ContentCard icon="sauna" grad={PUR} title="리조트 · 사우나" sub="잠수 경험치"
                 pct={fmtPct(bd.mvp + bd.vip)} pctColor={C_WEEK}>
@@ -579,7 +554,7 @@ export default function ExpCalculator() {
               {/* ── 3열: 일회성 아이템 ── */}
               <div className="flex flex-col gap-3.5">
               {/* 성장의 비약 — 종류별로 펼쳐서 개수 입력 */}
-              <ContentCard icon="elixir" grad={TAN} title="성장의 비약" sub="일회성 소모"
+              <ContentCard icon="elixir" grad={TAN} title="성장의 비약" sub="아이템 사용"
                 pct={fmtPct(bd.elixir + bd.e200 + bd.e250)} pctColor={C_ONCE}>
                 <div className="text-[13.5px]">
                   {data.elixirs.map((e) => (
@@ -600,7 +575,7 @@ export default function ExpCalculator() {
               </ContentCard>
 
               {/* EXP 교환권 */}
-              <ContentCard icon="coupon" grad={TAN} title="EXP 교환권" sub="일회성 소모"
+              <ContentCard icon="coupon" grad={TAN} title="EXP 교환권" sub="아이템 사용"
                 pct={fmtPct(bd.couponN + bd.couponU)} pctColor={C_ONCE}>
                 <div className="text-[13.5px]">
                   <TwoLineRow icon="coupon" label="EXP 교환권" note={`1개당 ${fmtPct(bd.couponNOne)}`}

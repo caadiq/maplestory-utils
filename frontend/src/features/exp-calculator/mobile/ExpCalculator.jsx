@@ -405,6 +405,12 @@ export default function MobileExpCalculator() {
   // 캐릭터 보기 — 패널에서 고른 레벨(기본은 현재 레벨) / 기본값 보기 — 검색줄 레벨
   const level = char ? (s.viewLevel || char.character_level) : baseLevel
 
+  /* 캐릭터 패널의 레벨 목록 — 현재 레벨부터 299까지 (지나온 레벨은 볼 이유가 없다) */
+  const charLevelOptions = useMemo(() => {
+    const from = char?.character_level || 200
+    return Array.from({ length: Math.max(1, 300 - from) }, (_, i) => ({ value: from + i, label: `Lv.${from + i}` }))
+  }, [char?.character_level])
+
   // 실측 그래프용 — 렌더 중 시각 호출은 금지 → 최초 마운트 시 한 번만 고정
   const nowMs = useMemo(() => new Date().getTime(), [])
   const history = useMemo(() => fresh?.history || [], [fresh])
@@ -516,7 +522,7 @@ export default function MobileExpCalculator() {
             <div className="flex items-center gap-2 mt-2.5">
               <span className="text-[13px] font-bold shrink-0" style={{ color: 'var(--text-muted)' }}>레벨</span>
               <div className="flex-1">
-                <Select options={LEVEL_OPTIONS} value={level} onChange={(v) => patch({ viewLevel: v })} />
+                <Select options={charLevelOptions} value={level} onChange={(v) => patch({ viewLevel: v })} />
               </div>
               {level !== char.character_level && (
                 <button
@@ -547,18 +553,6 @@ export default function MobileExpCalculator() {
           <>
             {/* ── 일일 ── */}
             <SecLabel>일일 컨텐츠</SecLabel>
-
-            <Card icon="hunt" grad={PUR} title="사냥" sub="1소재 = 30분"
-              pct={fmtPct(bd.hunt)} pctColor={C_WEEK} totalLabel="일일 합계">
-              <div className="grid grid-cols-2 gap-2">
-                <Field label="1소재당 획득 (%)">
-                  <FullInput value={s.hunt.pctPerRun} decimal max={100} onChange={(v) => patchDeep('hunt', { pctPerRun: v })} />
-                </Field>
-                <Field label="하루 소재 수">
-                  <FullInput value={s.hunt.runsPerDay} max={48} onChange={(v) => patchDeep('hunt', { runsPerDay: v })} />
-                </Field>
-              </div>
-            </Card>
 
             {zoneGroups.map((g) => {
               const open = data.daily[g.key].filter((z) => level >= z.minLevel)
@@ -657,9 +651,9 @@ export default function MobileExpCalculator() {
             </Card>
 
             {/* ── 일회성 ── */}
-            <SecLabel>일회성 아이템</SecLabel>
+            <SecLabel>아이템</SecLabel>
 
-            <Card icon="elixir" grad={TAN} title="성장의 비약" sub="일회성 소모"
+            <Card icon="elixir" grad={TAN} title="성장의 비약" sub="아이템 사용"
               pct={fmtPct(bd.elixir + bd.e200 + bd.e250)} pctColor={C_ONCE}>
               <div>
                 {data.elixirs.map((e) => (
@@ -678,7 +672,7 @@ export default function MobileExpCalculator() {
               </div>
             </Card>
 
-            <Card icon="coupon" grad={TAN} title="EXP 교환권" sub="일회성 소모"
+            <Card icon="coupon" grad={TAN} title="EXP 교환권" sub="아이템 사용"
               pct={fmtPct(bd.couponN + bd.couponU)} pctColor={C_ONCE}>
               <div>
                 <TwoLineRow icon="coupon" label="EXP 교환권" note={`1개당 ${fmtPct(bd.couponNOne)}`}
