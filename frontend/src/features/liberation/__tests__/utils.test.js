@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
@@ -15,6 +15,21 @@ import { makeEmptyWeekly } from '../store'
 
 dayjs.extend(utc)
 dayjs.extend(timezone)
+
+/*
+ * 시계를 고정한다.
+ * '단순 계산'은 시작일이 과거면 오늘부터 시뮬레이션하도록 되어 있어(중복 적립 방지),
+ * 고정 날짜로 쓴 기대값이 시간이 흐르면 저절로 깨진다. 기준 시각을 못박아 둔다.
+ */
+const FIXED_NOW = new Date('2026-04-19T00:00:00+09:00')
+
+beforeAll(() => {
+  vi.useFakeTimers()
+  vi.setSystemTime(FIXED_NOW)
+})
+afterAll(() => {
+  vi.useRealTimers()
+})
 
 describe('calcPoints', () => {
   it('파티원 수로 나누고 버림', () => {
