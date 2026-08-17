@@ -18,8 +18,6 @@ const C_DAY = 'var(--accent-bright)'
 const C_WEEK = '#9247c9'
 const C_ONCE = '#e8a20c'
 
-const LEVEL_OPTIONS = Array.from({ length: 100 }, (_, i) => ({ value: 200 + i, label: `Lv.${200 + i}` }))
-
 function Stat({ label, value, color, sub }) {
   return (
     <div className="flex-1 px-4 py-3.5 min-w-0">
@@ -61,6 +59,14 @@ function BonusChips({ bonus }) {
 }
 
 export default function ExpJourney({ char, history, dateCreate, breakdown, bonus, level, onLevel }) {
+  /*
+   * 고를 수 있는 레벨은 현재 레벨부터 299까지.
+   * 지나온 레벨의 값은 볼 이유가 없다 — 목록만 길어진다.
+   */
+  const levelOptions = useMemo(() => {
+    const from = char.character_level
+    return Array.from({ length: Math.max(1, 300 - from) }, (_, i) => ({ value: from + i, label: `Lv.${from + i}` }))
+  }, [char.character_level])
   const nowCum = char.character_level + char.exp_rate / 100
 
   // 렌더 중 시각 호출은 금지 → 최초 마운트 시 한 번만 고정
@@ -71,7 +77,8 @@ export default function ExpJourney({ char, history, dateCreate, breakdown, bonus
   const stats = useMemo(() => journeyStats(history, nowCum, nowMs), [history, nowCum, nowMs])
 
   // ── 차트 좌표 ── (계산은 ../journey 공용, 여기선 PC 크기만 정한다)
-  const V = { W: 1000, H: 300, padL: 56, padR: 0, padT: 56, padB: 52 }
+  // padR: 오늘 지점의 캐릭터 마커가 오른쪽 경계에 붙지 않도록 여백을 준다
+  const V = { W: 1000, H: 300, padL: 56, padR: 64, padT: 56, padB: 52 }
   const { coords, now, gridLevels, line, area, Y } = chartGeometry({
     history,
     level: char.character_level,
@@ -108,7 +115,7 @@ export default function ExpJourney({ char, history, dateCreate, breakdown, bonus
         <div className="ml-auto flex items-center gap-2">
           <span className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>레벨</span>
           <div className="w-[116px]">
-            <Select options={LEVEL_OPTIONS} value={level} onChange={onLevel} />
+            <Select options={levelOptions} value={level} onChange={onLevel} />
           </div>
           {level !== char.character_level && (
             <button
@@ -237,16 +244,20 @@ export default function ExpJourney({ char, history, dateCreate, breakdown, bonus
       </div>
       </div>
 
-      {/* 하단 — 기여도 요약 (Lv.{level} 기준) */}
+      {/* 하단 — 기여도 요약. 라벨을 값 앞에 나란히 둔다 (레벨은 위 드롭다운에 이미 있다) */}
       <div className="flex items-center border-t" style={{ borderColor: 'var(--row-divider)', background: 'var(--mpl-row)' }}>
         {[
           { label: '일일', value: breakdown.dailyTotal, color: C_DAY },
           { label: '주간', value: breakdown.weeklyTotal, color: C_WEEK },
-          { label: '일회성', value: breakdown.onceTotal, color: C_ONCE },
+          { label: '아이템', value: breakdown.onceTotal, color: C_ONCE },
         ].map((m, i) => (
-          <div key={m.label} className={`flex-1 text-center py-3.5 ${i > 0 ? 'border-l' : ''}`} style={{ borderColor: 'var(--panel-border)' }}>
-            <div className="text-[12px] font-bold" style={{ color: 'var(--text-muted)' }}>{m.label} <span style={{ color: 'var(--text-dim)' }}>· Lv.{level} 기준</span></div>
-            <div className="text-[19px] font-bold tabular-nums" style={{ color: m.color }}>{fmtPct(m.value)}</div>
+          <div
+            key={m.label}
+            className={`flex-1 flex items-baseline justify-center gap-2.5 py-3.5 ${i > 0 ? 'border-l' : ''}`}
+            style={{ borderColor: 'var(--panel-border)' }}
+          >
+            <span className="text-[15px] font-bold" style={{ color: 'var(--text-muted)' }}>{m.label}</span>
+            <span className="text-[19px] font-bold tabular-nums" style={{ color: m.color }}>{fmtPct(m.value)}</span>
           </div>
         ))}
       </div>
