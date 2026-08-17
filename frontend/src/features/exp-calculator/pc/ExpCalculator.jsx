@@ -185,15 +185,14 @@ const LEVEL_OPTIONS = Array.from({ length: 100 }, (_, i) => ({ value: 200 + i, l
  * 적용 중인 보너스 — 어디에 얼마가 붙는지 보여준다.
  * 스킬 효과 텍스트에서 읽은 값이라 게임과 대조할 수 있게 그대로 드러낸다.
  */
-function BonusChips({ char, bonus }) {
-  if (!char) {
+function BonusChips({ bonus }) {
+  if (!bonus) {
     return (
       <span className="text-[12.5px]" style={{ color: 'var(--text-dim)' }}>
-        보너스 미반영 — 캐릭터를 고르면 보약·아티팩트가 반영됩니다
+        이 캐릭터에서 경험치 보너스를 찾지 못했습니다
       </span>
     )
   }
-  if (!bonus) return null
   const chips = [
     ['몬파', bonus.monsterPark],
     ['에픽던전', bonus.epicDungeon],
@@ -229,10 +228,11 @@ export default function ExpCalculator() {
 
   const [confirmRemove, setConfirmRemove] = useState(null)
   /*
-   * 보는 기준 레벨. 캐릭터를 고르면 그 레벨로 맞추고, 상위 레벨을 직접 골라
-   * "그때는 얼마인지"도 볼 수 있다.
+   * 기본값 보기의 레벨 (검색줄 드롭다운).
+   * 캐릭터를 골랐을 때의 레벨은 캐릭터 패널의 드롭다운이 따로 정한다(설정에 저장) —
+   * 두 보기가 각자 레벨을 기억해야 캐릭터를 추가한 뒤에도 기본값을 다시 볼 수 있다.
    */
-  const [level, setLevel] = useState(260)
+  const [baseLevel, setBaseLevel] = useState(260)
   const {
     addName, setAddName, addError, setAddError,
     dropdownOpen, setDropdownOpen, addAnchorRef, searchMutation, handleSearch,
@@ -294,19 +294,27 @@ export default function ExpCalculator() {
    * 꺼진 것으로 보고 계산한다. 여기서 한 번 정규화해서 아래 로직·UI가 같은 값을 본다.
    */
   const weekKey = weekKeyKST(new Date())
-  const rawSettings = (char && allSettings[char.id]) || defaultSettings(char?.character_level || 260)
+  /*
+   * 입력값을 담는 칸. 캐릭터별로 따로 두되, 캐릭터를 안 고른 '기본값' 보기에도
+   * 자기 칸이 있어야 개수를 넣을 수 있다.
+   */
+  const settingsId = char?.id ?? '__base__'
+  const rawSettings = allSettings[settingsId] || defaultSettings(char?.character_level || 260)
   const s = useMemo(() => {
     const p = rawSettings.weekly.park
     const active = parkSpecialActive(p, weekKey)
     if (active === !!p.sundaySpecial) return rawSettings
     return { ...rawSettings, weekly: { ...rawSettings.weekly, park: { ...p, sundaySpecial: active } } }
   }, [rawSettings, weekKey])
-  useEffect(() => {
-    if (char?.character_level) setLevel(char.character_level)
-  }, [char?.character_name, char?.character_level])
-
-  const patch = (p) => char && patchSettings(char.id, p)
+  const patch = (p) => patchSettings(settingsId, p)
   const patchDeep = (key, p) => patch((prev) => ({ ...prev, [key]: { ...prev[key], ...p } }))
+
+  /*
+   * 보는 레벨.
+   * 캐릭터 보기 — 패널 드롭다운으로 고른 값(설정에 저장, 기본은 캐릭터의 현재 레벨).
+   * 기본값 보기 — 검색줄 드롭다운 값.
+   */
+  const level = char ? (s.viewLevel || char.character_level) : baseLevel
 
   // 보약·아티팩트 보너스는 캐릭터를 골랐을 때만 반영한다 (서버·캐릭터마다 다르다)
   const bonus = char ? (fresh?.bonus ?? null) : null
@@ -374,6 +382,15 @@ export default function ExpCalculator() {
                 >
                   {searchMutation.isPending ? '...' : '조회'}
                 </button>
+                {/* 기본값 보기 — 여기서 레벨을 고르면 캐릭터 선택이 풀리고 보너스 없는 값을 본다 */}
+                <div className="shrink-0 w-[120px]">
+                  <Select
+                    options={LEVEL_OPTIONS}
+                    value={char ? null : baseLevel}
+                    placeholder="레벨 (기본값)"
+                    onChange={(v) => { setBaseLevel(v); selectCharacter(null) }}
+                  />
+                </div>
               </form>
               {addError && <p className="text-[13px]" style={{ color: 'var(--danger-text)' }}>{addError}</p>}
 
@@ -395,32 +412,50 @@ export default function ExpCalculator() {
                   </Reorder.Group>
                 </OverlayScrollbarsComponent>
               )}
-              {characters.length === 0 && (
-                <p className="py-6 text-center text-[13px]" style={{ color: 'var(--text-dim)' }}>
-                  캐릭터를 조회하면 그 캐릭터의 보약·아티팩트 보너스가 반영됩니다
-                </p>
-              )}
 
-              {/* 보는 기준 — 레벨은 캐릭터와 무관하게 바꿀 수 있다 */}
-              <div className="flex items-center gap-3 flex-wrap pt-1">
-                <span className="text-[13.5px] font-bold" style={{ color: 'var(--text-muted)' }}>기준 레벨</span>
-                <div className="w-[124px]">
-                  <Select options={LEVEL_OPTIONS} value={level} onChange={setLevel} />
-                </div>
-                {char && char.character_level !== level && (
-                  <button
-                    type="button"
-                    onClick={() => setLevel(char.character_level)}
-                    className="text-[12.5px] font-bold rounded-full px-2.5 py-1"
-                    style={{ background: 'var(--mpl-row)', color: 'var(--text-muted)' }}
-                  >
-                    현재 레벨({char.character_level})로
-                  </button>
-                )}
-                <BonusChips char={char} bonus={bonus} />
-              </div>
             </div>
           </div>
+
+          {/* 선택 캐릭터 — 이 패널의 레벨로 보약 포함 값을 본다 (예전 여정 패널 자리) */}
+          {char && (
+            <div className="rounded-[11px] overflow-hidden" style={CARD}>
+              <div className="px-4 py-3 flex items-center gap-4 flex-wrap">
+                <span className="flex items-center gap-2 min-w-0">
+                  {char.world_icon && <img src={char.world_icon} alt="" className="w-5 h-5 object-contain" style={{ imageRendering: 'pixelated' }} />}
+                  <b className="text-[16px] truncate" style={{ color: 'var(--text-strong)' }}>{char.character_name}</b>
+                  <span className="text-[12px] font-bold tabular-nums text-white px-2 py-0.5 rounded-md shrink-0" style={{ background: SKY }}>
+                    Lv.{char.character_level}
+                  </span>
+                  <span className="text-[13px] shrink-0" style={{ color: 'var(--text-muted)' }}>{char.job_name}</span>
+                </span>
+
+                <span className="flex items-center gap-2 ml-auto">
+                  <span className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>레벨</span>
+                  <div className="w-[116px]">
+                    <Select
+                      options={LEVEL_OPTIONS}
+                      value={level}
+                      onChange={(v) => patch({ viewLevel: v })}
+                    />
+                  </div>
+                  {level !== char.character_level && (
+                    <button
+                      type="button"
+                      onClick={() => patch({ viewLevel: null })}
+                      className="text-[12.5px] font-bold rounded-full px-2.5 py-1"
+                      style={{ background: 'var(--mpl-row)', color: 'var(--text-muted)' }}
+                    >
+                      현재 레벨로
+                    </button>
+                  )}
+                </span>
+              </div>
+              <div className="px-4 py-2.5 border-t flex items-center gap-2 flex-wrap" style={{ borderColor: 'var(--mpl-card-line)' }}>
+                <span className="text-[12.5px] font-bold" style={{ color: 'var(--text-muted)' }}>적용 중인 보너스</span>
+                <BonusChips bonus={bonus} />
+              </div>
+            </div>
+          )}
 
           {/* 컨텐츠 카드 */}
           {bd && (

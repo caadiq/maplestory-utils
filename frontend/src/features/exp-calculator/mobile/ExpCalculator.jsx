@@ -185,8 +185,8 @@ function SecLabel({ children }) {
 const LEVEL_OPTIONS = Array.from({ length: 100 }, (_, i) => ({ value: 200 + i, label: `Lv.${200 + i}` }))
 
 /** 적용 중인 보너스 — 스킬 효과에서 읽은 값이라 게임과 대조할 수 있게 그대로 보여준다 */
-function BonusChips({ char, bonus }) {
-  if (!char || !bonus) return null
+function BonusChips({ bonus }) {
+  if (!bonus) return null
   const chips = [
     ['몬파', bonus.monsterPark],
     ['에픽던전', bonus.epicDungeon],
@@ -221,8 +221,12 @@ export default function MobileExpCalculator() {
   const patchSettings = useExpStore((s) => s.patchSettings)
 
   const [confirmRemove, setConfirmRemove] = useState(null)
-  // 보는 기준 레벨 — 캐릭터를 고르면 그 레벨로 맞추고, 직접 바꿀 수도 있다
-  const [level, setLevel] = useState(260)
+  /*
+   * 기본값 보기의 레벨 (검색줄 드롭다운).
+   * 캐릭터 보기의 레벨은 캐릭터 패널 드롭다운이 따로 정한다(설정에 저장) —
+   * 두 보기가 각자 레벨을 기억해야 캐릭터를 추가한 뒤에도 기본값을 다시 볼 수 있다.
+   */
+  const [baseLevel, setBaseLevel] = useState(260)
   const {
     addName, setAddName, addError, setAddError,
     dropdownOpen, setDropdownOpen, addAnchorRef, searchMutation, handleSearch,
@@ -271,19 +275,23 @@ export default function MobileExpCalculator() {
   )
 
   const weekKey = weekKeyKST(new Date())
-  const rawSettings = (char && allSettings[char.id]) || defaultSettings(char?.character_level || 260)
+  /*
+   * 입력값을 담는 칸. 캐릭터별로 따로 두되, 캐릭터를 안 고른 '기본값' 보기에도
+   * 자기 칸이 있어야 개수를 넣을 수 있다.
+   */
+  const settingsId = char?.id ?? '__base__'
+  const rawSettings = allSettings[settingsId] || defaultSettings(char?.character_level || 260)
   const s = useMemo(() => {
     const p = rawSettings.weekly.park
     const active = parkSpecialActive(p, weekKey)
     if (active === !!p.sundaySpecial) return rawSettings
     return { ...rawSettings, weekly: { ...rawSettings.weekly, park: { ...p, sundaySpecial: active } } }
   }, [rawSettings, weekKey])
-  useEffect(() => {
-    if (char?.character_level) setLevel(char.character_level)
-  }, [char?.character_name, char?.character_level])
-
-  const patch = (p) => char && patchSettings(char.id, p)
+  const patch = (p) => patchSettings(settingsId, p)
   const patchDeep = (key, p) => patch((prev) => ({ ...prev, [key]: { ...prev[key], ...p } }))
+
+  // 캐릭터 보기 — 패널에서 고른 레벨(기본은 현재 레벨) / 기본값 보기 — 검색줄 레벨
+  const level = char ? (s.viewLevel || char.character_level) : baseLevel
 
   // 보약·아티팩트 보너스는 캐릭터를 골랐을 때만 반영한다 (서버·캐릭터마다 다르다)
   const bonus = char ? (fresh?.bonus ?? null) : null
@@ -361,25 +369,49 @@ export default function MobileExpCalculator() {
             </p>
           )}
 
-          {/* 보는 기준 — 레벨은 캐릭터와 무관하게 바꿀 수 있다 */}
+          {/* 기본값 보기 — 여기서 레벨을 고르면 캐릭터 선택이 풀리고 보너스 없는 값을 본다 */}
           <div className="flex items-center gap-2 mt-3">
-            <span className="text-[13px] font-bold shrink-0" style={{ color: 'var(--text-muted)' }}>기준 레벨</span>
+            <span className="text-[13px] font-bold shrink-0" style={{ color: 'var(--text-muted)' }}>레벨 (기본값)</span>
             <div className="flex-1">
-              <Select options={LEVEL_OPTIONS} value={level} onChange={setLevel} />
+              <Select
+                options={LEVEL_OPTIONS}
+                value={char ? null : baseLevel}
+                placeholder="선택"
+                onChange={(v) => { setBaseLevel(v); selectCharacter(null) }}
+              />
             </div>
-            {char && char.character_level !== level && (
-              <button
-                type="button"
-                onClick={() => setLevel(char.character_level)}
-                className="text-[12px] font-bold rounded-full px-2.5 py-1.5 shrink-0"
-                style={{ background: 'var(--mpl-row)', color: 'var(--text-muted)' }}
-              >
-                현재 {char.character_level}
-              </button>
-            )}
           </div>
-          <BonusChips char={char} bonus={bonus} />
         </div>
+
+        {/* 선택 캐릭터 — 이 패널의 레벨로 보약 포함 값을 본다 */}
+        {char && (
+          <div className="rounded-2xl border p-3.5"
+            style={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)', boxShadow: 'var(--panel-shadow)' }}>
+            <div className="flex items-center gap-1.5">
+              {char.world_icon && <img src={char.world_icon} alt="" className="w-[19px] h-[19px] object-contain" style={{ imageRendering: 'pixelated' }} />}
+              <span className="text-[16px] font-bold truncate">{char.character_name}</span>
+              <span className="text-[12px] font-bold tabular-nums text-white px-2 py-0.5 rounded-md shrink-0" style={{ background: SKY }}>Lv.{char.character_level}</span>
+              <span className="text-[12px] shrink-0" style={{ color: 'var(--text-muted)' }}>{char.job_name}</span>
+            </div>
+            <div className="flex items-center gap-2 mt-2.5">
+              <span className="text-[13px] font-bold shrink-0" style={{ color: 'var(--text-muted)' }}>레벨</span>
+              <div className="flex-1">
+                <Select options={LEVEL_OPTIONS} value={level} onChange={(v) => patch({ viewLevel: v })} />
+              </div>
+              {level !== char.character_level && (
+                <button
+                  type="button"
+                  onClick={() => patch({ viewLevel: null })}
+                  className="text-[12px] font-bold rounded-full px-2.5 py-1.5 shrink-0"
+                  style={{ background: 'var(--mpl-row)', color: 'var(--text-muted)' }}
+                >
+                  현재 {char.character_level}
+                </button>
+              )}
+            </div>
+            <BonusChips bonus={bonus} />
+          </div>
+        )}
 
         {bd && (
           <>
