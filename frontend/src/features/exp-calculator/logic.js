@@ -226,9 +226,12 @@ export function breakdown(data, level, s, bonus) {
   }
 }
 
+/**
+ * 자릿수는 크기에 맞춰 잡되, 뒤에 남는 0은 지운다 — 0.4300%는 0.43%로 충분하다.
+ * (0.5000%처럼 소수부가 전부 0이면 점까지 지워 '0.5%'가 아니라 정수로 떨어진다)
+ */
 export function fmtPct(p) {
   if (!p) return '—'
-  if (p >= 10) return `${p.toFixed(2)}%`
-  if (p >= 0.01) return `${p.toFixed(4)}%`
-  return `${p.toFixed(4)}%`
+  const fixed = p >= 10 ? p.toFixed(2) : p.toFixed(4)
+  return `${fixed.replace(/\.?0+$/, '')}%`
 }

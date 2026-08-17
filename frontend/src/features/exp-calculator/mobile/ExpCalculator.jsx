@@ -4,6 +4,7 @@ import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import { api } from '../../../api/client'
 import MapleWindow from '../../../components/pc/MapleWindow'
 import Select from '../../../components/common/Select'
+import Tooltip from '../../../components/common/Tooltip'
 import CharacterSuggestDropdown from '../../../components/common/CharacterSuggestDropdown'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import CharacterChip from '../../../components/common/CharacterChip'
@@ -208,26 +209,35 @@ function MiniStat({ label, value, color = 'var(--accent-bright)', divider }) {
   )
 }
 
+/** 합계가 어느 스킬에서 얼마씩 왔는지 (PC와 같은 규칙) */
+function sourceText(bonus, key) {
+  return (bonus.sources || [])
+    .filter((src) => src[key] > 0)
+    .map((src) => `${src.skill_name} +${src[key]}%`)
+    .join(' + ')
+}
+
 function BonusChips({ bonus }) {
   if (!bonus) return null
   // 칩 색은 아래 카드 묶음(일일·주간)과 같은 규칙 — 전부 하늘색이면 배지·차트와 뭉쳐 보인다
   const chips = [
-    ['몬파', bonus.monsterPark, C_WEEK],
-    ['에픽던전', bonus.epicDungeon, C_WEEK],
-    ['아케인 일퀘', bonus.arcaneDaily, C_DAY],
-    ['그란디스 일퀘', bonus.grandisDaily, C_DAY],
-  ].filter(([, v]) => v > 0)
+    ['몬파', 'monsterPark', bonus.monsterPark, C_WEEK],
+    ['에픽던전', 'epicDungeon', bonus.epicDungeon, C_WEEK],
+    ['아케인 일퀘', 'arcaneDaily', bonus.arcaneDaily, C_DAY],
+    ['그란디스 일퀘', 'grandisDaily', bonus.grandisDaily, C_DAY],
+  ].filter(([, , v]) => v > 0)
   if (!chips.length) return null
   return (
     <div className="flex items-center gap-1.5 flex-wrap mt-2">
-      {chips.map(([name, v, color]) => (
-        <span
-          key={name}
-          className="text-[12px] font-bold px-2 py-0.5 rounded-full"
-          style={{ background: `color-mix(in srgb, ${color} 14%, transparent)`, color }}
-        >
-          {name} +{v}%
-        </span>
+      {chips.map(([name, key, v, color]) => (
+        <Tooltip key={name} text={sourceText(bonus, key)}>
+          <span
+            className="text-[12px] font-bold px-2 py-0.5 rounded-full"
+            style={{ background: `color-mix(in srgb, ${color} 14%, transparent)`, color }}
+          >
+            {name} +{v}%
+          </span>
+        </Tooltip>
       ))}
     </div>
   )
@@ -322,7 +332,7 @@ function Chart({ char, history, nowMs }) {
           <div className="text-[12px] font-bold opacity-75">
             {p.date.replace(/-/g, '.')} ({WK_DAY[new Date(p.date).getDay()]}){p.isNow ? ' · 오늘' : ''}
           </div>
-          <div className="text-[13.5px] font-bold tabular-nums leading-snug">Lv.{p.level} · {p.exp_rate.toFixed(1)}%</div>
+          <div className="text-[13.5px] font-bold tabular-nums leading-snug">Lv.{p.level} · {p.exp_rate.toFixed(3)}%</div>
           {delta != null && <div className="text-[12px]" style={{ color: '#8fd8f5' }}>전일 대비 +{delta.toFixed(1)}%p</div>}
           <div className={`absolute left-1/2 -translate-x-1/2 ${below ? '-top-[5px]' : '-bottom-[5px]'}`} style={{
             width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
