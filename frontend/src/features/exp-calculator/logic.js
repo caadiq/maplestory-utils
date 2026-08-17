@@ -75,6 +75,7 @@ export function defaultSettings(level) {
       farmGolden: 0,
       farmBlue: 0,
       farmMech: 0,
+      farmCrimson: 0,
     },
     goal: { level: Math.min(level + 1 || 261, 300) },
   }
@@ -181,12 +182,19 @@ export function breakdown(data, level, s, bonus) {
   const mechLocked = L < f.mech.minLevel
   const mechOne = !mechLocked ? pct(byLevel(f.mech.byLevel, L)) : 0
   const mech = mechOne * (it.farmMech || 0)
+  /*
+   * 크림슨 메카베리 — 기존과 같은 구조인데 경험치 가중치가 전 구간 154 고정.
+   * 테이블은 기존 × 154/가중치(99·132·143)로 산출(테스트월드 1.2.205 기준), 본섭 실측 대조 예정.
+   */
+  const crimsonLocked = !f.crimson || L < f.crimson.minLevel
+  const crimsonOne = !crimsonLocked ? pct(byLevel(f.crimson.byLevel, L)) : 0
+  const crimson = crimsonOne * (it.farmCrimson || 0)
 
   const hunt = pct(huntAbs)
   const parkDaily = pct(parkWeek) / 7
   const dailyTotal = hunt + dailyQuest + parkDaily
   const weeklyTotal = pct(epic + extreme + mvp)
-  const onceTotal = elixirPct + e200 + e250 + couponN + couponU + vip + golden + blue + mech
+  const onceTotal = elixirPct + e200 + e250 + couponN + couponU + vip + golden + blue + mech + crimson
 
   return {
     E,
@@ -213,6 +221,7 @@ export function breakdown(data, level, s, bonus) {
     golden: { locked: goldenLocked, one: goldenOne, total: golden },
     blue: { locked: blueLocked, one: blueOne, total: blue },
     mech: { locked: mechLocked, one: mechOne, total: mech },
+    crimson: { locked: crimsonLocked, one: crimsonOne, total: crimson },
     onceTotal,
   }
 }

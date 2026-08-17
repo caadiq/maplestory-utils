@@ -48,6 +48,7 @@ const ICON_NAMES = {
   farm_gold: '황금 딸기 농장',
   farm_blue: '블루베리 농장',
   farm_mech: '메카베리 농장',
+  farm_crimson: '크림슨 메카베리 농장',
 };
 
 // 이름→URL은 거의 안 바뀌므로 한 번 조회해 캐시한다
