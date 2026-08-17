@@ -123,6 +123,14 @@ function TwoLineRow({ icon, label, control, note, value, valueColor, locked }) {
   )
 }
 
+/**
+ * 입력칸 폭을 고정하고 내용을 오른쪽에 붙인다.
+ * 단위 글자 수가 다른 줄들을 나란히 놓을 때 폭이 어긋나는 걸 막는다 (PC와 같은 방식).
+ */
+function FixedControl({ width = 112, children }) {
+  return <span className="inline-block [&>div]:w-full [&>div]:justify-end" style={{ width }}>{children}</span>
+}
+
 function Field({ label, children }) {
   return (
     <div className="min-w-0">
@@ -524,24 +532,24 @@ export default function MobileExpCalculator() {
           <div className="rounded-2xl border p-3.5"
             style={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)', boxShadow: 'var(--panel-shadow)' }}>
             {/*
-              드롭다운은 이름 줄에만 둔다. 직업·생성일을 같은 블록에 넣으면 드롭다운 폭만큼
-              좁아져 '(4,422일째)'가 잘렸다 — 아래 줄로 빼서 폭을 다 쓰게 한다.
+              폭이 좁아 셋(이름·생성일·드롭다운)을 한 줄에 넣으면 무엇이든 잘린다.
+              이름 줄은 통째로 비워 긴 닉네임도 다 보이게 하고, 드롭다운은 아래 생성일 줄
+              오른쪽에 얹는다 — 줄이 늘지 않으면서 이름과 생성일 둘 다 온전하다.
             */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                {char.world_icon && <img src={char.world_icon} alt="" className="w-[19px] h-[19px] object-contain shrink-0" style={{ imageRendering: 'pixelated' }} />}
-                <span className="text-[16px] font-bold truncate">{char.character_name}</span>
-                <span className="text-[12px] font-bold tabular-nums text-white px-2 py-0.5 rounded-md shrink-0"
-                  style={{ background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))' }}>Lv.{char.character_level}</span>
-              </div>
+            <div className="flex items-center gap-1.5">
+              {char.world_icon && <img src={char.world_icon} alt="" className="w-[19px] h-[19px] object-contain shrink-0" style={{ imageRendering: 'pixelated' }} />}
+              <span className="text-[16px] font-bold min-w-0 break-keep">{char.character_name}</span>
+              <span className="text-[12px] font-bold tabular-nums text-white px-2 py-0.5 rounded-md shrink-0"
+                style={{ background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))' }}>Lv.{char.character_level}</span>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[12px] flex-1 min-w-0" style={{ color: 'var(--text-muted)' }}>
+                {char.job_name}
+                {created && <> · <span className="tabular-nums">{fmtDate(created).slice(0, 10).replace(/-/g, '.')}</span> 생성 <span style={{ color: 'var(--text-dim)' }}>({ageDays.toLocaleString()}일째)</span></>}
+              </span>
               <div className="w-[104px] shrink-0">
                 <Select options={charLevelOptions} value={level} onChange={(v) => patch({ viewLevel: v })} />
               </div>
-            </div>
-            {/* 직업 · 생성일 (며칠째) — 전체 폭 */}
-            <div className="text-[12px] mt-1" style={{ color: 'var(--text-muted)' }}>
-              {char.job_name}
-              {created && <> · <span className="tabular-nums">{fmtDate(created).slice(0, 10).replace(/-/g, '.')}</span> 생성 <span style={{ color: 'var(--text-dim)' }}>({ageDays.toLocaleString()}일째)</span></>}
             </div>
             {level !== char.character_level && (
               <button
@@ -632,16 +640,12 @@ export default function MobileExpCalculator() {
             <Card icon="sauna" grad={PUR} title="리조트 · 사우나" sub="잠수 경험치"
               pct={fmtPct(bd.mvp + bd.vip)} pctColor={C_WEEK}>
               <div>
-                {/* 두 줄의 입력칸 폭을 맞춘다 — 단위 글자 수가 달라 그냥 두면 어긋난다 */}
+                {/* 단위 글자 수가 달라(시간/주 vs 개) 폭이 어긋났다 — 박스 폭을 맞추고 오른쪽 정렬 */}
                 <TwoLineRow icon="sauna" label="MVP 리조트" note={`1시간당 ${fmtPct(bd.saunaHourPct)}`}
-                  control={<span className="inline-flex w-[124px] justify-end [&>div]:w-full">
-                    <NumInput value={s.weekly.mvpHours} onChange={(v) => patchDeep('weekly', { mvpHours: v })} min={0} max={99} chars={2} unit="시간/주" />
-                  </span>}
+                  control={<FixedControl><NumInput value={s.weekly.mvpHours} onChange={(v) => patchDeep('weekly', { mvpHours: v })} min={0} max={99} chars={3} unit="시간/주" /></FixedControl>}
                   value={fmtPct(bd.mvp)} valueColor={C_WEEK} />
                 <TwoLineRow icon="sauna_vip" label="VIP 사우나 이용권" note={`1개(30분)당 ${fmtPct(bd.vipOne)}`}
-                  control={<span className="inline-flex w-[124px] justify-end [&>div]:w-full">
-                    <NumInput value={s.items.vipTickets} onChange={(v) => patchDeep('items', { vipTickets: v })} min={0} max={999} chars={3} unit="개" />
-                  </span>}
+                  control={<FixedControl><NumInput value={s.items.vipTickets} onChange={(v) => patchDeep('items', { vipTickets: v })} min={0} max={999} chars={3} unit="개" /></FixedControl>}
                   value={fmtPct(bd.vip)} valueColor={C_WEEK} />
               </div>
             </Card>
