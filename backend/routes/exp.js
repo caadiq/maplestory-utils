@@ -7,8 +7,12 @@ const router = Router();
 
 router.get('/data', async (_req, res) => {
   try {
-    // 관리자가 아이콘을 추가하면 곧 반영돼야 한다 — 길게 잡으면 한참 뒤에야 보인다
-    res.set('Cache-Control', 'public, max-age=300');
+    /*
+     * max-age를 길게 잡으면 아이콘을 새로 올려도 그 시간만큼 옛 응답이 남는다.
+     * JS의 fetch는 강력 새로고침에도 HTTP 캐시를 쓰기 때문에 사용자가 손쓸 방법이 없다.
+     * no-cache = 캐시하되 매번 검증 — 바뀐 게 없으면 304라 비용도 거의 없다.
+     */
+    res.set('Cache-Control', 'no-cache');
     res.json({ ...expData, icons: await loadIcons() });
   } catch (err) {
     console.error('경험치 데이터 조회 오류:', err.message);

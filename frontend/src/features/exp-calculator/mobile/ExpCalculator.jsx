@@ -199,20 +199,21 @@ function MiniStat({ label, value, color = 'var(--accent-bright)' }) {
 
 function BonusChips({ bonus }) {
   if (!bonus) return null
+  // 칩 색은 아래 카드 묶음(일일·주간)과 같은 규칙 — 전부 하늘색이면 배지·차트와 뭉쳐 보인다
   const chips = [
-    ['몬파', bonus.monsterPark],
-    ['에픽던전', bonus.epicDungeon],
-    ['아케인 일퀘', bonus.arcaneDaily],
-    ['그란디스 일퀘', bonus.grandisDaily],
+    ['몬파', bonus.monsterPark, C_WEEK],
+    ['에픽던전', bonus.epicDungeon, C_WEEK],
+    ['아케인 일퀘', bonus.arcaneDaily, C_DAY],
+    ['그란디스 일퀘', bonus.grandisDaily, C_DAY],
   ].filter(([, v]) => v > 0)
   if (!chips.length) return null
   return (
     <div className="flex items-center gap-1.5 flex-wrap mt-2">
-      {chips.map(([name, v]) => (
+      {chips.map(([name, v, color]) => (
         <span
           key={name}
           className="text-[12px] font-bold px-2 py-0.5 rounded-full"
-          style={{ background: 'rgba(94,205,245,.16)', color: 'var(--mpl-sky-to)' }}
+          style={{ background: `color-mix(in srgb, ${color} 14%, transparent)`, color }}
         >
           {name} +{v}%
         </span>
@@ -351,7 +352,8 @@ export default function MobileExpCalculator() {
 
   const { data } = useQuery({
     queryKey: ['exp', 'data'],
-    queryFn: () => api('/api/exp/data'),
+    // v=2 — 옛 응답이 1시간 캐시로 남아 새 아이콘이 안 보이던 것을 우회한다
+    queryFn: () => api('/api/exp/data?v=2'),
     staleTime: Infinity,
   })
 
@@ -518,7 +520,8 @@ export default function MobileExpCalculator() {
             <div className="flex items-center gap-1.5">
               {char.world_icon && <img src={char.world_icon} alt="" className="w-[19px] h-[19px] object-contain" style={{ imageRendering: 'pixelated' }} />}
               <span className="text-[16px] font-bold truncate">{char.character_name}</span>
-              <span className="text-[12px] font-bold tabular-nums text-white px-2 py-0.5 rounded-md shrink-0" style={{ background: SKY }}>Lv.{char.character_level}</span>
+              <span className="text-[12px] font-bold tabular-nums text-white px-2 py-0.5 rounded-md shrink-0"
+                style={{ background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))' }}>Lv.{char.character_level}</span>
               <span className="text-[12px] shrink-0" style={{ color: 'var(--text-muted)' }}>{char.job_name}</span>
             </div>
             <div className="flex items-center gap-2 mt-2.5">

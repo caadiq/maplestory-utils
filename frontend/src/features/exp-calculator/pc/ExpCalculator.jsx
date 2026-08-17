@@ -245,7 +245,8 @@ export default function ExpCalculator() {
 
   const { data } = useQuery({
     queryKey: ['exp', 'data'],
-    queryFn: () => api('/api/exp/data'),
+    // v=2 — 옛 응답이 1시간 캐시로 남아 새 아이콘이 안 보이던 것을 우회한다
+    queryFn: () => api('/api/exp/data?v=2'),
     staleTime: Infinity,
   })
 
