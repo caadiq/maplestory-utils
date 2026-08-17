@@ -1,47 +1,14 @@
 /**
- * 경험치 계산 — "지금 이걸 몇 개 쓰면 얼마나 오르나"만 본다.
+ * 경험치 계산기 로직
  *
- * 예전 버전은 하루 획득량으로 목표 레벨 도달일까지 예측했는데, 일회성 아이템을
- * 언제 쓸지 모른다는 문제(메카베리는 쓰는 레벨에 따라 개당 가치가 2.5배 벌어진다)로
- * 접었다. 지금은 예측을 하지 않고 **선택한 레벨 기준의 현재 값**만 계산한다.
+ * 데이터(/api/exp/data)는 전부 게임 원본 정수:
+ * - 지역 퀘스트·몬파·주간퀘: 레벨 무관 고정 절대값
+ * - 에픽던전·익스몬파·핸즈·사우나·농장·교환권: 레벨별 절대값 테이블
+ * - 성장의 비약: 캡 레벨의 1레벨 경험치와 정확히 일치 (캡 미만이면 1레벨 상승)
  *
- * 데이터(/api/exp/data)는 전부 게임 원본 정수다:
- * - 지역 일퀘·몬파·주간퀘: 레벨 무관 고정 절대값
- * - 에픽던전·익스몬파·사우나·농장·교환권: 레벨별 절대값 테이블
- * - 성장의 비약: 캡 레벨의 1레벨 경험치와 정확히 일치
- *
- * 보너스(보약·아티팩트)는 캐릭터마다 다르므로 계산에 넣을지는 호출부가 정한다 —
- * 캐릭터를 고르면 반영하고, 레벨만 입력해서 볼 때는 기본값 그대로 본다.
+ * 예측은 하루 단위 시뮬레이션: 레벨이 오르면 레벨 테이블 값도 따라 바뀐다.
+ * 주간 컨텐츠는 1/7로 나눠 매일 반영(부드러운 근사), 일회성은 첫날 적용.
  */
-
-/** 레벨별 필요 경험치 (테이블 밖이면 null) */
-export const levelExp = (data, level) => data?.levelExp?.[String(level)] ?? null
-
-/** 레벨별 표에서 값 꺼내기 — 표 범위를 넘으면 마지막 값을 유지한다 */
-export function byLevel(table, level) {
-  if (!table) return 0
-  const v = table[String(level)]
-  if (v != null) return v
-  const keys = Object.keys(table)
-  if (!keys.length) return 0
-  const max = keys[keys.length - 1]
-  return level > Number(max) ? table[max] : 0
-}
-
-/** 보너스 배수 (100% → 2배). 보너스를 안 쓰면 1 */
-const mult = (pct) => 1 + (pct || 0) / 100
-
-/*
- * 아이콘 슬러그 매핑 — 데이터의 지역 id와 이미지 이름이 서로 다르다.
- * 몬파 지역은 대부분 일퀘 심볼과 id가 같고 셀라스만 몬파 전용이다.
- */
-const ZONE_ICON_PREFIX = {
-  yeoro: 'arc', chewchew: 'arc', lacheln: 'arc', arcana: 'arc', morass: 'arc', esfera: 'arc',
-  moonbridge: 'ten', maze: 'ten', limen: 'ten', sellas: 'mp',
-  cernium: 'gra', arcs: 'gra', odium: 'gra', dowonkyung: 'gra', arteria: 'gra', carcion: 'gra', tallahart: 'gra',
-}
-const zoneIcon = (icons, id) => icons?.[`${ZONE_ICON_PREFIX[id]}_${id}`]
-const EPIC_ICON = { high_mountain: 'ed_highmountain', angler_company: 'ed_angler', nightmare_paradise: 'ed_nightmare' }
 
 export const EPIC_STAGES = [
   { value: 0, label: '기본' },
@@ -50,189 +17,209 @@ export const EPIC_STAGES = [
 ]
 
 /**
- * 항목 목록을 만든다. 각 항목은 { key, group, name, icon, unit, each, bonusPct }.
- * each = 1회(1개)당 절대 경험치 — 보너스까지 반영된 값.
+ * 몬파 주간 획득 — 입장권은 하루 단위(기본 2매)라 입력은 일일 횟수.
+ * 주 7일 중 일요일 하루는 보너스 값으로 자동 반영: 주간 = 일일횟수 × (평일 6일 + 일요일 1일)
  *
- * bonus가 null이면 보너스를 반영하지 않는다(레벨만 입력한 경우).
+ * special=true면 그 주 일요일에 스페셜 썬데이(몬파 클리어 경험치 +250%)가 적용된다.
+ * 평일 100% + 일요일 50% + 썬데이 250% = 400% → 데이터의 exp.special(=평일×4)
  */
-export function buildItems(data, level, bonus, opts = {}) {
-  if (!data) return []
-  const b = bonus || {}
-  const items = []
-  const add = (o) => items.push(o)
-
-  /* ── 일일 퀘스트 ── */
-  const dailyBonus = {
-    arcane: b.arcaneDaily || 0,
-    tenebris: 0,        // 스킬 효과에 테네브리스 항목이 없다 — 보너스 대상이 아니다
-    grandis: b.grandisDaily || 0,
-  }
-  for (const group of ['arcane', 'tenebris', 'grandis']) {
-    for (const z of data.daily?.[group] || []) {
-      add({
-        key: `daily_${z.id}`,
-        group: '일일 퀘스트',
-        name: z.name,
-        icon: zoneIcon(data.icons, z.id),
-        unit: '회',
-        locked: level < z.minLevel,
-        minLevel: z.minLevel,
-        bonusPct: dailyBonus[group],
-        each: Math.round(z.exp * mult(dailyBonus[group])),
-      })
-    }
-  }
-
-  /* ── 몬스터파크 ── */
-  const mpBonus = b.monsterPark || 0
-  const zone = data.monsterPark?.zones?.filter((z) => level >= z.minLevel).slice(-1)[0]
-  if (zone) {
-    add({
-      key: 'mp_normal',
-      group: '몬스터파크',
-      name: `${zone.name} · 평일`,
-      icon: zoneIcon(data.icons, zone.id) || data.icons?.mp,
-      unit: '회',
-      bonusPct: mpBonus,
-      each: Math.round(zone.exp.normal * mult(mpBonus)),
-    })
-    add({
-      key: 'mp_sunday',
-      group: '몬스터파크',
-      name: `${zone.name} · 일요일`,
-      icon: zoneIcon(data.icons, zone.id) || data.icons?.mp,
-      unit: '회',
-      bonusPct: mpBonus,
-      each: Math.round(zone.exp.sunday * mult(mpBonus)),
-    })
-    add({
-      key: 'mp_special',
-      group: '몬스터파크',
-      name: `${zone.name} · 스페셜 썬데이`,
-      icon: zoneIcon(data.icons, zone.id) || data.icons?.mp,
-      unit: '회',
-      bonusPct: mpBonus,
-      each: Math.round(zone.exp.special * mult(mpBonus)),
-    })
-  }
-  if (data.extremePark && level >= data.extremePark.minLevel) {
-    add({
-      key: 'mp_extreme',
-      group: '몬스터파크',
-      name: '익스트림 몬스터파크',
-      icon: data.icons?.mp_extreme,
-      unit: '회',
-      bonusPct: 0, // 스킬 효과의 '몬스터파크 퇴장' 문구는 일반 몬파 기준이라 넣지 않는다
-      each: byLevel(data.extremePark.byLevel, level),
-    })
-  }
-
-  /* ── 에픽 던전 ── */
-  const edBonus = b.epicDungeon || 0
-  const stageMul = data.epicDungeon?.stages?.[opts.epicStage ?? 2] ?? 1
-  for (const d of data.epicDungeon?.dungeons || []) {
-    add({
-      key: `ed_${d.id}`,
-      group: '에픽 던전',
-      name: d.name,
-      icon: data.icons?.[EPIC_ICON[d.id]],
-      unit: '회',
-      locked: level < d.minLevel,
-      minLevel: d.minLevel,
-      bonusPct: edBonus,
-      each: Math.round(byLevel(d.base, level) * stageMul * mult(edBonus)),
-    })
-  }
-
-  /* ── 잠수 ── */
-  const saunaHour = byLevel(data.sauna?.hourly, level)
-  add({ key: 'sauna', group: '잠수', name: 'MVP 리조트 · 1시간', icon: data.icons?.sauna, unit: '시간', bonusPct: 0, each: saunaHour })
-  add({ key: 'sauna_vip', group: '잠수', name: 'VIP 사우나 이용권 (30분)', icon: data.icons?.sauna_vip, unit: '개', bonusPct: 0, each: Math.round(saunaHour * 0.5) })
-
-  /* ── 아이템 ── */
-  const f = data.farms || {}
-  if (f.golden && level >= f.golden.minLevel && level <= f.golden.maxLevel) {
-    add({ key: 'farm_gold', group: '아이템', name: '황금 딸기 농장', icon: data.icons?.farm_gold, unit: '개', bonusPct: 0, each: byLevel(f.golden.byLevel, level) })
-  }
-  if (f.blue && level >= f.blue.minLevel) {
-    add({ key: 'farm_blue', group: '아이템', name: '블루베리 농장', icon: data.icons?.farm_blue, unit: '개', bonusPct: 0, each: byLevel(f.blue.byLevel, level) })
-  }
-  if (f.mech && level >= f.mech.minLevel) {
-    add({ key: 'farm_mech', group: '아이템', name: '메카베리 농장', icon: data.icons?.farm_mech, unit: '개', bonusPct: 0, each: byLevel(f.mech.byLevel, level) })
-  }
-  if (data.coupons?.normal) {
-    add({ key: 'coupon', group: '아이템', name: 'EXP 교환권', icon: data.icons?.coupon, unit: '개', bonusPct: 0, each: byLevel(data.coupons.normal.byLevel, level) })
-  }
-  if (data.coupons?.upper && level >= (data.coupons.upper.minLevel || 0)) {
-    add({ key: 'coupon_up', group: '아이템', name: '상급 EXP 교환권', icon: data.icons?.coupon_up, unit: '개', bonusPct: 0, each: byLevel(data.coupons.upper.byLevel, level) })
-  }
-
-  /* ── 비약 ── */
-  for (const e of data.elixirs || []) {
-    // 캡 미만이면 그 레벨의 1레벨치를 통째로 준다 (레벨업 1회와 같다)
-    const under = level < e.capLevel
-    add({
-      key: `elixir_${e.id}`,
-      group: '비약',
-      name: e.name,
-      icon: data.icons?.[`elixir_${e.id}`] || data.icons?.elixir,
-      unit: '개',
-      bonusPct: 0,
-      note: under ? '레벨업 1회' : null,
-      each: under ? (levelExp(data, level) ?? 0) : e.exp,
-    })
-  }
-  for (const e of data.levelElixirs || []) {
-    add({
-      key: `elixir_lv_${e.id}`,
-      group: '비약',
-      name: e.name,
-      icon: data.icons?.[e.id === 'e200lv' ? 'elixir200' : 'elixir250'],
-      unit: '개',
-      bonusPct: 0,
-      note: level < e.targetLevel ? `Lv.${e.targetLevel}로 즉시 상승` : null,
-      each: level < e.targetLevel ? null : e.exp, // 레벨 점프는 경험치로 환산할 수 없다
-    })
-  }
-
-  return items
+export function parkWeeklyExp(zone, runsPerDay, special = false) {
+  if (!zone || !runsPerDay) return 0
+  const sundayExp = special ? zone.exp.special : zone.exp.sunday
+  return runsPerDay * (zone.exp.normal * 6 + sundayExp)
 }
 
-/** 개수를 곱해 합계를 낸다 — { total, rows } */
-export function summarize(items, counts, data, level) {
-  const need = levelExp(data, level) || 0
-  let total = 0
-  const rows = []
-  for (const it of items) {
-    const n = counts?.[it.key] || 0
-    if (!n || it.each == null || it.locked) continue
-    const sum = it.each * n
-    total += sum
-    rows.push({ ...it, count: n, sum, pct: need ? (sum / need) * 100 : 0 })
-  }
+/**
+ * KST 기준 '이번 주 월요일' 날짜 키.
+ * 스페셜 썬데이 토글은 켠 주에만 유효하고 월요일 00시(KST)에 자동으로 풀린다.
+ */
+export function weekKeyKST(date = new Date()) {
+  const kst = new Date(date.getTime() + 9 * 3600 * 1000)
+  const mondayIdx = (kst.getUTCDay() + 6) % 7 // 월=0 … 일=6
+  kst.setUTCDate(kst.getUTCDate() - mondayIdx)
+  return kst.toISOString().slice(0, 10)
+}
+
+/** 저장된 스페셜 썬데이 설정이 지금도 유효한지 (켠 주가 지났으면 false) */
+export const parkSpecialActive = (park, weekKey) =>
+  !!park?.sundaySpecial && park.sundaySpecialWeek === weekKey
+
+const byLevel = (table, level) => {
+  if (!table) return 0
+  const v = table[String(level)]
+  if (v != null) return v
+  // 테이블 범위 밖(최대 레벨 초과)은 마지막 값 유지
+  const keys = Object.keys(table)
+  if (!keys.length) return 0
+  const max = keys[keys.length - 1]
+  return level > Number(max) ? table[max] : 0
+}
+
+export function defaultSettings(level) {
   return {
-    total,
-    rows,
-    need,
-    pct: need ? (total / need) * 100 : 0,
-    /** 이 레벨 기준으로 몇 레벨을 올릴 수 있는지 (같은 레벨 필요치가 계속 든다고 가정) */
-    levels: need ? total / need : 0,
+    hunt: { pctPerRun: 0, runsPerDay: 0 },
+    daily: {}, // zoneId -> false 만 기록 (기본 켜짐)
+    weekly: {
+      epic: { on: true, dungeon: 'nightmare_paradise', stage: 2 },
+      park: { on: true, zone: 'auto', runs: 2, sundaySpecial: false },
+      extreme: { on: true },
+      mvpHours: 0,
+    },
+    items: {
+      elixirCounts: { e249: 0, e259: 0, e269: 0, e279: 0 },
+      e200lv: 0,
+      e250lv: 0,
+      couponNormal: 0,
+      couponUpper: 0,
+      vipTickets: 0, // VIP 사우나 이용권 (1개 = 30분)
+      farmGolden: 0,
+      farmBlue: 0,
+      farmMech: 0,
+    },
+    goal: { level: Math.min(level + 1 || 261, 300) },
   }
 }
 
-/** 큰 숫자를 조/억 단위로 — 경험치는 자릿수가 커서 그대로 두면 읽히지 않는다 */
-export function formatExp(n) {
-  if (!n) return '0'
-  const jo = Math.floor(n / 1e12)
-  const eok = Math.floor((n % 1e12) / 1e8)
-  if (jo) return `${jo.toLocaleString()}조 ${eok.toLocaleString()}억`
-  if (eok) return `${eok.toLocaleString()}억`
-  return n.toLocaleString()
+/** 일퀘 지역이 켜져 있는지 (기본 켜짐, 명시적으로 끈 것만 false) */
+export const zoneOn = (daily, id) => daily?.[id] !== false
+
+/** 몬파에서 실제 계산에 쓸 구역 (auto = 입장 가능한 최고 구역) */
+export function parkZoneAt(level, data, zoneId) {
+  const zones = data.monsterPark.zones.filter((z) => level >= z.minLevel)
+  if (!zones.length) return null
+  if (zoneId && zoneId !== 'auto') {
+    const z = zones.find((x) => x.id === zoneId)
+    if (z) return z
+  }
+  return zones[zones.length - 1]
 }
 
-export function formatPct(p) {
-  if (!p) return '0%'
-  if (p >= 100) return `${p.toFixed(1)}%`
-  if (p >= 1) return `${p.toFixed(2)}%`
-  return `${p.toFixed(3)}%`
+const MAX_LEVEL = 300
+const lvExp = (data, L) => data.levelExp[String(L)] || Infinity
+
+/**
+ * 화면 표시용 — 선택한 레벨 기준으로 "1개(1회)당 몇 %"와 "개수만큼 하면 몇 %".
+ *
+ * 예전에는 캐릭터 레벨로만 계산했지만, 지금은 레벨을 직접 고를 수 있어야 해서
+ * 레벨을 그대로 받는다.
+ *
+ * bonus(보약·아티팩트)는 캐릭터를 골랐을 때만 들어온다 — 보약은 서버·캐릭터마다
+ * 찍은 단계가 달라 레벨만으로는 정할 수 없다. 없으면 순수 기본값이 나온다.
+ */
+export function breakdown(data, level, s, bonus) {
+  const L = level
+  const E = lvExp(data, L)
+  const bo = bonus || {}
+  const bMul = (pct) => 1 + (pct || 0) / 100
+  const bDaily = { arcane: bMul(bo.arcaneDaily), tenebris: 1, grandis: bMul(bo.grandisDaily) }
+  const bPark = bMul(bo.monsterPark)
+  const bEpic = bMul(bo.epicDungeon)
+  const pct = (abs) => (abs / E) * 100
+  const huntAbs = ((s.hunt.pctPerRun || 0) / 100) * E * (s.hunt.runsPerDay || 0)
+
+  const zones = {}
+  let dailyQuest = 0
+  for (const group of ['arcane', 'tenebris', 'grandis']) {
+    let g = 0
+    for (const z of data.daily[group]) {
+      const locked = L < z.minLevel
+      const on = !locked && zoneOn(s.daily, z.id)
+      const p = pct(z.exp * bDaily[group])
+      zones[z.id] = { locked, on, pct: p }
+      if (on) g += p
+    }
+    zones[`${group}Total`] = g
+    dailyQuest += g
+  }
+
+  const w = s.weekly
+  const epicDungeon = data.epicDungeon.dungeons.find((x) => x.id === w.epic.dungeon)
+  const epicLocked = !epicDungeon || L < epicDungeon.minLevel
+  const epicOne = epicLocked ? 0 : byLevel(epicDungeon.base, L) * data.epicDungeon.stages[w.epic.stage] * bEpic
+  const epic = w.epic.on && !epicLocked ? epicOne : 0
+
+  const parkZone = parkZoneAt(L, data, w.park.zone)
+  // 몬파는 매일 도는 컨텐츠지만 일요일 보너스 때문에 주 단위로 계산한다.
+  // 집계·표시는 하루치가 맞으므로 7로 나눠 평균을 낸다.
+  const parkWeek = (w.park.on ? parkWeeklyExp(parkZone, w.park.runs || 0, w.park.sundaySpecial) : 0) * bPark
+
+  const extremeLocked = L < data.extremePark.minLevel
+  const extremeOne = extremeLocked ? 0 : byLevel(data.extremePark.byLevel, L)
+  const extreme = w.extreme.on && !extremeLocked ? extremeOne : 0
+  const saunaHour = byLevel(data.sauna.hourly, L)
+  const mvp = saunaHour * (w.mvpHours || 0)
+
+  const it = s.items
+  // 캡 미만이면 1레벨 상승이라 "현재 레벨 1레벨치"로 환산 표시
+  const elixirEach = {}
+  const elixirOne = {} // 1개당 획득 (%)
+  let elixirPct = 0
+  for (const e of data.elixirs) {
+    const one = L < e.capLevel ? E : e.exp
+    const p = pct(one * (it.elixirCounts?.[e.id] || 0))
+    elixirEach[e.id] = p
+    elixirOne[e.id] = pct(one)
+    elixirPct += p
+  }
+  const e200 = it.e200lv && L >= 200 ? pct(data.levelElixirs[0].exp * it.e200lv) : 0
+  const e250 = it.e250lv && L >= 250 ? pct(data.levelElixirs[1].exp * it.e250lv) : 0
+  const e200One = pct(data.levelElixirs[0].exp)
+  const e250One = pct(data.levelElixirs[1].exp)
+  const couponNOne = pct(byLevel(data.coupons.normal.byLevel, L))
+  const couponUOne = L >= (data.coupons.upper.minLevel || 0) ? pct(byLevel(data.coupons.upper.byLevel, L)) : 0
+  const couponN = couponNOne * (it.couponNormal || 0)
+  const couponU = couponUOne * (it.couponUpper || 0)
+  const vipOne = pct(saunaHour * 0.5) // 이용권 1개 = 30분
+  const vip = vipOne * (it.vipTickets || 0)
+  const f = data.farms
+  const goldenLocked = L > f.golden.maxLevel
+  const goldenOne = !goldenLocked && L >= f.golden.minLevel ? pct(byLevel(f.golden.byLevel, L)) : 0
+  const golden = goldenOne * (it.farmGolden || 0)
+  const blueLocked = L < f.blue.minLevel
+  const blueOne = !blueLocked ? pct(byLevel(f.blue.byLevel, L)) : 0
+  const blue = blueOne * (it.farmBlue || 0)
+  const mechLocked = L < f.mech.minLevel
+  const mechOne = !mechLocked ? pct(byLevel(f.mech.byLevel, L)) : 0
+  const mech = mechOne * (it.farmMech || 0)
+
+  const hunt = pct(huntAbs)
+  const parkDaily = pct(parkWeek) / 7
+  const dailyTotal = hunt + dailyQuest + parkDaily
+  const weeklyTotal = pct(epic + extreme + mvp)
+  const onceTotal = elixirPct + e200 + e250 + couponN + couponU + vip + golden + blue + mech
+
+  return {
+    E,
+    hunt,
+    zones,
+    dailyQuest,
+    dailyTotal,
+    epic: { locked: epicLocked, one: pct(epicOne), total: pct(epic) },
+    park: {
+      zone: parkZone,
+      oneNormal: parkZone ? pct(parkZone.exp.normal * bPark) : 0,
+      oneSunday: parkZone ? pct((w.park.sundaySpecial ? parkZone.exp.special : parkZone.exp.sunday) * bPark) : 0,
+      total: parkDaily,   // 하루 평균 (카드 합계·일일 집계 공통)
+      week: pct(parkWeek),
+    },
+    extreme: { locked: extremeLocked, one: pct(extremeOne), total: pct(extreme) },
+    mvp: pct(mvp),
+    saunaHourPct: pct(saunaHour), // 잠수 1시간당 획득 (사우나·리조트 공통)
+    weeklyTotal,
+    elixir: elixirPct,
+    elixirEach,
+    elixirOne,
+    e200, e250, e200One, e250One, couponN, couponU, couponNOne, couponUOne, vip, vipOne,
+    golden: { locked: goldenLocked, one: goldenOne, total: golden },
+    blue: { locked: blueLocked, one: blueOne, total: blue },
+    mech: { locked: mechLocked, one: mechOne, total: mech },
+    onceTotal,
+  }
+}
+
+export function fmtPct(p) {
+  if (!p) return '—'
+  if (p >= 10) return `${p.toFixed(2)}%`
+  if (p >= 0.01) return `${p.toFixed(4)}%`
+  return `${p.toFixed(4)}%`
 }
