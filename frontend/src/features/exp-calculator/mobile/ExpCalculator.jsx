@@ -127,7 +127,7 @@ function TwoLineRow({ icon, label, control, note, value, valueColor, locked }) {
  * 입력칸 폭을 고정하고 내용을 오른쪽에 붙인다.
  * 단위 글자 수가 다른 줄들을 나란히 놓을 때 폭이 어긋나는 걸 막는다 (PC와 같은 방식).
  */
-function FixedControl({ width = 112, children }) {
+function FixedControl({ width = 96, children }) {
   return <span className="inline-block [&>div]:w-full [&>div]:justify-end" style={{ width }}>{children}</span>
 }
 
@@ -642,7 +642,7 @@ export default function MobileExpCalculator() {
               <div>
                 {/* 단위 글자 수가 달라(시간/주 vs 개) 폭이 어긋났다 — 박스 폭을 맞추고 오른쪽 정렬 */}
                 <TwoLineRow icon="sauna" label="MVP 리조트" note={`1시간당 ${fmtPct(bd.saunaHourPct)}`}
-                  control={<FixedControl><NumInput value={s.weekly.mvpHours} onChange={(v) => patchDeep('weekly', { mvpHours: v })} min={0} max={99} chars={3} unit="시간/주" /></FixedControl>}
+                  control={<FixedControl><NumInput value={s.weekly.mvpHours} onChange={(v) => patchDeep('weekly', { mvpHours: v })} min={0} max={99} chars={2} unit="시간/주" /></FixedControl>}
                   value={fmtPct(bd.mvp)} valueColor={C_WEEK} />
                 <TwoLineRow icon="sauna_vip" label="VIP 사우나 이용권" note={`1개(30분)당 ${fmtPct(bd.vipOne)}`}
                   control={<FixedControl><NumInput value={s.items.vipTickets} onChange={(v) => patchDeep('items', { vipTickets: v })} min={0} max={999} chars={3} unit="개" /></FixedControl>}
