@@ -51,8 +51,12 @@ const ICON_NAMES = {
   farm_crimson: '크림슨 메카베리 농장',
 };
 
-// 이름→URL은 거의 안 바뀌므로 한 번 조회해 캐시한다
+// 이름→URL은 거의 안 바뀌므로 한 번 조회해 캐시한다.
+// 관리자가 이미지를 올리면 그 이름이 새로 잡혀야 하므로 업로드·삭제 시 비운다.
 let iconCache = null;
+export function resetIconCache() {
+  iconCache = null;
+}
 export async function loadIcons() {
   if (iconCache) return iconCache;
   const rows = await Image.findAll({ where: { name: Object.values(ICON_NAMES) } });

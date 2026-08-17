@@ -486,7 +486,8 @@ export default function ExpCalculator() {
               {/* 몬스터파크 — 일요일 보너스는 자동 반영 (주 1회) */}
               <ContentCard icon="mp" grad="linear-gradient(180deg,#b98fdd,#9868c7)" title="몬스터파크"
                 sub="일 2회 무료 · 최대 7회" pct={fmtPct(bd.park.total)} pctColor={C_WEEK} totalLabel="일 평균">
-                <div className="grid grid-cols-[3fr_2fr] gap-2">
+                {/* 횟수는 한 자리라 좁아도 되고, 지역 이름은 길어서 넓어야 한다 */}
+                <div className="grid grid-cols-[1fr_86px] gap-2">
                   <Field label="지역">
                     <Select
                       value={bd.park.zone?.id || ''}
@@ -605,7 +606,7 @@ export default function ExpCalculator() {
                     value={fmtPct(bd.mech.total)} valueColor={C_ONCE} />
                   <TwoLineRow icon="farm_crimson" label="크림슨 메카베리 농장" locked={bd.crimson.locked}
                     note={bd.crimson.locked ? `Lv.${data.farms.crimson.minLevel} 필요` : `1회당 ${fmtPct(bd.crimson.one)}`}
-                    control={<NumInput value={s.items.farmCrimson} onChange={(v) => patchDeep('items', { farmCrimson: v })} min={0} max={999} chars={3} unit="회" />}
+                    control={<NumInput value={s.items.farmCrimson ?? 0} onChange={(v) => patchDeep('items', { farmCrimson: v })} min={0} max={999} chars={3} unit="회" />}
                     value={fmtPct(bd.crimson.total)} valueColor={C_ONCE} />
                 </div>
               </ContentCard>
