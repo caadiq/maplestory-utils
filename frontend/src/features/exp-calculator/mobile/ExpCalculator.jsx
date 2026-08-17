@@ -16,7 +16,7 @@ import {
   EPIC_STAGES, defaultSettings, zoneOn,
   breakdown, fmtPct, weekKeyKST, parkSpecialActive,
 } from '../logic'
-import { WK_DAY, mdLabel, journeyStats, chartGeometry } from '../journey'
+import { WK_DAY, fmtDate, mdLabel, journeyStats, chartGeometry } from '../journey'
 
 /**
  * 경험치 계산기 — 모바일.
@@ -188,9 +188,12 @@ const LEVEL_OPTIONS = Array.from({ length: 100 }, (_, i) => ({ value: 200 + i, l
 
 /** 적용 중인 보너스 — 스킬 효과에서 읽은 값이라 게임과 대조할 수 있게 그대로 보여준다 */
 /* 세 값이 전부 같은 색이면 한 덩어리로 보인다 — 성격이 다르니 색도 나눈다 (PC와 같은 규칙) */
-function MiniStat({ label, value, color = 'var(--accent-bright)' }) {
+function MiniStat({ label, value, color = 'var(--accent-bright)', divider }) {
   return (
-    <div className="text-center py-2.5 min-w-0">
+    <div
+      className="text-center py-2.5 min-w-0 relative"
+      style={divider ? { boxShadow: 'inset 1px 0 0 var(--panel-border)' } : undefined}
+    >
       <div className="text-[11.5px] font-bold truncate" style={{ color: 'var(--text-muted)' }}>{label}</div>
       <div className="text-[14.5px] font-bold tabular-nums truncate" style={{ color }}>{value}</div>
     </div>
@@ -231,7 +234,8 @@ function BonusChips({ bonus }) {
 const CHART_DAYS = 5
 
 function Chart({ char, history, nowMs }) {
-  const V = { W: 400, H: 310, padL: 42, padR: 0, padT: 46, padB: 54 }
+  // padR: 오늘 지점의 캐릭터 마커가 오른쪽 경계에 붙지 않도록 (PC와 같은 이유)
+  const V = { W: 400, H: 310, padL: 42, padR: 46, padT: 46, padB: 54 }
   // 폭이 좁아 9일치를 다 그리면 점 간격이 19px뿐 — 최근 며칠만 그려 날짜를 전부 넣는다
   const hist = history.slice(-CHART_DAYS)
   const { coords, now, gridLevels, line, area, Y } =
@@ -418,6 +422,8 @@ export default function MobileExpCalculator() {
   // 실측 그래프용 — 렌더 중 시각 호출은 금지 → 최초 마운트 시 한 번만 고정
   const nowMs = useMemo(() => new Date().getTime(), [])
   const history = useMemo(() => fresh?.history || [], [fresh])
+  const created = useMemo(() => (fresh?.date_create ? new Date(fresh.date_create) : null), [fresh])
+  const ageDays = created ? Math.max(1, Math.round((nowMs - created.getTime()) / 86400000)) : null
   const stats = useMemo(
     () => (char ? journeyStats(history, char.character_level + char.exp_rate / 100, nowMs) : { avg: null, week: null }),
     [char, history, nowMs],
@@ -517,37 +523,43 @@ export default function MobileExpCalculator() {
         {char && (
           <div className="rounded-2xl border p-3.5"
             style={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)', boxShadow: 'var(--panel-shadow)' }}>
-            <div className="flex items-center gap-1.5">
-              {char.world_icon && <img src={char.world_icon} alt="" className="w-[19px] h-[19px] object-contain" style={{ imageRendering: 'pixelated' }} />}
-              <span className="text-[16px] font-bold truncate">{char.character_name}</span>
-              <span className="text-[12px] font-bold tabular-nums text-white px-2 py-0.5 rounded-md shrink-0"
-                style={{ background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))' }}>Lv.{char.character_level}</span>
-              <span className="text-[12px] shrink-0" style={{ color: 'var(--text-muted)' }}>{char.job_name}</span>
-            </div>
-            <div className="flex items-center gap-2 mt-2.5">
-              <span className="text-[13px] font-bold shrink-0" style={{ color: 'var(--text-muted)' }}>레벨</span>
-              <div className="flex-1">
+            {/* 이름 줄 오른쪽에 레벨 드롭다운 — 한 줄을 통째로 쓰던 것을 여기로 합친다 */}
+            <div className="flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  {char.world_icon && <img src={char.world_icon} alt="" className="w-[19px] h-[19px] object-contain" style={{ imageRendering: 'pixelated' }} />}
+                  <span className="text-[16px] font-bold truncate">{char.character_name}</span>
+                  <span className="text-[12px] font-bold tabular-nums text-white px-2 py-0.5 rounded-md shrink-0"
+                    style={{ background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))' }}>Lv.{char.character_level}</span>
+                </div>
+                {/* PC와 같은 한 줄 — 직업 · 생성일 (며칠째) */}
+                <div className="text-[12px] mt-1 truncate" style={{ color: 'var(--text-muted)' }}>
+                  {char.job_name}
+                  {created && <> · <span className="tabular-nums">{fmtDate(created).slice(0, 10).replace(/-/g, '.')}</span> 생성 <span style={{ color: 'var(--text-dim)' }}>({ageDays.toLocaleString()}일째)</span></>}
+                </div>
+              </div>
+              <div className="w-[112px] shrink-0">
                 <Select options={charLevelOptions} value={level} onChange={(v) => patch({ viewLevel: v })} />
               </div>
-              {level !== char.character_level && (
-                <button
-                  type="button"
-                  onClick={() => patch({ viewLevel: null })}
-                  className="text-[12px] font-bold rounded-full px-2.5 py-1.5 shrink-0"
-                  style={{ background: 'var(--mpl-row)', color: 'var(--text-muted)' }}
-                >
-                  현재 {char.character_level}
-                </button>
-              )}
             </div>
+            {level !== char.character_level && (
+              <button
+                type="button"
+                onClick={() => patch({ viewLevel: null })}
+                className="text-[12px] font-bold rounded-full px-2.5 py-1 mt-2"
+                style={{ background: 'var(--mpl-row)', color: 'var(--text-muted)' }}
+              >
+                현재 레벨({char.character_level})로
+              </button>
+            )}
             <BonusChips bonus={bonus} />
 
-            {/* 통계 — 실측 */}
-            <div className="grid grid-cols-3 mt-2.5 rounded-xl border overflow-hidden [&>*:nth-child(n+2)]:border-l"
+            {/* 통계 — 실측. 구분선은 칸 사이에만 (PC와 같게) */}
+            <div className="grid grid-cols-3 mt-2.5 rounded-xl border overflow-hidden"
               style={{ borderColor: 'var(--panel-border)', background: 'linear-gradient(180deg, var(--mpl-row), var(--panel-bg))' }}>
               <MiniStat label="현재 경험치" value={`${char.exp_rate.toFixed(2)}%`} />
-              <MiniStat label="최근 7일" value={stats.week != null ? `+${stats.week.toFixed(1)}Lv` : '—'} color={C_WEEK} />
-              <MiniStat label="하루 평균" value={stats.avg != null ? `+${(stats.avg * 100).toFixed(1)}%p` : '—'} color={C_PACE} />
+              <MiniStat label="최근 7일" value={stats.week != null ? `+${stats.week.toFixed(1)}Lv` : '—'} color={C_WEEK} divider />
+              <MiniStat label="하루 평균" value={stats.avg != null ? `+${(stats.avg * 100).toFixed(1)}%p` : '—'} color={C_PACE} divider />
             </div>
 
             <Chart char={char} history={history} nowMs={nowMs} />
