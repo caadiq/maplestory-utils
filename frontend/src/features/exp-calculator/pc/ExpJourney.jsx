@@ -37,20 +37,24 @@ function BonusChips({ bonus }) {
       </span>
     )
   }
+  /*
+   * 칩 색은 아래 요약(일일·주간)과 같은 규칙을 따른다 — 어느 쪽에 붙는 보너스인지
+   * 색만 보고도 이어진다. 전부 하늘색이면 배지·차트와 뭉쳐 보인다.
+   */
   const chips = [
-    ['몬파', bonus.monsterPark],
-    ['에픽던전', bonus.epicDungeon],
-    ['아케인 일퀘', bonus.arcaneDaily],
-    ['그란디스 일퀘', bonus.grandisDaily],
+    ['몬파', bonus.monsterPark, C_WEEK],
+    ['에픽던전', bonus.epicDungeon, C_WEEK],
+    ['아케인 일퀘', bonus.arcaneDaily, C_DAY],
+    ['그란디스 일퀘', bonus.grandisDaily, C_DAY],
   ].filter(([, v]) => v > 0)
   if (!chips.length) return null
   return (
     <span className="flex items-center gap-1.5 flex-wrap">
-      {chips.map(([name, v]) => (
+      {chips.map(([name, v, color]) => (
         <span
           key={name}
           className="text-[12px] font-bold px-2 py-0.5 rounded-full"
-          style={{ background: 'rgba(94,205,245,.16)', color: 'var(--mpl-sky-to)' }}
+          style={{ background: `color-mix(in srgb, ${color} 14%, transparent)`, color }}
         >
           {name} +{v}%
         </span>
@@ -104,7 +108,11 @@ export default function ExpJourney({ char, history, dateCreate, breakdown, bonus
           <div className="flex items-center gap-2">
             {char.world_icon && <img src={char.world_icon} alt="" className="w-[22px] h-[22px] object-contain" style={{ imageRendering: 'pixelated' }} />}
             <span className="text-[22px] font-bold truncate">{char.character_name}</span>
-            <span className="text-[13px] font-bold tabular-nums text-white px-2.5 py-0.5 rounded-md shrink-0" style={{ background: SKY }}>
+            {/* 배지는 데이터가 아니라 식별 정보다 — 아래 수치·차트가 쓰는 하늘색과 구분한다 */}
+            <span
+              className="text-[13px] font-bold tabular-nums text-white px-2.5 py-0.5 rounded-md shrink-0"
+              style={{ background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))' }}
+            >
               Lv.{char.character_level}
             </span>
           </div>
