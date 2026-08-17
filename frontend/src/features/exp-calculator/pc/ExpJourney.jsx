@@ -17,13 +17,14 @@ const SKY = 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))'
 const C_DAY = 'var(--accent-bright)'
 const C_WEEK = '#9247c9'
 const C_ONCE = '#e8a20c'
+/* 하루 평균은 초록 — 위 두 값(하늘·보라)과 겹치지 않으면서 아래 요약의 색과도 안 부딪힌다 */
+const C_PACE = '#3f9e57'
 
-function Stat({ label, value, color, sub }) {
+function Stat({ label, value, color }) {
   return (
     <div className="flex-1 px-4 py-3.5 min-w-0">
       <div className="text-[12.5px] font-bold mb-1 truncate" style={{ color: 'var(--text-muted)' }}>{label}</div>
       <div className="text-[22px] font-bold tabular-nums leading-none truncate" style={{ color }}>{value}</div>
-      {sub && <div className="text-[12px] mt-1 truncate" style={{ color: 'var(--text-dim)' }}>{sub}</div>}
     </div>
   )
 }
@@ -139,11 +140,12 @@ export default function ExpJourney({ char, history, dateCreate, breakdown, bonus
       {/* 통계 스트립 */}
       <div className="mx-6 mb-1.5 flex rounded-2xl border overflow-hidden"
         style={{ borderColor: 'var(--panel-border)', background: 'linear-gradient(180deg, var(--mpl-row), var(--panel-bg))' }}>
-        <Stat label="현재 경험치" value={`${char.exp_rate.toFixed(3)}%`} color={C_DAY} sub={`Lv.${char.character_level} 진행 중`} />
+        {/* 세 값이 전부 같은 색이면 한 덩어리로 보인다 — 성격이 다르니 색도 나눈다 */}
+        <Stat label="현재 경험치" value={`${char.exp_rate.toFixed(3)}%`} color={C_DAY} />
         <div className="w-px my-3" style={{ background: 'var(--panel-border)' }} />
-        <Stat label="최근 7일 획득" value={stats.week != null ? `+${stats.week.toFixed(1)}Lv` : '—'} color={C_DAY} sub="실측" />
+        <Stat label="최근 7일 획득" value={stats.week != null ? `+${stats.week.toFixed(1)}Lv` : '—'} color={C_WEEK} />
         <div className="w-px my-3" style={{ background: 'var(--panel-border)' }} />
-        <Stat label="하루 평균 획득" value={stats.avg != null ? `+${(stats.avg * 100).toFixed(1)}%p` : '—'} color={C_DAY} sub="실측 페이스" />
+        <Stat label="하루 평균 획득" value={stats.avg != null ? `+${(stats.avg * 100).toFixed(1)}%p` : '—'} color={C_PACE} />
       </div>
 
       {/* 차트 — 바깥 px-6로 위 통계 스트립과 좌우 경계를 맞추고,

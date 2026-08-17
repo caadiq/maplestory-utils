@@ -7,7 +7,8 @@ const router = Router();
 
 router.get('/data', async (_req, res) => {
   try {
-    res.set('Cache-Control', 'public, max-age=3600');
+    // 관리자가 아이콘을 추가하면 곧 반영돼야 한다 — 길게 잡으면 한참 뒤에야 보인다
+    res.set('Cache-Control', 'public, max-age=300');
     res.json({ ...expData, icons: await loadIcons() });
   } catch (err) {
     console.error('경험치 데이터 조회 오류:', err.message);

@@ -6,6 +6,7 @@ import { convertAndUpload, safeDelete } from '../services/image.js';
 import { getPublicUrl } from '../lib/s3.js';
 import { sequelize } from '../lib/db.js';
 import { requireAdmin } from '../middleware/session.js';
+import { resetIconCache } from '../services/exp.js';
 import bossCrystalRouter from './admin/boss-crystal.js';
 import challengerSeasonsRouter from './admin/challenger-seasons.js';
 import symbolRouter from './admin/symbol.js';
@@ -148,6 +149,7 @@ router.post('/images', upload.array('files', 50), async (req, res) => {
     }
   }
 
+  resetIconCache(); // 새 이미지가 경험치 계산기 아이콘으로 바로 잡히도록
   res.json({ uploaded: results, errors });
 });
 
@@ -164,6 +166,7 @@ router.post('/images/delete', async (req, res) => {
     await Promise.all(images.map((img) => safeDelete(img.path)));
     await Image.destroy({ where: { id: ids } });
 
+    resetIconCache(); // 지운 이미지가 아이콘 목록에 남지 않도록
     res.json({ success: true, deleted: images.length });
   } catch (err) {
     console.error('이미지 삭제 오류:', err.message);

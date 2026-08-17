@@ -32,6 +32,7 @@ const QUEST = 'linear-gradient(180deg,#7cc7ea,#4da4d4)'
 const C_DAY = 'var(--accent-bright)'
 const C_WEEK = '#9247c9'
 const C_ONCE = '#e8a20c'
+const C_PACE = '#3f9e57'
 
 const EPIC_ICON = { high_mountain: 'ed_highmountain', angler_company: 'ed_angler', nightmare_paradise: 'ed_nightmare' }
 const PARK_ICON_PREFIX = {
@@ -186,11 +187,12 @@ function SecLabel({ children }) {
 const LEVEL_OPTIONS = Array.from({ length: 100 }, (_, i) => ({ value: 200 + i, label: `Lv.${200 + i}` }))
 
 /** 적용 중인 보너스 — 스킬 효과에서 읽은 값이라 게임과 대조할 수 있게 그대로 보여준다 */
-function MiniStat({ label, value }) {
+/* 세 값이 전부 같은 색이면 한 덩어리로 보인다 — 성격이 다르니 색도 나눈다 (PC와 같은 규칙) */
+function MiniStat({ label, value, color = 'var(--accent-bright)' }) {
   return (
     <div className="text-center py-2.5 min-w-0">
       <div className="text-[11.5px] font-bold truncate" style={{ color: 'var(--text-muted)' }}>{label}</div>
-      <div className="text-[14.5px] font-bold tabular-nums truncate" style={{ color: 'var(--accent-bright)' }}>{value}</div>
+      <div className="text-[14.5px] font-bold tabular-nums truncate" style={{ color }}>{value}</div>
     </div>
   )
 }
@@ -541,8 +543,8 @@ export default function MobileExpCalculator() {
             <div className="grid grid-cols-3 mt-2.5 rounded-xl border overflow-hidden [&>*:nth-child(n+2)]:border-l"
               style={{ borderColor: 'var(--panel-border)', background: 'linear-gradient(180deg, var(--mpl-row), var(--panel-bg))' }}>
               <MiniStat label="현재 경험치" value={`${char.exp_rate.toFixed(2)}%`} />
-              <MiniStat label="최근 7일" value={stats.week != null ? `+${stats.week.toFixed(1)}Lv` : '—'} />
-              <MiniStat label="하루 평균" value={stats.avg != null ? `+${(stats.avg * 100).toFixed(1)}%p` : '—'} />
+              <MiniStat label="최근 7일" value={stats.week != null ? `+${stats.week.toFixed(1)}Lv` : '—'} color={C_WEEK} />
+              <MiniStat label="하루 평균" value={stats.avg != null ? `+${(stats.avg * 100).toFixed(1)}%p` : '—'} color={C_PACE} />
             </div>
 
             <Chart char={char} history={history} nowMs={nowMs} />
@@ -701,7 +703,7 @@ export default function MobileExpCalculator() {
                   value={fmtPct(bd.mech.total)} valueColor={C_ONCE} />
                 <TwoLineRow icon="farm_crimson" label="크림슨 메카베리 농장" locked={bd.crimson.locked}
                   note={bd.crimson.locked ? `Lv.${data.farms.crimson.minLevel} 필요` : `1회당 ${fmtPct(bd.crimson.one)}`}
-                  control={<NumInput value={s.items.farmCrimson} onChange={(v) => patchDeep('items', { farmCrimson: v })} min={0} max={999} chars={3} unit="회" />}
+                  control={<NumInput value={s.items.farmCrimson ?? 0} onChange={(v) => patchDeep('items', { farmCrimson: v })} min={0} max={999} chars={3} unit="회" />}
                   value={fmtPct(bd.crimson.total)} valueColor={C_ONCE} />
               </div>
             </Card>
