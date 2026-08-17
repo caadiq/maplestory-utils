@@ -8,6 +8,7 @@ import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import { Reorder } from 'framer-motion'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import CharacterCard from '../../symbol/pc/user/CharacterCard'
+import ExpJourney from './ExpJourney'
 import { useFeatureSync } from '../../../hooks/useFeatureSync'
 import { useCharacterLookup } from '../../../hooks/useCharacterLookup'
 import { useCharacterRoster } from '../../../hooks/useCharacterRoster'
@@ -180,6 +181,7 @@ function MiniToggle({ on, onChange }) {
 /* ── 페이지 ── */
 
 const LEVEL_OPTIONS = Array.from({ length: 100 }, (_, i) => ({ value: 200 + i, label: `Lv.${200 + i}` }))
+
 
 /**
  * 적용 중인 보너스 — 어디에 얼마가 붙는지 보여준다.
@@ -416,45 +418,17 @@ export default function ExpCalculator() {
             </div>
           </div>
 
-          {/* 선택 캐릭터 — 이 패널의 레벨로 보약 포함 값을 본다 (예전 여정 패널 자리) */}
-          {char && (
-            <div className="rounded-[11px] overflow-hidden" style={CARD}>
-              <div className="px-4 py-3 flex items-center gap-4 flex-wrap">
-                <span className="flex items-center gap-2 min-w-0">
-                  {char.world_icon && <img src={char.world_icon} alt="" className="w-5 h-5 object-contain" style={{ imageRendering: 'pixelated' }} />}
-                  <b className="text-[16px] truncate" style={{ color: 'var(--text-strong)' }}>{char.character_name}</b>
-                  <span className="text-[12px] font-bold tabular-nums text-white px-2 py-0.5 rounded-md shrink-0" style={{ background: SKY }}>
-                    Lv.{char.character_level}
-                  </span>
-                  <span className="text-[13px] shrink-0" style={{ color: 'var(--text-muted)' }}>{char.job_name}</span>
-                </span>
-
-                <span className="flex items-center gap-2 ml-auto">
-                  <span className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>레벨</span>
-                  <div className="w-[116px]">
-                    <Select
-                      options={LEVEL_OPTIONS}
-                      value={level}
-                      onChange={(v) => patch({ viewLevel: v })}
-                    />
-                  </div>
-                  {level !== char.character_level && (
-                    <button
-                      type="button"
-                      onClick={() => patch({ viewLevel: null })}
-                      className="text-[12.5px] font-bold rounded-full px-2.5 py-1"
-                      style={{ background: 'var(--mpl-row)', color: 'var(--text-muted)' }}
-                    >
-                      현재 레벨로
-                    </button>
-                  )}
-                </span>
-              </div>
-              <div className="px-4 py-2.5 border-t flex items-center gap-2 flex-wrap" style={{ borderColor: 'var(--mpl-card-line)' }}>
-                <span className="text-[12.5px] font-bold" style={{ color: 'var(--text-muted)' }}>적용 중인 보너스</span>
-                <BonusChips bonus={bonus} />
-              </div>
-            </div>
+          {/* 선택 캐릭터 — 여정 패널. 레벨 드롭다운(예전 목표 레벨 자리)으로 보약 포함 값을 본다 */}
+          {char && bd && (
+            <ExpJourney
+              char={char}
+              history={fresh?.history || []}
+              dateCreate={fresh?.date_create || null}
+              breakdown={bd}
+              bonus={bonus}
+              level={level}
+              onLevel={(v) => patch({ viewLevel: v })}
+            />
           )}
 
           {/* 컨텐츠 카드 */}
