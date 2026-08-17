@@ -523,24 +523,25 @@ export default function MobileExpCalculator() {
         {char && (
           <div className="rounded-2xl border p-3.5"
             style={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)', boxShadow: 'var(--panel-shadow)' }}>
-            {/* 이름 줄 오른쪽에 레벨 드롭다운 — 한 줄을 통째로 쓰던 것을 여기로 합친다 */}
+            {/*
+              드롭다운은 이름 줄에만 둔다. 직업·생성일을 같은 블록에 넣으면 드롭다운 폭만큼
+              좁아져 '(4,422일째)'가 잘렸다 — 아래 줄로 빼서 폭을 다 쓰게 한다.
+            */}
             <div className="flex items-center gap-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  {char.world_icon && <img src={char.world_icon} alt="" className="w-[19px] h-[19px] object-contain" style={{ imageRendering: 'pixelated' }} />}
-                  <span className="text-[16px] font-bold truncate">{char.character_name}</span>
-                  <span className="text-[12px] font-bold tabular-nums text-white px-2 py-0.5 rounded-md shrink-0"
-                    style={{ background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))' }}>Lv.{char.character_level}</span>
-                </div>
-                {/* PC와 같은 한 줄 — 직업 · 생성일 (며칠째) */}
-                <div className="text-[12px] mt-1 truncate" style={{ color: 'var(--text-muted)' }}>
-                  {char.job_name}
-                  {created && <> · <span className="tabular-nums">{fmtDate(created).slice(0, 10).replace(/-/g, '.')}</span> 생성 <span style={{ color: 'var(--text-dim)' }}>({ageDays.toLocaleString()}일째)</span></>}
-                </div>
+              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                {char.world_icon && <img src={char.world_icon} alt="" className="w-[19px] h-[19px] object-contain shrink-0" style={{ imageRendering: 'pixelated' }} />}
+                <span className="text-[16px] font-bold truncate">{char.character_name}</span>
+                <span className="text-[12px] font-bold tabular-nums text-white px-2 py-0.5 rounded-md shrink-0"
+                  style={{ background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))' }}>Lv.{char.character_level}</span>
               </div>
-              <div className="w-[112px] shrink-0">
+              <div className="w-[104px] shrink-0">
                 <Select options={charLevelOptions} value={level} onChange={(v) => patch({ viewLevel: v })} />
               </div>
+            </div>
+            {/* 직업 · 생성일 (며칠째) — 전체 폭 */}
+            <div className="text-[12px] mt-1" style={{ color: 'var(--text-muted)' }}>
+              {char.job_name}
+              {created && <> · <span className="tabular-nums">{fmtDate(created).slice(0, 10).replace(/-/g, '.')}</span> 생성 <span style={{ color: 'var(--text-dim)' }}>({ageDays.toLocaleString()}일째)</span></>}
             </div>
             {level !== char.character_level && (
               <button
@@ -599,7 +600,7 @@ export default function MobileExpCalculator() {
             {/* 몬파는 매일 도는 컨텐츠 — 일요일 보너스 때문에 주 단위로 계산해 하루 평균으로 보여준다 */}
             <Card icon="mp" grad="linear-gradient(180deg,#b98fdd,#9868c7)" title="몬스터파크"
               sub="일 2회 무료 · 최대 7회" pct={fmtPct(bd.park.total)} pctColor={C_WEEK} totalLabel="일 평균">
-              <div className="grid grid-cols-[3fr_2fr] gap-2">
+              <div className="grid grid-cols-[1fr_86px] gap-2">
                 <Field label="지역">
                   <Select
                     value={bd.park.zone?.id || ''}
@@ -631,11 +632,16 @@ export default function MobileExpCalculator() {
             <Card icon="sauna" grad={PUR} title="리조트 · 사우나" sub="잠수 경험치"
               pct={fmtPct(bd.mvp + bd.vip)} pctColor={C_WEEK}>
               <div>
+                {/* 두 줄의 입력칸 폭을 맞춘다 — 단위 글자 수가 달라 그냥 두면 어긋난다 */}
                 <TwoLineRow icon="sauna" label="MVP 리조트" note={`1시간당 ${fmtPct(bd.saunaHourPct)}`}
-                  control={<NumInput value={s.weekly.mvpHours} onChange={(v) => patchDeep('weekly', { mvpHours: v })} min={0} max={99} chars={3} unit="시간/주" />}
+                  control={<span className="inline-flex w-[124px] justify-end [&>div]:w-full">
+                    <NumInput value={s.weekly.mvpHours} onChange={(v) => patchDeep('weekly', { mvpHours: v })} min={0} max={99} chars={2} unit="시간/주" />
+                  </span>}
                   value={fmtPct(bd.mvp)} valueColor={C_WEEK} />
                 <TwoLineRow icon="sauna_vip" label="VIP 사우나 이용권" note={`1개(30분)당 ${fmtPct(bd.vipOne)}`}
-                  control={<NumInput value={s.items.vipTickets} onChange={(v) => patchDeep('items', { vipTickets: v })} min={0} max={999} chars={3} unit="개" />}
+                  control={<span className="inline-flex w-[124px] justify-end [&>div]:w-full">
+                    <NumInput value={s.items.vipTickets} onChange={(v) => patchDeep('items', { vipTickets: v })} min={0} max={999} chars={3} unit="개" />
+                  </span>}
                   value={fmtPct(bd.vip)} valueColor={C_WEEK} />
               </div>
             </Card>
