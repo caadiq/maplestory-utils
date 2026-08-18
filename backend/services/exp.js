@@ -16,6 +16,8 @@ const ICON_NAMES = {
   arc_arcana: '아케인심볼 : 아르카나',
   arc_morass: '아케인심볼 : 모라스',
   arc_esfera: '아케인심볼 : 에스페라',
+  /* 테네브리스는 심볼이 아니라 염원의 불꽃을 준다 — 세 지역이 같은 그림을 쓴다 */
+  flame: '염원의 불꽃',
   ten_moonbridge: '지역 : 문브릿지',
   ten_maze: '지역 : 고통의 미궁',
   ten_limen: '지역 : 리멘',

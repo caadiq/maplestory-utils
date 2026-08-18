@@ -453,7 +453,7 @@ export default function MobileExpCalculator() {
 
   const zoneGroups = [
     { key: 'arcane', title: '아케인리버 일일퀘스트', icon: 'arc_esfera' },
-    { key: 'tenebris', title: '테네브리스 일일퀘스트', icon: 'ten_limen' },
+    { key: 'tenebris', title: '테네브리스 일일퀘스트', icon: 'flame' },
     { key: 'grandis', title: '그란디스 일일퀘스트', icon: 'gra_carcion' },
   ]
 
@@ -598,7 +598,7 @@ export default function MobileExpCalculator() {
                       const zb = bd.zones[z.id]
                       return (
                         <ZoneRow key={z.id}
-                          icon={`${g.key === 'arcane' ? 'arc' : g.key === 'tenebris' ? 'ten' : 'gra'}_${z.id}`}
+                          icon={g.key === 'tenebris' ? 'flame' : `${g.key === 'arcane' ? 'arc' : 'gra'}_${z.id}`}
                           label={z.name}
                           on={zb.on}
                           onToggle={(v) => patch((prev) => ({ ...prev, daily: { ...prev.daily, [z.id]: v } }))}
