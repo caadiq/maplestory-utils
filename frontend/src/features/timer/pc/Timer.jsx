@@ -8,6 +8,7 @@ import { TimerResetIcon, PipIcon, TargetIcon, ScreenOffIcon, BellIcon, IconButto
 import { useJanusDetector } from '../useJanusDetector'
 import { useRuneDetector, runeKindLabel } from '../useRuneDetector'
 import { useBoosterDetector } from '../useBoosterDetector'
+import { useExpStallDetector } from '../useExpStallDetector'
 import { usePipWindow } from '../usePipWindow'
 import { Toggle } from '../../../components/common/widgets'
 import RegionPicker from './RegionPicker'
@@ -98,6 +99,8 @@ export default function Timer() {
   const boosterIconUrl = useStoredIcon('VIP 부스터')
   // 부스터 감지가 지금 어디까지 갔는지 (화면에 그대로 보여준다)
   const [boosterStatus, setBoosterStatus] = useState(null)
+  const stallIconUrl = useStoredIcon('동작 반복 방지')
+  const [stallStatus, setStallStatus] = useState(null)
 
   // 콜백 안에서 최신 설정을 보기 위한 참조 (모드 자동 전환 판정용)
   const settingsRef = useRef(settings)
@@ -218,6 +221,28 @@ export default function Timer() {
     }),
   })
 
+  /*
+   * 동꼽 알림 — 경험치가 멈추면 울린다.
+   * 예약이 아니라 그 자리에서 바로 울린다. 언제 걸릴지는 미리 알 수 없고
+   * 지나고 나서야 아는 상태라 미리 잡아둘 시각이 없다.
+   */
+  useExpStallDetector({
+    videoRef,
+    stream,
+    enabled: settings.stallEnabled,
+    stallSec: settings.stallSec,
+    onAlert: (stillSec) => {
+      const s = settingsRef.current
+      playSound(resolveSound(s.stallSound), s.stallVolume)
+      log(`경험치 ${stillSec}초째 멈춤`, '동꼽', 'warn')
+    },
+    onStatus: (st) => setStallStatus((prev) => {
+      if (!prev && !st) return prev
+      if (prev && st && prev.reason === st.reason && prev.stillSec === st.stillSec) return prev
+      return st
+    }),
+  })
+
   /* ── 표시값 ─────────────────────────────────────────────── */
 
   const soundValue = resolveSound(settings.sound)
@@ -302,6 +327,11 @@ export default function Timer() {
   const handleBoosterTest = async () => {
     await preloadSounds()
     playSound(resolveSound(settings.boosterSound), settings.boosterVolume)
+  }
+
+  const handleStallTest = async () => {
+    await preloadSounds()
+    playSound(resolveSound(settings.stallSound), settings.stallVolume)
   }
 
   useEffect(() => () => clearScheduled(), [clearScheduled])
@@ -571,6 +601,41 @@ export default function Timer() {
         </SettingRow>
         </div>
       </div>
+
+      <div className="rounded-[11px] overflow-hidden" style={CARD}>
+        <SectionBar
+          icon={<CardIcon url={stallIconUrl} />}
+          title="동작 반복 방지 알림"
+          on={settings.stallEnabled}
+          onChange={(v) => set({ stallEnabled: v })}
+          right={stream && settings.stallEnabled && <StallStatus status={stallStatus} />}
+        />
+        <div style={settings.stallEnabled ? undefined : { opacity: 0.45, pointerEvents: 'none' }}>
+        <SettingRow
+          name="판정 시간"
+          desc={<>화면 아래 <b style={{ color: 'var(--text-muted)' }}>경험치 숫자</b>가 {settings.stallSec}초 동안 안 오르면 알립니다</>}
+        >
+          <NumberField
+            value={settings.stallSec}
+            min={5}
+            max={180}
+            unit="초"
+            chars={3}
+            onChange={(v) => set({ stallSec: Math.min(180, Math.max(5, v || 5)) })}
+          />
+        </SettingRow>
+        <SettingRow name="알림 소리" desc="풀릴 때까지 같은 간격으로 다시 알립니다">
+          <SoundControl
+            options={soundOptions}
+            sound={resolveSound(settings.stallSound)}
+            volume={settings.stallVolume}
+            onSound={(v) => set({ stallSound: v })}
+            onVolume={(v) => set({ stallVolume: v })}
+            onTest={handleStallTest}
+          />
+        </SettingRow>
+        </div>
+      </div>
       </div>
 
       {locating && (
@@ -722,6 +787,19 @@ function BoosterStatus({ status }) {
     return <StatusPill tone="warn">숫자 인식 실패 (일치 {status.labelScore.toFixed(2)})</StatusPill>
   }
   return null
+}
+
+/**
+ * 동꼽 감지 상태.
+ * 'waiting'은 첫 변화를 아직 못 본 상태 — 게임 창이 아니라 화면 전체를 공유했거나
+ * 경험치 표시가 꺼져 있으면 여기서 안 넘어간다. 그대로 보여줘야 원인을 알 수 있다.
+ */
+function StallStatus({ status }) {
+  if (!status) return null
+  if (status.reason === 'stall') return <StatusPill tone="warn">경험치 {status.stillSec}초째 멈춤</StatusPill>
+  if (status.reason === 'ok') return <StatusPill tone="live">경험치 오르는 중</StatusPill>
+  if (status.reason === 'notext') return <StatusPill tone="wait">경험치 숫자 안 보임</StatusPill>
+  return <StatusPill tone="wait">경험치 확인 중</StatusPill>
 }
 
 function StatusPill({ tone, children }) {

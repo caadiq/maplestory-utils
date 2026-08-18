@@ -238,6 +238,17 @@ export const DEFAULT_SETTINGS = {
   boosterEnabled: true,
   boosterSound: null,
   boosterVolume: 0.7,
+  /**
+   * 동작 반복 방지(동꼽) 알림.
+   * 제자리에서 같은 스킬을 계속 쓰면 모션만 나가고 스킬이 안 나가는데,
+   * 화면을 안 보고 있으면 몹이 안 잡히는 채로 시간이 흘러간다.
+   * 화면 아래 경험치 숫자가 멈춘 걸로 잡는다 (expStallCore 참고).
+   */
+  stallEnabled: true,
+  stallSound: null,
+  stallVolume: 0.7,
+  /** 경험치가 이 시간(초) 동안 안 오르면 알린다 — 젠이 7.5초라 기본 2젠 */
+  stallSec: 15,
 }
 
 export function loadSettings() {
