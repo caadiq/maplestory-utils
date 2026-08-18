@@ -44,7 +44,8 @@ const parkIconId = (id) => `region_${id}`
 const IconCtx = createContext({})
 
 function Ico({ id, size = 34 }) {
-  const url = useContext(IconCtx)[id]
+  const icons = useContext(IconCtx)
+  const url = icons[id]
   return url
     ? <img src={url} alt="" className="object-contain shrink-0" style={{ width: size, height: size, imageRendering: 'pixelated' }} />
     : null
