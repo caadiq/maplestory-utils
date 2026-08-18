@@ -24,6 +24,7 @@ export default function AdminImages() {
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [copiedId, setCopiedId] = useState(null)
+  const [renaming, setRenaming] = useState(null)   // 이름 수정 다이얼로그 대상
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -130,6 +131,11 @@ export default function AdminImages() {
     })
   }
 
+  const renameMutation = useMutation({
+    mutationFn: ({ id, name }) => api(`/api/admin/images/${id}`, { method: 'PATCH', body: { name } }),
+    onSuccess: invalidateImages,
+  })
+
   const deleteMutation = useMutation({
     mutationFn: (ids) => api('/api/admin/images/delete', { method: 'POST', body: { ids } }),
     onSuccess: () => {
@@ -218,6 +224,7 @@ export default function AdminImages() {
               <ImageCard
                 key={image.id}
                 image={image}
+                onOpen={setRenaming}
                 selected={selectedIds.has(image.id)}
                 selectMode={selectMode}
                 onToggle={toggleSelect}
@@ -238,6 +245,19 @@ export default function AdminImages() {
         existingNames={allNames}
       />
 
+      {renaming && (
+        <RenameDialog
+          image={renaming}
+          takenNames={new Set([...allNames].filter((n) => n !== renaming.name))}
+          saving={renameMutation.isPending}
+          onSave={async (name) => {
+            await renameMutation.mutateAsync({ id: renaming.id, name })
+            setRenaming(null)
+          }}
+          onClose={() => setRenaming(null)}
+        />
+      )}
+
       <ConfirmDialog
         open={!!confirmDelete}
         onClose={() => setConfirmDelete(null)}
@@ -248,6 +268,78 @@ export default function AdminImages() {
         destructive
         loading={deleteMutation.isPending}
       />
+    </div>
+  )
+}
+
+/**
+ * 이름 수정 다이얼로그.
+ * 이름은 다른 기능이 아이콘을 찾는 열쇠라(예: '지역 : 리멘') 오타를 고칠 방법이 필요하고,
+ * 겹치면 엉뚱한 그림이 붙으므로 저장 전에 중복을 걸러 준다 (서버도 409로 막는다).
+ */
+function RenameDialog({ image, takenNames, saving, onSave, onClose }) {
+  const [name, setName] = useState(image.name)
+  const [error, setError] = useState('')
+  const trimmed = name.trim()
+  const dup = trimmed && trimmed !== image.name && takenNames.has(trimmed)
+
+  const submit = async () => {
+    if (!trimmed) { setError('이름을 입력해주세요'); return }
+    if (dup) { setError('이미 있는 이름입니다'); return }
+    if (trimmed === image.name) { onClose(); return }
+    try {
+      await onSave(trimmed)
+    } catch (e) {
+      setError(e.message || '수정 실패')
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center px-4" style={{ background: 'var(--dialog-backdrop)' }} onClick={onClose}>
+      <div
+        className="w-full max-w-[420px] rounded-xl overflow-hidden"
+        style={{ background: 'var(--mpl-card)', border: '1px solid var(--mpl-card-line)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="px-4 py-3 text-[15px] font-bold"
+          style={{ background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))', color: '#fff' }}
+        >
+          이미지 이름 수정
+        </div>
+        <div className="p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <span
+              className="w-16 h-16 shrink-0 rounded-lg grid place-items-center overflow-hidden"
+              style={{ backgroundImage: 'linear-gradient(to bottom right, var(--icon-box-from), var(--icon-box-to))' }}
+            >
+              <img src={image.url} alt="" className="w-full h-full object-contain p-1.5" style={{ imageRendering: 'pixelated' }} />
+            </span>
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => { setName(e.target.value); setError('') }}
+              onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') onClose() }}
+              disabled={saving}
+              className="flex-1 min-w-0 rounded-lg border px-3 py-2.5 text-[14px] outline-none focus:border-[var(--input-border-focus)]"
+              style={{
+                background: 'var(--input-bg)',
+                borderColor: (error || dup) ? 'var(--mpl-red-to)' : 'var(--input-border)',
+                color: 'var(--text-strong)',
+              }}
+            />
+          </div>
+
+          {(error || dup) && (
+            <p className="text-[13px]" style={{ color: 'var(--danger-text)' }}>{error || '이미 있는 이름입니다'}</p>
+          )}
+
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="ghost" onClick={onClose} disabled={saving}>취소</Button>
+            <Button onClick={submit} disabled={saving || !trimmed || dup}>{saving ? '저장 중…' : '저장'}</Button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
