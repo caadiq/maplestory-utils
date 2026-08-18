@@ -116,6 +116,7 @@ export function breakdown(data, level, s, bonus) {
    * 테네브리스(문브릿지·고통의 미궁·리멘)도 아케인리버 일퀘 보너스를 받는다.
    * 실측(Lv.288, 아케인 일퀘 +50%): 세 지역을 다 돌아 인게임 +0.031%.
    * 보너스 없이는 0.0209%, +50%면 0.0313% — 뒤쪽이 맞다.
+   * MVP 퀵패스로 완료해서 사냥 경험치가 섞이지 않은 값이다.
    */
   const bArcane = bMul(bo.arcaneDaily)
   const bDaily = { arcane: bArcane, tenebris: bArcane, grandis: bMul(bo.grandisDaily) }
