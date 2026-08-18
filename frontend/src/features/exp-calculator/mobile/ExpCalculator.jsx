@@ -36,12 +36,8 @@ const C_ONCE = '#e8a20c'
 const C_PACE = '#3f9e57'
 
 const EPIC_ICON = { high_mountain: 'ed_highmountain', angler_company: 'ed_angler', nightmare_paradise: 'ed_nightmare' }
-const PARK_ICON_PREFIX = {
-  yeoro: 'arc', chewchew: 'arc', lacheln: 'arc', arcana: 'arc', morass: 'arc', esfera: 'arc',
-  moonbridge: 'ten', maze: 'ten', limen: 'ten', sellas: 'mp',
-  cernium: 'gra', arcs: 'gra', odium: 'gra', dowonkyung: 'gra', arteria: 'gra', carcion: 'gra', tallahart: 'gra',
-}
-const parkIconId = (id) => `${PARK_ICON_PREFIX[id]}_${id}`
+/* 몬파 드롭다운은 심볼이 아니라 지역 그림을 쓴다 (관리자 이미지의 '지역 : …') */
+const parkIconId = (id) => `region_${id}`
 
 /* ── 소품 (PC와 같은 문법, 모바일 치수) ── */
 

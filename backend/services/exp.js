@@ -49,6 +49,25 @@ const ICON_NAMES = {
   farm_blue: '블루베리 농장',
   farm_mech: '메카베리 농장',
   farm_crimson: '크림슨 메카베리 농장',
+
+  /* 몬스터파크 드롭다운 — 심볼이 아니라 지역 그림을 쓴다 */
+  region_yeoro: '지역 : 소멸의 여로',
+  region_chewchew: '지역 : 츄츄 아일랜드',
+  region_lacheln: '지역 : 꿈의 도시 레헬른',
+  region_arcana: '지역 : 신비의 숲 아르카나',
+  region_morass: '지역 : 기억의 늪 모라스',
+  region_esfera: '지역 : 태초의 바다 에스페라',
+  region_sellas: '지역 : 셀라스, 별이 잠긴 곳',
+  region_moonbridge: '지역 : 문브릿지',
+  region_maze: '지역 : 고통의 미궁',
+  region_limen: '지역 : 리멘',
+  region_cernium: '지역 : 세르니움',
+  region_arcs: '지역 : 호텔 아르크스',
+  region_odium: '지역 : 오디움',
+  region_dowonkyung: '지역 : 도원경',
+  region_arteria: '지역 : 아르테리아',
+  region_carcion: '지역 : 카르시온',
+  region_tallahart: '지역 : 탈라하트',
 };
 
 // 이름→URL은 거의 안 바뀌므로 한 번 조회해 캐시한다.
