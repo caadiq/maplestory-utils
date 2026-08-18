@@ -171,8 +171,12 @@ export default function AdminImages() {
         )}
       </PageHeader>
 
-      {/* 검색 */}
-      {images.length > 0 && (
+      {/*
+        검색창은 결과가 없어도 남겨둔다.
+        images.length로만 조건을 걸었더니 한 글자만 쳐도 결과가 0이 되는 순간 입력칸이
+        통째로 사라져(포커스까지 잃어) 검색을 이어갈 수 없었다.
+      */}
+      {(images.length > 0 || search || debouncedSearch) && (
         <div className="relative mb-3">
           <input
             type="text"

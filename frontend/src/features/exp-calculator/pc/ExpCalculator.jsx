@@ -29,13 +29,8 @@ const C_ONCE = '#e8a20c'
 
 /* 드롭다운 앞 아이콘 매핑 */
 const EPIC_ICON = { high_mountain: 'ed_highmountain', angler_company: 'ed_angler', nightmare_paradise: 'ed_nightmare' }
-/* 몬파 지역 아이콘 — 대부분 일퀘 심볼과 지역 id가 같고, 셀라스만 몬파 전용 */
-const PARK_ICON_PREFIX = {
-  yeoro: 'arc', chewchew: 'arc', lacheln: 'arc', arcana: 'arc', morass: 'arc', esfera: 'arc',
-  moonbridge: 'ten', maze: 'ten', limen: 'ten', sellas: 'mp',
-  cernium: 'gra', arcs: 'gra', odium: 'gra', dowonkyung: 'gra', arteria: 'gra', carcion: 'gra', tallahart: 'gra',
-}
-const parkIconId = (id) => `${PARK_ICON_PREFIX[id]}_${id}`
+/* 몬파 드롭다운은 심볼이 아니라 지역 그림을 쓴다 (관리자 이미지의 '지역 : …') */
+const parkIconId = (id) => `region_${id}`
 
 /* ── 소품 ── */
 
