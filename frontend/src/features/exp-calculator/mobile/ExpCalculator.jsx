@@ -451,11 +451,12 @@ export default function MobileExpCalculator() {
   const icons = data?.icons || {}
   if (!hydrated || !data) return null
 
+  /* 테네브리스는 아케인리버의 일부라 한 카드로 묶는다 (PC와 같은 규칙) */
   const zoneGroups = [
-    { key: 'arcane', title: '아케인리버 일일퀘스트', icon: 'arc_esfera' },
-    { key: 'tenebris', title: '테네브리스 일일퀘스트', icon: 'flame' },
-    { key: 'grandis', title: '그란디스 일일퀘스트', icon: 'gra_carcion' },
+    { key: 'arcane', title: '아케인리버 일일퀘스트', icon: 'exch_arcane', src: ['arcane', 'tenebris'] },
+    { key: 'grandis', title: '그란디스 일일퀘스트', icon: 'exch_authentic', src: ['grandis'] },
   ]
+  const zoneIcon = (srcKey, id) => (srcKey === 'tenebris' ? 'flame' : `${srcKey === 'arcane' ? 'arc' : 'gra'}_${id}`)
 
   return (
     <IconCtx.Provider value={icons}>
@@ -588,17 +589,19 @@ export default function MobileExpCalculator() {
             <SecLabel>일일 컨텐츠</SecLabel>
 
             {zoneGroups.map((g) => {
-              const open = data.daily[g.key].filter((z) => level >= z.minLevel)
+              const open = g.src.flatMap((k) => data.daily[k].map((z) => ({ ...z, srcKey: k })))
+                .filter((z) => level >= z.minLevel)
               const on = open.filter((z) => zoneOn(s.daily, z.id)).length
               return (
                 <Card key={g.key} icon={g.icon} grad={QUEST} title={g.title}
-                  sub={`${on}/${open.length} 지역 선택됨`} pct={fmtPct(bd.zones[`${g.key}Total`])} pctColor={C_DAY}>
+                  sub={`${on}/${open.length} 지역 선택됨`}
+                  pct={fmtPct(g.src.reduce((sum, k) => sum + (bd.zones[`${k}Total`] || 0), 0))} pctColor={C_DAY}>
                   <div>
                     {open.map((z) => {
                       const zb = bd.zones[z.id]
                       return (
                         <ZoneRow key={z.id}
-                          icon={g.key === 'tenebris' ? 'flame' : `${g.key === 'arcane' ? 'arc' : 'gra'}_${z.id}`}
+                          icon={zoneIcon(z.srcKey, z.id)}
                           label={z.name}
                           on={zb.on}
                           onToggle={(v) => patch((prev) => ({ ...prev, daily: { ...prev.daily, [z.id]: v } }))}
