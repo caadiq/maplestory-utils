@@ -117,25 +117,25 @@
       },
       {
         "id": "lacheln",
-        "name": "레헬른",
+        "name": "꿈의 도시 레헬른",
         "minLevel": 220,
         "exp": 3189098250
       },
       {
         "id": "arcana",
-        "name": "아르카나",
+        "name": "신비의 숲 아르카나",
         "minLevel": 225,
         "exp": 3305187639
       },
       {
         "id": "morass",
-        "name": "모라스",
+        "name": "기억의 늪 모라스",
         "minLevel": 230,
         "exp": 4398266165
       },
       {
         "id": "esfera",
-        "name": "에스페라",
+        "name": "태초의 바다 에스페라",
         "minLevel": 235,
         "exp": 4530843954
       }
@@ -169,7 +169,7 @@
       },
       {
         "id": "arcs",
-        "name": "아르크스",
+        "name": "호텔 아르크스",
         "minLevel": 265,
         "exp": 19371792600
       },
