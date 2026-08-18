@@ -635,7 +635,7 @@ export default function MobileExpCalculator() {
             <Card icon="mp" grad="linear-gradient(180deg,#b98fdd,#9868c7)" title="몬스터파크"
               sub="일 2회 무료 · 최대 7회" pctColor={C_WEEK}
               totals={[
-                { label: '월~토', value: fmtPct(bd.park.dayNormal) },
+                { label: '월~토요일', value: fmtPct(bd.park.dayNormal) },
                 { label: '일요일', value: fmtPct(bd.park.daySunday) },
               ]}>
               <div className="grid grid-cols-[1fr_86px] gap-2">
