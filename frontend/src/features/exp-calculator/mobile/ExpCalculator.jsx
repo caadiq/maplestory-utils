@@ -22,7 +22,7 @@ import { WK_DAY, fmtDate, mdLabel, journeyStats, chartGeometry } from '../journe
 /**
  * 경험치 계산기 — 모바일.
  *
- * PC의 3열 카드를 한 열로 펴고, 카드 사이에 일일/주간/일회성 구분선을 넣는다.
+ * PC의 3열 카드를 한 열로 펴서 쭉 나열한다 (분류는 여정 패널 하단 요약에서만 본다).
  * 계산·아이콘·저장은 전부 PC와 공유(logic/store)하고 배치와 크기만 다르다.
  */
 
@@ -175,16 +175,6 @@ function SegFull({ options, value, onChange }) {
           {o.label}
         </button>
       ))}
-    </div>
-  )
-}
-
-/** 카드 묶음 구분선 — 일일 / 주간 / 일회성 */
-function SecLabel({ children }) {
-  return (
-    <div className="flex items-center gap-2.5 px-0.5 pt-1">
-      <span className="text-[12.5px] font-bold tracking-wide" style={{ color: 'var(--text-muted)' }}>{children}</span>
-      <i className="flex-1 h-px" style={{ background: 'var(--panel-border)' }} />
     </div>
   )
 }
@@ -580,14 +570,35 @@ export default function MobileExpCalculator() {
             </div>
 
             <Chart char={char} history={history} nowMs={nowMs} />
+
+            {/*
+             * 기여도 요약 — 분류는 여기서만 보여준다 (카드는 구분 없이 쭉 나열).
+             * 몬파는 일요일 경험치가 달라 하루로 못 쪼갠다 — 주간은 일퀘까지 한 주치로 합친 값.
+             * 잠수(리조트·사우나)는 시간을 넣는 만큼이라 주·일 어디에도 안 붙어 따로 뺐다.
+             */}
+            {bd && (
+              /* 카드 패딩을 상쇄해 PC처럼 패널 아래에 꽉 찬 띠로 붙인다 */
+              <div className="flex items-center border-t -mx-3.5 -mb-3.5 mt-3.5 rounded-b-2xl overflow-hidden"
+                style={{ borderColor: 'var(--row-divider)', background: 'var(--mpl-row)' }}>
+                {[
+                  { label: '주간', value: bd.weeklyTotal, color: C_WEEK },
+                  { label: '잠수', value: bd.divingTotal, color: C_DAY },
+                  { label: '아이템', value: bd.onceTotal, color: C_ONCE },
+                ].map((m, i) => (
+                  <div key={m.label}
+                    className={`flex-1 flex items-baseline justify-center gap-1.5 py-3 whitespace-nowrap ${i > 0 ? 'border-l' : ''}`}
+                    style={{ borderColor: 'var(--panel-border)' }}>
+                    <span className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>{m.label}</span>
+                    <span className="text-[16.5px] font-bold tabular-nums" style={{ color: m.color }}>{fmtPct(m.value)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {bd && (
           <>
-            {/* ── 일일 ── */}
-            <SecLabel>일일 컨텐츠</SecLabel>
-
             {zoneGroups.map((g) => {
               const open = g.src.flatMap((k) => data.daily[k].map((z) => ({ ...z, srcKey: k })))
                 .filter((z) => level >= z.minLevel)
@@ -644,15 +655,12 @@ export default function MobileExpCalculator() {
               </div>
             </Card>
 
-            {/* ── 주간 ── */}
-            <SecLabel>주간 컨텐츠</SecLabel>
-
             <Card icon="sauna" grad={PUR} title="리조트 · 사우나" sub="잠수 경험치"
               pct={fmtPct(bd.mvp + bd.vip)} pctColor={C_WEEK}>
               <div>
                 {/* 단위 글자 수가 달라(시간/주 vs 개) 폭이 어긋났다 — 박스 폭을 맞추고 오른쪽 정렬 */}
                 <TwoLineRow icon="sauna" label="MVP 리조트" note={`1시간당 ${fmtPct(bd.saunaHourPct)}`}
-                  control={<FixedControl><NumInput value={s.weekly.mvpHours} onChange={(v) => patchDeep('weekly', { mvpHours: v })} min={0} max={99} chars={2} unit="시간/주" /></FixedControl>}
+                  control={<FixedControl><NumInput value={s.weekly.mvpHours} onChange={(v) => patchDeep('weekly', { mvpHours: v })} min={0} max={99} chars={2} unit="시간" /></FixedControl>}
                   value={fmtPct(bd.mvp)} valueColor={C_WEEK} />
                 <TwoLineRow icon="sauna_vip" label="VIP 사우나 이용권" note={`1개(30분)당 ${fmtPct(bd.vipOne)}`}
                   control={<FixedControl><NumInput value={s.items.vipTickets} onChange={(v) => patchDeep('items', { vipTickets: v })} min={0} max={999} chars={3} unit="개" /></FixedControl>}
@@ -686,9 +694,6 @@ export default function MobileExpCalculator() {
                 </Field>
               </div>
             </Card>
-
-            {/* ── 일회성 ── */}
-            <SecLabel>아이템</SecLabel>
 
             <Card icon="elixir" grad={TAN} title="성장의 비약" sub="아이템 사용"
               pct={fmtPct(bd.elixir + bd.e200 + bd.e250)} pctColor={C_ONCE}>

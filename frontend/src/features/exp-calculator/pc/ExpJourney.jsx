@@ -268,11 +268,15 @@ export default function ExpJourney({ char, history, dateCreate, breakdown, bonus
       </div>
       </div>
 
-      {/* 하단 — 기여도 요약. 라벨을 값 앞에 나란히 둔다 (레벨은 위 드롭다운에 이미 있다) */}
+      {/*
+       * 하단 — 기여도 요약. 라벨을 값 앞에 나란히 둔다 (레벨은 위 드롭다운에 이미 있다)
+       * 몬파는 일요일 경험치가 달라 하루로 못 쪼갠다 — 주간은 일퀘까지 한 주치로 합쳐서 본다.
+       * 잠수(리조트·사우나)는 시간을 넣는 만큼이라 주·일 어디에도 안 붙어 따로 뺐다.
+       */}
       <div className="flex items-center border-t" style={{ borderColor: 'var(--row-divider)', background: 'var(--mpl-row)' }}>
         {[
-          { label: '일일', value: breakdown.dailyTotal, color: C_DAY },
           { label: '주간', value: breakdown.weeklyTotal, color: C_WEEK },
+          { label: '잠수', value: breakdown.divingTotal, color: C_DAY },
           { label: '아이템', value: breakdown.onceTotal, color: C_ONCE },
         ].map((m, i) => (
           <div

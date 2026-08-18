@@ -116,7 +116,6 @@ export function breakdown(data, level, s, bonus) {
   const bPark = bMul(bo.monsterPark)
   const bEpic = bMul(bo.epicDungeon)
   const pct = (abs) => (abs / E) * 100
-  const huntAbs = ((s.hunt.pctPerRun || 0) / 100) * E * (s.hunt.runsPerDay || 0)
 
   const zones = {}
   let dailyQuest = 0
@@ -190,30 +189,36 @@ export function breakdown(data, level, s, bonus) {
   const crimsonOne = !crimsonLocked ? pct(byLevel(f.crimson.byLevel, L)) : 0
   const crimson = crimsonOne * (it.farmCrimson || 0)
 
-  const hunt = pct(huntAbs)
+  /*
+   * 분류는 시간 기준으로 나눈다 — 섞으면 더할 수 없다.
+   *   주간   : 일퀘(7일치)·몬파(일요일 보너스 포함 한 주)·익스몬파·에픽던전
+   *   잠수   : 리조트·사우나 (입력한 시간·개수만큼)
+   *   아이템 : 비약·교환권·농장 (쓰면 없어지는 것)
+   * 몬파는 일요일 보너스가 주 1회뿐이라 하루 기준으로 정확히 못 쪼갠다 — 주 단위가 맞다.
+   */
   const parkDaily = pct(parkWeek) / 7
-  const dailyTotal = hunt + dailyQuest + parkDaily
-  const weeklyTotal = pct(epic + extreme + mvp)
-  const onceTotal = elixirPct + e200 + e250 + couponN + couponU + vip + golden + blue + mech + crimson
+  // 일퀘·몬파는 카드에서 하루 기준으로 보여주고, 요약에서만 한 주로 환산해 더한다
+  const weeklyTotal = dailyQuest * 7 + pct(parkWeek + epic + extreme)
+  const divingTotal = pct(mvp) + vip
+  const onceTotal = elixirPct + e200 + e250 + couponN + couponU + golden + blue + mech + crimson
 
   return {
     E,
-    hunt,
     zones,
     dailyQuest,
-    dailyTotal,
     epic: { locked: epicLocked, one: pct(epicOne), total: pct(epic) },
     park: {
       zone: parkZone,
       oneNormal: parkZone ? pct(parkZone.exp.normal * bPark) : 0,
       oneSunday: parkZone ? pct((w.park.sundaySpecial ? parkZone.exp.special : parkZone.exp.sunday) * bPark) : 0,
-      total: parkDaily,   // 하루 평균 (카드 합계·일일 집계 공통)
+      total: parkDaily,   // 하루 평균 (카드 표시용)
       week: pct(parkWeek),
     },
     extreme: { locked: extremeLocked, one: pct(extremeOne), total: pct(extreme) },
     mvp: pct(mvp),
     saunaHourPct: pct(saunaHour), // 잠수 1시간당 획득 (사우나·리조트 공통)
     weeklyTotal,
+    divingTotal,
     elixir: elixirPct,
     elixirEach,
     elixirOne,
