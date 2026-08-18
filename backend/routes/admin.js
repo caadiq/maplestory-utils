@@ -43,6 +43,37 @@ router.get('/images/names', async (_req, res) => {
   }
 });
 
+// 이미지 이름 수정 — 이름은 다른 기능이 아이콘을 찾는 열쇠라 중복이면 안 된다
+router.patch('/images/:id', async (req, res) => {
+  const name = (req.body?.name || '').trim();
+  if (!name) return res.status(400).json({ error: '이름을 입력해주세요' });
+
+  try {
+    const image = await Image.findByPk(req.params.id);
+    if (!image) return res.status(404).json({ error: '이미지를 찾을 수 없습니다' });
+    if (image.name === name) return res.json({ id: image.id, name: image.name, url: getPublicUrl(image.path) });
+
+    const dup = await Image.findOne({ where: { name } });
+    if (dup) return res.status(409).json({ error: '같은 이름의 이미지가 이미 있습니다' });
+
+    image.name = name;
+    try {
+      await image.save();
+    } catch (dbErr) {
+      // unique 제약 — 동시에 같은 이름으로 바꾼 경우
+      if (dbErr?.name === 'SequelizeUniqueConstraintError') {
+        return res.status(409).json({ error: '같은 이름의 이미지가 이미 있습니다' });
+      }
+      throw dbErr;
+    }
+    resetIconCache(); // 이름이 곧 아이콘 열쇠라 캐시를 비운다
+    res.json({ id: image.id, name: image.name, url: getPublicUrl(image.path) });
+  } catch (err) {
+    console.error('이미지 이름 수정 오류:', err.message);
+    res.status(500).json({ error: '이름 수정 실패' });
+  }
+});
+
 // 이미지 목록 (페이징 + 검색)
 router.get('/images', async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page) || 1);

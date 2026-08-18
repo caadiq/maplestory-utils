@@ -1,10 +1,13 @@
 import { memo } from 'react'
 
-function ImageCard({ image, selected, selectMode, onToggle, onCopyUrl, copied }) {
+/**
+ * @param onOpen 카드 클릭 (선택 모드가 아닐 때) — 상위에서 이름 수정 다이얼로그를 연다
+ */
+function ImageCard({ image, selected, selectMode, onToggle, onCopyUrl, copied, onOpen }) {
   return (
     <div
-      onClick={() => selectMode && onToggle(image.id)}
-      className={`group relative rounded-xl border overflow-hidden ${selectMode ? 'cursor-pointer' : ''}`}
+      onClick={() => (selectMode ? onToggle(image.id) : onOpen?.(image))}
+      className="group relative rounded-xl border overflow-hidden cursor-pointer"
       style={{
         borderColor: selected ? 'var(--mpl-sky-to)' : 'var(--mpl-card-line)',
         background: 'var(--mpl-card)',
