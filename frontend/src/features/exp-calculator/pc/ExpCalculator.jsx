@@ -324,11 +324,18 @@ export default function ExpCalculator() {
   const icons = data?.icons || {}
 
   if (!hydrated || !data) return null
+  /*
+   * 테네브리스는 아케인리버의 일부라 한 카드로 묶는다.
+   * 데이터는 그대로 나뉘어 있고(보너스가 아케인에만 붙는다) 화면에서만 합친다 —
+   * 지역별 아이콘은 원래 그룹을 따라간다(테네브리스는 염원의 불꽃).
+   */
   const zoneGroups = [
-    { key: 'arcane', title: '아케인리버 일일퀘스트', icon: 'arc_esfera' },
-    { key: 'tenebris', title: '테네브리스 일일퀘스트', icon: 'flame' },
-    { key: 'grandis', title: '그란디스 일일퀘스트', icon: 'gra_carcion' },
+    { key: 'arcane', title: '아케인리버 일일퀘스트', icon: 'exch_arcane', src: ['arcane', 'tenebris'] },
+    { key: 'grandis', title: '그란디스 일일퀘스트', icon: 'exch_authentic', src: ['grandis'] },
   ]
+  const zoneIcon = (srcKey, id) => (srcKey === 'tenebris' ? 'flame' : `${srcKey === 'arcane' ? 'arc' : 'gra'}_${id}`)
+  const groupZones = (g) => g.src.flatMap((k) => data.daily[k].map((z) => ({ ...z, srcKey: k })))
+  const groupTotal = (g) => g.src.reduce((sum, k) => sum + (bd.zones[`${k}Total`] || 0), 0)
 
   return (
     <IconCtx.Provider value={icons}>
@@ -437,18 +444,18 @@ export default function ExpCalculator() {
               {zoneGroups.map((g) => (
                 <ContentCard key={g.key} icon={g.icon} grad="linear-gradient(180deg,#7cc7ea,#4da4d4)" title={g.title}
                   sub={(() => {
-                    const open = data.daily[g.key].filter((z) => level >= z.minLevel)
+                    const open = groupZones(g).filter((z) => level >= z.minLevel)
                     const on = open.filter((z) => zoneOn(s.daily, z.id)).length
                     return `${on}/${open.length} 지역 선택됨`
                   })()}
-                  pct={fmtPct(bd.zones[`${g.key}Total`])} pctColor={C_DAY}>
+                  pct={fmtPct(groupTotal(g))} pctColor={C_DAY}>
                   <div className="text-[13.5px]">
-                    {data.daily[g.key].filter((z) => level >= z.minLevel).map((z) => {
+                    {groupZones(g).filter((z) => level >= z.minLevel).map((z) => {
                       const zb = bd.zones[z.id]
                       return (
                         <Row
                           key={z.id}
-                          icon={g.key === 'tenebris' ? 'flame' : `${g.key === 'arcane' ? 'arc' : 'gra'}_${z.id}`}
+                          icon={zoneIcon(z.srcKey, z.id)}
                           label={z.name}
                           toggle={zb.on}
                           onToggle={(v) => patch((prev) => ({ ...prev, daily: { ...prev.daily, [z.id]: v } }))}
