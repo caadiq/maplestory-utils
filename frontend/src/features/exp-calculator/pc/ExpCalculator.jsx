@@ -53,8 +53,10 @@ function Ico({ id, size = 38 }) {
  * 합계(pct)는 항상 카드 맨 아래 줄에 표시한다.
  * toggle을 주면 헤더 우측이 on/off 스위치가 된다.
  */
-function ContentCard({ icon, grad, title, sub, pct, pctColor, totalLabel = '합계', toggle, onToggle, children }) {
+function ContentCard({ icon, grad, title, sub, pct, pctColor, totalLabel = '합계', totals, toggle, onToggle, children }) {
   const off = toggle === false
+  // 합계가 여러 줄인 카드(몬파의 평일/일요일)를 위해 목록으로 통일한다
+  const rows = totals ?? [{ label: totalLabel, value: pct }]
   return (
     <div className="rounded-2xl border p-5"
       style={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)', boxShadow: 'var(--panel-shadow)' }}>
@@ -70,11 +72,13 @@ function ContentCard({ icon, grad, title, sub, pct, pctColor, totalLabel = '합�
         {toggle != null && <MiniToggle on={toggle} onChange={onToggle} />}
       </div>
       {children}
-      <div className="flex items-center justify-between pt-2.5 mt-3 border-t"
-        style={{ borderColor: 'var(--row-divider)' }}>
-        <span className="text-[13.5px]" style={{ color: 'var(--text-muted)' }}>{totalLabel}</span>
-        <span className="text-base font-bold tabular-nums" style={{ color: off ? 'var(--text-dim)' : pctColor }}>{pct}</span>
-      </div>
+      {rows.map((row, i) => (
+        <div key={row.label} className={`flex items-center justify-between ${i === 0 ? 'pt-2.5 mt-3 border-t' : 'pt-1.5'}`}
+          style={i === 0 ? { borderColor: 'var(--row-divider)' } : undefined}>
+          <span className="text-[13.5px]" style={{ color: 'var(--text-muted)' }}>{row.label}</span>
+          <span className="text-base font-bold tabular-nums" style={{ color: off ? 'var(--text-dim)' : pctColor }}>{row.value}</span>
+        </div>
+      ))}
     </div>
   )
 }
@@ -488,7 +492,11 @@ export default function ExpCalculator() {
 
               {/* 몬스터파크 — 일요일 보너스는 자동 반영 (주 1회) */}
               <ContentCard icon="mp" grad="linear-gradient(180deg,#b98fdd,#9868c7)" title="몬스터파크"
-                sub="일 2회 무료 · 최대 7회" pct={fmtPct(bd.park.total)} pctColor={C_WEEK} totalLabel="일 평균">
+                sub="일 2회 무료 · 최대 7회" pctColor={C_WEEK}
+                totals={[
+                  { label: '월~토', value: fmtPct(bd.park.dayNormal) },
+                  { label: '일요일', value: fmtPct(bd.park.daySunday) },
+                ]}>
                 {/* 횟수는 한 자리라 좁아도 되고, 지역 이름은 길어서 넓어야 한다 */}
                 <div className="grid grid-cols-[1fr_86px] gap-2">
                   <Field label="지역">

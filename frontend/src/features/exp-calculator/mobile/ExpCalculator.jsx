@@ -63,8 +63,10 @@ function MiniToggle({ on, onChange }) {
 }
 
 /** 컨텐츠 카드 — 헤더(아이콘·제목·스위치) + 본문 + 맨 아래 합계 줄 */
-function Card({ icon, grad, title, sub, pct, pctColor, totalLabel = '합계', toggle, onToggle, children }) {
+function Card({ icon, grad, title, sub, pct, pctColor, totalLabel = '합계', totals, toggle, onToggle, children }) {
   const off = toggle === false
+  // 합계가 여러 줄인 카드(몬파의 평일/일요일)를 위해 목록으로 통일한다
+  const rows = totals ?? [{ label: totalLabel, value: pct }]
   return (
     <div className="rounded-2xl border p-3.5"
       style={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)', boxShadow: 'var(--panel-shadow)' }}>
@@ -80,10 +82,13 @@ function Card({ icon, grad, title, sub, pct, pctColor, totalLabel = '합계', to
         {toggle != null && <MiniToggle on={toggle} onChange={onToggle} />}
       </div>
       {children}
-      <div className="flex items-center justify-between pt-2 mt-2.5 border-t" style={{ borderColor: 'var(--row-divider)' }}>
-        <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>{totalLabel}</span>
-        <span className="text-[15.5px] font-bold tabular-nums" style={{ color: off ? 'var(--text-dim)' : pctColor }}>{pct}</span>
-      </div>
+      {rows.map((row, i) => (
+        <div key={row.label} className={`flex items-center justify-between ${i === 0 ? 'pt-2 mt-2.5 border-t' : 'pt-1.5'}`}
+          style={i === 0 ? { borderColor: 'var(--row-divider)' } : undefined}>
+          <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>{row.label}</span>
+          <span className="text-[15.5px] font-bold tabular-nums" style={{ color: off ? 'var(--text-dim)' : pctColor }}>{row.value}</span>
+        </div>
+      ))}
     </div>
   )
 }
@@ -628,7 +633,11 @@ export default function MobileExpCalculator() {
 
             {/* 몬파는 매일 도는 컨텐츠 — 일요일 보너스 때문에 주 단위로 계산해 하루 평균으로 보여준다 */}
             <Card icon="mp" grad="linear-gradient(180deg,#b98fdd,#9868c7)" title="몬스터파크"
-              sub="일 2회 무료 · 최대 7회" pct={fmtPct(bd.park.total)} pctColor={C_WEEK} totalLabel="일 평균">
+              sub="일 2회 무료 · 최대 7회" pctColor={C_WEEK}
+              totals={[
+                { label: '월~토', value: fmtPct(bd.park.dayNormal) },
+                { label: '일요일', value: fmtPct(bd.park.daySunday) },
+              ]}>
               <div className="grid grid-cols-[1fr_86px] gap-2">
                 <Field label="지역">
                   <Select

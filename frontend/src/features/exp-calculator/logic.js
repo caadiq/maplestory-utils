@@ -139,9 +139,9 @@ export function breakdown(data, level, s, bonus) {
   const epic = w.epic.on && !epicLocked ? epicOne : 0
 
   const parkZone = parkZoneAt(L, data, w.park.zone)
-  // 몬파는 매일 도는 컨텐츠지만 일요일 보너스 때문에 주 단위로 계산한다.
-  // 집계·표시는 하루치가 맞으므로 7로 나눠 평균을 낸다.
-  const parkWeek = (w.park.on ? parkWeeklyExp(parkZone, w.park.runs || 0, w.park.sundaySpecial) : 0) * bPark
+  // 몬파는 매일 도는 컨텐츠지만 일요일 보너스 때문에 주 단위로 합산한다
+  const parkRuns = w.park.on ? (w.park.runs || 0) : 0
+  const parkWeek = parkWeeklyExp(parkZone, parkRuns, w.park.sundaySpecial) * bPark
 
   const extremeLocked = L < data.extremePark.minLevel
   const extremeOne = extremeLocked ? 0 : byLevel(data.extremePark.byLevel, L)
@@ -196,7 +196,6 @@ export function breakdown(data, level, s, bonus) {
    *   아이템 : 비약·교환권·농장 (쓰면 없어지는 것)
    * 몬파는 일요일 보너스가 주 1회뿐이라 하루 기준으로 정확히 못 쪼갠다 — 주 단위가 맞다.
    */
-  const parkDaily = pct(parkWeek) / 7
   // 일퀘·몬파는 카드에서 하루 기준으로 보여주고, 요약에서만 한 주로 환산해 더한다
   const weeklyTotal = dailyQuest * 7 + pct(parkWeek + epic + extreme)
   const divingTotal = pct(mvp) + vip
@@ -209,9 +208,12 @@ export function breakdown(data, level, s, bonus) {
     epic: { locked: epicLocked, one: pct(epicOne), total: pct(epic) },
     park: {
       zone: parkZone,
-      oneNormal: parkZone ? pct(parkZone.exp.normal * bPark) : 0,
-      oneSunday: parkZone ? pct((w.park.sundaySpecial ? parkZone.exp.special : parkZone.exp.sunday) * bPark) : 0,
-      total: parkDaily,   // 하루 평균 (카드 표시용)
+      /*
+       * 하루치를 평일과 일요일로 나눠서 준다.
+       * 일요일만 경험치가 다르기 때문에 '일 평균'으로는 실제 하루 획득량과 맞는 날이 하루도 없다.
+       */
+      dayNormal: parkZone ? pct(parkZone.exp.normal * bPark) * parkRuns : 0,
+      daySunday: parkZone ? pct((w.park.sundaySpecial ? parkZone.exp.special : parkZone.exp.sunday) * bPark) * parkRuns : 0,
       week: pct(parkWeek),
     },
     extreme: { locked: extremeLocked, one: pct(extremeOne), total: pct(extreme) },
