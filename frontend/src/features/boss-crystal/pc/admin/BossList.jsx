@@ -19,10 +19,6 @@ import { DIFFICULTIES, formatMeso, getDifficultyBadgeStyle } from './constants'
 /** 한 행의 내용 — 드래그 오버레이에서도 같은 모양을 쓴다 */
 function BossRowContent({ boss, index = 0, dragHandle = null, onEdit, onDelete, dragging = false, divider = true }) {
   const used = DIFFICULTIES.filter((d) => boss.difficulties?.some((bd) => bd.difficulty === d.key))
-  const top = boss.difficulties?.reduce(
-    (max, bd) => (bd.crystal_price > (max?.crystal_price ?? -1) ? bd : max),
-    null
-  )
 
   return (
     <Row
@@ -53,7 +49,7 @@ function BossRowContent({ boss, index = 0, dragHandle = null, onEdit, onDelete, 
       <span className="flex-1 text-[13.5px]" style={{ color: 'var(--text-muted)' }}>
         최대 {boss.max_party_size}인
       </span>
-      <span className="flex-[2] flex flex-wrap items-center gap-1 min-w-0">
+      <span className="flex-[3] flex flex-wrap items-center gap-1 min-w-0">
         {used.map((d) => {
           const bd = boss.difficulties.find((x) => x.difficulty === d.key)
           return (
@@ -64,9 +60,6 @@ function BossRowContent({ boss, index = 0, dragHandle = null, onEdit, onDelete, 
             </Tooltip>
           )
         })}
-      </span>
-      <span className="flex-1 text-right text-[15px] font-bold tabular-nums" style={{ color: 'var(--accent-bright)' }}>
-        {top ? formatMeso(top.crystal_price) : '-'}
       </span>
       <span className="flex items-center gap-1.5 shrink-0 w-[136px] justify-end">
         <Button variant="ghost" onClick={onEdit}>수정</Button>
@@ -200,8 +193,7 @@ export default function BossList() {
                   <span className="w-[46px] shrink-0" />
                   <span className="flex-[2] min-w-0">시즌보스</span>
                   <span className="flex-1">인원</span>
-                  <span className="flex-[2] min-w-0">난이도</span>
-                  <span className="flex-1 text-right">결정 가격</span>
+                  <span className="flex-[3] min-w-0">난이도</span>
                   <span className="w-[136px] shrink-0 text-right" style={{ color: '#cfdae4' }}>{seasonItems.length}</span>
                 </>
               )}
@@ -227,8 +219,7 @@ export default function BossList() {
                 <span className="w-[46px] shrink-0" />
                 <span className="flex-[2] min-w-0">일반 보스</span>
                 <span className="flex-1">인원</span>
-                <span className="flex-[2] min-w-0">난이도</span>
-                <span className="flex-1 text-right">결정 가격</span>
+                <span className="flex-[3] min-w-0">난이도</span>
                 <span className="w-[136px] shrink-0 text-right" style={{ color: '#cfdae4' }}>{normalItems.length}</span>
               </>
             )}
