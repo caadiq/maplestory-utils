@@ -206,7 +206,8 @@ export function breakdown(data, level, s, bonus) {
   const mech = mechOne * (it.farmMech || 0)
   /*
    * 크림슨 메카베리 — 기존과 같은 구조인데 경험치 가중치가 전 구간 154 고정.
-   * 테이블은 기존 × 154/가중치(99·132·143)로 산출(테스트월드 1.2.205 기준), 본섭 실측 대조 예정.
+   * 테이블은 기존 × 154/가중치(99·132·143)로 산출(테스트월드 1.2.205 기준).
+   * 본섭 실측으로 확인됨(Lv.288): 1회에 48.667% → 53.374%, 즉 4.707% — 표의 4.7076%와 일치.
    */
   const crimsonLocked = !f.crimson || L < f.crimson.minLevel
   const crimsonOne = !crimsonLocked ? pct(byLevel(f.crimson.byLevel, L)) : 0
