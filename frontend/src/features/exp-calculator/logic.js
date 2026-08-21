@@ -17,16 +17,29 @@ export const EPIC_STAGES = [
 ]
 
 /**
- * 몬파 주간 획득 — 입장권은 하루 단위(기본 2매)라 입력은 일일 횟수.
- * 주 7일 중 일요일 하루는 보너스 값으로 자동 반영: 주간 = 일일횟수 × (평일 6일 + 일요일 1일)
+ * 몬파 하루치 획득(절대값) — 평일/일요일 각각.
  *
- * special=true면 그 주 일요일에 스페셜 썬데이(몬파 클리어 경험치 +250%)가 적용된다.
- * 평일 100% + 일요일 50% + 썬데이 250% = 400% → 데이터의 exp.special(=평일×4)
+ * 데이터의 exp는 '기본 대비 총 배수'다: normal=100%, sunday=150%, special=400%
+ * (평일 100% + 일요일 50% + 스페셜 썬데이 250%).
+ *
+ * 보약(몬파 +N%)은 이 배수에 **곱하는 게 아니라 더한다**.
+ * 예: 보약 +100%인 캐릭터의 일요일은 150%×200%(=300%)가 아니라 150%+100%(=250%)다.
+ * 실측 대조(Lv.288 카르시온 7회, 몬파 +100%):
+ *   평일 1.6491% / 일요일 2.0615% / 스페셜 4.1230% ← 더하는 쪽과 일치.
+ * (평일은 이벤트 증가가 없어 곱하든 더하든 같아서 평일 실측으로는 드러나지 않았다)
+ *
+ * @param bPark 보약 배수 (1 = 보너스 없음)
  */
-export function parkWeeklyExp(zone, runsPerDay, special = false) {
+export function parkDayExp(zone, runsPerDay, { special = false, sunday = false, bPark = 1 } = {}) {
   if (!zone || !runsPerDay) return 0
-  const sundayExp = special ? zone.exp.special : zone.exp.sunday
-  return runsPerDay * (zone.exp.normal * 6 + sundayExp)
+  const base = sunday ? (special ? zone.exp.special : zone.exp.sunday) : zone.exp.normal
+  return runsPerDay * (base + zone.exp.normal * (bPark - 1))
+}
+
+/** 몬파 주간 획득 — 평일 6일 + 일요일 1일 */
+export function parkWeeklyExp(zone, runsPerDay, special = false, bPark = 1) {
+  return parkDayExp(zone, runsPerDay, { bPark }) * 6
+    + parkDayExp(zone, runsPerDay, { sunday: true, special, bPark })
 }
 
 /**
@@ -160,7 +173,7 @@ export function breakdown(data, level, s, bonus) {
   const parkZone = parkZoneAt(L, data, w.park.zone)
   // 몬파는 매일 도는 컨텐츠지만 일요일 보너스 때문에 주 단위로 합산한다
   const parkRuns = w.park.on ? (w.park.runs || 0) : 0
-  const parkWeek = parkWeeklyExp(parkZone, parkRuns, w.park.sundaySpecial) * bPark
+  const parkWeek = parkWeeklyExp(parkZone, parkRuns, w.park.sundaySpecial, bPark)
 
   const extremeLocked = L < data.extremePark.minLevel
   /*
@@ -236,8 +249,8 @@ export function breakdown(data, level, s, bonus) {
        * 하루치를 평일과 일요일로 나눠서 준다.
        * 일요일만 경험치가 다르기 때문에 '일 평균'으로는 실제 하루 획득량과 맞는 날이 하루도 없다.
        */
-      dayNormal: parkZone ? pct(parkZone.exp.normal * bPark) * parkRuns : 0,
-      daySunday: parkZone ? pct((w.park.sundaySpecial ? parkZone.exp.special : parkZone.exp.sunday) * bPark) * parkRuns : 0,
+      dayNormal: pct(parkDayExp(parkZone, parkRuns, { bPark })),
+      daySunday: pct(parkDayExp(parkZone, parkRuns, { sunday: true, special: w.park.sundaySpecial, bPark })),
       week: pct(parkWeek),
     },
     extreme: { locked: extremeLocked, one: pct(extremeOne), total: pct(extreme) },
