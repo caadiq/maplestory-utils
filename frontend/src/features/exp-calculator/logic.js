@@ -142,7 +142,19 @@ export function breakdown(data, level, s, bonus) {
   const w = s.weekly
   const epicDungeon = data.epicDungeon.dungeons.find((x) => x.id === w.epic.dungeon)
   const epicLocked = !epicDungeon || L < epicDungeon.minLevel
-  const epicOne = epicLocked ? 0 : byLevel(epicDungeon.base, L) * data.epicDungeon.stages[w.epic.stage] * bEpic
+  /*
+   * 에픽던전 보상 = 기본 보상 + 추가 배수 보상.
+   * 보약의 "에픽 던전 **기본** 경험치 보상 획득량 N% 증가"는 말 그대로 기본 보상에만 붙는다
+   * — 추가 배수 보상은 보너스를 안 받는다.
+   *
+   * 실측(Lv.288, 에픽 +200%, 악몽선경): 4배 보상을 받은 상태에서 8배로 올리면
+   * 47.098% → 50.950%로 3.852% 증가. 기본 보상 1배가 0.9629%이므로 정확히 4배분이다.
+   * (전체에 보너스가 붙는다면 4배분 × 3 = 11.55%가 올라야 했다)
+   *
+   * data의 stages는 '기본 포함 총 배수'(1·5·9)라 추가분은 거기서 1을 뺀 값이다.
+   */
+  const epicExtra = data.epicDungeon.stages[w.epic.stage] - 1
+  const epicOne = epicLocked ? 0 : byLevel(epicDungeon.base, L) * (bEpic + epicExtra)
   const epic = w.epic.on && !epicLocked ? epicOne : 0
 
   const parkZone = parkZoneAt(L, data, w.park.zone)
