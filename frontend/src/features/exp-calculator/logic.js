@@ -163,7 +163,11 @@ export function breakdown(data, level, s, bonus) {
   const parkWeek = parkWeeklyExp(parkZone, parkRuns, w.park.sundaySpecial) * bPark
 
   const extremeLocked = L < data.extremePark.minLevel
-  const extremeOne = extremeLocked ? 0 : byLevel(data.extremePark.byLevel, L)
+  /*
+   * 익스트림 몬스터파크도 몬파 보너스("몬스터파크 퇴장 시 획득하는 경험치 N% 증가")를 받는다.
+   * 에픽던전과 달리 보상 전체에 붙는다 — 288·몬파 +100% 기준 0.8120% → 1.6240%.
+   */
+  const extremeOne = extremeLocked ? 0 : byLevel(data.extremePark.byLevel, L) * bPark
   const extreme = w.extreme.on && !extremeLocked ? extremeOne : 0
   const saunaHour = byLevel(data.sauna.hourly, L)
   const mvp = saunaHour * (w.mvpHours || 0)
