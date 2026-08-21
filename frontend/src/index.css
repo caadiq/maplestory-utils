@@ -59,6 +59,9 @@
   --row-divider: #edf2f6;
   --row-hover-bg: #f2f7fa;
 
+  /* 차트 눈금선 — 표 구분선(--row-divider)은 흰 패널 위에서 거의 안 보인다 */
+  --chart-grid: #c8d5e0;
+
   --btn-bg: #ffffff;
   --btn-bg-hover: #f2f7fa;
   --btn-border: #c2cdd8;
@@ -234,6 +237,8 @@
 
   --row-divider: #2c3b4c;
   --row-hover-bg: #263447;
+
+  --chart-grid: #445a72;
 
   --btn-bg: #263447;
   --btn-bg-hover: #2e3f53;

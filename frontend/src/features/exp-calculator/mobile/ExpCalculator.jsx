@@ -271,7 +271,7 @@ function Chart({ char, history, nowMs }) {
         </defs>
         {gridLevels.map((lv) => (
           <g key={lv}>
-            <line x1={V.padL} y1={Y(lv)} x2={V.W - V.padR} y2={Y(lv)} stroke="var(--row-divider)" strokeWidth="1" strokeDasharray="3 4" />
+            <line x1={V.padL} y1={Y(lv)} x2={V.W - V.padR} y2={Y(lv)} stroke="var(--chart-grid)" strokeWidth="1" strokeDasharray="4 4" />
             <text x={V.padL - 9} y={Y(lv)} dominantBaseline="middle" textAnchor="end" fontSize="17.5" fill="var(--text-dim)">{lv}</text>
           </g>
         ))}
