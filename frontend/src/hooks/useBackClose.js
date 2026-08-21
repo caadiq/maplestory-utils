@@ -21,7 +21,21 @@ export function useBackClose(open, onClose) {
     const token = `dlg-${Math.random().toString(36).slice(2)}`
     const id = {}
     stack.push(id)
-    window.history.pushState({ __dialog: token }, '')
+    /*
+     * 히스토리 추가는 한 틱 미뤄서 한다.
+     *
+     * 개발 모드(StrictMode)는 이펙트를 '실행 → 정리 → 재실행'으로 한 번 더 돌린다.
+     * 바로 push하면 정리 단계의 history.back()이 비동기로 돌아오는데, 그 사이
+     * 재실행이 새 엔트리를 쌓아 되감기가 새 다이얼로그의 엔트리를 먹어버린다
+     * → 열자마자 닫혔다. 미뤄두면 정리 때 취소돼 두 번째 실행만 남는다.
+     */
+    let pushed = false
+    let cancelled = false
+    queueMicrotask(() => {
+      if (cancelled) return
+      window.history.pushState({ __dialog: token }, '')
+      pushed = true
+    })
 
     const onPop = () => {
       // 마지막에 연 다이얼로그이고, pop 결과가 자기 엔트리가 아닐 때만 닫기
@@ -33,11 +47,12 @@ export function useBackClose(open, onClose) {
     }
     window.addEventListener('popstate', onPop)
     return () => {
+      cancelled = true
       window.removeEventListener('popstate', onPop)
       const idx = stack.indexOf(id)
       if (idx !== -1) {
         stack.splice(idx, 1)
-        if (window.history.state?.__dialog === token) window.history.back()
+        if (pushed && window.history.state?.__dialog === token) window.history.back()
       }
     }
   }, [open])
