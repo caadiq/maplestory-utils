@@ -231,6 +231,8 @@ export default function Timer() {
     stream,
     enabled: settings.stallEnabled,
     stallSec: settings.stallSec,
+    repeat: settings.stallRepeat,
+    repeatSec: settings.stallRepeatSec,
     onAlert: (stillSec) => {
       const s = settingsRef.current
       playSound(resolveSound(s.stallSound), s.stallVolume)
@@ -624,7 +626,25 @@ export default function Timer() {
             onChange={(v) => set({ stallSec: Math.min(180, Math.max(5, v || 5)) })}
           />
         </SettingRow>
-        <SettingRow name="알림 소리" desc="풀릴 때까지 같은 간격으로 다시 알립니다">
+        <SettingRow
+          name="반복 알림"
+          desc={settings.stallRepeat
+            ? <>풀릴 때까지 <b style={{ color: 'var(--text-muted)' }}>{settings.stallRepeatSec}초</b> 간격으로 다시 알립니다</>
+            : '걸린 시점에 한 번만 알립니다'}
+        >
+          {settings.stallRepeat && (
+            <NumberField
+              value={settings.stallRepeatSec}
+              min={5}
+              max={300}
+              unit="초"
+              chars={3}
+              onChange={(v) => set({ stallRepeatSec: Math.min(300, Math.max(5, v || 5)) })}
+            />
+          )}
+          <Toggle on={settings.stallRepeat} onChange={(v) => set({ stallRepeat: v })} />
+        </SettingRow>
+        <SettingRow name="알림 소리" desc="경험치가 다시 오르면 알림이 멎습니다">
           <SoundControl
             options={soundOptions}
             sound={resolveSound(settings.stallSound)}

@@ -249,6 +249,10 @@ export const DEFAULT_SETTINGS = {
   stallVolume: 0.7,
   /** 경험치가 이 시간(초) 동안 안 오르면 알린다 — 젠이 7.5초라 기본 2젠 */
   stallSec: 15,
+  /** 풀릴 때까지 다시 알릴지 — 걸린 순간 자리를 비웠으면 한 번으로는 놓친다 */
+  stallRepeat: true,
+  /** 반복 간격(초). 판정 시간과 따로 둔다 — 짧게 잡아 빨리 알고, 반복은 느슨하게 */
+  stallRepeatSec: 20,
 }
 
 export function loadSettings() {

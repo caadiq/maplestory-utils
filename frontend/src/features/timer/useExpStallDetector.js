@@ -13,12 +13,12 @@ import { EXP_STALL, stallBand, whiteProfile, profileStrength, profileDiff, shoul
  * 띠가 작업표시줄을 보고 있으면 그 자리는 원래 안 변하는데, 그걸 '멈췄다'로 치면
  * 가만히 있어도 계속 울린다. 처음 한 번의 변화가 "여기가 경험치 줄이 맞다"는 확인이 된다.
  */
-export function useExpStallDetector({ stream, enabled, videoRef, stallSec, onAlert, onStatus }) {
+export function useExpStallDetector({ stream, enabled, videoRef, stallSec, repeat, repeatSec, onAlert, onStatus }) {
   const cbRef = useRef({ onAlert, onStatus })
   useEffect(() => { cbRef.current = { onAlert, onStatus } })
 
-  const stallSecRef = useRef(stallSec)
-  useEffect(() => { stallSecRef.current = stallSec }, [stallSec])
+  const optsRef = useRef({ stallSec, repeat, repeatSec })
+  useEffect(() => { optsRef.current = { stallSec, repeat, repeatSec } }, [stallSec, repeat, repeatSec])
 
   useEffect(() => {
     if (!stream || !enabled) {
@@ -94,14 +94,16 @@ export function useExpStallDetector({ stream, enabled, videoRef, stallSec, onAle
         return
       }
 
+      const { stallSec: sec, repeat: rep, repeatSec: repSec } = optsRef.current
       const stillMs = now - lastChangeAt
-      const limitMs = Math.max(3, stallSecRef.current || 15) * 1000
+      const limitMs = Math.max(3, sec || 15) * 1000
       const stalled = stillMs >= limitMs
       cbRef.current.onStatus?.({ reason: stalled ? 'stall' : 'ok', stillSec: Math.floor(stillMs / 1000) })
       if (!stalled) return
 
-      // 풀 때까지 같은 간격으로 다시 알린다 — 한 번 놓쳐도 결국 알게 된다
-      if (!shouldAlert(stillMs, limitMs, lastAlertAt ? now - lastAlertAt : null)) return
+      // 반복을 켜두면 풀 때까지 다시 알린다 — 한 번 놓쳐도 결국 알게 된다
+      const repeatMs = rep ? Math.max(3, repSec || 20) * 1000 : 0
+      if (!shouldAlert(stillMs, limitMs, lastAlertAt ? now - lastAlertAt : null, repeatMs)) return
       lastAlertAt = now
       cbRef.current.onAlert?.(Math.floor(stillMs / 1000))
     }

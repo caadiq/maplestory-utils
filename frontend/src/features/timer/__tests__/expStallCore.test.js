@@ -94,20 +94,31 @@ describe('profileDiff', () => {
 
 describe('shouldAlert', () => {
   const LIMIT = 15000
+  const REPEAT = 20000
 
   it('판정 시간을 못 채우면 안 울린다', () => {
-    expect(shouldAlert(14999, LIMIT, null)).toBe(false)
+    expect(shouldAlert(14999, LIMIT, null, REPEAT)).toBe(false)
   })
 
   it('판정 시간을 넘기면 처음 한 번 울린다', () => {
-    expect(shouldAlert(LIMIT, LIMIT, null)).toBe(true)
+    expect(shouldAlert(LIMIT, LIMIT, null, REPEAT)).toBe(true)
   })
 
-  it('울린 직후에는 다시 안 울린다', () => {
-    expect(shouldAlert(20000, LIMIT, 5000)).toBe(false)
+  it('반복 간격을 못 채우면 다시 안 울린다', () => {
+    expect(shouldAlert(30000, LIMIT, 19999, REPEAT)).toBe(false)
   })
 
-  it('판정 시간이 또 지나면 다시 울린다 (풀 때까지 반복)', () => {
-    expect(shouldAlert(30000, LIMIT, LIMIT)).toBe(true)
+  it('반복 간격이 지나면 다시 울린다', () => {
+    expect(shouldAlert(40000, LIMIT, REPEAT, REPEAT)).toBe(true)
+  })
+
+  it('반복을 끄면 처음 한 번만 울린다', () => {
+    expect(shouldAlert(LIMIT, LIMIT, null, 0)).toBe(true)
+    expect(shouldAlert(600000, LIMIT, 600000, 0)).toBe(false)
+  })
+
+  it('반복 간격은 판정 시간과 따로 논다', () => {
+    // 판정 15초 · 반복 60초 — 판정 시간만 지났다고 다시 울리면 안 된다
+    expect(shouldAlert(35000, LIMIT, 20000, 60000)).toBe(false)
   })
 })

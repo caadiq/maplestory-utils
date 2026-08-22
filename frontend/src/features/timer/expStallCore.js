@@ -104,13 +104,16 @@ export function profileDiff(a, b) {
  * 멈춘 지 얼마나 됐을 때 알릴지.
  *
  * 걸린 상태는 캐릭터를 움직여야 풀리므로 한 번 울리고 끝내면 그 순간 자리를 비운
- * 사람은 그대로 놓친다. 풀릴 때까지 판정 시간 간격으로 다시 울린다.
+ * 사람은 그대로 놓친다. 그래서 풀릴 때까지 다시 울릴 수 있게 해둔다.
  *
  * @param stillMs      마지막으로 경험치가 오른 뒤 지난 시간
  * @param limitMs      판정 시간
  * @param sinceAlertMs 마지막 알림 뒤 지난 시간 (아직 안 울렸으면 null)
+ * @param repeatMs     반복 간격. 0이나 null이면 처음 한 번만 울린다
  */
-export function shouldAlert(stillMs, limitMs, sinceAlertMs) {
+export function shouldAlert(stillMs, limitMs, sinceAlertMs, repeatMs) {
   if (stillMs < limitMs) return false
-  return sinceAlertMs == null || sinceAlertMs >= limitMs
+  if (sinceAlertMs == null) return true
+  if (!repeatMs) return false
+  return sinceAlertMs >= repeatMs
 }
