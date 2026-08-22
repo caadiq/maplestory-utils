@@ -62,6 +62,27 @@ export function runeTemplateScale(videoHeight) {
 }
 
 /**
+ * 훑어볼 배율 후보.
+ *
+ * 예측(세로 크기 비례)은 확장 UI에서 크게 어긋난다 — 야누스 아이콘에서 실측한
+ * 배율이 있으면 그쪽을 쓴다(아이콘 기본 32px 고정이라 가장 정확).
+ * 글자 NCC는 배율 몇 %에도 민감해서(제목표시줄 2.8% 어긋남에 0.98→0.84 실측)
+ * 기준 주변 ±4%를 2% 간격으로 함께 본다. 성공하면 그 배율로 고정된다.
+ *
+ * @param predicted 세로 크기로 예측한 템플릿 배율
+ * @param measured  야누스 아이콘 실측 UI 배율 (없으면 null)
+ */
+export function runeScaleCandidates(predicted, measured) {
+  const base = measured != null ? measured / uiScale(1080) : predicted
+  const out = new Set()
+  for (const k of [0.96, 0.98, 1, 1.02, 1.04]) {
+    const s = Math.round(base * k * 1000) / 1000
+    if (s >= 0.3) out.add(s)
+  }
+  return [...out].sort((a, b) => a - b)
+}
+
+/**
  * band(RGBA 조각) 안에서 템플릿들과 가장 닮은 자리를 찾는다.
  * templates: [{ vec, tw, th, kind }] — vec은 정규화된 초록 성분
  * 반환: { score, kind, x, y } | null
@@ -88,7 +109,7 @@ export function scanRuneBand({ data, w, h }, templates) {
         bounds: { x0: c.x - r, y0: c.y - r, x1: c.x + r, y1: c.y + r },
       })[0]
       if (hit && (!best || hit.score > best.score)) {
-        best = { score: hit.score, kind: t.kind, x: hit.x, y: hit.y }
+        best = { score: hit.score, kind: t.kind, scale: t.scale ?? null, x: hit.x, y: hit.y }
       }
     }
   }

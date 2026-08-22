@@ -1,6 +1,8 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { normalize } from './locateCore'
 import { BOOSTER, DIGIT_CELLS, SCALE_STEPS, toLuma, boosterScale, scanBooster } from './boosterCore'
+import { uiScale } from './locateCore'
+import { measuredUiScale } from './uiCalibration'
 
 /**
  * 화면 공유 스트림에서 VIP 부스터의 "남은시간" 박스를 지켜보다가 0초에 알린다.
@@ -81,15 +83,19 @@ export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, 
   useEffect(() => { cbRef.current = { onSchedule, onDetect, onStatus } })
 
   // 템플릿은 화면 세로 크기에 따라 배율이 달라진다 — 크기별로 한 번만 만든다
-  const tplCacheRef = useRef({ vh: 0, promise: null })
+  const tplCacheRef = useRef({ key: '', promise: null })
   const busyRef = useRef(false)
   // 지금 예약된 종료 시각과 그 취소 함수
   const endAtRef = useRef(0)
   const cancelRef = useRef(null)
   const lockedScaleRef = useRef(null)
 
-  const buildTemplates = useCallback(async (vh) => {
-    const scale = boosterScale(vh)
+  /*
+   * base = 템플릿(1080p 실측)을 현재 화면에 맞출 절대 배율.
+   * 세로 크기 예측(boosterScale)은 확장 UI에서 크게 어긋난다 — 야누스 아이콘에서
+   * 실측한 UI 배율이 있으면 그걸 쓴다(아이콘 기본 32px 고정이라 가장 정확).
+   */
+  const buildTemplates = useCallback(async (scale) => {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d', { willReadFrequently: true })
 
@@ -129,7 +135,8 @@ export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, 
 
       const px = (v) => Math.round(v * sc)
       variants.push({
-        scale: step,
+        // 배율은 절대값으로 기억한다 — base가 실측/예측 어느 쪽이든 고정 배율과 비교 가능
+        scale: Math.round(sc * 1000) / 1000,
         label: { vec: labelVec, tw, th },
         digits,
         cells: {
@@ -139,8 +146,8 @@ export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, 
       })
     }
     if (!variants.length) return null
-    // 예상 배율(1.0)을 맨 앞으로 — 1단계 탐색은 이걸로 한다
-    variants.sort((a, b) => Math.abs(a.scale - 1) - Math.abs(b.scale - 1))
+    // 기준 배율을 맨 앞으로 — 1단계 탐색은 이걸로 한다
+    variants.sort((a, b) => Math.abs(a.scale - scale) - Math.abs(b.scale - scale))
     return variants
   }, [])
 
@@ -191,8 +198,12 @@ export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, 
       const vh = video.videoHeight
       if (!vw || !vh) return
 
-      if (tplCacheRef.current.vh !== vh) {
-        tplCacheRef.current = { vh, promise: buildTemplates(vh) }
+      const measured = measuredUiScale(vw, vh)
+      const base = measured != null ? measured / uiScale(1080) : boosterScale(vh)
+      const key = `${vh}|${base.toFixed(3)}`
+      if (tplCacheRef.current.key !== key) {
+        tplCacheRef.current = { key, promise: buildTemplates(base) }
+        lockedScaleRef.current = null // 기준이 달라졌으면(창·실측 변경) 고정 배율도 무효
       }
       let variants = null
       try {
@@ -203,7 +214,7 @@ export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, 
       if (!variants?.length) {
         // 실패를 캐시에 남기면 일시적 네트워크 오류 한 번이 새로고침 전까지 기능을 죽인다.
         // 캐시를 비워 다음 스캔이 다시 시도하게 한다 (alarm.js의 buffers.delete와 같은 원칙)
-        tplCacheRef.current = { vh: 0, promise: null }
+        tplCacheRef.current = { key: '', promise: null }
         return
       }
       if (!alive) return
@@ -241,6 +252,7 @@ export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, 
         reason: hit?.reason ?? 'none',
         seconds: hit?.seconds ?? null,
         labelScore: hit?.labelScore ?? 0,
+        digitScore: hit?.digitScore ?? null,
         scale: hit?.scale ?? null,
       })
       if (!hit || hit.seconds == null) return

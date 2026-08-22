@@ -31,6 +31,15 @@ export const BOOSTER = {
   coarseKeep: 6,
   /** 숫자 한 칸의 판정 통과선. 못 미치면 그 프레임은 통째로 버린다 */
   digitScore: 0.90,
+  /**
+   * 작은 배율(확장 UI 등)에서의 통과선.
+   * UI가 작게 그려지면 숫자가 15px대까지 줄어 NCC가 원천적으로 내려간다 —
+   * 실프레임 0.652배 축소 시뮬레이션에서 정답 숫자가 0.8~0.9 사이였고
+   * margin 판정은 그대로 통과했다(87을 정독). 오독 방지의 주력은 margin이다.
+   */
+  digitScoreSmall: 0.82,
+  /** 이 절대 배율 미만이면 위 완화 통과선을 쓴다 */
+  smallScaleBelow: 0.8,
   /** 1등과 2등의 차이가 이만큼은 나야 믿는다 */
   digitMargin: 0.05,
   /**
@@ -201,14 +210,20 @@ export function scanBooster({ data, w, h }, variants, lockedScale = null) {
   }
 
   const v = bestFit.variant
-  const fail = { seconds: null, reason: 'digit', labelScore: bestFit.score, scale: v.scale }
   const at = (c) => ({ x: bestFit.x + c.dx, y: bestFit.y + c.dy, cw: c.w, ch: c.h })
   const tens = readCell(gray, w, h, at(v.cells.tens), v.digits)
   const ones = readCell(gray, w, h, at(v.cells.ones), v.digits)
+  // 실패해도 숫자가 어느 수준이었는지 남긴다 — 화면 상태 표시로 원인을 볼 수 있게
+  const fail = {
+    seconds: null, reason: 'digit', labelScore: bestFit.score, scale: v.scale,
+    digitScore: Math.max(ones?.score ?? 0, tens?.score ?? 0),
+  }
   if (!ones) return fail
 
+  // scale이 절대 배율이라(1.0 = 1080p 원본 크기) 배율에 따라 통과선을 고를 수 있다
+  const floor = v.scale < BOOSTER.smallScaleBelow ? BOOSTER.digitScoreSmall : BOOSTER.digitScore
   const good = (r) => r && r.digit != null
-    && r.score >= BOOSTER.digitScore && r.margin >= BOOSTER.digitMargin
+    && r.score >= floor && r.margin >= BOOSTER.digitMargin
   if (!good(ones)) return fail
 
   // 십의 자리는 값이 10 미만이면 꺼진다 — 못 읽은 것과 구분해야 한다.

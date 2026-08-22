@@ -4,6 +4,7 @@ import {
   saveTemplate, loadTemplate,
 } from './logic'
 import { LOCATE, candidateSizes, probeSizes, normalize, toChroma, locateIcon } from './locateCore'
+import { learnIconSize } from './uiCalibration'
 import { inspectCooldown, createCooldownTracker } from './digits'
 
 /**
@@ -288,7 +289,6 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
 
     const vw = video.videoWidth
     const vh = video.videoHeight
-    const ratio = LOCATE.frameWidth / vw
     // ignoreSaved: 저장 모양이 엉뚱한 자리에 굳었을 때 내장 원본으로만 다시 찾는다
     const saved = ignoreSaved ? null : loadTemplate()
     // 직접 지정한 적이 있으면 그때의 크기를 먼저 쓴다 — 추측보다 확실한 정보다
@@ -298,6 +298,13 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
       ...candidateSizes(vw, vh),
     ])].sort((a, b) => a - b)
     const probes = savedSize ? [...new Set([savedSize, ...probeSizes(sizes)])] : probeSizes(sizes)
+    /*
+     * 축소 폭은 "성긴 단계에서 가장 작은 후보가 ~13px은 되게" 정한다.
+     * 640 고정은 1920 화면·45px 아이콘 기준 15px였는데, 확장 UI 대응으로 후보 하한이
+     * 26px까지 내려가면서 640으로는 8px대로 뭉개져 성긴 단계가 놓칠 수 있다.
+     */
+    const frameWidth = Math.min(vw, Math.max(LOCATE.frameWidth, Math.ceil((vw * 13) / sizes[0])))
+    const ratio = frameWidth / vw
 
     /** 화면을 주어진 폭으로 줄여 RGBA로 꺼낸다 */
     const grabFrame = (w) => {
@@ -314,7 +321,7 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
       return { data: c.getImageData(0, 0, w, h).data, w, h }
     }
 
-    const coarse = grabFrame(LOCATE.frameWidth)
+    const coarse = grabFrame(frameWidth)
     const full = grabFrame(vw)
     if (!coarse || !full) return null
 
@@ -428,6 +435,15 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
     templateRef.current = null
     resetDetector()
     lostSinceRef.current = null
+    /*
+     * 영역이 정해진 순간이 UI 배율의 실측이다 (아이콘 기본 32px ÷ 찾은 크기).
+     * 룬·부스터가 이 값을 물려받는다 — 확장 UI처럼 창 크기로 배율을 예측할 수
+     * 없는 화면에서, 저쪽 감지기들의 템플릿 크기를 맞추는 근거가 된다.
+     */
+    const video = videoRef.current
+    if (region && video?.videoWidth) {
+      learnIconSize(region.w * video.videoWidth, video.videoWidth, video.videoHeight)
+    }
   }, [region])
 
 

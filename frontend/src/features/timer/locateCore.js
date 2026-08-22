@@ -69,19 +69,40 @@ export function quickslotBox(w, h) {
 }
 
 /**
- * 훑어볼 아이콘 크기(px). 배율에서 바로 나오므로 몇 px 오차만 감안하면 된다.
- * 예전에는 22~48px을 무작정 훑었다.
+ * 훑어볼 아이콘 크기(px).
+ *
+ * 예전에는 세로 크기로 계산한 예측 배율 근처(±3px)만 봤는데, 인게임 **확장 UI**가
+ * 그 가정을 깼다 — 창을 늘려도 게임 UI는 창 크기를 따라가지 않아서, 실측으로
+ * 890px 창에서 아이콘이 30px(예측은 37px)로 나와 예측 근처에는 아예 없었다.
+ * 그래서 기본 크기(32px) 언저리부터 비례 예측까지 전 구간을 1px 단위로 훑는다.
+ * locate는 지정·공유 시작 때 한 번 도는 계산이라 느는 비용은 문제되지 않는다.
  */
 export function candidateSizes(videoWidth, videoHeight) {
-  // 실측이 예측보다 1px 크게 나온 해상도가 있어(1080p: 예측 45 / 실측 46) 1px 단위로 훑는다
+  // 실측이 예측보다 1px 크게 나온 해상도가 있어(1080p: 예측 45 / 실측 46) 위로도 여유를 둔다
   const base = Math.round(32 * uiScale(videoHeight))
-  return [-2, -1, 0, 1, 2, 3].map((d) => base + d).filter((n) => n >= 10)
+  const lo = Math.min(26, base - 2) // 26 = 기본 32px에서 창 테두리 오차만큼 아래
+  const sizes = []
+  for (let n = lo; n <= base + 3; n++) sizes.push(n)
+  return sizes.filter((n) => n >= 10)
 }
 
-/** 1단계로 훑을 대표 크기 — 20%쯤 달라도 걸리므로 셋이면 전 구간을 덮는다 */
+/**
+ * 1단계로 훑을 대표 크기.
+ * 성긴 단계는 크기가 20%쯤 달라도 걸리므로, 이웃 간 비율이 1.18을 넘지 않게 고른다.
+ * (예전엔 처음·중간·끝 셋이었는데, 크기 범위가 넓어지면서 셋으로는 사이가 빈다)
+ */
 export function probeSizes(sizes) {
   if (sizes.length <= 3) return sizes
-  return [sizes[0], sizes[Math.floor(sizes.length / 2)], sizes[sizes.length - 1]]
+  const out = [sizes[0]]
+  let prev = sizes[0]
+  for (const s of sizes) {
+    // s에서 처음 1.18배를 넘게 되면, 넘기 직전 크기가 마지막 안전 지점이다
+    if (s > out[out.length - 1] * 1.18) out.push(prev)
+    prev = s
+  }
+  const last = sizes[sizes.length - 1]
+  if (out[out.length - 1] !== last) out.push(last)
+  return out
 }
 
 /* ── 픽셀 → 특징값 ───────────────────────────────────────── */
@@ -226,7 +247,11 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
   const fGray = toChroma(full.data)
   const fInt = buildIntegral(fGray, full.w, full.h)
 
-  /** 1단계 — 주어진 범위에서 자리만 추린다 */
+  /**
+   * 1단계 — 주어진 범위에서 자리만 추린다.
+   * 어느 크기의 성긴 훑기에 걸렸는지(sMin~sMax)도 함께 기억한다 — 크기 범위가
+   * 넓어져서 2단계에서 전 크기를 다 대보면 낭비고, 걸린 크기 근처만 보면 된다.
+   */
   const collectSpots = (bounds) => {
     const spots = []
     for (const tpl of templates) {
@@ -238,8 +263,13 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
         for (const hit of findMatches(cGray, coarse.w, coarse.h, cInt, vec, tw, th, {
           step: 3, minScore: LOCATE.coarseScore, bounds,
         }).slice(0, LOCATE.coarseKeep)) {
-          if (spots.some((s) => Math.abs(s.x - hit.x) < tw && Math.abs(s.y - hit.y) < th)) continue
-          spots.push(hit)
+          const near = spots.find((s) => Math.abs(s.x - hit.x) < tw && Math.abs(s.y - hit.y) < th)
+          if (near) {
+            near.sMin = Math.min(near.sMin, size)
+            near.sMax = Math.max(near.sMax, size)
+            continue
+          }
+          spots.push({ ...hit, sMin: size, sMax: size })
         }
       }
     }
@@ -260,13 +290,17 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
   if (spots.length === 0) spots = collectSpots({})
 
   // 2단계 — 후보 주변만 원본 해상도에서 촘촘히
+  // 반경은 성긴 격자(step 3)의 오차를 원본 px로 환산한 값 이상이어야 한다 —
+  // 화면이 넓을수록 축소비(ratio)가 작아져 같은 격자 오차가 원본에서 더 커진다
+  const r = Math.max(LOCATE.refineRadius, Math.ceil(1.5 / ratio) + 2)
   const results = []
   for (const spot of spots) {
     const cx = Math.round(spot.x / ratio)
     const cy = Math.round(spot.y / ratio)
-    const r = LOCATE.refineRadius
     for (const tpl of templates) {
       for (const size of sizes) {
+        // 성긴 단계는 ±20%쯤 차이 나는 크기에도 걸린다 — 그 너머는 볼 이유가 없다
+        if (size < spot.sMin / 1.25 || size > spot.sMax * 1.25) continue
         const vec = tpl.vecs[size]
         if (!vec) continue
         const best = findMatches(fGray, full.w, full.h, fInt, vec, size, size, {

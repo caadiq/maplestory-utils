@@ -216,7 +216,7 @@ export default function Timer() {
     onStatus: (st) => setBoosterStatus((prev) => {
       const next = st.reason === 'ok' || st.reason === 'digit' ? st : null
       if (!prev && !next) return prev
-      if (prev && next && prev.reason === next.reason && prev.seconds === next.seconds) return prev
+      if (prev && next && prev.reason === next.reason && prev.seconds === next.seconds && prev.digitScore === next.digitScore) return prev
       return next
     }),
   })
@@ -804,7 +804,11 @@ function BoosterStatus({ status }) {
   if (!status) return null
   if (status.reason === 'ok') return <StatusPill tone="live">남은시간 {status.seconds}초</StatusPill>
   if (status.reason === 'digit') {
-    return <StatusPill tone="warn">숫자 인식 실패 (일치 {status.labelScore.toFixed(2)})</StatusPill>
+    return (
+      <StatusPill tone="warn">
+        숫자 인식 실패 (라벨 {status.labelScore.toFixed(2)} · 숫자 {(status.digitScore ?? 0).toFixed(2)})
+      </StatusPill>
+    )
   }
   return null
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { normalize } from './locateCore'
-import { RUNE, toGreen, runeTemplateScale, scanRuneBand } from './runeCore'
+import { RUNE, toGreen, runeTemplateScale, runeScaleCandidates, scanRuneBand } from './runeCore'
+import { measuredUiScale } from './uiCalibration'
 
 /**
  * 화면 공유 스트림에서 "룬이 등장 했습니다!" 문구를 지켜본다.
@@ -68,13 +69,17 @@ export function useRuneDetector({ videoRef, stream, enabled, onRune }) {
   const cbRef = useRef(onRune)
   useEffect(() => { cbRef.current = onRune })
 
-  // 템플릿 벡터는 화면 세로 크기에 따라 달라진다 — 크기별로 한 번만 만든다
-  const tplCacheRef = useRef({ vh: 0, promise: null })
+  // 템플릿 벡터는 배율 후보에 따라 달라진다 — 후보 조합이 같으면 한 번만 만든다
+  const tplCacheRef = useRef({ key: '', promise: null })
   const suppressUntilRef = useRef(0)
   const busyRef = useRef(false)
+  /*
+   * 성공한 배율은 고정한다. 확장 UI 대응으로 배율 후보가 여럿이 됐는데,
+   * 한 번 맞은 배율은 창이 바뀌기 전까지 그대로라 다시 다 훑을 이유가 없다.
+   */
+  const lockedScaleRef = useRef(null)
 
-  const buildTemplates = useCallback(async (vh) => {
-    const scale = runeTemplateScale(vh)
+  const buildTemplates = useCallback(async (scales) => {
     const out = []
     for (const [path, url] of Object.entries(tplFiles)) {
       const kind = path.includes('bless') ? 'bless' : 'normal'
@@ -82,15 +87,17 @@ export function useRuneDetector({ videoRef, stream, enabled, onRune }) {
       img.src = url
       await img.decode().catch(() => {})
       if (!img.naturalWidth) continue
-      const tw = Math.max(8, Math.round(img.naturalWidth * scale))
-      const th = Math.max(8, Math.round(img.naturalHeight * scale))
-      const c = document.createElement('canvas')
-      c.width = tw
-      c.height = th
-      const ctx = c.getContext('2d', { willReadFrequently: true })
-      ctx.drawImage(img, 0, 0, tw, th)
-      const vec = normalize(toGreen(ctx.getImageData(0, 0, tw, th).data))
-      if (vec) out.push({ vec, tw, th, kind })
+      for (const scale of scales) {
+        const tw = Math.max(8, Math.round(img.naturalWidth * scale))
+        const th = Math.max(8, Math.round(img.naturalHeight * scale))
+        const c = document.createElement('canvas')
+        c.width = tw
+        c.height = th
+        const ctx = c.getContext('2d', { willReadFrequently: true })
+        ctx.drawImage(img, 0, 0, tw, th)
+        const vec = normalize(toGreen(ctx.getImageData(0, 0, tw, th).data))
+        if (vec) out.push({ vec, tw, th, kind, scale })
+      }
     }
     return out
   }, [])
@@ -112,8 +119,11 @@ export function useRuneDetector({ videoRef, stream, enabled, onRune }) {
       if (!vw || !vh) return
       if (Date.now() < suppressUntilRef.current) return
 
-      if (tplCacheRef.current.vh !== vh) {
-        tplCacheRef.current = { vh, promise: buildTemplates(vh) }
+      const scales = runeScaleCandidates(runeTemplateScale(vh), measuredUiScale(vw, vh))
+      const key = scales.join(',')
+      if (tplCacheRef.current.key !== key) {
+        tplCacheRef.current = { key, promise: buildTemplates(scales) }
+        lockedScaleRef.current = null // 후보가 달라졌으면(창·실측 변경) 고정도 무효
       }
       let templates = null
       try {
@@ -124,8 +134,11 @@ export function useRuneDetector({ videoRef, stream, enabled, onRune }) {
       if (!templates?.length) {
         // 실패(이미지 로드 불발 → 빈 배열)를 캐시에 남기면 새로고침 전까지 감지가 죽는다.
         // 캐시를 비워 다음 스캔이 다시 시도하게 한다
-        tplCacheRef.current = { vh: 0, promise: null }
+        tplCacheRef.current = { key: '', promise: null }
         return
+      }
+      if (lockedScaleRef.current != null) {
+        templates = templates.filter((t) => t.scale === lockedScaleRef.current)
       }
       if (!alive) return
 
@@ -150,6 +163,7 @@ export function useRuneDetector({ videoRef, stream, enabled, onRune }) {
       try {
         const hit = await runScan(band, templates)
         if (alive && hit && hit.score >= RUNE.threshold) {
+          if (hit.scale != null) lockedScaleRef.current = hit.scale
           suppressUntilRef.current = Date.now() + RUNE.suppressMs
           cbRef.current?.(hit)
         }
