@@ -64,18 +64,6 @@ export function uiScale(videoHeight) {
 }
 
 /**
- * 퀵슬롯 상자 — 화면 우하단에 붙어 있다.
- * 기준 해상도에서 바가 차지하는 크기(600×110)를 배율만큼 키운다.
- * 여기서 아무것도 못 찾을 때만 화면 전체로 넓힌다 (막다른 길이 되지 않게 두는 안전장치).
- */
-export function quickslotBox(w, h) {
-  const s = uiScale(h)
-  const bw = Math.min(w, Math.round(600 * s))
-  const bh = Math.min(h, Math.round(110 * s))
-  return { x0: w - bw, y0: h - bh, x1: w, y1: h }
-}
-
-/**
  * 훑어볼 아이콘 크기(px).
  *
  * 예전에는 세로 크기로 계산한 예측 배율 근처(±3px)만 봤는데, 인게임 **확장 UI**가
@@ -110,6 +98,43 @@ export function probeSizes(sizes) {
   const last = sizes[sizes.length - 1]
   if (out[out.length - 1] !== last) out.push(last)
   return out
+}
+
+/**
+ * 캡처 아래쪽의 거의 검은 띠를 건너뛴 유효 바닥.
+ * 해상도 확장 창을 OBS 캔버스 등으로 공유하면 게임 아래에 레터박스·분리 채팅이
+ * 깔린다(실측: 1080 캡처에서 게임 바닥이 903) — 퀵슬롯 상자를 캡처 바닥 기준으로
+ * 잡으면 그 띠만 보게 된다. 행 평균 밝기로 게임 바닥을 찾는다.
+ */
+export function contentBottom(data, w, h) {
+  /*
+   * 판정은 "행에서 밝은 픽셀이 차지하는 비율"로 한다. 행 평균 밝기로는 띠 안의
+   * 분리 채팅·아이템 획득 창에 걸려 바닥을 잘못 잡았다(실측). 게임 행은 전폭에
+   * 내용이 있어 비율 0.4~1.0, 띠 행은 채팅·창이 있어도 0~0.22다 — 0.3이 가른다.
+   */
+  for (let y = h - 1; y >= h / 2; y--) {
+    let bright = 0
+    const row = y * w * 4
+    for (let x = 0; x < w; x++) {
+      const p = row + x * 4
+      if (data[p] + data[p + 1] + data[p + 2] > 75) bright++
+    }
+    if (bright / w > 0.3) return y + 1
+  }
+  return h
+}
+
+/**
+ * 퀵슬롯 상자 — 게임 화면의 우하단에 붙어 있다.
+ * 기준 해상도에서 바가 차지하는 크기(600×110)를 배율만큼 키운다.
+ * bottom은 유효 바닥(contentBottom) — 레터박스가 없으면 h 그대로다.
+ * 여기서 아무것도 못 찾을 때만 화면 전체로 넓힌다 (막다른 길이 되지 않게 두는 안전장치).
+ */
+export function quickslotBox(w, h, bottom = h) {
+  const s = Math.max(1, bottom / 768)
+  const bw = Math.min(w, Math.round(600 * s))
+  const bh = Math.min(bottom, Math.round(110 * s))
+  return { x0: w - bw, y0: bottom - bh, x1: w, y1: bottom }
 }
 
 /* ── 픽셀 → 특징값 ───────────────────────────────────────── */
@@ -309,9 +334,14 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
     return spots
   }
 
-  // 퀵슬롯 상자 → 하단 전체 → 화면 전체 순으로 넓혀 가며 찾는다.
-  // 상자는 원본 해상도 기준으로 잡고 축소 화면 좌표로 옮긴다 (축소본으로 계산하면 엉뚱하게 커진다)
-  const boxFull = quickslotBox(full.w, full.h)
+  /*
+   * 퀵슬롯 상자(레터박스를 뺀 유효 바닥 기준) → 화면 전체 순으로 넓혀 가며 찾는다.
+   * 상자를 캡처 바닥 기준으로 잡으면 레터박스·분리 채팅만 보게 되고(실측: 정답
+   * 0.84가 검색조차 안 됨), 상자 없이 전체만 훑으면 필드 이펙트·버프 아이콘이
+   * 쿨타임 상태의 정답(0.69~0.78)을 눌렀다 — 둘 다 실측으로 확인한 실패였다.
+   * 상자는 원본 해상도 기준으로 잡고 축소 화면 좌표로 옮긴다.
+   */
+  const boxFull = quickslotBox(full.w, full.h, contentBottom(full.data, full.w, full.h))
   const box = {
     x0: Math.floor(boxFull.x0 * ratio),
     y0: Math.floor(boxFull.y0 * ratio),

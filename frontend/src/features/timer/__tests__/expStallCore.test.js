@@ -25,14 +25,15 @@ const text = (bg, cols) => (x, y) => (cols.has(x) && y >= 3 && y <= 10 ? [255, 2
 
 describe('stallBand', () => {
   it('1080p에서 화면 아래 가운데 띠를 잡는다', () => {
-    expect(stallBand(1920, 1080)).toEqual({ x: 768, y: 1064, w: 384, h: 14 })
+    // 확장 UI의 중심 치우침(실측 0.60~0.62 지점) 때문에 띠가 0.35~0.68로 넓다
+    expect(stallBand(1920, 1080)).toEqual({ x: 672, y: 1064, w: 634, h: 14 })
   })
 
   it('해상도가 달라도 바닥에 붙어 가운데를 본다', () => {
     const b = stallBand(2560, 1440)
     // 맨 아래 몇 px은 일부러 뺀다 (1080p 기준 2px) — 글자는 그 위에 있다
     expect(1440 - (b.y + b.h)).toBeLessThanOrEqual(4)
-    expect(b.x).toBe(1024)
+    expect(b.x).toBe(896)
     expect(b.h).toBeGreaterThan(10)
   })
 })
