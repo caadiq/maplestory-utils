@@ -142,6 +142,7 @@ export default function Timer() {
   }, [scheduleFor, settings])
 
   const resetCycleRef = useRef(null)
+  const relocatingRef = useRef(false)
 
   const isDusk = settings.mode === 'dusk'
   const durationSec = durationForSettings(settings)
@@ -169,6 +170,21 @@ export default function Timer() {
     onModeMismatch: (m) => {
       if (settingsRef.current.mode === m) return
       set({ mode: m })
+    },
+    /*
+     * 아이콘을 오래 못 알아보면 위치가 어긋난 것 — 자동으로 다시 찾는다.
+     * (창을 늘리면 캡처 내용이 줄어들며 지정 자리가 통째로 어긋나는 환경이 있다.
+     * 확실하게 찾으면 소리 없이 위치만 갱신되고, 애매하면 후보 화면이 뜬다.)
+     */
+    onIconLostTooLong: async () => {
+      if (relocatingRef.current) return
+      relocatingRef.current = true
+      try {
+        log('아이콘을 계속 못 알아봄 — 자리를 다시 찾습니다', '자동', 'warn')
+        applyHits(await locate())
+      } finally {
+        relocatingRef.current = false
+      }
     },
     mode: settings.mode,
     cycleMs,

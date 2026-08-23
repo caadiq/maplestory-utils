@@ -105,7 +105,7 @@ const DUSK_ACTIVE_MS = 6000
 /** 황혼 쿨타임은 3초라 값이 1~3뿐이다. 이보다 크면 황혼이 아니다 */
 const DUSK_MAX_VALUE = 5
 
-export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cycleMs = 0, enabled = true }) {
+export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong, mode = 'dawn', cycleMs = 0, enabled = true }) {
   const [stream, setStream] = useState(null)
   const [region, setRegion] = useState(null)   // {x,y,w,h} — 0~1 정규화
   const [install, setInstall] = useState(null) // {index, at}
@@ -141,13 +141,14 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
   const modeRef = useRef(mode)
   const cycleMsRef = useRef(cycleMs)
   const lostSinceRef = useRef(null)
+  const lostFiredAtRef = useRef(0)
   const indexRef = useRef(0)
   const lastFrameRef = useRef(0)
   const bigReadingRef = useRef(null) // 황혼 모드에서 읽힌 '큰 쿨타임' — 모드 불일치 판단용
   const duskSeenAtRef = useRef(0)    // 황혼다운 쿨타임 값(1~3)을 마지막으로 '읽은' 시각
 
-  const cbRef = useRef({ onInstall, onModeMismatch })
-  useEffect(() => { cbRef.current = { onInstall, onModeMismatch } })
+  const cbRef = useRef({ onInstall, onModeMismatch, onIconLostTooLong })
+  useEffect(() => { cbRef.current = { onInstall, onModeMismatch, onIconLostTooLong } })
 
   // 마지막 설치 시각 — 한 사이클 안에서 또 설치로 잡히는 것을 막는다
   const lastInstallRef = useRef(0)
@@ -834,6 +835,21 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
     const ui = setInterval(() => {
       setTick((t) => t + 1)
       setIconLost(lostSinceRef.current != null && Date.now() - lostSinceRef.current > DETECT.lostWarnMs)
+      /*
+       * 오래 못 알아보면 위치가 어긋난 것일 수 있다 — 위에 알린다(자동 재탐색용).
+       *
+       * 위치가 어긋나는 데는 창 크기 변경 이벤트로 못 잡는 경우가 있다:
+       * 해상도 확장으로 창이 커져도 캡처 트랙 해상도는 그대로이고 **내용만
+       * 줄어들며 레터박스가 생기는** 환경(실사용 보고). 좌표 보정으로는 시점을
+       * 알 수 없으니, "아이콘을 놓친 상태가 지속된다"를 신호로 쓴다.
+       * 몹·창에 잠깐 가리는 정도(수 초)는 발화하지 않고, 발화 뒤에는 한동안 쉰다.
+       */
+      if (lostSinceRef.current != null && Date.now() - lostSinceRef.current > 6000) {
+        if (Date.now() - (lostFiredAtRef.current || 0) > 45000) {
+          lostFiredAtRef.current = Date.now()
+          cbRef.current.onIconLostTooLong?.()
+        }
+      }
       // 황혼은 쿨타임이 3초라 카운트다운으로 시각을 보정할 여지가 없다 — 보정 표시 자체를 쓰지 않는다
       setSync(modeRef.current === 'dusk' || !installRef.current
         ? null
