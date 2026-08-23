@@ -271,10 +271,12 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
    * 1단계 — 주어진 범위에서 자리만 추린다.
    * 어느 크기의 성긴 훑기에 걸렸는지(sMin~sMax)도 함께 기억한다 — 크기 범위가
    * 넓어져서 2단계에서 전 크기를 다 대보면 낭비고, 걸린 크기 근처만 보면 된다.
+   * coarse: false 표시된 템플릿(쿨타임 변형들)은 자리 추리기에서 빠진다 —
+   * 자리는 대표 몇 장으로 충분하고, 변형들은 2단계에서만 점수를 낸다.
    */
   const collectSpots = (bounds) => {
     const spots = []
-    for (const tpl of templates) {
+    for (const [ti, tpl] of templates.entries()) {
       for (const size of probes) {
         const vec = tpl.coarseVecs[size]
         if (!vec) continue
@@ -296,10 +298,11 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
               near.score = hit.score
               near.x = hit.x
               near.y = hit.y
+              near.tpl = ti
             }
             continue
           }
-          spots.push({ ...hit, sMin: size, sMax: size })
+          spots.push({ ...hit, sMin: size, sMax: size, tpl: ti })
         }
       }
     }
@@ -318,16 +321,37 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
   let spots = collectSpots(box)
   // 상자에서 아무것도 못 찾았을 때만 화면 전체로 — 막다른 길이 되지 않게 두는 안전장치다
   if (spots.length === 0) spots = collectSpots({})
+  /*
+   * 자리 후보가 너무 많으면 2단계가 통째로 느려진다 — 점수순으로 자르되,
+   * 각 템플릿의 최고 스팟은 남긴다. 쿨타임 모습의 정답 스팟은 성긴 점수가
+   * 낮아서(0.4~0.5) 점수순만으로 자르면 정답이 통째로 잘렸다(실측).
+   */
+  spots.sort((a, b) => b.score - a.score)
+  const kept = new Set(spots.slice(0, 16))
+  // 점수순 16개에 '각 템플릿의 최고 스팟'을 더한다 — 잠식이 아니라 추가라 서로를 안 밀어낸다
+  const seenTpl = new Set()
+  for (const sp of spots) {
+    if (seenTpl.has(sp.tpl)) continue
+    seenTpl.add(sp.tpl)
+    kept.add(sp)
+  }
+  spots = [...kept]
 
-  // 2단계 — 후보 주변만 원본 해상도에서 촘촘히
-  // 반경은 성긴 격자(step 3)의 오차를 원본 px로 환산한 값 이상이어야 한다 —
-  // 화면이 넓을수록 축소비(ratio)가 작아져 같은 격자 오차가 원본에서 더 커진다.
-  // 쿨타임 숫자가 덮인 상태는 성긴 정점 자체가 몇 px 더 어긋난다(실측 10px) — 여유를 둔다
-  const r = Math.max(LOCATE.refineRadius, Math.ceil(1.5 / ratio) + 2, 10)
+  /*
+   * 2단계 — 후보 주변만 원본 해상도에서 다시 본다.
+   *
+   * 반경은 성긴 격자(step 3) 오차의 원본 환산값 이상 + 아이콘 크기의 절반 가까이.
+   * 쿨타임 숫자가 덮인 상태는 성긴 정점이 숫자끼리 맞는 자리로 끌려가
+   * 원본 기준 16px까지 어긋난다(실측) — 좁은 반경으로는 정답이 범위 밖이었다.
+   * 넓어진 반경의 비용은 2px 격자로 훑고 정점 주변만 1px로 다듬어 상쇄한다
+   * (아이콘 상관 표면은 글자와 달리 완만해서 2px 격자로도 정점 근처가 잡힌다).
+   */
+  const baseR = Math.max(LOCATE.refineRadius, Math.ceil(1.5 / ratio) + 2)
   const results = []
   for (const spot of spots) {
     const cx = Math.round(spot.x / ratio)
     const cy = Math.round(spot.y / ratio)
+    const r = Math.max(baseR, Math.ceil(spot.sMax * 0.45))
     for (const tpl of templates) {
       for (const size of sizes) {
         // 성긴 단계는 크기가 꽤 달라도 걸린다 — 걸린 크기에서 너무 먼 것만 거른다.
@@ -335,13 +359,20 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
         if (size < spot.sMin / 1.6 || size > spot.sMax * 1.6) continue
         const vec = tpl.vecs[size]
         if (!vec) continue
-        const best = findMatches(fGray, full.w, full.h, fInt, vec, size, size, {
-          step: 1,
+        const rough = findMatches(fGray, full.w, full.h, fInt, vec, size, size, {
+          step: 2,
           minScore: LOCATE.looseScore,
           minVariance: LOCATE.minVariance,
           bounds: { x0: cx - r, y0: cy - r, x1: cx + r, y1: cy + r },
         })[0]
-        if (best) results.push({ x: best.x, y: best.y, w: size, h: size, score: best.score })
+        if (!rough) continue
+        const best = findMatches(fGray, full.w, full.h, fInt, vec, size, size, {
+          step: 1,
+          minScore: LOCATE.looseScore,
+          minVariance: LOCATE.minVariance,
+          bounds: { x0: rough.x - 1, y0: rough.y - 1, x1: rough.x + 1, y1: rough.y + 1 },
+        })[0] ?? rough
+        results.push({ x: best.x, y: best.y, w: size, h: size, score: best.score })
       }
     }
   }

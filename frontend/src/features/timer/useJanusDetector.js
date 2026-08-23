@@ -78,6 +78,10 @@ const iconByMode = (mode) => {
   const hit = Object.entries(iconFiles).find(([p]) => p.includes(`janus-${mode}.`))
   return hit?.[1] ?? Object.values(iconFiles)[0] ?? null
 }
+/** icon/ 폴더에 있는 janus-* 파일 이름들 — 파일만 추가하면 탐색에 자동 포함된다 */
+const builtinModes = () => Object.keys(iconFiles)
+  .map((p) => p.match(/janus-([a-z0-9]+)\./)?.[1])
+  .filter(Boolean)
 export const HAS_BUILTIN_ICON = Object.keys(iconFiles).length > 0
 
 /** 쿨타임 중 모습을 이만큼 모아 평균 내면 숫자가 흐려지고 아이콘만 남는다 */
@@ -163,9 +167,9 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
    * (실측: 황혼이 끼워진 화면에 새벽 아이콘을 대면 정답이 10위 밖으로 밀린다).
    */
   useEffect(() => {
-    // cooldown = 쿨타임이 도는 중의 실물 모습(어두워진 아이콘 + 노란 숫자).
+    // icon/ 폴더의 janus-* 전부 — dawn/dusk 원본에 더해 cooldown* (쿨타임 중 실물 모습들).
     // 원본만으로는 쿨타임 장면에서 NCC가 0.05~0.32로 추락해 아예 못 찾는다(실측).
-    for (const m of ['dawn', 'dusk', 'cooldown', 'cooldown2']) {
+    for (const m of builtinModes()) {
       const url = iconByMode(m)
       if (!url || builtinIconsRef.current[m]) continue
       const img = new Image()
@@ -360,12 +364,14 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
       if (saved.darkRgba?.length) sources.push(toCanvas(saved.darkRgba))
     }
     /*
-     * 내장 원본은 새벽·황혼에 더해 **쿨타임 중 실물 모습** 두 장(숫자 1·2)까지 넣는다.
-     * 원본만으로는 쿨타임 장면에서 NCC가 0.05~0.32로 추락해 아예 못 찾았다(실측) —
-     * 실물 쿨타임 모습끼리는 숫자가 달라도 0.49~0.84로 붙는다.
+     * 내장 원본은 새벽·황혼에 더해 **쿨타임 중 실물 모습들**(janus-cooldown*)까지 넣는다.
+     * 원본만으로는 쿨타임 장면에서 NCC가 0.05~0.32로 추락해 아예 못 찾았다(실측).
+     * 쿨타임 숫자는 계속 변해서 하나로는 안 된다 — 실측 10분 영상 600프레임 기준
+     * 황혼 2장(숫자 1·2)과 새벽 4장(53·45·20·7)이면 후보권 공백이 최장 2초로 줄어
+     * 재시도(2.5초 간격)가 그 틈을 덮는다.
      * 쿨타임 모습은 모드 구분에는 못 쓴다(mode: null) — 위치만 잡는다.
      */
-    for (const m of ['dawn', 'dusk', 'cooldown', 'cooldown2']) {
+    for (const m of builtinModes()) {
       const img = builtinIconsRef.current[m]
       if (!img) continue
       if (!img.complete) {
@@ -373,7 +379,10 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
         await img.decode().catch(() => {})
       }
       if (img.complete && img.naturalWidth) {
-        sources.push({ el: img, w: img.naturalWidth, h: img.naturalHeight, mode: m.startsWith('cooldown') ? null : m })
+        sources.push({
+          el: img, w: img.naturalWidth, h: img.naturalHeight,
+          mode: m.startsWith('cooldown') ? null : m,
+        })
       }
     }
     if (!sources.length) return null
