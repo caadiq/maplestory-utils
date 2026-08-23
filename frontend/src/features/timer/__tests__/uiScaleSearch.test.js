@@ -61,8 +61,14 @@ describe('runeScaleCandidates', () => {
     expect(Math.max(...c)).toBeLessThan(0.75)
   })
 
-  it('실측이 없으면 예측 기준 ±4%를 2% 간격으로 낸다', () => {
+  it('실측이 없으면 예측과 기본 UI(1.0) 두 기준을 함께 본다', () => {
     const c = runeScaleCandidates(1, null)
-    expect(c).toEqual([0.96, 0.98, 1, 1.02, 1.04])
+    // 예측(1.0) 이웃과 기본 UI(1/1.40625 = 0.711) 이웃이 모두 있어야 한다
+    expect(c).toContain(1)
+    expect(Math.min(...c.map((s) => Math.abs(s - 1 / uiScale(1080))))).toBeLessThan(0.001)
+  })
+
+  it('예측과 기본 UI가 같은 화면(768p)에서는 후보가 5개로 줄어든다', () => {
+    expect(runeScaleCandidates(runeTemplateScale(768), null).length).toBe(5)
   })
 })

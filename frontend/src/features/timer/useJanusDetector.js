@@ -115,6 +115,8 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const regionRef = useRef(null)
+  // region을 잡았을 때의 캡처 크기 — 창 크기가 바뀌면 우하단 기준으로 위치를 보정한다
+  const regionBaseRef = useRef(null)
   /*
    * 설치는 밝기가 아니라 **쿨타임 숫자의 등장**으로 판별한다.
    * 밝기는 이펙트·깜빡임·가림에 흔들리지만 숫자에는 값이 있어 검증이 된다 —
@@ -442,9 +444,49 @@ export function useJanusDetector({ onInstall, onModeMismatch, mode = 'dawn', cyc
      */
     const video = videoRef.current
     if (region && video?.videoWidth) {
+      regionBaseRef.current = { vw: video.videoWidth, vh: video.videoHeight }
       learnIconSize(region.w * video.videoWidth, video.videoWidth, video.videoHeight)
     }
   }, [region])
+
+  /*
+   * 창 크기가 바뀌면 영역을 우하단 기준으로 따라 옮긴다.
+   *
+   * region은 0~1 비율 좌표라 캡처 크기가 바뀌면 같은 "비율" 자리를 가리키는데,
+   * 확장 UI에서 창을 늘리면 게임 화면이 넓어질 뿐 퀵슬롯은 우하단에 붙박이라
+   * 비율 자리는 엉뚱한 곳이 된다. 우하단에서의 px 거리와 px 크기는 변하지
+   * 않으므로 그걸 보존해 새 비율로 환산한다.
+   * (해상도 변경으로 UI 배율 자체가 바뀐 경우엔 모양 판정이 실패해 "아이콘을
+   * 못 알아봄" 경고가 뜨고, 다시 지정하면 된다 — 조용히 어긋나는 것보다 낫다)
+   */
+  useEffect(() => {
+    if (!stream) return
+    const video = videoRef.current
+    if (!video) return
+    const onResize = () => {
+      const r = regionRef.current
+      const base = regionBaseRef.current
+      const vw = video.videoWidth
+      const vh = video.videoHeight
+      if (!r || !base || !vw || !vh) return
+      if (vw === base.vw && vh === base.vh) return
+      const px = {
+        right: (1 - r.x - r.w) * base.vw,
+        bottom: (1 - r.y - r.h) * base.vh,
+        w: r.w * base.vw,
+        h: r.h * base.vh,
+      }
+      setRegion({
+        x: 1 - (px.right + px.w) / vw,
+        y: 1 - (px.bottom + px.h) / vh,
+        w: px.w / vw,
+        h: px.h / vh,
+      })
+      log(`창 크기 변경 (${base.vw}×${base.vh} → ${vw}×${vh}) — 영역 위치 보정`, '자동', 'muted')
+    }
+    video.addEventListener('resize', onResize)
+    return () => video.removeEventListener('resize', onResize)
+  }, [stream, log])
 
 
   useEffect(() => {

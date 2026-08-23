@@ -95,7 +95,7 @@ export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, 
    * 세로 크기 예측(boosterScale)은 확장 UI에서 크게 어긋난다 — 야누스 아이콘에서
    * 실측한 UI 배율이 있으면 그걸 쓴다(아이콘 기본 32px 고정이라 가장 정확).
    */
-  const buildTemplates = useCallback(async (scale) => {
+  const buildTemplates = useCallback(async (bases) => {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d', { willReadFrequently: true })
 
@@ -117,8 +117,13 @@ export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, 
      * 한 번 만들어두고 계속 쓰므로(해상도가 바뀔 때만 다시 만든다) 만드는 비용은 문제되지 않는다.
      */
     const variants = []
+    const seen = new Set()
+    for (const base of bases) {
     for (const step of SCALE_STEPS) {
-      const sc = scale * step
+      const sc = base * step
+      // 기준이 여럿이면 배율이 겹칠 수 있다 — 같은 배율 템플릿을 두 번 만들 이유가 없다
+      if (seen.has(Math.round(sc * 1000))) continue
+      seen.add(Math.round(sc * 1000))
       const tw = Math.max(8, Math.round(labelImg.naturalWidth * sc))
       const th = Math.max(8, Math.round(labelImg.naturalHeight * sc))
       const labelVec = grab(labelImg, 0, 0, labelImg.naturalWidth, labelImg.naturalHeight, tw, th)
@@ -137,6 +142,8 @@ export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, 
       variants.push({
         // 배율은 절대값으로 기억한다 — base가 실측/예측 어느 쪽이든 고정 배율과 비교 가능
         scale: Math.round(sc * 1000) / 1000,
+        // 각 기준의 대표(step 1.0)는 1단계 라벨 탐색에도 쓰인다
+        probe: step === 1,
         label: { vec: labelVec, tw, th },
         digits,
         cells: {
@@ -145,9 +152,10 @@ export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, 
         },
       })
     }
+    }
     if (!variants.length) return null
-    // 기준 배율을 맨 앞으로 — 1단계 탐색은 이걸로 한다
-    variants.sort((a, b) => Math.abs(a.scale - scale) - Math.abs(b.scale - scale))
+    // 첫 기준 배율순 정렬 (1단계 탐색은 probe 표시된 대표들로 한다)
+    variants.sort((a, b) => Math.abs(a.scale - bases[0]) - Math.abs(b.scale - bases[0]))
     return variants
   }, [])
 
@@ -199,10 +207,13 @@ export function useBoosterDetector({ videoRef, stream, enabled, soundSignature, 
       if (!vw || !vh) return
 
       const measured = measuredUiScale(vw, vh)
-      const base = measured != null ? measured / uiScale(1080) : boosterScale(vh)
-      const key = `${vh}|${base.toFixed(3)}`
+      // 실측이 없으면 예측(비례)과 기본 UI(1.0) 두 기준을 함께 본다 — 확장 UI 대비
+      const bases = measured != null
+        ? [measured / uiScale(1080)]
+        : [...new Set([boosterScale(vh), Math.round(1000 / uiScale(1080)) / 1000])]
+      const key = `${vh}|${bases.map((b) => b.toFixed(3)).join(',')}`
       if (tplCacheRef.current.key !== key) {
-        tplCacheRef.current = { key, promise: buildTemplates(base) }
+        tplCacheRef.current = { key, promise: buildTemplates(bases) }
         lockedScaleRef.current = null // 기준이 달라졌으면(창·실측 변경) 고정 배율도 무효
       }
       let variants = null

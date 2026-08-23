@@ -169,26 +169,34 @@ export function scanBooster({ data, w, h }, variants, lockedScale = null) {
   const integral = buildIntegral(gray, w, h)
   const vec = (v) => (v instanceof Float32Array ? v : new Float32Array(v))
 
-  // 1단계 — 예상 배율(또는 직전에 성공한 배율)로 라벨 자리부터 찾는다.
-  // 배율이 조금 어긋나도 라벨은 찾아진다(실측 0.84). 정확한 배율은 2단계에서 고른다.
-  const probe = variants.find((v) => v.scale === lockedScale) || variants[0]
-  const probeVec = vec(probe.label.vec)
-  const coarse = findMatches(gray, w, h, integral, probeVec, probe.label.tw, probe.label.th, {
-    step: 2, minScore: BOOSTER.coarseScore,
-  }).slice(0, BOOSTER.coarseKeep)
-  if (!coarse.length) return { seconds: null, reason: 'none', labelScore: 0 }
+  /*
+   * 1단계 — 라벨 자리부터 찾는다. 배율이 조금 어긋나도 라벨은 찾아진다(실측 0.84).
+   * 고정 배율이 있으면 그것 하나로, 없으면 각 기준 배율의 대표(probe)들로 훑는다 —
+   * 예측과 기본 UI처럼 기준이 30%씩 다르면 한 배율로는 라벨 자체를 놓친다.
+   */
+  const probes = lockedScale != null
+    ? [variants.find((v) => v.scale === lockedScale) || variants[0]]
+    : (variants.some((v) => v.probe) ? variants.filter((v) => v.probe) : [variants[0]])
 
   let anchor = null
-  for (const c of coarse) {
-    const best = findMatches(gray, w, h, integral, probeVec, probe.label.tw, probe.label.th, {
-      step: 1,
-      minScore: BOOSTER.coarseScore,
-      bounds: { x0: c.x - 2, y0: c.y - 2, x1: c.x + 2, y1: c.y + 2 },
-    })[0]
-    if (best && (!anchor || best.score > anchor.score)) anchor = best
+  let coarseBest = 0
+  for (const probe of probes) {
+    const probeVec = vec(probe.label.vec)
+    const coarse = findMatches(gray, w, h, integral, probeVec, probe.label.tw, probe.label.th, {
+      step: 2, minScore: BOOSTER.coarseScore,
+    }).slice(0, BOOSTER.coarseKeep)
+    for (const c of coarse) {
+      coarseBest = Math.max(coarseBest, c.score)
+      const best = findMatches(gray, w, h, integral, probeVec, probe.label.tw, probe.label.th, {
+        step: 1,
+        minScore: BOOSTER.coarseScore,
+        bounds: { x0: c.x - 2, y0: c.y - 2, x1: c.x + 2, y1: c.y + 2 },
+      })[0]
+      if (best && (!anchor || best.score > anchor.score)) anchor = best
+    }
   }
   if (!anchor || anchor.score < BOOSTER.labelScore) {
-    return { seconds: null, reason: 'none', labelScore: anchor?.score ?? coarse[0].score }
+    return { seconds: null, reason: 'none', labelScore: anchor?.score ?? coarseBest }
   }
 
   /*

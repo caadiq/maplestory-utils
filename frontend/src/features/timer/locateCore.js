@@ -21,6 +21,13 @@ export const LOCATE = {
   iouThreshold: 0.3,
   /** 최대 후보 수 */
   maxCandidates: 6,
+  /**
+   * 아이콘 후보로 볼 최소 chroma 분산.
+   * 하늘·풀밭처럼 평탄한 영역은 분산이 한 자릿수~20인데, 정규화 상관은 분산 크기를
+   * 지워버려 그 미세 잡음이 77~82%짜리 가짜 후보로 올라온다(실사용 스크린샷).
+   * 실측: 야누스 아이콘 198(원본)·181(축소본) — 쿨타임에 어두워질 여유를 두고 25.
+   */
+  minVariance: 25,
 
   /* 직접 지정해 저장해둔 모양으로 찾은 경우 — 사용자 화면의 실물이라 1등을 믿어도 된다 */
   sureScore: 0.5,
@@ -172,7 +179,7 @@ function boxSum(s, iw, x, y, w, h) {
  * 창의 평균·분산은 적분 영상에서 꺼내고, 상관은 템플릿 픽셀만큼만 곱한다.
  */
 export function findMatches(gray, w, h, integral, tpl, tw, th, opts = {}) {
-  const { step = 2, minScore = 0.5, bounds = null } = opts
+  const { step = 2, minScore = 0.5, bounds = null, minVariance = 4 } = opts
   const { s1, s2, iw } = integral
   const x0 = Math.max(0, bounds?.x0 ?? 0)
   const y0 = Math.max(0, bounds?.y0 ?? 0)
@@ -189,7 +196,7 @@ export function findMatches(gray, w, h, integral, tpl, tw, th, opts = {}) {
       const sum = boxSum(s1, iw, x, y, tw, th)
       const mean = sum * invN
       const variance = boxSum(s2, iw, x, y, tw, th) * invN - mean * mean
-      if (variance < 4) continue // 거의 단색 — 아이콘일 리 없다
+      if (variance < minVariance) continue // 평탄한 창 — 아이콘일 리 없다
       const inv = invSqrtN / Math.sqrt(variance)
 
       let dot = 0
@@ -219,14 +226,27 @@ function iou(a, b) {
   return union <= 0 ? 0 : inter / union
 }
 
+/** 교집합이 작은 쪽 넓이에서 차지하는 비율 — 큰 박스 안의 작은 박스를 잡아낸다 */
+function containment(a, b) {
+  const x = Math.max(a.x, b.x)
+  const y = Math.max(a.y, b.y)
+  const x2 = Math.min(a.x + a.w, b.x + b.w)
+  const y2 = Math.min(a.y + a.h, b.y + b.h)
+  const inter = Math.max(0, x2 - x) * Math.max(0, y2 - y)
+  return inter / Math.max(1, Math.min(a.w * a.h, b.w * b.h))
+}
+
 /**
  * 겹치는 후보를 하나로 합친다.
  * 거리로 자르면 아이콘 크기가 다를 때 어긋나서, 넓이가 얼마나 겹치는지로 본다.
+ * IoU만으로는 부족하다 — 크기 범위가 넓어져 26px 후보가 48px 후보 안에 통째로
+ * 들어가도 IoU 0.29라 서로 다른 것으로 남았다. 같은 자리의 다른 크기일 뿐이므로
+ * 작은 쪽이 거의 포함되면(containment) 하나로 본다.
  */
 export function suppressOverlaps(boxes, threshold = LOCATE.iouThreshold) {
   const kept = []
   for (const box of [...boxes].sort((a, b) => b.score - a.score)) {
-    if (kept.some((k) => iou(box, k) > threshold)) continue
+    if (kept.some((k) => iou(box, k) > threshold || containment(box, k) > 0.5)) continue
     kept.push(box)
   }
   return kept
@@ -261,12 +281,22 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
         const tw = Math.max(6, Math.round(size * ratio))
         const th = tw
         for (const hit of findMatches(cGray, coarse.w, coarse.h, cInt, vec, tw, th, {
-          step: 3, minScore: LOCATE.coarseScore, bounds,
+          step: 3, minScore: LOCATE.coarseScore, bounds, minVariance: LOCATE.minVariance,
         }).slice(0, LOCATE.coarseKeep)) {
           const near = spots.find((s) => Math.abs(s.x - hit.x) < tw && Math.abs(s.y - hit.y) < th)
           if (near) {
             near.sMin = Math.min(near.sMin, size)
             near.sMax = Math.max(near.sMax, size)
+            /*
+             * 위치는 점수가 가장 높은 히트의 것을 쓴다. 크기가 안 맞는 훑기는
+             * 아이콘 안쪽에 몇 px 어긋나게 붙는데, 먼저 왔다는 이유로 그 위치가
+             * 스팟을 고정하면 정답 위치가 정련 반경 밖으로 밀린다(실측 9px).
+             */
+            if (hit.score > near.score) {
+              near.score = hit.score
+              near.x = hit.x
+              near.y = hit.y
+            }
             continue
           }
           spots.push({ ...hit, sMin: size, sMax: size })
@@ -306,6 +336,7 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
         const best = findMatches(fGray, full.w, full.h, fInt, vec, size, size, {
           step: 1,
           minScore: LOCATE.looseScore,
+          minVariance: LOCATE.minVariance,
           bounds: { x0: cx - r, y0: cy - r, x1: cx + r, y1: cy + r },
         })[0]
         if (best) results.push({ x: best.x, y: best.y, w: size, h: size, score: best.score })

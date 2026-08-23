@@ -73,11 +73,20 @@ export function runeTemplateScale(videoHeight) {
  * @param measured  야누스 아이콘 실측 UI 배율 (없으면 null)
  */
 export function runeScaleCandidates(predicted, measured) {
-  const base = measured != null ? measured / uiScale(1080) : predicted
+  /*
+   * 실측이 없으면 예측(비례)에 더해 **기본 UI 배율(1.0)** 기준도 함께 본다 —
+   * 확장 UI는 창이 커져도 UI가 기본 크기 언저리라, 야누스를 안 쓰는 사용자도
+   * 이 후보로 잡힌다. 성공하면 고정되므로 초기 몇 스캔만 비용이 든다.
+   */
+  const bases = measured != null
+    ? [measured / uiScale(1080)]
+    : [predicted, 1 / uiScale(1080)]
   const out = new Set()
-  for (const k of [0.96, 0.98, 1, 1.02, 1.04]) {
-    const s = Math.round(base * k * 1000) / 1000
-    if (s >= 0.3) out.add(s)
+  for (const base of bases) {
+    for (const k of [0.96, 0.98, 1, 1.02, 1.04]) {
+      const s = Math.round(base * k * 1000) / 1000
+      if (s >= 0.3) out.add(s)
+    }
   }
   return [...out].sort((a, b) => a - b)
 }
