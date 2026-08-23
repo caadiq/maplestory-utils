@@ -271,7 +271,21 @@ export default function Timer() {
     setLocating(true)
     // 영상이 실제로 흐르기 시작할 때까지 잠깐 기다린다
     await new Promise((r) => setTimeout(r, 700))
-    applyHits(await locate())
+    applyHits(await locateWithRetry())
+  }
+
+  /*
+   * 빈손이면 텀을 두고 몇 번 더 찾는다.
+   * 쿨타임 숫자·시전 플래시가 덮인 순간에는 어떤 템플릿으로도 점수가 낮은데,
+   * 황혼은 쿨타임이 3초라 잠깐만 기다리면 멀쩡한 모습이 돌아온다.
+   */
+  const locateWithRetry = async (opts) => {
+    for (let attempt = 0; ; attempt++) {
+      const found = await locate(opts)
+      if (found?.hits?.length || attempt >= 3) return found
+      log('아이콘을 못 찾음 — 쿨타임 중일 수 있어 잠시 후 다시 찾습니다', '자동', 'muted')
+      await new Promise((r) => setTimeout(r, 2500))
+    }
   }
 
   /**
@@ -312,7 +326,7 @@ export default function Timer() {
     setLocating(true)
     await new Promise((r) => setTimeout(r, 50))
     clearTemplate()
-    applyHits(await locate({ ignoreSaved: true }))
+    applyHits(await locateWithRetry({ ignoreSaved: true }))
   }
 
   const handleTest = async () => {

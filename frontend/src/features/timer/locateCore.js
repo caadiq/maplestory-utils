@@ -321,16 +321,18 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
 
   // 2단계 — 후보 주변만 원본 해상도에서 촘촘히
   // 반경은 성긴 격자(step 3)의 오차를 원본 px로 환산한 값 이상이어야 한다 —
-  // 화면이 넓을수록 축소비(ratio)가 작아져 같은 격자 오차가 원본에서 더 커진다
-  const r = Math.max(LOCATE.refineRadius, Math.ceil(1.5 / ratio) + 2)
+  // 화면이 넓을수록 축소비(ratio)가 작아져 같은 격자 오차가 원본에서 더 커진다.
+  // 쿨타임 숫자가 덮인 상태는 성긴 정점 자체가 몇 px 더 어긋난다(실측 10px) — 여유를 둔다
+  const r = Math.max(LOCATE.refineRadius, Math.ceil(1.5 / ratio) + 2, 10)
   const results = []
   for (const spot of spots) {
     const cx = Math.round(spot.x / ratio)
     const cy = Math.round(spot.y / ratio)
     for (const tpl of templates) {
       for (const size of sizes) {
-        // 성긴 단계는 ±20%쯤 차이 나는 크기에도 걸린다 — 그 너머는 볼 이유가 없다
-        if (size < spot.sMin / 1.25 || size > spot.sMax * 1.25) continue
+        // 성긴 단계는 크기가 꽤 달라도 걸린다 — 걸린 크기에서 너무 먼 것만 거른다.
+        // (실측: 쿨타임 모습은 30px 훑기에만 걸렸는데 실제 아이콘은 46px — 1.25배로는 놓쳤다)
+        if (size < spot.sMin / 1.6 || size > spot.sMax * 1.6) continue
         const vec = tpl.vecs[size]
         if (!vec) continue
         const best = findMatches(fGray, full.w, full.h, fInt, vec, size, size, {
