@@ -325,7 +325,7 @@ function Chart({ char, history, nowMs }) {
             {p.date.replace(/-/g, '.')} ({WK_DAY[new Date(p.date).getDay()]}){p.isNow ? ' · 오늘' : ''}
           </div>
           <div className="text-[13.5px] font-bold tabular-nums leading-snug">Lv.{p.level} · {p.exp_rate.toFixed(3)}%</div>
-          {delta != null && <div className="text-[12px]" style={{ color: '#8fd8f5' }}>전일 대비 +{delta.toFixed(1)}%p</div>}
+          {delta != null && <div className="text-[12px]" style={{ color: '#8fd8f5' }}>전일 대비 +{delta.toFixed(3)}%p</div>}
           <div className={`absolute left-1/2 -translate-x-1/2 ${below ? '-top-[5px]' : '-bottom-[5px]'}`} style={{
             width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
             ...(below ? { borderBottom: '5px solid #22303f' } : { borderTop: '5px solid #22303f' }),

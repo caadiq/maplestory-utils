@@ -254,7 +254,7 @@ export default function ExpJourney({ char, history, dateCreate, breakdown, bonus
               <div className="text-[15px] font-bold tabular-nums leading-snug">
                 Lv.{p.level} · {pct(p.exp_rate)}
               </div>
-              {delta != null && <div className="text-[12px]" style={{ color: '#8fd8f5' }}>전일 대비 +{delta.toFixed(1)}%p</div>}
+              {delta != null && <div className="text-[12px]" style={{ color: '#8fd8f5' }}>전일 대비 +{delta.toFixed(3)}%p</div>}
               <div className={`absolute left-1/2 -translate-x-1/2 ${below ? '-top-[6px]' : '-bottom-[6px]'}`} style={{
                 width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent',
                 ...(below
