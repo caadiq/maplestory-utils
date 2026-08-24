@@ -15,8 +15,12 @@ export const LOCATE = {
   coarseKeep: 12,
   /** 2단계에서 후보 주변을 살펴볼 반경(px) */
   refineRadius: 8,
-  /** 후보로 남길 최소 점수 */
-  looseScore: 0.42,
+  /**
+   * 후보로 남길 최소 점수 (자주색·밝기 평균).
+   * 실측 15케이스: 정답 0.678~1.000, 무관 경쟁 0.424~0.506.
+   * 0.45면 정답을 하나도 안 잃으면서 후보 수가 84 → 35개로 줄었다.
+   */
+  looseScore: 0.45,
   /** 겹침이 이 비율을 넘으면 같은 것으로 보고 하나만 남긴다 */
   iouThreshold: 0.3,
   /** 최대 후보 수 */
@@ -30,16 +34,27 @@ export const LOCATE = {
   minVariance: 25,
 
   /* 직접 지정해 저장해둔 모양으로 찾은 경우 — 사용자 화면의 실물이라 1등을 믿어도 된다 */
-  sureScore: 0.5,
-  sureMargin: 0.08,
+  sureScore: 0.55,
+  sureMargin: 0.10,
   /** 이 점수 이상이면 격차와 무관하게 그 그룹을 믿는다 — 사실상 원본과 동일한 일치 */
   dominantScore: 0.85,
   /*
    * 내장 원본으로 찾은 경우 — 게임에서 그려지는 모습과 달라 1등이 정답이 아닐 수 있다.
-   * (실측: 1등 0.87이 엉뚱한 자리, 정답은 0.71로 6등이었다)
+   * 밝기를 함께 보게 되면서 무관한 것과의 거리가 크게 벌어져(정답 0.678+ / 무관 0.506-)
+   * 예전처럼 높게 잡을 이유가 없어졌다 — 오히려 쿨타임 상태의 정답을 놓쳤다.
    */
-  builtinSureScore: 0.88,
-  builtinSureMargin: 0.18,
+  builtinSureScore: 0.62,
+  builtinSureMargin: 0.15,
+  /*
+   * 자동 재탐색(사용자가 누른 게 아니라 스스로 도는 경우)의 확정 기준.
+   *
+   * 화면에 아이콘이 아예 없어도(캐릭터 변경 중 등) 탐색은 무언가를 집어낸다 —
+   * 아이콘을 지운 화면으로 실측하니 최고점이 0.506이었다. 그 위로 선을 그으면
+   * "없을 때"는 확정도 후보 제시도 하지 않고 조용히 지나간다.
+   * 정답 실측은 0.678~1.000이라 여유가 있다.
+   */
+  autoSureScore: 0.60,
+  autoSureMargin: 0.10,
 }
 
 /**
@@ -138,6 +153,17 @@ export function quickslotBox(w, h, bottom = h) {
 }
 
 /* ── 픽셀 → 특징값 ───────────────────────────────────────── */
+
+/** RGBA 배열 → 밝기 */
+export function toLumaPlane(data, out) {
+  const n = data.length / 4
+  const v = out || new Float32Array(n)
+  for (let i = 0; i < n; i++) {
+    const p = i * 4
+    v[i] = 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2]
+  }
+  return v
+}
 
 /** RGBA 배열 → 자주색 성분 (R+B)/2 − G */
 export function toChroma(data, out) {
@@ -284,13 +310,15 @@ export function suppressOverlaps(boxes, threshold = LOCATE.iouThreshold) {
  * 줄인 화면에서는 아이콘이 15px 남짓이라 세부가 뭉개져 그것만으로는 판정을 못 믿는다.
  *
  * frames.coarse / frames.full : { data(RGBA), w, h }
- * templates : [{ vecs: { [size]: Float32Array }, coarseVecs: { [size]: Float32Array } }]
+ * templates : [{ vecs, coarseVecs, lumaVecs }] — vecs/coarseVecs는 자주색, lumaVecs는 밝기
  */
 export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
   const cGray = toChroma(coarse.data)
   const cInt = buildIntegral(cGray, coarse.w, coarse.h)
   const fGray = toChroma(full.data)
   const fInt = buildIntegral(fGray, full.w, full.h)
+  const fLuma = toLumaPlane(full.data)
+  const fLumaInt = buildIntegral(fLuma, full.w, full.h)
 
   /**
    * 1단계 — 주어진 범위에서 자리만 추린다.
@@ -391,18 +419,40 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
         if (!vec) continue
         const rough = findMatches(fGray, full.w, full.h, fInt, vec, size, size, {
           step: 2,
-          minScore: LOCATE.looseScore,
+          minScore: LOCATE.coarseScore,
           minVariance: LOCATE.minVariance,
           bounds: { x0: cx - r, y0: cy - r, x1: cx + r, y1: cy + r },
         })[0]
         if (!rough) continue
         const best = findMatches(fGray, full.w, full.h, fInt, vec, size, size, {
           step: 1,
-          minScore: LOCATE.looseScore,
+          minScore: LOCATE.coarseScore,
           minVariance: LOCATE.minVariance,
           bounds: { x0: rough.x - 1, y0: rough.y - 1, x1: rough.x + 1, y1: rough.y + 1 },
         })[0] ?? rough
-        results.push({ x: best.x, y: best.y, w: size, h: size, score: best.score })
+
+        /*
+         * 최종 점수는 자주색과 **밝기**를 함께 본다.
+         *
+         * 자주색만으로는 퀵슬롯의 다른 보라 계열 아이콘이 0.64~0.73까지 올라와
+         * 정답(0.78~1.00)과 겹쳤다 — 사용자에게 "전혀 상관없는 후보"로 보이던 원인이다.
+         * 같은 자리에서 밝기로 재보면 정답 0.52~1.00 / 경쟁 -0.07~0.18로 완전히 갈린다.
+         * 자주색은 자리를 찾는 데 강하고(단축키 글자가 밝기를 흐트러뜨린다) 밝기는
+         * 가려내는 데 강하므로, 탐색·정련은 자주색으로 하고 채점만 둘의 평균으로 한다.
+         */
+        const lvec = tpl.lumaVecs?.[size]
+        let score = best.score
+        if (lvec) {
+          const lm = findMatches(fLuma, full.w, full.h, fLumaInt, lvec, size, size, {
+            step: 1,
+            minScore: -1,
+            minVariance: 1,
+            bounds: { x0: best.x, y0: best.y, x1: best.x, y1: best.y },
+          })[0]
+          score = (best.score + (lm?.score ?? 0)) / 2
+        }
+        if (score < LOCATE.looseScore) continue
+        results.push({ x: best.x, y: best.y, w: size, h: size, score })
       }
     }
   }

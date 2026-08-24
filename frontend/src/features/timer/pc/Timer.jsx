@@ -181,7 +181,7 @@ export default function Timer() {
       relocatingRef.current = true
       try {
         log('아이콘을 계속 못 알아봄 — 자리를 다시 찾습니다', '자동', 'warn')
-        applyHits(await locate())
+        applyHits(await locate(), { auto: true })
       } finally {
         relocatingRef.current = false
       }
@@ -308,8 +308,13 @@ export default function Timer() {
    * 확실한 것이 딱 하나면 바로 쓰고, 애매하면 고르게 한다.
    * 실제 게임 아이콘은 단축키 글자와 슬롯 테두리가 겹쳐 점수가 깎이므로
    * 통과선을 못 넘었다고 곧장 수동으로 보내지 않는다.
+   *
+   * auto = 사용자가 부른 게 아니라 스스로 도는 재탐색.
+   * 이때는 확실할 때만 자리를 옮기고, 애매하면 아무것도 하지 않는다 —
+   * 캐릭터 변경으로 아이콘이 화면에서 사라진 동안에도 탐색은 무언가를 집어내는데,
+   * 그걸 후보로 띄우면 게임 중에 엉뚱한 화면이 튀어나온다(실사용 보고).
    */
-  const applyHits = (found) => {
+  const applyHits = (found, { auto = false } = {}) => {
     setLocating(false)
     /*
      * 새벽/황혼 아이콘을 모두 대조하므로 이긴 쪽이 곧 현재 장착 모드다.
@@ -321,13 +326,24 @@ export default function Timer() {
       log(`${found.detectedMode === 'dusk' ? '황혼' : '새벽'} 아이콘으로 인식 — 모드 자동 전환`, '자동', 'ok')
     }
     const hits = found?.hits
-    if (!hits?.length) { setPicking(true); return }
+    if (!hits?.length) {
+      if (!auto) setPicking(true)
+      return
+    }
     const [best, second] = hits
-    const minScore = found.learned ? LOCATE.sureScore : LOCATE.builtinSureScore
-    const minMargin = found.learned ? LOCATE.sureMargin : LOCATE.builtinSureMargin
+    const learnedScore = auto ? LOCATE.autoSureScore : LOCATE.sureScore
+    const learnedMargin = auto ? LOCATE.autoSureMargin : LOCATE.sureMargin
+    const minScore = found.learned ? learnedScore : Math.max(LOCATE.builtinSureScore, auto ? LOCATE.autoSureScore : 0)
+    const minMargin = found.learned ? learnedMargin : LOCATE.builtinSureMargin
     const clear = best.score >= minScore
       && (!second || best.score - second.score >= minMargin)
-    if (clear) setRegion(best.region)
+    if (clear) {
+      setRegion(best.region)
+      if (auto) log(`자리를 다시 잡았습니다 (일치 ${best.score.toFixed(2)})`, '자동', 'ok')
+      return
+    }
+    // 자동일 땐 확신이 없으면 그냥 넘어간다 — 다음 기회에 다시 돈다
+    if (auto) log(`자리를 확정하지 못해 넘어갑니다 (최고 ${best.score.toFixed(2)})`, '자동', 'muted')
     else setCandidates(hits.slice(0, 6))
   }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { candidateSizes, probeSizes, uiScale } from '../locateCore'
+import { LOCATE, candidateSizes, probeSizes, uiScale } from '../locateCore'
 import { runeScaleCandidates, runeTemplateScale } from '../runeCore'
 import { learnIconSize, measuredUiScale } from '../uiCalibration'
 
@@ -70,5 +70,34 @@ describe('runeScaleCandidates', () => {
 
   it('예측과 기본 UI가 같은 화면(768p)에서는 후보가 5개로 줄어든다', () => {
     expect(runeScaleCandidates(runeTemplateScale(768), null).length).toBe(5)
+  })
+})
+
+/*
+ * 아이콘 판별 — 자주색만으로는 퀵슬롯의 다른 보라 계열 아이콘이 0.64~0.73까지
+ * 올라와 정답(0.78~1.00)과 겹쳤다. 밝기를 함께 보면 실측 15케이스에서
+ * 정답 0.678~1.000 / 무관 0.424~0.506으로 갈린다. 임계값들이 그 사이에 있어야 한다.
+ */
+describe('LOCATE 임계값', () => {
+  const RIVAL_MAX = 0.506  // 아이콘을 지운 화면의 최고점 (실측)
+  const ANSWER_MIN = 0.678 // 정답 최저 (실측, 확장 UI 쿨타임)
+
+  it('후보 하한은 무관 후보 대부분을 걸러내되 정답은 남긴다', () => {
+    expect(LOCATE.looseScore).toBeLessThan(ANSWER_MIN)
+    expect(LOCATE.looseScore).toBeGreaterThan(0.42)
+  })
+
+  it('자동 확정선은 부재 최고점과 정답 최저 사이에 있다', () => {
+    expect(LOCATE.autoSureScore).toBeGreaterThan(RIVAL_MAX)
+    expect(LOCATE.autoSureScore).toBeLessThan(ANSWER_MIN)
+  })
+
+  it('내장 원본 확정선도 같은 구간에 있다 (예전 0.88은 새 척도에서 정답을 놓친다)', () => {
+    expect(LOCATE.builtinSureScore).toBeGreaterThan(RIVAL_MAX)
+    expect(LOCATE.builtinSureScore).toBeLessThan(ANSWER_MIN)
+  })
+
+  it('저장 실물 기준은 내장 원본보다 느슨하다', () => {
+    expect(LOCATE.sureScore).toBeLessThanOrEqual(LOCATE.builtinSureScore)
   })
 })

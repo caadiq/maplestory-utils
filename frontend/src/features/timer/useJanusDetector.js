@@ -3,7 +3,7 @@ import {
   DETECT, toShapeVector, shapeSimilarity,
   saveTemplate, loadTemplate,
 } from './logic'
-import { LOCATE, candidateSizes, probeSizes, normalize, toChroma, locateIcon } from './locateCore'
+import { LOCATE, candidateSizes, probeSizes, normalize, toChroma, toLumaPlane, locateIcon } from './locateCore'
 import { learnIconSize } from './uiCalibration'
 import { inspectCooldown, createCooldownTracker } from './digits'
 
@@ -334,14 +334,14 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
     const full = grabFrame(vw)
     if (!coarse || !full) return null
 
-    /** source를 size×size로 줄여 정규화한 자주색 벡터를 만든다 */
-    const vecAt = (source, sw, sh, size) => {
+    /** source를 size×size로 줄여 정규화한 벡터를 만든다 (자주색·밝기) */
+    const vecAt = (source, sw, sh, size, plane = toChroma) => {
       const t = document.createElement('canvas')
       t.width = size
       t.height = size
       const tctx = t.getContext('2d', { willReadFrequently: true })
       tctx.drawImage(source, 0, 0, sw, sh, 0, 0, size, size)
-      return normalize(toChroma(tctx.getImageData(0, 0, size, size).data))
+      return normalize(plane(tctx.getImageData(0, 0, size, size).data))
     }
 
     /*
@@ -392,15 +392,19 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
     const templates = sources.map((src) => {
       const vecs = {}
       const coarseVecs = {}
+      const lumaVecs = {}
       for (const size of sizes) {
         const v = vecAt(src.el, src.w, src.h, size)
         if (v) vecs[size] = v
+        // 채점용 밝기 벡터 — 자주색만으로는 보라 계열 아이콘끼리 안 갈린다
+        const l = vecAt(src.el, src.w, src.h, size, toLumaPlane)
+        if (l) lumaVecs[size] = l
       }
       for (const size of probes) {
         const v = vecAt(src.el, src.w, src.h, Math.max(6, Math.round(size * ratio)))
         if (v) coarseVecs[size] = v
       }
-      return { vecs, coarseVecs, mode: src.mode ?? null }
+      return { vecs, coarseVecs, lumaVecs, mode: src.mode ?? null }
     })
 
     /*
