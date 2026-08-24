@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { LOCATE, candidateSizes, probeSizes, uiScale } from '../locateCore'
+import { LOCATE, candidateSizes, probeSizes, uiScale, contentBottom } from '../locateCore'
 import { runeScaleCandidates, runeTemplateScale } from '../runeCore'
 import { learnIconSize, measuredUiScale } from '../uiCalibration'
 
@@ -74,30 +74,75 @@ describe('runeScaleCandidates', () => {
 })
 
 /*
- * 아이콘 판별 — 자주색만으로는 퀵슬롯의 다른 보라 계열 아이콘이 0.64~0.73까지
- * 올라와 정답(0.78~1.00)과 겹쳤다. 밝기를 함께 보면 실측 15케이스에서
- * 정답 0.678~1.000 / 무관 0.424~0.506으로 갈린다. 임계값들이 그 사이에 있어야 한다.
+ * 아이콘 판별 임계값.
+ *
+ * 실측: 10분 영상 2편(1080p 기본 UI / 확장 UI) 612프레임 + 아이콘을 지운 화면 40장.
+ * 쿨타임 모습 48장을 템플릿에 넣은 뒤 정답과 무관한 자리가 확실히 갈렸다.
+ *   정답 1위 점수   최저 0.568 / 하위 1% 0.727 / 중앙 0.829
+ *   아이콘이 없을 때 최고점 0.538
+ * 임계값들이 그 사이에 있어야 "없으면 조용히 넘어가고, 있으면 바로 확정"이 된다.
  */
 describe('LOCATE 임계값', () => {
-  const RIVAL_MAX = 0.506  // 아이콘을 지운 화면의 최고점 (실측)
-  const ANSWER_MIN = 0.678 // 정답 최저 (실측, 확장 UI 쿨타임)
+  const ABSENT_MAX = 0.538 // 아이콘을 지운 화면 40장의 최고점 (실측)
+  const ANSWER_P1 = 0.727  // 정답 점수 하위 1% (실측 612프레임)
 
-  it('후보 하한은 무관 후보 대부분을 걸러내되 정답은 남긴다', () => {
-    expect(LOCATE.looseScore).toBeLessThan(ANSWER_MIN)
+  it('후보 하한은 정답을 하나도 안 버린다', () => {
+    // 배율이 크게 다른 화면에서는 정답도 0.57까지 내려간다 — 하한을 그 위로 올리면 안 된다
+    expect(LOCATE.looseScore).toBeLessThan(0.568)
     expect(LOCATE.looseScore).toBeGreaterThan(0.42)
   })
 
-  it('자동 확정선은 부재 최고점과 정답 최저 사이에 있다', () => {
-    expect(LOCATE.autoSureScore).toBeGreaterThan(RIVAL_MAX)
-    expect(LOCATE.autoSureScore).toBeLessThan(ANSWER_MIN)
+  it('자동 확정선은 부재 최고점과 정답 하위 1% 사이에 있다', () => {
+    expect(LOCATE.autoSureScore).toBeGreaterThan(ABSENT_MAX)
+    expect(LOCATE.autoSureScore).toBeLessThan(ANSWER_P1)
   })
 
-  it('내장 원본 확정선도 같은 구간에 있다 (예전 0.88은 새 척도에서 정답을 놓친다)', () => {
-    expect(LOCATE.builtinSureScore).toBeGreaterThan(RIVAL_MAX)
-    expect(LOCATE.builtinSureScore).toBeLessThan(ANSWER_MIN)
+  it('내장 원본 확정선도 같은 구간에 있다', () => {
+    expect(LOCATE.builtinSureScore).toBeGreaterThan(ABSENT_MAX)
+    expect(LOCATE.builtinSureScore).toBeLessThan(ANSWER_P1)
   })
 
   it('저장 실물 기준은 내장 원본보다 느슨하다', () => {
     expect(LOCATE.sureScore).toBeLessThanOrEqual(LOCATE.builtinSureScore)
+  })
+})
+
+/*
+ * 게임 화면의 유효 바닥 — 해상도 확장 창을 공유하면 게임 아래에 레터박스가 깔리고
+ * 그 안에 분리 채팅 같은 UI 섬이 떠다닌다. 아래에서부터 처음 만나는 밝은 행을
+ * 바닥으로 삼으면 그 섬에 걸려 퀵슬롯 상자가 통째로 빗나간다(실측: 확장 영상
+ * 312장 중 14장). 가장 큰 덩어리를 게임 화면으로 봐야 한다.
+ */
+describe('contentBottom', () => {
+  /** rows(y0,y1) 구간만 밝은 화면을 만든다 */
+  const make = (w, h, spans) => {
+    const data = new Uint8ClampedArray(w * h * 4)
+    for (const [y0, y1] of spans) {
+      for (let y = y0; y <= y1; y++) {
+        for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4
+          data[i] = data[i + 1] = data[i + 2] = 200
+          data[i + 3] = 255
+        }
+      }
+    }
+    return data
+  }
+
+  it('레터박스가 없으면 화면 바닥 그대로', () => {
+    expect(contentBottom(make(40, 100, [[0, 99]]), 40, 100)).toBe(100)
+  })
+
+  it('레터박스 안의 UI 섬에 걸리지 않는다', () => {
+    // 게임 0~89 (90행) 아래에 레터박스, 그 안에 95~97 짜리 채팅창
+    expect(contentBottom(make(40, 100, [[0, 89], [95, 97]]), 40, 100)).toBe(90)
+  })
+
+  it('섬이 여러 개여도 가장 큰 덩어리를 고른다', () => {
+    expect(contentBottom(make(40, 100, [[0, 79], [85, 87], [92, 96]]), 40, 100)).toBe(80)
+  })
+
+  it('아무것도 밝지 않으면 화면 바닥으로 둔다', () => {
+    expect(contentBottom(make(40, 100, []), 40, 100)).toBe(100)
   })
 })

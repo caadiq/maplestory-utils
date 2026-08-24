@@ -15,6 +15,21 @@ export const LOCATE = {
   coarseKeep: 12,
   /** 2단계에서 후보 주변을 살펴볼 반경(px) */
   refineRadius: 8,
+  /** 2단계로 넘길 자리 후보 수 (점수순) */
+  spotKeep: 16,
+  /** 점수순에서 밀렸지만 어떤 템플릿이 가장 좋아한 자리 — 이만큼 더 얹는다 */
+  spotExtra: 8,
+  /** 이긴 모양으로 자리를 다듬을 때의 반경(px) */
+  polishRadius: 3,
+  /** 가장 좋은 결과 하나는 크기를 ±1px 더 다듬는다 (배율 실측값이 여기서 나온다) */
+  sizeTrimSpan: 1,
+  /**
+   * 한 자리에서 자리찾기에 써 볼 대표 모양 수.
+   * 성긴 단계 1등이 실제로 맞는 모양과 다를 때가 있다 — 축소하면 쿨타임 숫자가 뭉개져
+   * 순위가 뒤집힌다. 그 자리를 엉뚱한 모양으로 찾으면 몇 px 어긋나 점수가 0.96에서
+   * 0.46으로 떨어졌다(실측 새벽 20장). 상위 몇 장으로 각각 찾아보고 제일 좋은 걸 쓴다.
+   */
+  spotReps: 3,
   /**
    * 후보로 남길 최소 점수 (자주색·밝기 평균).
    * 실측 15케이스: 정답 0.678~1.000, 무관 경쟁 0.424~0.506.
@@ -117,26 +132,49 @@ export function probeSizes(sizes) {
 
 /**
  * 캡처 아래쪽의 거의 검은 띠를 건너뛴 유효 바닥.
- * 해상도 확장 창을 OBS 캔버스 등으로 공유하면 게임 아래에 레터박스·분리 채팅이
- * 깔린다(실측: 1080 캡처에서 게임 바닥이 903) — 퀵슬롯 상자를 캡처 바닥 기준으로
- * 잡으면 그 띠만 보게 된다. 행 평균 밝기로 게임 바닥을 찾는다.
+ *
+ * 해상도 확장 창을 OBS 캔버스 등으로 공유하면 게임 아래에 레터박스가 깔리고,
+ * 그 안에 분리 채팅·아이템 획득 창 같은 **UI 섬**이 떠다닌다(실측: 1080 캡처에서
+ * 게임 바닥이 902인데 아래쪽에 43행짜리 채팅창이 뜬다).
+ *
+ * 예전에는 아래에서부터 처음 만나는 밝은 행을 바닥으로 삼았는데, 그 UI 섬에 걸려
+ * 바닥을 1058로 잡았다. 그러면 퀵슬롯 상자가 통째로 아래로 내려가 **아이콘이 검색
+ * 범위 밖으로 나간다** — 화면에 멀쩡히 보이는데도 못 찾고 엉뚱한 후보만 남던 원인이다
+ * (실측: 확장 영상 312장 중 14장이 이 경우).
+ *
+ * 그래서 "밝은 행이 이어지는 덩어리" 중 **가장 큰 것**을 게임 화면으로 본다.
+ * 게임은 위에서부터 통째로 이어져 902행인데 UI 섬은 1~43행이라 확실히 갈린다.
  */
 export function contentBottom(data, w, h) {
-  /*
-   * 판정은 "행에서 밝은 픽셀이 차지하는 비율"로 한다. 행 평균 밝기로는 띠 안의
-   * 분리 채팅·아이템 획득 창에 걸려 바닥을 잘못 잡았다(실측). 게임 행은 전폭에
-   * 내용이 있어 비율 0.4~1.0, 띠 행은 채팅·창이 있어도 0~0.22다 — 0.3이 가른다.
-   */
-  for (let y = h - 1; y >= h / 2; y--) {
+  const isContent = (y) => {
     let bright = 0
     const row = y * w * 4
     for (let x = 0; x < w; x++) {
       const p = row + x * 4
+      // 행에서 밝은 픽셀이 차지하는 비율로 본다 — 행 평균 밝기로는 어두운 장면에서 게임이 통째로 빠졌다
       if (data[p] + data[p + 1] + data[p + 2] > 75) bright++
     }
-    if (bright / w > 0.3) return y + 1
+    return bright / w > 0.3
   }
-  return h
+  let bestEnd = h
+  let bestLen = 0
+  let runEnd = -1
+  for (let y = h - 1; y >= 0; y--) {
+    if (isContent(y)) {
+      if (runEnd < 0) runEnd = y
+      continue
+    }
+    if (runEnd >= 0 && runEnd - y > bestLen) {
+      bestLen = runEnd - y
+      bestEnd = runEnd + 1
+    }
+    runEnd = -1
+  }
+  if (runEnd >= 0 && runEnd + 1 > bestLen) {
+    bestLen = runEnd + 1
+    bestEnd = runEnd + 1
+  }
+  return bestLen > 0 ? bestEnd : h
 }
 
 /**
@@ -265,6 +303,48 @@ export function findMatches(gray, w, h, integral, tpl, tw, th, opts = {}) {
   return found
 }
 
+/**
+ * findMatches와 같은 훑기지만 **가장 좋은 한 곳만** 돌려준다.
+ *
+ * 자리를 찾는 단계에서는 통과선을 둘 수 없다 — 대표 모양이 낮은 점수를 내도 다른
+ * 모양이 맞을 수 있기 때문이다. 그런데 통과선이 없으면 훑은 자리가 전부 배열에 쌓여
+ * (한 번에 수백 개 × 조합 수백 벌) 만들고 정렬하는 값만으로 느려진다 —
+ * 실측에서 이 때문에 프레임당 11초가 27초가 됐다. 최고점만 들고 가면 그 비용이 사라진다.
+ */
+export function findBest(gray, w, h, integral, tpl, tw, th, opts = {}) {
+  const { step = 1, bounds = null, minVariance = 4 } = opts
+  const { s1, s2, iw } = integral
+  const x0 = Math.max(0, bounds?.x0 ?? 0)
+  const y0 = Math.max(0, bounds?.y0 ?? 0)
+  const x1 = Math.min(w - tw, bounds?.x1 ?? w - tw)
+  const y1 = Math.min(h - th, bounds?.y1 ?? h - th)
+
+  const n = tw * th
+  const invN = 1 / n
+  const invSqrtN = 1 / Math.sqrt(n)
+  let bx = -1
+  let by = -1
+  let bs = -Infinity
+
+  for (let y = y0; y <= y1; y += step) {
+    for (let x = x0; x <= x1; x += step) {
+      const mean = boxSum(s1, iw, x, y, tw, th) * invN
+      const variance = boxSum(s2, iw, x, y, tw, th) * invN - mean * mean
+      if (variance < minVariance) continue
+      const inv = invSqrtN / Math.sqrt(variance)
+      let dot = 0
+      for (let j = 0; j < th; j++) {
+        const row = (y + j) * w + x
+        const trow = j * tw
+        for (let i = 0; i < tw; i++) dot += (gray[row + i] - mean) * tpl[trow + i]
+      }
+      const score = dot * inv
+      if (score > bs) { bs = score; bx = x; by = y }
+    }
+  }
+  return bx < 0 ? null : { x: bx, y: by, score: bs }
+}
+
 /* ── 후보 정리 ────────────────────────────────────────────── */
 
 function iou(a, b) {
@@ -303,6 +383,28 @@ export function suppressOverlaps(boxes, threshold = LOCATE.iouThreshold) {
   return kept
 }
 
+/**
+ * 한 자리에서만 정규화 상호상관을 잰다 (탐색 없이 점수만).
+ * 자리를 찾는 일과 "그 자리가 무엇인가"를 채점하는 일을 나누기 위한 것 —
+ * 채점은 자리마다 한 번씩이라 템플릿을 아무리 늘려도 비용이 거의 안 는다.
+ */
+export function nccAt(gray, w, integral, vec, x, y, tw, th, minVariance = 1) {
+  const { s1, s2, iw } = integral
+  const n = tw * th
+  const sum = boxSum(s1, iw, x, y, tw, th)
+  const mean = sum / n
+  const variance = boxSum(s2, iw, x, y, tw, th) / n - mean * mean
+  if (variance < minVariance) return null
+  const inv = 1 / (Math.sqrt(n) * Math.sqrt(variance))
+  let dot = 0
+  for (let j = 0; j < th; j++) {
+    const row = (y + j) * w + x
+    const trow = j * tw
+    for (let i = 0; i < tw; i++) dot += (gray[row + i] - mean) * vec[trow + i]
+  }
+  return dot * inv
+}
+
 /* ── 전체 흐름 ────────────────────────────────────────────── */
 
 /**
@@ -310,7 +412,17 @@ export function suppressOverlaps(boxes, threshold = LOCATE.iouThreshold) {
  * 줄인 화면에서는 아이콘이 15px 남짓이라 세부가 뭉개져 그것만으로는 판정을 못 믿는다.
  *
  * frames.coarse / frames.full : { data(RGBA), w, h }
- * templates : [{ vecs, coarseVecs, lumaVecs }] — vecs/coarseVecs는 자주색, lumaVecs는 밝기
+ * templates : [{ vecs, coarseVecs, lumaVecs, mode }] — vecs/coarseVecs는 자주색, lumaVecs는 밝기
+ *
+ * ### 자리 찾기와 채점을 나눈다
+ * 예전에는 (자리 × 템플릿 × 크기)마다 원본 해상도 탐색을 돌렸다. 템플릿을 한 장
+ * 늘리면 탐색이 통째로 한 벌 늘어나서, 쿨타임 숫자마다 모양을 넣고 싶어도 넣을 수가
+ * 없었다(8장 6.6초 → 50장 37초, 실측).
+ *
+ * 지금은 자리를 **대표 한 장으로 한 번만** 찾고, 그 자리에서 **모든 템플릿을 채점**한다.
+ * 채점은 32×32 남짓한 창의 내적 한 번이라 사실상 공짜다 — 템플릿을 수십 장 넣어도
+ * 시간이 거의 안 는다. 쿨타임처럼 모습이 계속 변하는 상태는 결국 "그 순간의 모습"이
+ * 템플릿에 있어야 점수가 오르므로, 이 구조가 정확도의 전제가 된다.
  */
 export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
   const cGray = toChroma(coarse.data)
@@ -324,8 +436,6 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
    * 1단계 — 주어진 범위에서 자리만 추린다.
    * 어느 크기의 성긴 훑기에 걸렸는지(sMin~sMax)도 함께 기억한다 — 크기 범위가
    * 넓어져서 2단계에서 전 크기를 다 대보면 낭비고, 걸린 크기 근처만 보면 된다.
-   * coarse: false 표시된 템플릿(쿨타임 변형들)은 자리 추리기에서 빠진다 —
-   * 자리는 대표 몇 장으로 충분하고, 변형들은 2단계에서만 점수를 낸다.
    */
   const collectSpots = (bounds) => {
     const spots = []
@@ -342,6 +452,7 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
           if (near) {
             near.sMin = Math.min(near.sMin, size)
             near.sMax = Math.max(near.sMax, size)
+            if (!near.best[ti] || hit.score > near.best[ti]) near.best[ti] = hit.score
             /*
              * 위치는 점수가 가장 높은 히트의 것을 쓴다. 크기가 안 맞는 훑기는
              * 아이콘 안쪽에 몇 px 어긋나게 붙는데, 먼저 왔다는 이유로 그 위치가
@@ -355,9 +466,16 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
             }
             continue
           }
-          spots.push({ ...hit, sMin: size, sMax: size, tpl: ti })
+          spots.push({ ...hit, sMin: size, sMax: size, tpl: ti, best: { [ti]: hit.score } })
         }
       }
+    }
+    // 자리마다 '성긴 단계에서 잘 붙은 모양' 상위 몇 개를 자리찾기 대표로 남긴다
+    for (const sp of spots) {
+      sp.reps = Object.entries(sp.best)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, LOCATE.spotReps)
+        .map(([ti]) => Number(ti))
     }
     return spots
   }
@@ -379,20 +497,25 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
   let spots = collectSpots(box)
   // 상자에서 아무것도 못 찾았을 때만 화면 전체로 — 막다른 길이 되지 않게 두는 안전장치다
   if (spots.length === 0) spots = collectSpots({})
+
   /*
    * 자리 후보가 너무 많으면 2단계가 통째로 느려진다 — 점수순으로 자르되,
-   * 각 템플릿의 최고 스팟은 남긴다. 쿨타임 모습의 정답 스팟은 성긴 점수가
-   * 낮아서(0.4~0.5) 점수순만으로 자르면 정답이 통째로 잘렸다(실측).
+   * 각 템플릿이 가장 좋아한 자리도 몇 개 얹는다. 쿨타임 모습의 정답 자리는
+   * 성긴 점수가 낮아서(0.4~0.5) 점수순만으로 자르면 통째로 잘렸다(실측).
    */
   spots.sort((a, b) => b.score - a.score)
-  const kept = new Set(spots.slice(0, 16))
-  // 점수순 16개에 '각 템플릿의 최고 스팟'을 더한다 — 잠식이 아니라 추가라 서로를 안 밀어낸다
-  const seenTpl = new Set()
-  for (const sp of spots) {
-    if (seenTpl.has(sp.tpl)) continue
-    seenTpl.add(sp.tpl)
-    kept.add(sp)
+  const kept = new Set(spots.slice(0, LOCATE.spotKeep))
+  const extra = []
+  for (let ti = 0; ti < templates.length; ti++) {
+    let top = null
+    for (const sp of spots) {
+      const v = sp.best[ti]
+      if (v != null && (!top || v > top.v)) top = { sp, v }
+    }
+    if (top && !kept.has(top.sp)) extra.push(top)
   }
+  extra.sort((a, b) => b.v - a.v)
+  for (const e of extra.slice(0, LOCATE.spotExtra)) kept.add(e.sp)
   spots = [...kept]
 
   /*
@@ -401,58 +524,113 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
    * 반경은 성긴 격자(step 3) 오차의 원본 환산값 이상 + 아이콘 크기의 절반 가까이.
    * 쿨타임 숫자가 덮인 상태는 성긴 정점이 숫자끼리 맞는 자리로 끌려가
    * 원본 기준 16px까지 어긋난다(실측) — 좁은 반경으로는 정답이 범위 밖이었다.
-   * 넓어진 반경의 비용은 2px 격자로 훑고 정점 주변만 1px로 다듬어 상쇄한다
-   * (아이콘 상관 표면은 글자와 달리 완만해서 2px 격자로도 정점 근처가 잡힌다).
    */
   const baseR = Math.max(LOCATE.refineRadius, Math.ceil(1.5 / ratio) + 2)
   const results = []
-  for (const spot of spots) {
+
+  /** 한 자리·한 크기에서 모든 템플릿을 채점하고 가장 잘 맞는 모양을 고른다 */
+  const scoreAll = (x, y, size) => {
+    let bestI = -1
+    let bestS = -Infinity
+    for (let ti = 0; ti < templates.length; ti++) {
+      const t = templates[ti]
+      const cv = t.vecs[size]
+      if (!cv) continue
+      const c = nccAt(fGray, full.w, fInt, cv, x, y, size, size, LOCATE.minVariance)
+      if (c == null) continue
+      /*
+       * 최종 점수는 자주색과 **밝기**를 함께 본다.
+       *
+       * 자주색만으로는 퀵슬롯의 다른 보라 계열 아이콘이 0.64~0.73까지 올라와
+       * 정답(0.78~1.00)과 겹쳤다 — "전혀 상관없는 후보"로 보이던 원인이다.
+       * 같은 자리에서 밝기로 재보면 정답 0.52~1.00 / 경쟁 -0.07~0.18로 갈린다.
+       */
+      const lv = t.lumaVecs?.[size]
+      const l = lv ? nccAt(fLuma, full.w, fLumaInt, lv, x, y, size, size, 1) : null
+      const s = l == null ? c : (c + l) / 2
+      if (s > bestS) { bestS = s; bestI = ti }
+    }
+    return bestI < 0 ? null : { tpl: bestI, score: bestS }
+  }
+
+  /** 한 자리를 한 크기로 확인한다 — 자리는 대표 몇 장으로 찾고 채점은 전 모양으로 */
+  const evalAt = (spot, size) => {
     const cx = Math.round(spot.x / ratio)
     const cy = Math.round(spot.y / ratio)
     const r = Math.max(baseR, Math.ceil(spot.sMax * 0.45))
-    for (const tpl of templates) {
-      for (const size of sizes) {
-        // 성긴 단계는 크기가 꽤 달라도 걸린다 — 걸린 크기에서 너무 먼 것만 거른다.
-        // (실측: 쿨타임 모습은 30px 훑기에만 걸렸는데 실제 아이콘은 46px — 1.25배로는 놓쳤다)
-        if (size < spot.sMin / 1.6 || size > spot.sMax * 1.6) continue
-        const vec = tpl.vecs[size]
-        if (!vec) continue
-        const rough = findMatches(fGray, full.w, full.h, fInt, vec, size, size, {
-          step: 2,
-          minScore: LOCATE.coarseScore,
-          minVariance: LOCATE.minVariance,
-          bounds: { x0: cx - r, y0: cy - r, x1: cx + r, y1: cy + r },
-        })[0]
-        if (!rough) continue
-        const best = findMatches(fGray, full.w, full.h, fInt, vec, size, size, {
-          step: 1,
-          minScore: LOCATE.coarseScore,
-          minVariance: LOCATE.minVariance,
-          bounds: { x0: rough.x - 1, y0: rough.y - 1, x1: rough.x + 1, y1: rough.y + 1 },
-        })[0] ?? rough
-
-        /*
-         * 최종 점수는 자주색과 **밝기**를 함께 본다.
-         *
-         * 자주색만으로는 퀵슬롯의 다른 보라 계열 아이콘이 0.64~0.73까지 올라와
-         * 정답(0.78~1.00)과 겹쳤다 — 사용자에게 "전혀 상관없는 후보"로 보이던 원인이다.
-         * 같은 자리에서 밝기로 재보면 정답 0.52~1.00 / 경쟁 -0.07~0.18로 완전히 갈린다.
-         * 자주색은 자리를 찾는 데 강하고(단축키 글자가 밝기를 흐트러뜨린다) 밝기는
-         * 가려내는 데 강하므로, 탐색·정련은 자주색으로 하고 채점만 둘의 평균으로 한다.
-         */
-        const lvec = tpl.lumaVecs?.[size]
-        let score = best.score
-        if (lvec) {
-          const lm = findMatches(fLuma, full.w, full.h, fLumaInt, lvec, size, size, {
-            step: 1,
-            minScore: -1,
-            minVariance: 1,
-            bounds: { x0: best.x, y0: best.y, x1: best.x, y1: best.y },
-          })[0]
-          score = (best.score + (lm?.score ?? 0)) / 2
+    const bounds = { x0: cx - r, y0: cy - r, x1: cx + r, y1: cy + r }
+    let best = null
+    for (const ti of spot.reps) {
+      const rvec = templates[ti]?.vecs[size]
+      if (!rvec) continue
+      /*
+       * 자리를 찾을 때는 통과선을 두지 않는다(findBest). 대표가 그 자리에서 낮은 점수를
+       * 내더라도 **다른 모양이 맞을 수 있기 때문**이다 — 여기서는 "대표가 가장 잘 붙는
+       * 자리"만 알면 되고, 합격 판정은 채점이 한다.
+       */
+      const rough = findBest(fGray, full.w, full.h, fInt, rvec, size, size, {
+        step: 2, minVariance: LOCATE.minVariance, bounds,
+      })
+      if (!rough) continue
+      const pick = scoreAll(rough.x, rough.y, size)
+      if (!pick) continue
+      // 이긴 모양으로 자리를 한 번 더 다듬는다 — 대표와 몇 px 어긋날 수 있다
+      const polish = findBest(fGray, full.w, full.h, fInt, templates[pick.tpl].vecs[size], size, size, {
+        step: 1, minVariance: LOCATE.minVariance,
+        bounds: {
+          x0: rough.x - LOCATE.polishRadius, y0: rough.y - LOCATE.polishRadius,
+          x1: rough.x + LOCATE.polishRadius, y1: rough.y + LOCATE.polishRadius,
+        },
+      })
+      const at = polish ?? rough
+      const final = scoreAll(at.x, at.y, size) ?? pick
+      if (!best || final.score > best.score) {
+        best = {
+          x: at.x, y: at.y, w: size, h: size, score: final.score,
+          tpl: final.tpl, mode: templates[final.tpl]?.mode ?? null,
         }
-        if (score < LOCATE.looseScore) continue
-        results.push({ x: best.x, y: best.y, w: size, h: size, score })
+      }
+    }
+    return best && best.score >= LOCATE.looseScore ? best : null
+  }
+
+  /*
+   * 성긴 단계는 크기가 꽤 달라도 걸린다 — 걸린 크기에서 너무 먼 것만 거른다.
+   * (실측: 쿨타임 모습은 30px 훑기에만 걸렸는데 실제 아이콘은 46px — 1.25배로는 놓쳤다)
+   */
+  const allowed = (spot) => sizes.filter((n) => n >= spot.sMin / 1.6 && n <= spot.sMax * 1.6)
+  /** 크기를 1px씩 다 볼 필요는 없다 — 1px 차이의 점수 차가 0.01 수준이라(실측) 한 칸 걸러 본다 */
+  const everyOther = (arr) => arr.filter((_, i) => i % 2 === 0 || i === arr.length - 1)
+
+  /*
+   * 2단계 — 후보 주변만 원본 해상도에서 다시 본다.
+   *
+   * 크기는 자리마다 따로 본다. 전 화면이 같은 배율이니 한 번 알아내면 될 것 같지만,
+   * 실제로 그렇게 묶었더니 쿨타임 프레임 92장이 통째로 날아갔다(실측) — 정답 자리는
+   * 성긴 점수가 낮아 크기를 정하는 표본에 못 끼고, 엉뚱한 자리가 정한 크기로만
+   * 채점되면서 자기 크기를 못 만나기 때문이다.
+   *
+   * 대신 크기를 한 칸 걸러 본다. 1px 차이의 점수 차가 0.005~0.01 수준이라(실측:
+   * 43/44/45px에서 0.842/0.838/0.874) 사이를 건너뛰어도 정점은 잡힌다.
+   */
+  for (const spot of spots) {
+    for (const size of everyOther(allowed(spot))) {
+      const hit = evalAt(spot, size)
+      if (hit) results.push(hit)
+    }
+  }
+  /*
+   * 1등만 크기를 ±1px 다듬는다. 이 크기가 곧 UI 배율의 실측값이 되어(uiCalibration)
+   * 룬·부스터 템플릿 크기의 근거가 되므로 한 칸 걸러 얻은 값을 그대로 두면 안 된다.
+   */
+  if (results.length) {
+    const top = results.reduce((a, b) => (b.score > a.score ? b : a))
+    const spot = spots.find((sp) => Math.abs(sp.x / ratio - top.x) < top.w && Math.abs(sp.y / ratio - top.y) < top.h)
+    if (spot) {
+      for (let d = -LOCATE.sizeTrimSpan; d <= LOCATE.sizeTrimSpan; d++) {
+        if (d === 0 || !sizes.includes(top.w + d)) continue
+        const hit = evalAt(spot, top.w + d)
+        if (hit) results.push(hit)
       }
     }
   }

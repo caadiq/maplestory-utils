@@ -84,6 +84,22 @@ const builtinModes = () => Object.keys(iconFiles)
   .filter(Boolean)
 export const HAS_BUILTIN_ICON = Object.keys(iconFiles).length > 0
 
+/**
+ * 템플릿 벡터 캐시 (key|크기|평면 → 정규화 벡터).
+ * 쿨타임 모습까지 넣으면 템플릿이 수십 장이라 매 탐색마다 다시 만들면 캔버스 작업만
+ * 수천 번이다. 원본이 안 바뀌면 결과도 같으므로 그대로 재사용한다.
+ */
+const vecCache = new Map()
+/**
+ * 저장 모양이 바뀌면 캐시가 갈리도록 내용에서 뽑는 도장.
+ * 저장본은 늘 24×24라 크기로는 구분이 안 된다 — 픽셀을 성기게 훑어 더한다.
+ */
+const savedStamp = (rgba) => {
+  let sum = 0
+  for (let i = 0; i < rgba.length; i += 37) sum = (sum + rgba[i] * (i + 1)) % 2147483647
+  return `${rgba.length}.${sum}`
+}
+
 /** 쿨타임 중 모습을 이만큼 모아 평균 내면 숫자가 흐려지고 아이콘만 남는다 */
 const DARK_SAMPLES = 8
 
@@ -334,19 +350,42 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
     const full = grabFrame(vw)
     if (!coarse || !full) return null
 
-    /** source를 size×size로 줄여 정규화한 벡터를 만든다 (자주색·밝기) */
-    const vecAt = (source, sw, sh, size, plane = toChroma) => {
-      const t = document.createElement('canvas')
-      t.width = size
-      t.height = size
-      const tctx = t.getContext('2d', { willReadFrequently: true })
+    /**
+     * source를 size×size로 줄여 정규화한 벡터를 만든다 (자주색·밝기).
+     * 쿨타임 모습까지 넣으면 템플릿이 수십 장이라 (장수 × 크기 × 평면)만큼 캔버스를
+     * 돌리게 된다 — 원본이 바뀌지 않는 한 결과도 같으므로 key별로 재사용한다.
+     */
+    /*
+     * 크기마다 캔버스를 하나씩 두고 돌려 쓴다.
+     * 템플릿 수십 장 × 크기 수십 개면 (만들기 + 크기 바꾸기)만으로 수천 번인데,
+     * 캔버스 크기 변경은 내부 버퍼를 새로 잡는 일이라 그때마다 비용이 든다.
+     */
+    const scratches = new Map()
+    const scratchAt = (size) => {
+      let c = scratches.get(size)
+      if (!c) {
+        c = document.createElement('canvas')
+        c.width = size
+        c.height = size
+        scratches.set(size, c)
+      }
+      return c
+    }
+    const vecAt = (key, source, sw, sh, size, plane = toChroma) => {
+      const ck = `${key}|${size}|${plane === toChroma ? 'c' : 'l'}`
+      if (vecCache.has(ck)) return vecCache.get(ck)
+      const tctx = scratchAt(size).getContext('2d', { willReadFrequently: true })
+      tctx.clearRect(0, 0, size, size)
       tctx.drawImage(source, 0, 0, sw, sh, 0, 0, size, size)
-      return normalize(plane(tctx.getImageData(0, 0, size, size).data))
+      const v = normalize(plane(tctx.getImageData(0, 0, size, size).data))
+      vecCache.set(ck, v)
+      return v
     }
 
     /*
-     * 저장된 모양과 내장 원본을 전부 훑는다. 모양별로 따로 채점하므로 섞여서 흐려질 일이 없고,
-     * 저장본이 잘못됐어도(쿨타임 중에 지정해서 어두운 모습이 기준이 된 경우) 원본이 받쳐 준다 —
+     * 저장된 모양과 내장 원본을 전부 넘긴다. 자리마다 전부 대조해 가장 잘 맞는 하나를
+     * 그 자리 점수로 삼으므로 섞여서 흐려질 일이 없고, 저장본이 잘못됐어도(쿨타임 중에
+     * 지정해서 어두운 모습이 기준이 된 경우) 원본이 받쳐 준다 —
      * 메이플 타이머류 사이트가 항상 잘 찾는 이유가 바로 "기준이 늘 원본"이기 때문이다.
      */
     const sources = []
@@ -360,17 +399,17 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
         )
         return { el: tc, w: saved.tw, h: saved.th }
       }
-      if (saved.rgba?.length) sources.push(toCanvas(saved.rgba))
+      if (saved.rgba?.length) sources.push({ ...toCanvas(saved.rgba), key: `saved${savedStamp(saved.rgba)}` })
       // 쿨타임 중 모습도 저장돼 있으면 같이 훑는다
-      if (saved.darkRgba?.length) sources.push(toCanvas(saved.darkRgba))
+      if (saved.darkRgba?.length) sources.push({ ...toCanvas(saved.darkRgba), key: `savedDark${savedStamp(saved.darkRgba)}` })
     }
     /*
      * 내장 원본은 새벽·황혼에 더해 **쿨타임 중 실물 모습들**(janus-cooldown*)까지 넣는다.
-     * 원본만으로는 쿨타임 장면에서 NCC가 0.05~0.32로 추락해 아예 못 찾았다(실측).
-     * 쿨타임 숫자는 계속 변해서 하나로는 안 된다 — 실측 10분 영상 600프레임 기준
-     * 황혼 2장(숫자 1·2)과 새벽 4장(53·45·20·7)이면 후보권 공백이 최장 2초로 줄어
-     * 재시도(2.5초 간격)가 그 틈을 덮는다.
-     * 쿨타임 모습은 모드 구분에는 못 쓴다(mode: null) — 위치만 잡는다.
+     * 원본만으로는 쿨타임 장면에서 일치도가 0.26~0.44로 추락해 통과선(0.45) 아래였다.
+     * 숫자가 매초 바뀌어 한두 장으로는 어느 순간에도 안 맞으므로 새벽 48장을 넣었고,
+     * 그 결과 612프레임 실측에서 1위 정답 95.1% → 99.2%, 바로 확정 83.2% → 98.9%가 됐다
+     * (자세한 내용은 icon/README.md).
+     * 쿨타임 모습은 모드 구분에는 못 쓴다(mode: null) — 자리만 잡는다.
      */
     for (const m of builtinModes()) {
       const img = builtinIconsRef.current[m]
@@ -382,6 +421,7 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
       if (img.complete && img.naturalWidth) {
         sources.push({
           el: img, w: img.naturalWidth, h: img.naturalHeight,
+          key: m,
           mode: m.startsWith('cooldown') ? null : m,
         })
       }
@@ -394,56 +434,36 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
       const coarseVecs = {}
       const lumaVecs = {}
       for (const size of sizes) {
-        const v = vecAt(src.el, src.w, src.h, size)
+        const v = vecAt(src.key, src.el, src.w, src.h, size)
         if (v) vecs[size] = v
         // 채점용 밝기 벡터 — 자주색만으로는 보라 계열 아이콘끼리 안 갈린다
-        const l = vecAt(src.el, src.w, src.h, size, toLumaPlane)
+        const l = vecAt(src.key, src.el, src.w, src.h, size, toLumaPlane)
         if (l) lumaVecs[size] = l
       }
       for (const size of probes) {
-        const v = vecAt(src.el, src.w, src.h, Math.max(6, Math.round(size * ratio)))
+        const v = vecAt(src.key, src.el, src.w, src.h, Math.max(6, Math.round(size * ratio)))
         if (v) coarseVecs[size] = v
       }
       return { vecs, coarseVecs, lumaVecs, mode: src.mode ?? null }
     })
 
     /*
-     * 모양별로 따로 훑는다.
+     * 모든 모양을 한 번에 대조한다.
      *
-     * "사용 가능"과 "쿨타임 중"은 서로 다른 상태의 모양이라 점수를 한 줄로 섞으면 안 된다.
-     * 쿨타임 중에 공유를 시작하면 쿨타임 모양은 정답 한 곳만 0.65로 집어내는데,
-     * 밝은 모양이 엉뚱한 곳에 0.59~0.60을 만들어 "1등과 2등 차이가 작다"며 되물었다.
-     * 잘 맞는 쪽을 고르고, 격차는 그 안에서만 따진다.
+     * 예전에는 모양마다 탐색을 따로 돌리고 "어느 쪽 결과가 더 깔끔한가"로 한 벌만
+     * 골랐다. 그 고르기가 엇나가면 정답을 찾아 놓고도 버렸다 — 확장 UI 영상 312장 중
+     * 14장이 그렇게 날아갔다(실측). 지금은 자리마다 전 모양을 채점해 가장 잘 맞는
+     * 모양의 점수를 그 자리 점수로 삼으므로, 고를 일 자체가 없다.
      */
-    const groups = []
-    for (const t of templates) {
-      const hits = await runLocate({ coarse, full, templates: [t], sizes, probes, ratio })
-      if (hits.length) { hits.mode = t.mode; groups.push(hits) }
-    }
-    if (!groups.length) return { learned: Boolean(saved), hits: [] }
-    /*
-     * 그룹은 1등 점수가 아니라 "1등이 얼마나 압도적인지"로 고른다.
-     * 쿨타임 장면에서 내장 원본은 엉뚱한 곳들에 0.66/0.64를 만들고(격차 0.02),
-     * 어두운-평균 모양은 정답 한 곳만 0.65로 찍는다(경쟁자 없음).
-     * 점수만 보면 전자가 이겨서 되묻게 되고, 격차로 보면 후자가 이겨서 바로 확정된다.
-     */
-    const clearness = (hits) => hits[0].score - (hits[1]?.score ?? LOCATE.looseScore)
-    /*
-     * 사실상 원본과 동일한 일치(0.85+)가 있으면 그 그룹을 믿는다.
-     * 격차만 보면 "0.56 단독"인 저장 모양 그룹이 "0.91 + 잡음 0.65"인 원본 그룹을
-     * 이기는 일이 실제로 있었다 — 절대 점수가 압도적인 쪽이 답이다.
-     */
-    const byTop = groups.reduce((a, b) => (b[0].score > a[0].score ? b : a))
-    const best = byTop[0].score >= LOCATE.dominantScore
-      ? byTop
-      : groups.reduce((a, b) => (clearness(b) > clearness(a) ? b : a))
+    const hits = await runLocate({ coarse, full, templates, sizes, probes, ratio })
+    if (!hits.length) return { learned: Boolean(saved), hits: [] }
 
     return {
       // 직접 지정해 저장한 모양인지 — 확신 기준이 달라진다
       learned: Boolean(saved),
-      // 내장 원본으로 이긴 경우에만 모드를 알 수 있다 (저장 모양엔 모드 정보가 없다)
-      detectedMode: best.mode ?? null,
-      hits: best.map((c) => ({
+      // 이긴 모양이 내장 원본일 때만 모드를 알 수 있다 (저장 모양·쿨타임 모습엔 모드가 없다)
+      detectedMode: hits[0].mode ?? null,
+      hits: hits.map((c) => ({
         score: c.score,
         region: { x: c.x / vw, y: c.y / vh, w: c.w / vw, h: c.h / vh },
       })),
