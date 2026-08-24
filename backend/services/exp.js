@@ -143,23 +143,36 @@ function kstDateStr(daysAgo) {
 }
 
 export async function fetchHistory(ocid, days = 9) {
-  const dates = Array.from({ length: days }, (_, i) => kstDateStr(days - i)); // 과거 → 어제
-  const rows = await Promise.all(dates.map(async (date) => {
+  /*
+   * 랭킹 스냅샷의 date=D는 **D일 0시 시점**이다 — 곧 D-1일의 마감값이다.
+   * 실측(2026-08-24, 비머레테): API date=8/24가 83.553%인데, 인게임 접속 시
+   * 그날 시작 경험치가 정확히 83.553%였다.
+   *
+   * 그래서 조회는 오늘 것까지 하고, 라벨은 하루씩 당겨 붙인다.
+   * 이걸 안 하면 마지막 점이 그저께 마감값을 어제로 표시해, 오늘 상승분이
+   * 이틀치로 보인다(실측: +3.15%p가 +8.39%p로 나옴).
+   */
+  const spans = Array.from({ length: days }, (_, i) => {
+    const back = days - 1 - i; // 오래된 것 → 오늘
+    return { date: kstDateStr(back), label: kstDateStr(back + 1) };
+  });
+  const rows = await Promise.all(spans.map(async ({ date, label }) => {
     const key = `${ocid}:${date}`;
-    if (historyCache.has(key)) return { date, ...historyCache.get(key) || {} };
+    if (historyCache.has(key)) return { date, label, ...historyCache.get(key) || {} };
     try {
       const { data } = await nexonGet('/maplestory/v1/ranking/overall', { date, ocid });
       const r = data.ranking?.[0];
       const v = r ? { level: r.character_level, exp: Number(r.character_exp) } : null;
       if (historyCache.size > 20000) historyCache.clear();
       historyCache.set(key, v);
-      return { date, ...(v || {}) };
+      return { date, label, ...(v || {}) };
     } catch {
-      return { date };
+      // 랭킹은 매일 아침에 갱신된다 — 그 전이면 오늘 것이 아직 없다(그 점만 빠진다)
+      return { date, label };
     }
   }));
   return rows.filter((r) => r.level != null).map((r) => ({
-    date: r.date,
+    date: r.label,
     level: r.level,
     exp_rate: expData.levelExp[String(r.level)]
       ? Math.round((r.exp / expData.levelExp[String(r.level)]) * 100000) / 1000
