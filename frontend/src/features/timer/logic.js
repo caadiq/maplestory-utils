@@ -226,6 +226,12 @@ export const DEFAULT_SETTINGS = {
   alarmEnabled: true,
   /** 룬 등장 문구 감지 — 화면 공유 중에만 돈다 (야누스 영역 지정과는 무관) */
   runeEnabled: true,
+  /**
+   * 미니맵 룬 표식(자홍 마름모) 감지 — 문구 감지와 **함께** 돈다.
+   * 문구는 다른 UI 창에 가려질 수 있고, 표식은 룬이 발밑에 뜨면 내 마커에 가려진다.
+   * 서로 막히는 상황이 달라서 둘 다 켜 두면 놓치는 룬이 줄어든다(runeMarkCore 참고).
+   */
+  runeMarkEnabled: true,
   /** 야누스 알림과 구분되도록 따로 고른다. null이면 첫 번째 소리 */
   runeSound: null,
   /** 소리 크기는 알림마다 따로 — 음원별로 원래 크기가 달라 공용으로는 못 맞춘다 */

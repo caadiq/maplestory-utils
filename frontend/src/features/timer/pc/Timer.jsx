@@ -7,6 +7,7 @@ import Select from '../../../components/common/Select'
 import { TimerResetIcon, PipIcon, TargetIcon, ScreenOffIcon, BellIcon, IconButton } from './icons'
 import { useJanusDetector } from '../useJanusDetector'
 import { useRuneDetector, runeKindLabel } from '../useRuneDetector'
+import { useRuneMarkDetector } from '../useRuneMarkDetector'
 import { useBoosterDetector } from '../useBoosterDetector'
 import { useExpStallDetector } from '../useExpStallDetector'
 import { usePipWindow } from '../usePipWindow'
@@ -75,6 +76,13 @@ function SyncPill({ sync }) {
 export default function Timer() {
   const [settings, setSettings] = useState(loadSettings)
   const [picking, setPicking] = useState(false)
+  /*
+   * 미니맵 지도 영역 — 공유할 때마다 스스로 찾는다(세션 한정).
+   * 저장해 두면 화면 구성이 바뀌었을 때 낡은 자리에 굳어 버려서, 매번 찾는 편이 안전하다.
+   */
+  const [markRegion, setMarkRegion] = useState(null)
+  const [markStatus, setMarkStatus] = useState(null)
+  const [pickingMark, setPickingMark] = useState(false)
   const [candidates, setCandidates] = useState(null)
   const [locating, setLocating] = useState(false)
 
@@ -206,6 +214,34 @@ export default function Timer() {
       const s = settingsRef.current
       playSound(resolveSound(s.runeSound), s.runeVolume)
       log(`${runeKindLabel(hit.kind)} 등장 감지`, `일치 ${hit.score.toFixed(2)}`, 'ok')
+    },
+  })
+
+  /*
+   * 미니맵 룬 표식 — 문구와 **함께** 돈다.
+   * 문구는 다른 UI 창에 가려지고, 표식은 룬이 발밑에 뜨면 내 마커에 가린다.
+   * 서로 막히는 상황이 달라서 둘 다 켜 두면 놓치는 룬이 줄어든다.
+   * 한쪽이 이미 울렸으면 다른 쪽은 억제 시간(90초) 안이라 연타되지 않는다.
+   */
+  // 공유가 끊기면 미니맵 자리도 잊는다 — 다음 공유는 화면 구성이 다를 수 있다
+  useEffect(() => {
+    if (!stream) { setMarkRegion(null); setMarkStatus(null); setPickingMark(false) }
+  }, [stream])
+
+  useRuneMarkDetector({
+    videoRef,
+    stream,
+    enabled: settings.runeEnabled && settings.runeMarkEnabled,
+    region: markRegion,
+    onRegion: (r, info) => {
+      setMarkRegion(r)
+      if (info?.auto) log('미니맵 위치를 찾았습니다', `일치 ${info.score.toFixed(2)}`, 'muted')
+    },
+    onStatus: setMarkStatus,
+    onRune: (hit) => {
+      const s = settingsRef.current
+      playSound(resolveSound(s.runeSound), s.runeVolume)
+      log('룬 등장 감지', `미니맵 표식 · 일치 ${hit.score.toFixed(2)}`, 'ok')
     },
   })
 
@@ -610,6 +646,19 @@ export default function Timer() {
         />
         <div style={settings.runeEnabled ? undefined : { opacity: 0.45, pointerEvents: 'none' }}>
         <SettingRow
+          name="미니맵 표식"
+          desc={settings.runeMarkEnabled
+            ? <>문구와 함께 미니맵의 <b style={{ color: 'var(--text-muted)' }}>분홍 마름모</b>도 지켜봅니다{markStatusText(stream, markRegion, markStatus)}</>
+            : '화면 상단 문구만 지켜봅니다'}
+        >
+          {settings.runeMarkEnabled && stream && (
+            <TextButton onClick={() => setPickingMark(true)}>
+              {markRegion ? '위치 바꾸기' : '직접 지정'}
+            </TextButton>
+          )}
+          <Toggle on={settings.runeMarkEnabled} onChange={(v) => { set({ runeMarkEnabled: v }); if (!v) setMarkRegion(null) }} />
+        </SettingRow>
+        <SettingRow
           name="알림 소리"
           desc={<>화면에 <b style={{ color: 'var(--text-muted)' }}>룬 등장 문구</b>가 뜨면 바로 알립니다</>}
         >
@@ -720,6 +769,15 @@ export default function Timer() {
           onPick={(r) => { setRegion(r); setCandidates(null) }}
           onManual={() => { setCandidates(null); setPicking(true) }}
           onClose={() => setCandidates(null)}
+        />
+      )}
+
+      {pickingMark && (
+        <RegionPickerModal
+          stream={stream}
+          region={markRegion}
+          onConfirm={(r) => { setMarkRegion(r); setPickingMark(false); log('미니맵 영역 지정', '사용자', 'muted') }}
+          onClose={() => setPickingMark(false)}
         />
       )}
 
@@ -911,6 +969,29 @@ function SoundControl({ sound, volume, options, onSound, onVolume, onTest }) {
 }
 
 /** 설정 한 줄 — 이름 / 설명 / 컨트롤 */
+/** 미니맵 자리를 잡았는지 한 줄로 알려 준다 */
+function markStatusText(stream, region, status) {
+  if (!stream) return null
+  const tone = { color: 'var(--text-muted)' }
+  if (region) return <> · <b style={tone}>자리 확인됨</b></>
+  if (status?.reason === 'nomap') return <> · <b style={tone}>미니맵을 못 찾았습니다 — 직접 지정해 주세요</b></>
+  return <> · <b style={tone}>미니맵을 찾는 중…</b></>
+}
+
+/** 글자만 있는 작은 버튼 — 행 안에서 컨트롤 옆에 붙는다 */
+function TextButton({ onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-[8px] px-2.5 py-1.5 text-[13px] font-bold"
+      style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-dim)' }}
+    >
+      {children}
+    </button>
+  )
+}
+
 function SettingRow({ name, desc, children }) {
   return (
     <div className="flex items-center gap-4 px-4 py-3" style={{ borderTop: '1px solid var(--mpl-card-line)' }}>
