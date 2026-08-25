@@ -206,43 +206,50 @@ describe('자리 후보 선별', () => {
 /*
  * 창 크기가 바뀌었을 때 지정 영역이 어디로 가는가.
  *
- * region은 0~1 비율 좌표라 **아무것도 안 하면 고정이 아니다** — 캡처가 커진 만큼
- * 같은 비율 자리가 아래로 내려간다(실사용 보고: 창 +86px에 상자도 정확히 +86px
- * 내려가 검은 여백에 앉았다). 픽셀 자리를 보존해야 화면상 같은 곳에 남는다.
+ * 퀵슬롯은 **게임 화면** 우하단에 붙박이라, 두 경우가 정반대로 움직인다.
+ * 실사용에서 둘 다 보고됐다:
+ *   - 세로로 늘렸더니 게임은 그대로고 아래 여백만 생김 → 아이콘 제자리
+ *   - 가로로 늘렸더니 게임이 같이 넓어짐 → 아이콘도 오른쪽으로 이동
+ * 캡처 모서리 기준이면 첫째가 틀리고, 픽셀만 고정하면 둘째가 틀린다.
  */
-describe('창 크기가 바뀌어도 영역은 그 자리', () => {
+describe('창 크기가 바뀌었을 때 영역', () => {
   const px = (r, f) => ({
     x: Math.round(r.x * f.w), y: Math.round(r.y * f.h),
     w: Math.round(r.w * f.w), h: Math.round(r.h * f.h),
   })
-
-  it('창이 커져도 픽셀 자리가 그대로다', () => {
-    const base = { w: 1920, h: 1080 }
-    const next = { w: 1920, h: 1280 }
-    const region = { x: 1675 / base.w, y: 1017 / base.h, w: 44 / base.w, h: 44 / base.h }
-    expect(px(shiftRegion(region, base, next), next)).toEqual({ x: 1675, y: 1017, w: 44, h: 44 })
+  /** 게임 화면 우하단에 붙은 44px 아이콘 */
+  const icon = (f, right, bottom) => ({
+    x: (f.right - right - 44) / f.w, y: (f.bottom - bottom - 44) / f.h,
+    w: 44 / f.w, h: 44 / f.h,
   })
 
-  it('창이 작아져도 마찬가지다', () => {
-    const base = { w: 1920, h: 1280 }
-    const next = { w: 1920, h: 1080 }
-    const region = { x: 1675 / base.w, y: 900 / base.h, w: 44 / base.w, h: 44 / base.h }
-    expect(px(shiftRegion(region, base, next), next)).toEqual({ x: 1675, y: 900, w: 44, h: 44 })
+  it('세로로 늘렸는데 여백만 생기면 제자리에 있는다', () => {
+    const base = { w: 1920, h: 1080, right: 1920, bottom: 1080 }
+    const next = { w: 1920, h: 1280, right: 1920, bottom: 1080 }   // 게임 바닥 그대로
+    const r = icon(base, 201, 19)                                   // (1675, 1017)
+    expect(px(shiftRegion(r, base, next), next)).toEqual({ x: 1675, y: 1017, w: 44, h: 44 })
   })
 
-  it('가만히 두면(비율 유지) 오히려 따라 내려간다 — 그래서 보정이 필요하다', () => {
-    const base = { w: 1920, h: 1080 }
-    const next = { w: 1920, h: 1280 }
-    const region = { x: 1675 / base.w, y: 1017 / base.h, w: 44 / base.w, h: 44 / base.h }
-    expect(Math.round(region.y * next.h)).toBe(1205)                 // 비율 그대로 두면 188px 내려간다
-    expect(px(shiftRegion(region, base, next), next).y).toBe(1017)   // 보정하면 제자리
+  it('가로로 늘려 게임이 같이 넓어지면 아이콘도 따라간다', () => {
+    const base = { w: 1920, h: 1080, right: 1920, bottom: 1080 }
+    const next = { w: 2200, h: 1080, right: 2200, bottom: 1080 }
+    const r = icon(base, 201, 19)
+    expect(px(shiftRegion(r, base, next), next)).toEqual({ x: 1955, y: 1017, w: 44, h: 44 })
   })
 
-  it('창이 많이 작아져 영역이 밖으로 나가면 안쪽으로 밀어 넣는다', () => {
-    const base = { w: 1920, h: 1080 }
-    const next = { w: 1920, h: 800 }
-    const region = { x: 1675 / base.w, y: 1017 / base.h, w: 44 / base.w, h: 44 / base.h }
-    const moved = px(shiftRegion(region, base, next), next)
+  it('아이콘 크기는 px 그대로 — UI 배율은 창 크기를 안 따라간다', () => {
+    const base = { w: 1920, h: 1080, right: 1920, bottom: 1080 }
+    const next = { w: 2560, h: 1440, right: 2560, bottom: 1440 }
+    const moved = px(shiftRegion(icon(base, 201, 19), base, next), next)
+    expect(moved.w).toBe(44)
+    expect(moved.h).toBe(44)
+  })
+
+  it('창이 작아져 영역이 밖으로 나가면 안쪽으로 밀어 넣는다', () => {
+    const base = { w: 1920, h: 1080, right: 1920, bottom: 1080 }
+    const next = { w: 800, h: 600, right: 800, bottom: 600 }
+    const moved = px(shiftRegion(icon(base, 201, 19), base, next), next)
+    expect(moved.x).toBeGreaterThanOrEqual(0)
     expect(moved.y + moved.h).toBeLessThanOrEqual(next.h)
   })
 })

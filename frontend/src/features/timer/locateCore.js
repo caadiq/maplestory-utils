@@ -250,37 +250,29 @@ export function contentBox(data, w, h) {
 }
 
 /**
- * 캡처 크기가 바뀌어도 지정 영역을 **같은 픽셀 자리에 붙잡아 둔다**.
+ * 캡처 크기가 바뀌었을 때 지정 영역을 **게임 화면의 우하단 기준**으로 옮긴다.
  *
- * region은 0~1 비율 좌표다. 그래서 **아무것도 안 하면 고정이 아니다** —
- * 캡처가 커진 만큼 같은 비율 자리가 아래로 내려가 버린다(실사용 보고:
- * 창이 86px 커지자 상자도 정확히 86px 내려가 검은 여백에 앉았다).
- * 픽셀 좌표로 되돌렸다가 새 크기로 다시 비율을 매기면 화면상 같은 자리에 남는다.
+ * 퀵슬롯은 게임 화면 우하단에 붙박이다. 그래서 두 경우가 정반대로 움직인다.
+ *   - 세로로 늘렸는데 게임은 그대로고 아래 **여백만** 생김 → 아이콘은 제자리
+ *   - 가로로 늘렸는데 게임이 **같이 넓어짐** → 아이콘도 오른쪽으로 이동
+ * 실사용에서 정확히 이 둘이 같이 보고됐다. 캡처 모서리를 기준으로 하면 첫째가 틀리고,
+ * 그냥 픽셀을 고정하면 둘째가 틀린다. **게임 화면**의 모서리를 기준으로 잡아야 둘 다 맞는다.
  *
- * 창을 줄여서 영역이 화면 밖으로 나가면 안쪽으로 밀어 넣는다.
+ * UI 배율까지 다시 잡히는 경우(아이콘 크기 자체가 변함)는 이 계산으로 못 맞춘다 —
+ * 그때는 모양 판정이 어긋나고 6초 뒤 자동 재탐색이 잡는다.
  *
- * base / next : { w, h } — 바뀌기 전후의 캡처 크기
+ * base / next : { w, h, right, bottom } — 캡처 크기와 게임 화면 우하단
  * region      : 0~1 비율 좌표
  */
 export function shiftRegion(region, base, next) {
   const w = region.w * base.w
   const h = region.h * base.h
-  const x = Math.min(Math.max(region.x * base.w, 0), Math.max(0, next.w - w))
-  const y = Math.min(Math.max(region.y * base.h, 0), Math.max(0, next.h - h))
+  // 게임 화면 우하단에서 얼마나 떨어져 있었는지 (px)
+  const fromRight = base.right - (region.x + region.w) * base.w
+  const fromBottom = base.bottom - (region.y + region.h) * base.h
+  const x = Math.min(Math.max(next.right - fromRight - w, 0), Math.max(0, next.w - w))
+  const y = Math.min(Math.max(next.bottom - fromBottom - h, 0), Math.max(0, next.h - h))
   return { x: x / next.w, y: y / next.h, w: w / next.w, h: h / next.h }
-}
-
-/**
- * 퀵슬롯 상자 — 게임 화면의 우하단에 붙어 있다.
- * 기준 해상도에서 바가 차지하는 크기(600×110)를 배율만큼 키운다.
- * bottom은 유효 바닥(contentBottom) — 레터박스가 없으면 h 그대로다.
- * 여기서 아무것도 못 찾을 때만 화면 전체로 넓힌다 (막다른 길이 되지 않게 두는 안전장치).
- */
-export function quickslotBox(w, h, bottom = h) {
-  const s = Math.max(1, bottom / 768)
-  const bw = Math.min(w, Math.round(600 * s))
-  const bh = Math.min(bottom, Math.round(110 * s))
-  return { x0: w - bw, y0: bottom - bh, x1: w, y1: bottom }
 }
 
 /* ── 픽셀 → 특징값 ───────────────────────────────────────── */
