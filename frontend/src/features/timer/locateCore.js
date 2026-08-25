@@ -250,24 +250,24 @@ export function contentBox(data, w, h) {
 }
 
 /**
- * 캡처 크기가 바뀌었을 때, 지정해둔 영역을 **게임 화면의 우하단 기준**으로 옮긴다.
+ * 캡처 크기가 바뀌어도 지정 영역을 **같은 픽셀 자리에 붙잡아 둔다**.
  *
- * 퀵슬롯은 게임 화면 우하단에 붙박이고 UI 배율은 창 크기를 따라가지 않으므로,
- * 그 모서리에서의 px 거리와 px 크기가 변하지 않는다. 그걸 보존해 새 비율로 환산한다.
+ * region은 0~1 비율 좌표다. 그래서 **아무것도 안 하면 고정이 아니다** —
+ * 캡처가 커진 만큼 같은 비율 자리가 아래로 내려가 버린다(실사용 보고:
+ * 창이 86px 커지자 상자도 정확히 86px 내려가 검은 여백에 앉았다).
+ * 픽셀 좌표로 되돌렸다가 새 크기로 다시 비율을 매기면 화면상 같은 자리에 남는다.
  *
- * base / next : { w, h, right, bottom } — 캡처 크기와 게임 화면 우하단
+ * 창을 줄여서 영역이 화면 밖으로 나가면 안쪽으로 밀어 넣는다.
+ *
+ * base / next : { w, h } — 바뀌기 전후의 캡처 크기
  * region      : 0~1 비율 좌표
  */
 export function shiftRegion(region, base, next) {
-  const px = {
-    right: base.right - (region.x + region.w) * base.w,
-    bottom: base.bottom - (region.y + region.h) * base.h,
-    w: region.w * base.w,
-    h: region.h * base.h,
-  }
-  const x = next.right - px.right - px.w
-  const y = next.bottom - px.bottom - px.h
-  return { x: x / next.w, y: y / next.h, w: px.w / next.w, h: px.h / next.h }
+  const w = region.w * base.w
+  const h = region.h * base.h
+  const x = Math.min(Math.max(region.x * base.w, 0), Math.max(0, next.w - w))
+  const y = Math.min(Math.max(region.y * base.h, 0), Math.max(0, next.h - h))
+  return { x: x / next.w, y: y / next.h, w: w / next.w, h: h / next.h }
 }
 
 /**

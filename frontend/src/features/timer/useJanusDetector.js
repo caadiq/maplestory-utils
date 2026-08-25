@@ -3,7 +3,7 @@ import {
   DETECT, toShapeVector, shapeSimilarity,
   saveTemplate, loadTemplate,
 } from './logic'
-import { LOCATE, candidateSizes, probeSizes, normalize, toChroma, toLumaPlane, locateIcon, contentBox, shiftRegion } from './locateCore'
+import { LOCATE, candidateSizes, probeSizes, normalize, toChroma, toLumaPlane, locateIcon, shiftRegion } from './locateCore'
 import { learnIconSize } from './uiCalibration'
 import { inspectCooldown, createCooldownTracker } from './digits'
 
@@ -106,28 +106,6 @@ const savedStamp = (rgba) => {
   let sum = 0
   for (let i = 0; i < rgba.length; i += 37) sum = (sum + rgba[i] * (i + 1)) % 2147483647
   return `${rgba.length}.${sum}`
-}
-
-/**
- * 지금 프레임의 캡처 크기와 **게임 화면 우하단**을 잰다.
- * 창 크기가 바뀌었을 때 지정 영역을 어디로 옮길지의 기준이 된다.
- */
-function measureFrame(video) {
-  const w = video.videoWidth
-  const h = video.videoHeight
-  if (!w || !h) return null
-  try {
-    const c = document.createElement('canvas')
-    c.width = w
-    c.height = h
-    const ctx = c.getContext('2d', { willReadFrequently: true })
-    ctx.drawImage(video, 0, 0, w, h)
-    const { right, bottom } = contentBox(ctx.getImageData(0, 0, w, h).data, w, h)
-    return { w, h, right, bottom }
-  } catch {
-    // 프레임을 못 읽으면 캡처 전체를 게임 화면으로 본다 (예전 동작)
-    return { w, h, right: w, bottom: h }
-  }
 }
 
 /** 쿨타임 중 모습을 이만큼 모아 평균 내면 숫자가 흐려지고 아이콘만 남는다 */
@@ -533,24 +511,22 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
      */
     const video = videoRef.current
     if (region && video?.videoWidth) {
-      regionBaseRef.current = measureFrame(video)
+      regionBaseRef.current = { w: video.videoWidth, h: video.videoHeight }
       learnIconSize(region.w * video.videoWidth, video.videoWidth, video.videoHeight)
     }
   }, [region])
 
   /*
-   * 창 크기가 바뀌면 영역을 **게임 화면의 우하단** 기준으로 따라 옮긴다.
+   * 창 크기가 바뀌어도 지정 영역을 **처음 찾은 픽셀 자리에 그대로 둔다**.
    *
-   * region은 0~1 비율 좌표라 캡처 크기가 바뀌면 같은 "비율" 자리를 가리키는데,
-   * 퀵슬롯은 게임 화면 우하단에 붙박이라 비율 자리는 엉뚱한 곳이 된다.
+   * region이 0~1 비율 좌표라 아무것도 안 하면 고정이 아니다 — 캡처가 커진 만큼
+   * 같은 비율 자리가 아래로 내려간다(실사용 보고: 창 +86px에 상자도 +86px).
+   * 예전에는 우하단 기준으로 옮겨 보려 했는데, 창을 늘려도 게임이 그만큼 안 커지고
+   * 여백만 생기는 경우가 있어 오히려 여백 속으로 밀어 넣었다.
    *
-   * 기준을 **캡처** 우하단으로 잡으면 반대로 틀어지는 경우가 있다 — 창을 늘려도
-   * 게임이 그만큼 커지지 않고 아래에 여백이 생기면, 늘어난 만큼 상자가 여백 속으로
-   * 내려간다(실사용 보고: 창이 86px 커지자 상자가 정확히 86px 아래로 내려가 검은 띠에 앉았다).
-   * 게임 화면의 모서리를 기준으로 삼으면 두 경우가 같은 식으로 풀린다.
-   *
-   * (해상도 변경으로 UI 배율 자체가 바뀐 경우엔 모양 판정이 실패해 "아이콘을
-   * 못 알아봄" 경고가 뜨고, 6초 뒤 자동 재탐색이 돈다 — 조용히 어긋나는 것보다 낫다)
+   * 퀵슬롯이 실제로 움직이는 배치라면(게임이 창을 따라 다시 그리는 경우) 모양 판정이
+   * 어긋나고, 6초 뒤 자동 재탐색이 알아서 다시 잡는다 — 그 길이 이미 있으므로
+   * 여기서 추측으로 옮길 이유가 없다.
    */
   useEffect(() => {
     if (!stream) return
@@ -559,12 +535,13 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
     const onResize = () => {
       const r = regionRef.current
       const base = regionBaseRef.current
-      const next = measureFrame(video)
-      if (!r || !base || !next) return
-      if (next.w === base.w && next.h === base.h) return
-      setRegion(shiftRegion(r, base, next))
-      regionBaseRef.current = next
-      log(`창 크기 변경 (${base.w}×${base.h} → ${next.w}×${next.h}) — 영역 위치 보정`, '자동', 'muted')
+      const w = video.videoWidth
+      const h = video.videoHeight
+      if (!r || !base || !w || !h) return
+      if (w === base.w && h === base.h) return
+      setRegion(shiftRegion(r, base, { w, h }))
+      regionBaseRef.current = { w, h }
+      log(`창 크기 변경 (${base.w}×${base.h} → ${w}×${h}) — 영역은 그 자리에 고정`, '자동', 'muted')
     }
     video.addEventListener('resize', onResize)
     return () => video.removeEventListener('resize', onResize)

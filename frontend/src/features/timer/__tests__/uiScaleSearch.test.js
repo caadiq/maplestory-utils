@@ -204,14 +204,54 @@ describe('자리 후보 선별', () => {
 })
 
 /*
- * 창 크기가 바뀌었을 때 지정 영역을 어디로 옮기는가.
+ * 창 크기가 바뀌었을 때 지정 영역이 어디로 가는가.
  *
- * 퀵슬롯은 **게임 화면** 우하단에 붙박이다. 캡처 우하단을 기준으로 잡으면,
- * 창을 늘려도 게임이 그만큼 안 커지고 아래에 여백이 생기는 경우에 상자가
- * 늘어난 만큼 여백 속으로 내려간다(실사용 보고: 창 +86px에 상자도 정확히 +86px).
+ * region은 0~1 비율 좌표라 **아무것도 안 하면 고정이 아니다** — 캡처가 커진 만큼
+ * 같은 비율 자리가 아래로 내려간다(실사용 보고: 창 +86px에 상자도 정확히 +86px
+ * 내려가 검은 여백에 앉았다). 픽셀 자리를 보존해야 화면상 같은 곳에 남는다.
  */
-describe('창 크기 변경 시 영역 보정', () => {
-  /** 위쪽 content행만 밝은 화면을 만든다 */
+describe('창 크기가 바뀌어도 영역은 그 자리', () => {
+  const px = (r, f) => ({
+    x: Math.round(r.x * f.w), y: Math.round(r.y * f.h),
+    w: Math.round(r.w * f.w), h: Math.round(r.h * f.h),
+  })
+
+  it('창이 커져도 픽셀 자리가 그대로다', () => {
+    const base = { w: 1920, h: 1080 }
+    const next = { w: 1920, h: 1280 }
+    const region = { x: 1675 / base.w, y: 1017 / base.h, w: 44 / base.w, h: 44 / base.h }
+    expect(px(shiftRegion(region, base, next), next)).toEqual({ x: 1675, y: 1017, w: 44, h: 44 })
+  })
+
+  it('창이 작아져도 마찬가지다', () => {
+    const base = { w: 1920, h: 1280 }
+    const next = { w: 1920, h: 1080 }
+    const region = { x: 1675 / base.w, y: 900 / base.h, w: 44 / base.w, h: 44 / base.h }
+    expect(px(shiftRegion(region, base, next), next)).toEqual({ x: 1675, y: 900, w: 44, h: 44 })
+  })
+
+  it('가만히 두면(비율 유지) 오히려 따라 내려간다 — 그래서 보정이 필요하다', () => {
+    const base = { w: 1920, h: 1080 }
+    const next = { w: 1920, h: 1280 }
+    const region = { x: 1675 / base.w, y: 1017 / base.h, w: 44 / base.w, h: 44 / base.h }
+    expect(Math.round(region.y * next.h)).toBe(1205)                 // 비율 그대로 두면 188px 내려간다
+    expect(px(shiftRegion(region, base, next), next).y).toBe(1017)   // 보정하면 제자리
+  })
+
+  it('창이 많이 작아져 영역이 밖으로 나가면 안쪽으로 밀어 넣는다', () => {
+    const base = { w: 1920, h: 1080 }
+    const next = { w: 1920, h: 800 }
+    const region = { x: 1675 / base.w, y: 1017 / base.h, w: 44 / base.w, h: 44 / base.h }
+    const moved = px(shiftRegion(region, base, next), next)
+    expect(moved.y + moved.h).toBeLessThanOrEqual(next.h)
+  })
+})
+
+/*
+ * 게임 화면이 캡처 안에서 차지하는 범위 — 퀵슬롯 검색 상자를 잡는 데 쓴다.
+ * 레터박스 안에 떠 있는 작은 UI 섬(분리 채팅 등)에 걸리면 안 된다.
+ */
+describe('contentBox', () => {
   const frame = (w, h, contentH, contentW = w) => {
     const data = new Uint8ClampedArray(w * h * 4)
     for (let y = 0; y < contentH; y++) {
@@ -227,36 +267,5 @@ describe('창 크기 변경 시 영역 보정', () => {
   it('게임 화면의 우하단 모서리를 찾는다', () => {
     expect(contentBox(frame(800, 600, 480), 800, 600)).toEqual({ right: 800, bottom: 480 })
     expect(contentBox(frame(800, 600, 600, 700), 800, 600)).toEqual({ right: 700, bottom: 600 })
-  })
-
-  /** 우하단에 붙은 40×40 아이콘 (오른쪽에서 40px, 아래에서 10px 떨어짐) */
-  const iconRegion = (w, h, right, bottom) => ({
-    x: (right - 40 - 40) / w, y: (bottom - 10 - 40) / h, w: 40 / w, h: 40 / h,
-  })
-
-  it('게임이 캡처를 꽉 채우면 캡처 바닥을 따라간다', () => {
-    const base = { w: 800, h: 500, right: 800, bottom: 500 }
-    const next = { w: 800, h: 600, right: 800, bottom: 600 }
-    const moved = shiftRegion(iconRegion(800, 500, 800, 500), base, next)
-    expect(Math.round(moved.y * next.h)).toBe(550)   // 바닥에서 50px 그대로
-    expect(Math.round(moved.x * next.w)).toBe(720)
-  })
-
-  it('늘어난 만큼 여백이 생기면 상자는 게임 바닥에 남는다', () => {
-    // 캡처만 500 → 600으로 커지고 게임 화면은 480에 머문 경우
-    const base = { w: 800, h: 500, right: 800, bottom: 500 }
-    const next = { w: 800, h: 600, right: 800, bottom: 480 }
-    const moved = shiftRegion(iconRegion(800, 500, 800, 500), base, next)
-    // 게임 바닥이 20px 올라갔으니 아이콘도 20px 위 — 여백(480~600)으로 내려가지 않는다
-    expect(Math.round(moved.y * next.h)).toBe(430)
-    expect(Math.round(moved.y * next.h + moved.h * next.h)).toBeLessThanOrEqual(next.bottom)
-  })
-
-  it('크기는 px 그대로 보존된다 — UI 배율은 창 크기를 안 따라간다', () => {
-    const base = { w: 800, h: 500, right: 800, bottom: 500 }
-    const next = { w: 1200, h: 900, right: 1200, bottom: 860 }
-    const moved = shiftRegion(iconRegion(800, 500, 800, 500), base, next)
-    expect(Math.round(moved.w * next.w)).toBe(40)
-    expect(Math.round(moved.h * next.h)).toBe(40)
   })
 })
