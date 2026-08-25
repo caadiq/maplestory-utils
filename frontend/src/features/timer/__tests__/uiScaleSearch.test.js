@@ -259,9 +259,11 @@ describe('창 크기가 바뀌었을 때 영역', () => {
  * 레터박스 안에 떠 있는 작은 UI 섬(분리 채팅 등)에 걸리면 안 된다.
  */
 describe('contentBox', () => {
-  const frame = (w, h, contentH, contentW = w) => {
+  /** 위쪽 contentH 행만 밝은 화면. holes에 든 행은 일부러 어둡게 비운다 */
+  const frame = (w, h, contentH, contentW = w, holes = []) => {
     const data = new Uint8ClampedArray(w * h * 4)
     for (let y = 0; y < contentH; y++) {
+      if (holes.includes(y)) continue
       for (let x = 0; x < contentW; x++) {
         const i = (y * w + x) * 4
         data[i] = data[i + 1] = data[i + 2] = 200
@@ -274,5 +276,32 @@ describe('contentBox', () => {
   it('게임 화면의 우하단 모서리를 찾는다', () => {
     expect(contentBox(frame(800, 600, 480), 800, 600)).toEqual({ right: 800, bottom: 480 })
     expect(contentBox(frame(800, 600, 600, 700), 800, 600)).toEqual({ right: 700, bottom: 600 })
+  })
+
+  it('게임 화면 안의 짧은 어두운 줄은 이어 붙인다', () => {
+    /*
+     * 어두운 맵에서는 게임 화면 안에도 밝기가 잠깐 떨어지는 줄이 생긴다
+     * (실측: 26~29%짜리 줄 7개). 그대로 두면 화면이 토막 나고 위쪽 토막이
+     * '가장 큰 덩어리'로 뽑혀 퀵슬롯이 통째로 검색 범위 밖이 됐다.
+     */
+    const holes = [300, 301, 450, 500, 501]
+    expect(contentBox(frame(800, 600, 600, 800, holes), 800, 600).bottom).toBe(600)
+  })
+
+  it('레터박스만큼 긴 틈은 이어 붙이지 않는다', () => {
+    // 게임 0~399, 빈 구간 400~499(100행), 아래에 UI 섬 500~529
+    const data = new Uint8ClampedArray(800 * 600 * 4)
+    const fill = (y0, y1) => {
+      for (let y = y0; y <= y1; y++) {
+        for (let x = 0; x < 800; x++) {
+          const i = (y * 800 + x) * 4
+          data[i] = data[i + 1] = data[i + 2] = 200
+          data[i + 3] = 255
+        }
+      }
+    }
+    fill(0, 399)
+    fill(500, 529)
+    expect(contentBox(data, 800, 600).bottom).toBe(400)
   })
 })

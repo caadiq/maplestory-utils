@@ -146,15 +146,14 @@ export function candidateSizes(videoWidth, videoHeight) {
   // 실측이 예측보다 1px 크게 나온 해상도가 있어(1080p: 예측 45 / 실측 46) 위로도 여유를 둔다
   const base = Math.round(32 * uiScale(videoHeight))
   /*
-   * 아래로는 예측의 60%까지만 본다.
+   * 아래로는 26px까지 본다 — 확장 UI는 창을 키워도 UI가 안 따라와서 예측보다 작게 나온다
+   * (실측 최저가 예측 대비 78%: 1080p 예측 45 / 실측 35).
    *
-   * 확장 UI는 창을 키워도 UI가 안 따라와서 예측보다 작게 나온다 — 실측 최저가
-   * 예측 대비 78%였다(1080p 예측 45 / 실측 35). 60%면 그보다 넉넉하다.
-   * 예전에는 26px 고정이었는데, 그러면 고해상도에서 크기 후보가 폭발하고
-   * (4K에서 26~93 = 68가지) 성긴 화면 폭도 vw/2로 커져 4K 한 번에 20초가 넘었다.
-   * 비례로 두면 성긴 화면 폭이 해상도와 무관하게 900px 언저리로 수렴한다.
+   * 예측에 비례한 하한(60%)도 시도해 봤는데, 고해상도에서 크기 후보가 폭발하는 건 막아도
+   * 확장 UI 인식이 98.7% → 96.5%로 떨어졌다. 고해상도 비용은 정련 해상도 상한
+   * (maxFullWidth)으로 이미 잡히므로 하한까지 건드릴 이유가 없다.
    */
-  const lo = Math.max(Math.min(26, base - 2), Math.round(base * 0.6))
+  const lo = Math.min(26, base - 2)
   const sizes = []
   for (let n = lo; n <= base + 3; n++) sizes.push(n)
   return sizes.filter((n) => n >= 10)
@@ -211,26 +210,41 @@ export function contentBottom(data, w, h) {
 export function contentBox(data, w, h) {
   const bright = (p) => data[p] + data[p + 1] + data[p + 2] > 75
 
-  /** 한 축을 훑어 '내용 줄'이 가장 길게 이어지는 구간의 끝을 찾는다 */
+  /**
+   * 한 축을 훑어 '내용 줄'이 가장 길게 이어지는 구간의 끝을 찾는다.
+   *
+   * 짧은 틈은 이어 붙인다. 게임 화면 안에도 밝기가 잠깐 떨어지는 줄이 있어서
+   * (실측: 어두운 맵에서 26~29%짜리 줄 7개) 그대로 두면 화면이 토막 나고,
+   * 그중 위쪽 토막이 '가장 큰 덩어리'로 뽑혀 퀵슬롯이 통째로 범위 밖이 됐다.
+   * 레터박스는 수십~수백 줄이라(실측 43~49줄 이상) 이 정도 이어 붙이기에 안 걸린다.
+   */
   const scan = (n, isContent) => {
+    const bridge = Math.max(4, Math.round(n / 100))
     let bestEnd = n
     let bestLen = 0
     let runEnd = -1
-    for (let i = n - 1; i >= 0; i--) {
-      if (isContent(i)) {
-        if (runEnd < 0) runEnd = i
-        continue
-      }
-      if (runEnd >= 0 && runEnd - i > bestLen) {
-        bestLen = runEnd - i
+    let runStart = -1
+    let gap = 0
+    const close = () => {
+      if (runEnd >= 0 && runEnd - runStart + 1 > bestLen) {
+        bestLen = runEnd - runStart + 1
         bestEnd = runEnd + 1
       }
       runEnd = -1
+      runStart = -1
     }
-    if (runEnd >= 0 && runEnd + 1 > bestLen) {
-      bestLen = runEnd + 1
-      bestEnd = runEnd + 1
+    for (let i = n - 1; i >= 0; i--) {
+      if (isContent(i)) {
+        if (runEnd < 0) runEnd = i
+        runStart = i
+        gap = 0
+        continue
+      }
+      if (runEnd < 0) continue
+      gap++
+      if (gap > bridge) close()
     }
+    close()
     return bestLen > 0 ? bestEnd : n
   }
 
@@ -273,6 +287,19 @@ export function shiftRegion(region, base, next) {
   const x = Math.min(Math.max(next.right - fromRight - w, 0), Math.max(0, next.w - w))
   const y = Math.min(Math.max(next.bottom - fromBottom - h, 0), Math.max(0, next.h - h))
   return { x: x / next.w, y: y / next.h, w: w / next.w, h: h / next.h }
+}
+
+/**
+ * 퀵슬롯 상자 — 게임 화면의 우하단에 붙어 있다.
+ * 기준 해상도에서 바가 차지하는 크기(600×110)를 배율만큼 키운다.
+ * bottom은 유효 바닥(contentBottom) — 레터박스가 없으면 h 그대로다.
+ * 여기서 아무것도 못 찾을 때만 화면 전체로 넓힌다 (막다른 길이 되지 않게 두는 안전장치).
+ */
+export function quickslotBox(w, h, bottom = h) {
+  const s = Math.max(1, bottom / 768)
+  const bw = Math.min(w, Math.round(600 * s))
+  const bh = Math.min(bottom, Math.round(110 * s))
+  return { x0: w - bw, y0: bottom - bh, x1: w, y1: bottom }
 }
 
 /* ── 픽셀 → 특징값 ───────────────────────────────────────── */
