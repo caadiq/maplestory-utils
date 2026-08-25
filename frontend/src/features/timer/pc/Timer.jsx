@@ -656,11 +656,10 @@ export default function Timer() {
           title="룬 알림"
           on={settings.runeEnabled}
           onChange={(v) => set({ runeEnabled: v })}
-          /* 미니맵 표식은 늘 켜져 있고 자리도 스스로 찾는다 — 어긋났을 때만 여기서 다시 잡는다 */
+          /* 미니맵 표식은 문구가 가려질 때를 대비한 보조 신호라 끄고 켤 일이 없다.
+             자리도 스스로 찾으므로, 어긋났을 때 다시 잡는 버튼만 둔다 */
           right={stream && settings.runeEnabled && (
-            <TextButton onClick={() => setPickingMark(true)}>
-              {markRegion ? '미니맵 위치 바꾸기' : '미니맵 직접 지정'}
-            </TextButton>
+            <BarButton onClick={() => setPickingMark(true)}>미니맵 영역 선택</BarButton>
           )}
         />
         <div style={settings.runeEnabled ? undefined : { opacity: 0.45, pointerEvents: 'none' }}>
@@ -976,13 +975,19 @@ function SoundControl({ sound, volume, options, onSound, onVolume, onTest }) {
 
 /** 설정 한 줄 — 이름 / 설명 / 컨트롤 */
 /** 글자만 있는 작은 버튼 — 행 안에서 컨트롤 옆에 붙는다 */
-function TextButton({ onClick, children }) {
+/**
+ * 카드 헤더(짙은 바) 안에 놓는 작은 버튼.
+ *
+ * 폼 컨트롤(밝은 배경)을 그대로 얹으면 바 위에 흰 덩어리가 붙어 헤더가 두꺼워 보인다.
+ * 옆에 서는 상태 알약(StatusPill)과 같은 크기·모양으로 맞춰 바 높이를 건드리지 않는다.
+ */
+function BarButton({ onClick, children }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="rounded-[8px] px-2.5 py-1.5 text-[13px] font-bold"
-      style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-dim)' }}
+      className="text-[12px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap bg-white/15 hover:bg-white/25 active:bg-white/30 transition-colors"
+      style={{ color: '#eaf2fa', border: '1px solid rgba(255,255,255,.22)', textShadow: 'none' }}
     >
       {children}
     </button>
