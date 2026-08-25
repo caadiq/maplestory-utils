@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { LOCATE, candidateSizes, probeSizes, uiScale, contentBottom } from '../locateCore'
+import { LOCATE, candidateSizes, probeSizes, uiScale, contentBottom, contentBox, shiftRegion } from '../locateCore'
 import { DETECT } from '../logic'
 import { runeScaleCandidates, runeTemplateScale } from '../runeCore'
 import { learnIconSize, measuredUiScale } from '../uiCalibration'
@@ -200,5 +200,63 @@ describe('자리 후보 선별', () => {
 
   it('모드 원본은 자리를 여러 개 남긴다 — 놓치면 그 모드를 아예 못 쓴다', () => {
     expect(LOCATE.spotModeKeep).toBeGreaterThanOrEqual(2)
+  })
+})
+
+/*
+ * 창 크기가 바뀌었을 때 지정 영역을 어디로 옮기는가.
+ *
+ * 퀵슬롯은 **게임 화면** 우하단에 붙박이다. 캡처 우하단을 기준으로 잡으면,
+ * 창을 늘려도 게임이 그만큼 안 커지고 아래에 여백이 생기는 경우에 상자가
+ * 늘어난 만큼 여백 속으로 내려간다(실사용 보고: 창 +86px에 상자도 정확히 +86px).
+ */
+describe('창 크기 변경 시 영역 보정', () => {
+  /** 위쪽 content행만 밝은 화면을 만든다 */
+  const frame = (w, h, contentH, contentW = w) => {
+    const data = new Uint8ClampedArray(w * h * 4)
+    for (let y = 0; y < contentH; y++) {
+      for (let x = 0; x < contentW; x++) {
+        const i = (y * w + x) * 4
+        data[i] = data[i + 1] = data[i + 2] = 200
+        data[i + 3] = 255
+      }
+    }
+    return data
+  }
+
+  it('게임 화면의 우하단 모서리를 찾는다', () => {
+    expect(contentBox(frame(800, 600, 480), 800, 600)).toEqual({ right: 800, bottom: 480 })
+    expect(contentBox(frame(800, 600, 600, 700), 800, 600)).toEqual({ right: 700, bottom: 600 })
+  })
+
+  /** 우하단에 붙은 40×40 아이콘 (오른쪽에서 40px, 아래에서 10px 떨어짐) */
+  const iconRegion = (w, h, right, bottom) => ({
+    x: (right - 40 - 40) / w, y: (bottom - 10 - 40) / h, w: 40 / w, h: 40 / h,
+  })
+
+  it('게임이 캡처를 꽉 채우면 캡처 바닥을 따라간다', () => {
+    const base = { w: 800, h: 500, right: 800, bottom: 500 }
+    const next = { w: 800, h: 600, right: 800, bottom: 600 }
+    const moved = shiftRegion(iconRegion(800, 500, 800, 500), base, next)
+    expect(Math.round(moved.y * next.h)).toBe(550)   // 바닥에서 50px 그대로
+    expect(Math.round(moved.x * next.w)).toBe(720)
+  })
+
+  it('늘어난 만큼 여백이 생기면 상자는 게임 바닥에 남는다', () => {
+    // 캡처만 500 → 600으로 커지고 게임 화면은 480에 머문 경우
+    const base = { w: 800, h: 500, right: 800, bottom: 500 }
+    const next = { w: 800, h: 600, right: 800, bottom: 480 }
+    const moved = shiftRegion(iconRegion(800, 500, 800, 500), base, next)
+    // 게임 바닥이 20px 올라갔으니 아이콘도 20px 위 — 여백(480~600)으로 내려가지 않는다
+    expect(Math.round(moved.y * next.h)).toBe(430)
+    expect(Math.round(moved.y * next.h + moved.h * next.h)).toBeLessThanOrEqual(next.bottom)
+  })
+
+  it('크기는 px 그대로 보존된다 — UI 배율은 창 크기를 안 따라간다', () => {
+    const base = { w: 800, h: 500, right: 800, bottom: 500 }
+    const next = { w: 1200, h: 900, right: 1200, bottom: 860 }
+    const moved = shiftRegion(iconRegion(800, 500, 800, 500), base, next)
+    expect(Math.round(moved.w * next.w)).toBe(40)
+    expect(Math.round(moved.h * next.h)).toBe(40)
   })
 })

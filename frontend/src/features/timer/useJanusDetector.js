@@ -3,7 +3,7 @@ import {
   DETECT, toShapeVector, shapeSimilarity,
   saveTemplate, loadTemplate,
 } from './logic'
-import { LOCATE, candidateSizes, probeSizes, normalize, toChroma, toLumaPlane, locateIcon } from './locateCore'
+import { LOCATE, candidateSizes, probeSizes, normalize, toChroma, toLumaPlane, locateIcon, contentBox, shiftRegion } from './locateCore'
 import { learnIconSize } from './uiCalibration'
 import { inspectCooldown, createCooldownTracker } from './digits'
 
@@ -106,6 +106,28 @@ const savedStamp = (rgba) => {
   let sum = 0
   for (let i = 0; i < rgba.length; i += 37) sum = (sum + rgba[i] * (i + 1)) % 2147483647
   return `${rgba.length}.${sum}`
+}
+
+/**
+ * 지금 프레임의 캡처 크기와 **게임 화면 우하단**을 잰다.
+ * 창 크기가 바뀌었을 때 지정 영역을 어디로 옮길지의 기준이 된다.
+ */
+function measureFrame(video) {
+  const w = video.videoWidth
+  const h = video.videoHeight
+  if (!w || !h) return null
+  try {
+    const c = document.createElement('canvas')
+    c.width = w
+    c.height = h
+    const ctx = c.getContext('2d', { willReadFrequently: true })
+    ctx.drawImage(video, 0, 0, w, h)
+    const { right, bottom } = contentBox(ctx.getImageData(0, 0, w, h).data, w, h)
+    return { w, h, right, bottom }
+  } catch {
+    // 프레임을 못 읽으면 캡처 전체를 게임 화면으로 본다 (예전 동작)
+    return { w, h, right: w, bottom: h }
+  }
 }
 
 /** 쿨타임 중 모습을 이만큼 모아 평균 내면 숫자가 흐려지고 아이콘만 남는다 */
@@ -511,20 +533,24 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
      */
     const video = videoRef.current
     if (region && video?.videoWidth) {
-      regionBaseRef.current = { vw: video.videoWidth, vh: video.videoHeight }
+      regionBaseRef.current = measureFrame(video)
       learnIconSize(region.w * video.videoWidth, video.videoWidth, video.videoHeight)
     }
   }, [region])
 
   /*
-   * 창 크기가 바뀌면 영역을 우하단 기준으로 따라 옮긴다.
+   * 창 크기가 바뀌면 영역을 **게임 화면의 우하단** 기준으로 따라 옮긴다.
    *
    * region은 0~1 비율 좌표라 캡처 크기가 바뀌면 같은 "비율" 자리를 가리키는데,
-   * 확장 UI에서 창을 늘리면 게임 화면이 넓어질 뿐 퀵슬롯은 우하단에 붙박이라
-   * 비율 자리는 엉뚱한 곳이 된다. 우하단에서의 px 거리와 px 크기는 변하지
-   * 않으므로 그걸 보존해 새 비율로 환산한다.
+   * 퀵슬롯은 게임 화면 우하단에 붙박이라 비율 자리는 엉뚱한 곳이 된다.
+   *
+   * 기준을 **캡처** 우하단으로 잡으면 반대로 틀어지는 경우가 있다 — 창을 늘려도
+   * 게임이 그만큼 커지지 않고 아래에 여백이 생기면, 늘어난 만큼 상자가 여백 속으로
+   * 내려간다(실사용 보고: 창이 86px 커지자 상자가 정확히 86px 아래로 내려가 검은 띠에 앉았다).
+   * 게임 화면의 모서리를 기준으로 삼으면 두 경우가 같은 식으로 풀린다.
+   *
    * (해상도 변경으로 UI 배율 자체가 바뀐 경우엔 모양 판정이 실패해 "아이콘을
-   * 못 알아봄" 경고가 뜨고, 다시 지정하면 된다 — 조용히 어긋나는 것보다 낫다)
+   * 못 알아봄" 경고가 뜨고, 6초 뒤 자동 재탐색이 돈다 — 조용히 어긋나는 것보다 낫다)
    */
   useEffect(() => {
     if (!stream) return
@@ -533,23 +559,12 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
     const onResize = () => {
       const r = regionRef.current
       const base = regionBaseRef.current
-      const vw = video.videoWidth
-      const vh = video.videoHeight
-      if (!r || !base || !vw || !vh) return
-      if (vw === base.vw && vh === base.vh) return
-      const px = {
-        right: (1 - r.x - r.w) * base.vw,
-        bottom: (1 - r.y - r.h) * base.vh,
-        w: r.w * base.vw,
-        h: r.h * base.vh,
-      }
-      setRegion({
-        x: 1 - (px.right + px.w) / vw,
-        y: 1 - (px.bottom + px.h) / vh,
-        w: px.w / vw,
-        h: px.h / vh,
-      })
-      log(`창 크기 변경 (${base.vw}×${base.vh} → ${vw}×${vh}) — 영역 위치 보정`, '자동', 'muted')
+      const next = measureFrame(video)
+      if (!r || !base || !next) return
+      if (next.w === base.w && next.h === base.h) return
+      setRegion(shiftRegion(r, base, next))
+      regionBaseRef.current = next
+      log(`창 크기 변경 (${base.w}×${base.h} → ${next.w}×${next.h}) — 영역 위치 보정`, '자동', 'muted')
     }
     video.addEventListener('resize', onResize)
     return () => video.removeEventListener('resize', onResize)
@@ -681,7 +696,17 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
        * 자동 탐색이 아예 못 찾는다(실제로 있었던 일). 그 경우 어두운 모습 칸에만 넣는다.
        */
       if (!templateRef.current) {
-        templateRef.current = toShapeVector(pixels)
+        /*
+         * 단색이면 기준으로 삼지 않는다.
+         *
+         * toShapeVector는 단색 창에 null을 준다. 그대로 두면 templateRef가 계속 비어 있어
+         * 이 블록이 **매 프레임(33ms) 다시 돌면서** saveTemplate을 호출한다 —
+         * 초당 30번 localStorage에 쓰고, 멀쩡히 저장돼 있던 기준 모양을 단색으로 덮는다.
+         * 창을 늘려 지정 영역이 검은 여백에 앉으면 실제로 이 상태가 된다.
+         */
+        const first = toShapeVector(pixels)
+        if (!first) return
+        templateRef.current = first
         const r = regionRef.current
         const saved = loadTemplate()
         const firstDigits = (() => {

@@ -195,35 +195,79 @@ export function probeSizes(sizes) {
  * 게임은 위에서부터 통째로 이어져 902행인데 UI 섬은 1~43행이라 확실히 갈린다.
  */
 export function contentBottom(data, w, h) {
-  const isContent = (y) => {
-    let bright = 0
-    const row = y * w * 4
-    for (let x = 0; x < w; x++) {
-      const p = row + x * 4
-      // 행에서 밝은 픽셀이 차지하는 비율로 본다 — 행 평균 밝기로는 어두운 장면에서 게임이 통째로 빠졌다
-      if (data[p] + data[p + 1] + data[p + 2] > 75) bright++
+  return contentBox(data, w, h).bottom
+}
+
+/**
+ * 게임 화면이 캡처 안에서 차지하는 **우하단 모서리**.
+ *
+ * 창을 늘려도 게임이 그만큼 커지지 않고 여백이 생기는 경우가 있다 —
+ * 그때 퀵슬롯은 캡처 바닥이 아니라 **게임 화면 바닥**에 붙어 있다.
+ * 지정한 영역을 캡처 우하단 기준으로 따라 옮기면 여백 속으로 내려가 버린다(실사용 보고).
+ *
+ * 가로·세로 각각 "내용이 있는 줄이 이어지는 덩어리" 중 가장 큰 것을 게임 화면으로 본다.
+ * 레터박스 안에 떠 있는 작은 UI 섬(분리 채팅 등)에 걸리지 않게 하기 위한 것이다.
+ */
+export function contentBox(data, w, h) {
+  const bright = (p) => data[p] + data[p + 1] + data[p + 2] > 75
+
+  /** 한 축을 훑어 '내용 줄'이 가장 길게 이어지는 구간의 끝을 찾는다 */
+  const scan = (n, isContent) => {
+    let bestEnd = n
+    let bestLen = 0
+    let runEnd = -1
+    for (let i = n - 1; i >= 0; i--) {
+      if (isContent(i)) {
+        if (runEnd < 0) runEnd = i
+        continue
+      }
+      if (runEnd >= 0 && runEnd - i > bestLen) {
+        bestLen = runEnd - i
+        bestEnd = runEnd + 1
+      }
+      runEnd = -1
     }
-    return bright / w > 0.3
-  }
-  let bestEnd = h
-  let bestLen = 0
-  let runEnd = -1
-  for (let y = h - 1; y >= 0; y--) {
-    if (isContent(y)) {
-      if (runEnd < 0) runEnd = y
-      continue
-    }
-    if (runEnd >= 0 && runEnd - y > bestLen) {
-      bestLen = runEnd - y
+    if (runEnd >= 0 && runEnd + 1 > bestLen) {
+      bestLen = runEnd + 1
       bestEnd = runEnd + 1
     }
-    runEnd = -1
+    return bestLen > 0 ? bestEnd : n
   }
-  if (runEnd >= 0 && runEnd + 1 > bestLen) {
-    bestLen = runEnd + 1
-    bestEnd = runEnd + 1
+
+  // 행에서 밝은 픽셀이 차지하는 비율로 본다 — 행 평균 밝기로는 어두운 장면에서 게임이 통째로 빠졌다
+  const rowHas = (y) => {
+    let n = 0
+    const row = y * w * 4
+    for (let x = 0; x < w; x++) if (bright(row + x * 4)) n++
+    return n / w > 0.3
   }
-  return bestLen > 0 ? bestEnd : h
+  const colHas = (x) => {
+    let n = 0
+    for (let y = 0; y < h; y++) if (bright((y * w + x) * 4)) n++
+    return n / h > 0.3
+  }
+  return { right: scan(w, colHas), bottom: scan(h, rowHas) }
+}
+
+/**
+ * 캡처 크기가 바뀌었을 때, 지정해둔 영역을 **게임 화면의 우하단 기준**으로 옮긴다.
+ *
+ * 퀵슬롯은 게임 화면 우하단에 붙박이고 UI 배율은 창 크기를 따라가지 않으므로,
+ * 그 모서리에서의 px 거리와 px 크기가 변하지 않는다. 그걸 보존해 새 비율로 환산한다.
+ *
+ * base / next : { w, h, right, bottom } — 캡처 크기와 게임 화면 우하단
+ * region      : 0~1 비율 좌표
+ */
+export function shiftRegion(region, base, next) {
+  const px = {
+    right: base.right - (region.x + region.w) * base.w,
+    bottom: base.bottom - (region.y + region.h) * base.h,
+    w: region.w * base.w,
+    h: region.h * base.h,
+  }
+  const x = next.right - px.right - px.w
+  const y = next.bottom - px.bottom - px.h
+  return { x: x / next.w, y: y / next.h, w: px.w / next.w, h: px.h / next.h }
 }
 
 /**
