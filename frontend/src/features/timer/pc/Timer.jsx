@@ -84,7 +84,6 @@ export default function Timer() {
    * 저장해 두면 화면 구성이 바뀌었을 때 낡은 자리에 굳어 버려서, 매번 찾는 편이 안전하다.
    */
   const [markRegion, setMarkRegion] = useState(null)
-  const [markStatus, setMarkStatus] = useState(null)
   const [pickingMark, setPickingMark] = useState(false)
   const [candidates, setCandidates] = useState(null)
   const [locating, setLocating] = useState(false)
@@ -247,19 +246,15 @@ export default function Timer() {
    */
   // 공유가 끊기면 미니맵 자리도 잊는다 — 다음 공유는 화면 구성이 다를 수 있다
   useEffect(() => {
-    if (!stream) { setMarkRegion(null); setMarkStatus(null); setPickingMark(false) }
+    if (!stream) { setMarkRegion(null); setPickingMark(false) }
   }, [stream])
 
   useRuneMarkDetector({
     videoRef,
     stream,
-    enabled: settings.runeEnabled && settings.runeMarkEnabled,
+    enabled: settings.runeEnabled,
     region: markRegion,
-    onRegion: (r, info) => {
-      setMarkRegion(r)
-      if (info?.auto) log('미니맵 위치를 찾았습니다', `일치 ${info.score.toFixed(2)}`, 'muted')
-    },
-    onStatus: setMarkStatus,
+    onRegion: (r) => setMarkRegion(r),
     onRune: (hit) => fireRune('룬 등장 감지', `미니맵 표식 · 일치 ${hit.score.toFixed(2)}`),
   })
 
@@ -483,7 +478,7 @@ export default function Timer() {
           <Badge tone={!settings.alarmEnabled ? 'wait' : active ? 'live' : 'wait'}>{!settings.alarmEnabled
             ? '○ 야누스 알림 꺼짐'
             : active
-              ? `● ${settings.mode === 'dusk' ? '회수까지' : '유지 중'} · ${install.index}회차`
+              ? `● ${settings.mode === 'dusk' ? '회수까지' : '유지 중'}`
               : (settings.mode === 'dusk' ? '● 쿨타임 대기' : '● 설치 대기')}</Badge>
         </div>
       )}
@@ -661,24 +656,17 @@ export default function Timer() {
           title="룬 알림"
           on={settings.runeEnabled}
           onChange={(v) => set({ runeEnabled: v })}
+          /* 미니맵 표식은 늘 켜져 있고 자리도 스스로 찾는다 — 어긋났을 때만 여기서 다시 잡는다 */
+          right={stream && settings.runeEnabled && (
+            <TextButton onClick={() => setPickingMark(true)}>
+              {markRegion ? '미니맵 위치 바꾸기' : '미니맵 직접 지정'}
+            </TextButton>
+          )}
         />
         <div style={settings.runeEnabled ? undefined : { opacity: 0.45, pointerEvents: 'none' }}>
         <SettingRow
-          name="미니맵 표식"
-          desc={settings.runeMarkEnabled
-            ? <>문구와 함께 미니맵의 <b style={{ color: 'var(--text-muted)' }}>분홍 마름모</b>도 지켜봅니다{markStatusText(stream, markRegion, markStatus)}</>
-            : '화면 상단 문구만 지켜봅니다'}
-        >
-          {settings.runeMarkEnabled && stream && (
-            <TextButton onClick={() => setPickingMark(true)}>
-              {markRegion ? '위치 바꾸기' : '직접 지정'}
-            </TextButton>
-          )}
-          <Toggle on={settings.runeMarkEnabled} onChange={(v) => { set({ runeMarkEnabled: v }); if (!v) setMarkRegion(null) }} />
-        </SettingRow>
-        <SettingRow
           name="알림 소리"
-          desc={<>화면에 <b style={{ color: 'var(--text-muted)' }}>룬 등장 문구</b>가 뜨면 바로 알립니다</>}
+          desc={<>화면 <b style={{ color: 'var(--text-muted)' }}>문구</b>나 미니맵 <b style={{ color: 'var(--text-muted)' }}>분홍 마름모</b>가 뜨면 바로 알립니다</>}
         >
           <SoundControl
             options={soundOptions}
@@ -987,15 +975,6 @@ function SoundControl({ sound, volume, options, onSound, onVolume, onTest }) {
 }
 
 /** 설정 한 줄 — 이름 / 설명 / 컨트롤 */
-/** 미니맵 자리를 잡았는지 한 줄로 알려 준다 */
-function markStatusText(stream, region, status) {
-  if (!stream) return null
-  const tone = { color: 'var(--text-muted)' }
-  if (region) return <> · <b style={tone}>자리 확인됨</b></>
-  if (status?.reason === 'nomap') return <> · <b style={tone}>미니맵을 못 찾았습니다 — 직접 지정해 주세요</b></>
-  return <> · <b style={tone}>미니맵을 찾는 중…</b></>
-}
-
 /** 글자만 있는 작은 버튼 — 행 안에서 컨트롤 옆에 붙는다 */
 function TextButton({ onClick, children }) {
   return (

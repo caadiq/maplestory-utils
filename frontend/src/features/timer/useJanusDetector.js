@@ -162,8 +162,6 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
   const cooldownSecRef = useRef(loadCooldownSec())
   /** 쿨타임 도중 합류했을 때, 숫자가 바뀌는 순간을 잡기 위한 직전 읽기 */
   const joinRef = useRef(null)
-  /** 총 길이를 몰라 못 이어붙였다는 안내는 공유당 한 번만 */
-  const joinHintRef = useRef(false)
   const freshRunRef = useRef(false)     // 이번 "숫자 보임" 구간이 진짜 부재 뒤에 시작됐는지
   const latencyRef = useRef(0)       // 화면 공유 파이프라인 지연(ms)
   const templateRef = useRef(null)   // 지정할 때 기억한 아이콘 모양
@@ -237,7 +235,6 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
     lastReadRef.current = null
     candRef.current = null
     joinRef.current = null
-    joinHintRef.current = false
     presentRef.current = false
     freshRunRef.current = false
     presenceStartRef.current = 0
@@ -973,14 +970,6 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
             return
           }
           if (!prev || reading.value !== prev.v) joinRef.current = { v: reading.value, t: now }
-        } else if (!total && reading.value >= CAND_MIN_VALUE && !joinHintRef.current) {
-          /*
-           * 쿨타임은 도는데 총 길이를 모른다 — 설치를 한 번도 못 본 첫 사용이다.
-           * 왜 타이머가 안 도는지 모르면 고장으로 보이므로 이유를 알려 준다.
-           */
-          joinHintRef.current = true
-          log('쿨타임이 돌고 있지만 총 길이를 아직 몰라 이어붙이지 못합니다',
-            '다음 설치를 한 번 감지하면 그다음부터 됩니다', 'muted')
         }
       }
 
