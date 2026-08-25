@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { LOCATE, candidateSizes, probeSizes, uiScale, contentBottom } from '../locateCore'
+import { DETECT } from '../logic'
 import { runeScaleCandidates, runeTemplateScale } from '../runeCore'
 import { learnIconSize, measuredUiScale } from '../uiCalibration'
 
@@ -144,5 +145,46 @@ describe('contentBottom', () => {
 
   it('아무것도 밝지 않으면 화면 바닥으로 둔다', () => {
     expect(contentBottom(make(40, 100, []), 40, 100)).toBe(100)
+  })
+})
+
+/*
+ * 새벽/황혼 판별.
+ *
+ * 실측(원본 해상도 44px): 황혼 화면에서 dusk 0.864 / dawn 0.422,
+ * 새벽 화면에서 dawn 0.796 / dusk 0.357. 쿨타임 중에는 둘 다 0 근처로 떨어진다.
+ * 24×24로 줄여 봐도 같다 — 새벽 대기 dawn 0.823 / dusk 0.363.
+ */
+describe('모드 판별 기준', () => {
+  it('통과선은 쿨타임 중(≈0)과 대기 상태(0.79+) 사이에 있다', () => {
+    expect(LOCATE.modeScore).toBeGreaterThan(0.2)
+    expect(LOCATE.modeScore).toBeLessThan(0.79)
+    expect(DETECT.modeScore).toBeGreaterThan(0.2)
+    expect(DETECT.modeScore).toBeLessThan(0.79)
+  })
+
+  it('격차 기준은 실측 격차(0.44)보다 넉넉히 작다', () => {
+    expect(LOCATE.modeMargin).toBeLessThan(0.44)
+    expect(DETECT.modeMargin).toBeLessThan(0.44)
+    expect(LOCATE.modeMargin).toBeGreaterThan(0)
+  })
+
+  it('한 번의 오독으로 모드가 넘어가지 않는다', () => {
+    expect(DETECT.modeVotes).toBeGreaterThanOrEqual(2)
+  })
+})
+
+/*
+ * 자리 후보 선별 — 쿨타임 모습을 48장 넣고 나서, 그중 한 장이 혼자 자리 8개를
+ * 차지하는 바람에 황혼 아이콘이 걸린 화면에서 후보가 통째로 0개가 됐다(실측).
+ */
+describe('자리 후보 선별', () => {
+  it('한 모양이 목록을 독식하지 못한다', () => {
+    expect(LOCATE.spotPerTemplate).toBeGreaterThan(0)
+    expect(LOCATE.spotPerTemplate * 2).toBeLessThan(LOCATE.spotKeep)
+  })
+
+  it('모드 원본은 자리를 여러 개 남긴다 — 놓치면 그 모드를 아예 못 쓴다', () => {
+    expect(LOCATE.spotModeKeep).toBeGreaterThanOrEqual(2)
   })
 })

@@ -121,7 +121,7 @@ const DUSK_ACTIVE_MS = 6000
 /** 황혼 쿨타임은 3초라 값이 1~3뿐이다. 이보다 크면 황혼이 아니다 */
 const DUSK_MAX_VALUE = 5
 
-export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong, mode = 'dawn', cycleMs = 0, enabled = true }) {
+export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong, onModeDetected, mode = 'dawn', cycleMs = 0, enabled = true }) {
   const [stream, setStream] = useState(null)
   const [region, setRegion] = useState(null)   // {x,y,w,h} — 0~1 정규화
   const [install, setInstall] = useState(null) // {index, at}
@@ -157,14 +157,18 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
   const modeRef = useRef(mode)
   const cycleMsRef = useRef(cycleMs)
   const lostSinceRef = useRef(null)
+  /* 새벽/황혼 자동 전환 — 마지막 확인 시각과 연속으로 같게 나온 횟수 */
+  const modeCheckedAtRef = useRef(0)
+  const modeVoteRef = useRef({ mode: null, n: 0 })
+  const modeVecsRef = useRef(null)
   const lostFiredAtRef = useRef(0)
   const indexRef = useRef(0)
   const lastFrameRef = useRef(0)
   const bigReadingRef = useRef(null) // 황혼 모드에서 읽힌 '큰 쿨타임' — 모드 불일치 판단용
   const duskSeenAtRef = useRef(0)    // 황혼다운 쿨타임 값(1~3)을 마지막으로 '읽은' 시각
 
-  const cbRef = useRef({ onInstall, onModeMismatch, onIconLostTooLong })
-  useEffect(() => { cbRef.current = { onInstall, onModeMismatch, onIconLostTooLong } })
+  const cbRef = useRef({ onInstall, onModeMismatch, onIconLostTooLong, onModeDetected })
+  useEffect(() => { cbRef.current = { onInstall, onModeMismatch, onIconLostTooLong, onModeDetected } })
 
   // 마지막 설치 시각 — 한 사이클 안에서 또 설치로 잡히는 것을 막는다
   const lastInstallRef = useRef(0)
@@ -589,6 +593,44 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
       cbRef.current.onInstall?.(next)
     }
 
+    /**
+     * 지정된 자리가 새벽인지 황혼인지 — 내장 원본 둘과 대조한다.
+     *
+     * 실측(24×24): 새벽 대기 dawn 0.823 / dusk 0.363, 황혼 대기 dusk 0.885 / dawn 0.411.
+     * 쿨타임 중에는 아이콘이 어두워지고 숫자가 얹혀 둘 다 0 근처로 떨어지므로,
+     * 통과선(modeScore)에 걸려 저절로 판단을 쉰다.
+     */
+    const detectMode = (pixels) => {
+      if (!modeVecsRef.current) {
+        const built = {}
+        for (const m of ['dawn', 'dusk']) {
+          const img = builtinIconsRef.current[m]
+          if (!img?.complete || !img.naturalWidth) return null // 아직 로딩 중 — 다음 기회에
+          const c = document.createElement('canvas')
+          c.width = 24
+          c.height = 24
+          const cc = c.getContext('2d', { willReadFrequently: true })
+          cc.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, 0, 0, 24, 24)
+          const data = cc.getImageData(0, 0, 24, 24).data
+          built[m] = { luma: toShapeVector(data), chroma: toShapeVector(data, 'chroma') }
+        }
+        modeVecsRef.current = built
+      }
+      const vecs = modeVecsRef.current
+      const luma = toShapeVector(pixels)
+      const chroma = toShapeVector(pixels, 'chroma')
+      /*
+       * 자주색과 밝기를 함께 본다 — 새벽·황혼은 둘 다 보라 계열이라
+       * 자주색만으로는 덜 갈리고, 밝기가 모양 차이를 확실하게 잡아 준다.
+       */
+      const scoreOf = (m) => (shapeSimilarity(chroma, vecs[m].chroma) + shapeSimilarity(luma, vecs[m].luma)) / 2
+      const dawn = scoreOf('dawn')
+      const dusk = scoreOf('dusk')
+      const [win, top, other] = dawn >= dusk ? ['dawn', dawn, dusk] : ['dusk', dusk, dawn]
+      if (top < DETECT.modeScore || top - other < DETECT.modeMargin) return null
+      return win
+    }
+
     const sample = () => {
       if (!alive) return
       const vw = video.videoWidth
@@ -662,6 +704,27 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
         } catch {
           reading = null
           digitCount = 0
+        }
+      }
+
+      /*
+       * 새벽/황혼이 바뀌었는지 본다.
+       *
+       * 같은 칸의 스킬을 갈아 끼우면 자리는 그대로인데 모드만 달라진다. 예전에는
+       * 아이콘을 6초 이상 못 알아본 뒤 재탐색이 돌 때만 알아챘는데, 그러면 그동안
+       * 엉뚱한 모드의 타이머가 돈다. 자리는 이미 아는 상태이므로 그 자리를 내장
+       * 원본 둘과 대조하기만 하면 되고, 24×24 벡터 두 번이라 사실상 공짜다.
+       */
+      if (now - modeCheckedAtRef.current >= DETECT.modeCheckMs) {
+        modeCheckedAtRef.current = now
+        const detected = detectMode(pixels)
+        if (detected) {
+          const vote = modeVoteRef.current
+          modeVoteRef.current = detected === vote.mode ? { mode: detected, n: vote.n + 1 } : { mode: detected, n: 1 }
+          if (modeVoteRef.current.n >= DETECT.modeVotes && detected !== modeRef.current) {
+            modeVoteRef.current = { mode: detected, n: 0 }
+            cbRef.current.onModeDetected?.(detected)
+          }
         }
       }
 

@@ -19,6 +19,24 @@ export const LOCATE = {
   spotKeep: 16,
   /** 점수순에서 밀렸지만 어떤 템플릿이 가장 좋아한 자리 — 이만큼 더 얹는다 */
   spotExtra: 8,
+  /**
+   * 한 모양이 점수순 목록을 독식하지 못하게 하는 상한.
+   * 쿨타임 모습을 48장 넣고 나니 그중 한 장이 혼자 자리 8개를 차지해, 황혼 아이콘이
+   * 걸린 화면에서 정답 자리(0.604)가 컷(0.66)에 밀려 후보가 통째로 0개가 됐다(실측).
+   */
+  spotPerTemplate: 3,
+  /** 모드 원본(새벽·황혼)은 그 모양이 좋아한 자리를 이만큼 따로 남긴다 */
+  spotModeKeep: 4,
+  /**
+   * 새벽/황혼 판별 기준.
+   * 자리를 이긴 모양이 쿨타임 모습이면 그건 모드를 알려주지 못한다 — 대신 그 자리에서
+   * 모드 원본끼리만 다시 대조한다. 실측(원본 해상도 44px): 황혼 화면에서 dusk 0.864 /
+   * dawn 0.422. 쿨타임 중에는 둘 다 낮게 나오므로 통과선에 걸려 저절로 '모름'이 된다.
+   */
+  modeScore: 0.60,
+  modeMargin: 0.20,
+  /** 모드를 가릴 때 자리·크기를 이만큼 주변까지 본다(±px) */
+  modeSpan: 2,
   /** 이긴 모양으로 자리를 다듬을 때의 반경(px) */
   polishRadius: 3,
   /** 가장 좋은 결과 하나는 크기를 ±1px 더 다듬는다 (배율 실측값이 여기서 나온다) */
@@ -502,17 +520,38 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
    * 자리 후보가 너무 많으면 2단계가 통째로 느려진다 — 점수순으로 자르되,
    * 각 템플릿이 가장 좋아한 자리도 몇 개 얹는다. 쿨타임 모습의 정답 자리는
    * 성긴 점수가 낮아서(0.4~0.5) 점수순만으로 자르면 통째로 잘렸다(실측).
+   *
+   * **모드를 가진 모양(새벽·황혼 원본)은 자리를 무조건 남긴다.**
+   * 쿨타임 모습을 48장 넣고 나서, 황혼 아이콘이 걸린 화면에서 후보가 통째로 0개가
+   * 됐다(실측). 황혼 자리의 성긴 점수가 새벽 쿨타임 48장이 만든 자리들에 밀려
+   * '점수순 16 + 나머지 8'에 못 들었기 때문이다. 모드 원본은 몇 장뿐이라
+   * 무조건 남겨도 비용이 거의 없고, 못 남기면 그 모드를 아예 못 쓰게 된다.
    */
   spots.sort((a, b) => b.score - a.score)
-  const kept = new Set(spots.slice(0, LOCATE.spotKeep))
+  // 점수순으로 담되, 한 모양이 목록을 독식하지 못하게 한다
+  const kept = new Set()
+  const perTpl = new Map()
+  for (const sp of spots) {
+    if (kept.size >= LOCATE.spotKeep) break
+    const n = perTpl.get(sp.tpl) ?? 0
+    if (n >= LOCATE.spotPerTemplate) continue
+    perTpl.set(sp.tpl, n + 1)
+    kept.add(sp)
+  }
+  /** 그 모양이 좋아한 자리를 점수순으로 */
+  const likedBy = (ti) => spots
+    .filter((sp) => sp.best[ti] != null)
+    .sort((a, b) => b.best[ti] - a.best[ti])
   const extra = []
   for (let ti = 0; ti < templates.length; ti++) {
-    let top = null
-    for (const sp of spots) {
-      const v = sp.best[ti]
-      if (v != null && (!top || v > top.v)) top = { sp, v }
+    const liked = likedBy(ti)
+    if (!liked.length) continue
+    if (templates[ti].mode) {
+      // 모드 원본은 상위 몇 자리를 통째로 남긴다 — 이 모양을 놓치면 그 모드를 아예 못 쓴다
+      for (const sp of liked.slice(0, LOCATE.spotModeKeep)) kept.add(sp)
+      continue
     }
-    if (top && !kept.has(top.sp)) extra.push(top)
+    if (!kept.has(liked[0])) extra.push({ sp: liked[0], v: liked[0].best[ti] })
   }
   extra.sort((a, b) => b.v - a.v)
   for (const e of extra.slice(0, LOCATE.spotExtra)) kept.add(e.sp)
@@ -594,6 +633,56 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
     return best && best.score >= LOCATE.looseScore ? best : null
   }
 
+  /**
+   * 이 자리가 새벽인지 황혼인지 — **모드 원본끼리만** 비교한다.
+   *
+   * 자리를 이긴 모양이 쿨타임 모습이면 모드를 알 수 없다(mode: null). 그건 "어느
+   * 쪽인지 모른다"가 아니라 "그 모양이 모드를 안 담고 있다"일 뿐이라, 같은 자리에서
+   * 원본 둘을 대보면 대개 확실히 갈린다(실측 44px: 황혼 화면 dusk 0.864 / dawn 0.422,
+   * 새벽 화면 dawn 0.796 / dusk 0.357).
+   *
+   * 이긴 모양의 자리·크기를 그대로 쓰면 원본의 정점과 몇 px 어긋나 점수가 깎인다 —
+   * 원본은 몇 장뿐이라 주변을 조금 훑어도 비용이 거의 없다. 최종 후보에만 적용한다.
+   */
+  const modeAt = (x, y, size) => {
+    const peak = (t) => {
+      let best = -Infinity
+      for (let ds = -LOCATE.modeSpan; ds <= LOCATE.modeSpan; ds++) {
+        const n = size + ds
+        const cv = t.vecs[n]
+        if (!cv) continue
+        const lv = t.lumaVecs?.[n]
+        for (let dy = -LOCATE.modeSpan; dy <= LOCATE.modeSpan; dy++) {
+          for (let dx = -LOCATE.modeSpan; dx <= LOCATE.modeSpan; dx++) {
+            const px = x + dx
+            const py = y + dy
+            if (px < 0 || py < 0 || px + n > full.w || py + n > full.h) continue
+            const c = nccAt(fGray, full.w, fInt, cv, px, py, n, n, LOCATE.minVariance)
+            if (c == null) continue
+            const l = lv ? nccAt(fLuma, full.w, fLumaInt, lv, px, py, n, n, 1) : null
+            const sc = l == null ? c : (c + l) / 2
+            if (sc > best) best = sc
+          }
+        }
+      }
+      return best
+    }
+    let top = null
+    let second = -Infinity
+    for (const t of templates) {
+      if (!t.mode) continue
+      const sc = peak(t)
+      if (sc === -Infinity) continue
+      if (!top || sc > top.score) {
+        if (top) second = top.score
+        top = { mode: t.mode, score: sc }
+      } else if (sc > second) second = sc
+    }
+    if (!top || top.score < LOCATE.modeScore) return null
+    if (second > -Infinity && top.score - second < LOCATE.modeMargin) return null
+    return top.mode
+  }
+
   /*
    * 성긴 단계는 크기가 꽤 달라도 걸린다 — 걸린 크기에서 너무 먼 것만 거른다.
    * (실측: 쿨타임 모습은 30px 훑기에만 걸렸는데 실제 아이콘은 46px — 1.25배로는 놓쳤다)
@@ -635,5 +724,7 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
     }
   }
 
-  return suppressOverlaps(results).slice(0, LOCATE.maxCandidates)
+  const out = suppressOverlaps(results).slice(0, LOCATE.maxCandidates)
+  for (const r of out) r.mode = modeAt(r.x, r.y, r.w) ?? r.mode
+  return out
 }
