@@ -127,6 +127,59 @@ export function shapeSimilarity(a, b) {
   return dot
 }
 
+/* ── 쿨타임 총 길이 기억 ──────────────────────────────────── */
+
+const COOLDOWN_KEY = 'maple.janus.cooldown'
+/** 야누스 쿨타임의 있을 법한 범위 — 밖의 값은 오독으로 보고 버린다 */
+const COOLDOWN_RANGE = [20, 180]
+
+/**
+ * 설치 순간에 뜬 쿨타임 값을 기억한다.
+ *
+ * 쿨타임 총 길이는 **쿨감 장비에 따라 사람마다 다르다** — 고정값으로 뒀다가 실제와
+ * 달라 알림이 통째로 1초 어긋난 적이 있다. 대신 설치를 한 번이라도 감지하면 그때
+ * 뜬 숫자가 곧 총 길이라, 그걸 저장해 두었다가 다음에 쿨타임 중간부터 합류할 때 쓴다.
+ */
+export function saveCooldownSec(sec) {
+  const v = Math.round(Number(sec))
+  if (!Number.isFinite(v) || v < COOLDOWN_RANGE[0] || v > COOLDOWN_RANGE[1]) return
+  try {
+    localStorage.setItem(COOLDOWN_KEY, String(v))
+  } catch {
+    /* 저장 못 해도 감지에는 지장 없다 */
+  }
+}
+
+export function loadCooldownSec() {
+  try {
+    const v = Number(localStorage.getItem(COOLDOWN_KEY))
+    return Number.isFinite(v) && v >= COOLDOWN_RANGE[0] && v <= COOLDOWN_RANGE[1] ? v : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 숫자가 바뀌는 순간을 잡아 "설치한 지 얼마나 됐는지"(ms)를 돌려준다. 아직이면 null.
+ *
+ * 지금 보이는 값을 그대로 쓰면 최대 1초가 어긋난다 — 화면 숫자는 남은 시간의 올림이라
+ * 40이 떠 있는 동안 실제 남은 시간은 39~40초 사이 어디든 될 수 있기 때문이다.
+ * **바뀌는 순간**에는 남은 시간이 정확히 그 숫자이므로 한 프레임 안쪽까지 맞는다.
+ *
+ * prev  : 직전 읽기 { v, t }
+ * value : 지금 읽은 값
+ * total : 쿨타임 총 길이(초) — 설치 때 배워 둔 값
+ */
+export function joinElapsedMs(prev, value, now, total) {
+  if (!total || !Number.isFinite(value)) return null
+  if (value < 1 || value > total) return null
+  if (!prev || value !== prev.v - 1) return null
+  const gap = now - prev.t
+  // 1초에 하나씩 줄어드는 규칙에서 벗어난 간격이면 오독으로 본다
+  if (gap < 700 || gap > 1400) return null
+  return (total - value) * 1000
+}
+
 /* ── 템플릿 저장 ──────────────────────────────────────────── */
 
 const TEMPLATE_KEY = 'maple.janus.template'
