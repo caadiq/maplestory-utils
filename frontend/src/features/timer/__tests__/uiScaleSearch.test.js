@@ -84,13 +84,19 @@ describe('runeScaleCandidates', () => {
  * 임계값들이 그 사이에 있어야 "없으면 조용히 넘어가고, 있으면 바로 확정"이 된다.
  */
 describe('LOCATE 임계값', () => {
-  const ABSENT_MAX = 0.538 // 아이콘을 지운 화면 40장의 최고점 (실측)
-  const ANSWER_P1 = 0.727  // 정답 점수 하위 1% (실측 612프레임)
+  const ABSENT_MAX = 0.597 // 아이콘을 지운 화면 40장의 최고점 (실측, 템플릿 74장 기준)
+  const ANSWER_P1 = 0.727  // 정답 점수 하위 1% (실측 708프레임: 새벽·확장·황혼)
 
   it('후보 하한은 정답을 하나도 안 버린다', () => {
-    // 배율이 크게 다른 화면에서는 정답도 0.57까지 내려간다 — 하한을 그 위로 올리면 안 된다
+    // 배율이 크게 다른 화면에서는 정답도 0.568까지 내려간다 — 하한을 그 위로 올리면 안 된다
     expect(LOCATE.looseScore).toBeLessThan(0.568)
     expect(LOCATE.looseScore).toBeGreaterThan(0.42)
+  })
+
+  it('확정선은 부재 최고점과 넉넉히 떨어져 있다', () => {
+    // 붙어 있으면 아이콘이 없는 화면에서 엉뚱한 자리를 자동으로 확정해 버린다
+    expect(LOCATE.builtinSureScore - ABSENT_MAX).toBeGreaterThan(0.04)
+    expect(LOCATE.autoSureScore - ABSENT_MAX).toBeGreaterThan(0.04)
   })
 
   it('자동 확정선은 부재 최고점과 정답 하위 1% 사이에 있다', () => {
@@ -105,6 +111,14 @@ describe('LOCATE 임계값', () => {
 
   it('저장 실물 기준은 내장 원본보다 느슨하다', () => {
     expect(LOCATE.sureScore).toBeLessThanOrEqual(LOCATE.builtinSureScore)
+  })
+
+  it('저장 실물 기준도 부재 최고점 위에 있다', () => {
+    /*
+     * 여기만 빠뜨리면 저장 이력이 있는 사용자가 야누스 없는 화면에서 공유를 켰을 때
+     * 엉뚱한 자리를 후보 화면도 없이 확정한다 — 실제로 났던 구멍이다.
+     */
+    expect(LOCATE.sureScore - ABSENT_MAX).toBeGreaterThan(0.04)
   })
 })
 

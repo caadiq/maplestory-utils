@@ -9,6 +9,15 @@
 export const LOCATE = {
   /** 1단계로 훑을 때 줄이는 화면 가로 크기 */
   frameWidth: 640,
+  /**
+   * 2단계(정련)에서 볼 최대 화면 가로 크기.
+   *
+   * 정련 비용은 (아이콘 크기)²에 비례한다. 4K에서는 아이콘이 90px이라 창이 1080p의
+   * 4배가 되고, 탐색 반경도 크기에 비례해 커져서 한 번에 20초가 걸렸다 —
+   * 워커 무응답 안전장치(15초)를 넘겨 '못 찾음'으로 끝난다(실측).
+   * 템플릿이 애초에 45px 언저리에서 뜬 것이라 그보다 더 크게 볼 이득도 없다.
+   */
+  maxFullWidth: 1920,
   /** 1단계 통과선 — 놓치는 것보다 후보가 조금 많은 편이 낫다 */
   coarseScore: 0.4,
   /** 1단계에서 2단계로 넘길 후보 수 */
@@ -50,10 +59,11 @@ export const LOCATE = {
   spotReps: 3,
   /**
    * 후보로 남길 최소 점수 (자주색·밝기 평균).
-   * 실측 15케이스: 정답 0.678~1.000, 무관 경쟁 0.424~0.506.
-   * 0.45면 정답을 하나도 안 잃으면서 후보 수가 84 → 35개로 줄었다.
+   * 실측 708장(새벽·확장·황혼): 정답 최저 0.568 / 하위 1% 0.727.
+   * 아이콘이 없는 화면에서는 최고 0.597이 나오므로, 이 선은 정답을 안 잃는 선에서
+   * 최대한 올려 잡동사니 후보를 줄인다.
    */
-  looseScore: 0.45,
+  looseScore: 0.50,
   /** 겹침이 이 비율을 넘으면 같은 것으로 보고 하나만 남긴다 */
   iouThreshold: 0.3,
   /** 최대 후보 수 */
@@ -66,17 +76,29 @@ export const LOCATE = {
    */
   minVariance: 25,
 
-  /* 직접 지정해 저장해둔 모양으로 찾은 경우 — 사용자 화면의 실물이라 1등을 믿어도 된다 */
-  sureScore: 0.55,
+  /*
+   * 직접 지정해 저장해둔 모양으로 찾은 경우 — 사용자 화면의 실물이라 1등을 믿어도 된다.
+   *
+   * 그래도 **부재 최고점(0.597)보다는 위**에 있어야 한다. 예전에 0.55였는데, 템플릿이
+   * 74장이 되며 잡음이 0.538 → 0.597로 오르는 바람에 부등호가 뒤집혔다 —
+   * 저장 이력이 있는 사용자가 야누스 없는 화면(캐릭터 선택·상점 등)에서 공유를 켜면
+   * 엉뚱한 자리가 후보 화면도 없이 조용히 확정된다.
+   * 저장본은 제 자리에서 0.9 이상이라 올려도 잃는 게 없다.
+   */
+  sureScore: 0.66,
   sureMargin: 0.10,
   /** 이 점수 이상이면 격차와 무관하게 그 그룹을 믿는다 — 사실상 원본과 동일한 일치 */
   dominantScore: 0.85,
   /*
    * 내장 원본으로 찾은 경우 — 게임에서 그려지는 모습과 달라 1등이 정답이 아닐 수 있다.
-   * 밝기를 함께 보게 되면서 무관한 것과의 거리가 크게 벌어져(정답 0.678+ / 무관 0.506-)
-   * 예전처럼 높게 잡을 이유가 없어졌다 — 오히려 쿨타임 상태의 정답을 놓쳤다.
+   *
+   * 실측 708장(새벽·확장·황혼): 정답 하위 1%가 0.727.
+   * 아이콘이 없는 화면 40장에서는 최고 0.597 — 템플릿이 74장이 되면서 0.538에서 올라왔다
+   * (모양이 많아질수록 '그중 하나와는 우연히 맞는' 자리가 생긴다).
+   * 0.66이면 부재 최고와 0.06 떨어지고, 정답은 708장 중 2장만 놓친다(그 2장은
+   * 확정 대신 후보 목록으로 넘어갈 뿐이다).
    */
-  builtinSureScore: 0.62,
+  builtinSureScore: 0.66,
   builtinSureMargin: 0.15,
   /*
    * 자동 재탐색(사용자가 누른 게 아니라 스스로 도는 경우)의 확정 기준.
@@ -86,7 +108,7 @@ export const LOCATE = {
    * "없을 때"는 확정도 후보 제시도 하지 않고 조용히 지나간다.
    * 정답 실측은 0.678~1.000이라 여유가 있다.
    */
-  autoSureScore: 0.60,
+  autoSureScore: 0.66,
   autoSureMargin: 0.10,
 }
 
@@ -123,7 +145,16 @@ export function uiScale(videoHeight) {
 export function candidateSizes(videoWidth, videoHeight) {
   // 실측이 예측보다 1px 크게 나온 해상도가 있어(1080p: 예측 45 / 실측 46) 위로도 여유를 둔다
   const base = Math.round(32 * uiScale(videoHeight))
-  const lo = Math.min(26, base - 2) // 26 = 기본 32px에서 창 테두리 오차만큼 아래
+  /*
+   * 아래로는 예측의 60%까지만 본다.
+   *
+   * 확장 UI는 창을 키워도 UI가 안 따라와서 예측보다 작게 나온다 — 실측 최저가
+   * 예측 대비 78%였다(1080p 예측 45 / 실측 35). 60%면 그보다 넉넉하다.
+   * 예전에는 26px 고정이었는데, 그러면 고해상도에서 크기 후보가 폭발하고
+   * (4K에서 26~93 = 68가지) 성긴 화면 폭도 vw/2로 커져 4K 한 번에 20초가 넘었다.
+   * 비례로 두면 성긴 화면 폭이 해상도와 무관하게 900px 언저리로 수렴한다.
+   */
+  const lo = Math.max(Math.min(26, base - 2), Math.round(base * 0.6))
   const sizes = []
   for (let n = lo; n <= base + 3; n++) sizes.push(n)
   return sizes.filter((n) => n >= 10)
@@ -445,6 +476,8 @@ export function nccAt(gray, w, integral, vec, x, y, tw, th, minVariance = 1) {
 export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
   const cGray = toChroma(coarse.data)
   const cInt = buildIntegral(cGray, coarse.w, coarse.h)
+  const cLuma = toLumaPlane(coarse.data)
+  const cLumaInt = buildIntegral(cLuma, coarse.w, coarse.h)
   const fGray = toChroma(full.data)
   const fInt = buildIntegral(fGray, full.w, full.h)
   const fLuma = toLumaPlane(full.data)
@@ -481,19 +514,35 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
               near.x = hit.x
               near.y = hit.y
               near.tpl = ti
+              near.sBest = size
             }
             continue
           }
-          spots.push({ ...hit, sMin: size, sMax: size, tpl: ti, best: { [ti]: hit.score } })
+          spots.push({ ...hit, sMin: size, sMax: size, tpl: ti, sBest: size, best: { [ti]: hit.score } })
         }
       }
     }
-    // 자리마다 '성긴 단계에서 잘 붙은 모양' 상위 몇 개를 자리찾기 대표로 남긴다
     for (const sp of spots) {
+      // 자리마다 '성긴 단계에서 잘 붙은 모양' 상위 몇 개를 자리찾기 대표로 남긴다
       sp.reps = Object.entries(sp.best)
         .sort((a, b) => b[1] - a[1])
         .slice(0, LOCATE.spotReps)
         .map(([ti]) => Number(ti))
+      /*
+       * 줄 세우기는 **자주색과 밝기를 함께** 본다.
+       *
+       * 성긴 훑기 자체는 자주색으로만 한다(단축키 글자가 밝기를 흐트러뜨려 자리를
+       * 찾는 데는 자주색이 강하다). 그런데 그 점수로 자리를 자르면 밝기로는 전혀
+       * 다른 것들이 앞자리를 차지한다 — 템플릿이 74장이 되면서, 정답 자리에서
+       * 0.907이 나오는데도 후보에 못 오르는 프레임이 생겼다(실측).
+       * 재정렬은 자리마다 작은 창 한 번이라 비용이 거의 없다.
+       */
+      const rep = templates[sp.tpl]
+      const lv = rep?.coarseLumaVecs?.[sp.sBest]
+      if (!lv) continue
+      const tw = Math.max(6, Math.round(sp.sBest * ratio))
+      const lm = nccAt(cLuma, coarse.w, cLumaInt, lv, sp.x, sp.y, tw, tw, 1)
+      if (lm != null) sp.score = (sp.score + lm) / 2
     }
     return spots
   }
@@ -553,8 +602,21 @@ export function locateIcon({ coarse, full, templates, sizes, probes, ratio }) {
     }
     if (!kept.has(liked[0])) extra.push({ sp: liked[0], v: liked[0].best[ti] })
   }
+  /*
+   * 같은 자리를 여러 모양이 1등으로 꼽으면 extra에 그 자리가 중복으로 쌓인다.
+   * 그대로 앞에서 8개를 자르면 예산이 한 자리의 복제본으로 다 차서 실제로는
+   * 한 칸밖에 안 늘어난다 — 거의 같은 쿨타임 모습이 수십 장이라 흔한 일이다.
+   */
   extra.sort((a, b) => b.v - a.v)
-  for (const e of extra.slice(0, LOCATE.spotExtra)) kept.add(e.sp)
+  const seenSpot = new Set()
+  let added = 0
+  for (const e of extra) {
+    if (added >= LOCATE.spotExtra) break
+    if (seenSpot.has(e.sp) || kept.has(e.sp)) continue
+    seenSpot.add(e.sp)
+    kept.add(e.sp)
+    added++
+  }
   spots = [...kept]
 
   /*

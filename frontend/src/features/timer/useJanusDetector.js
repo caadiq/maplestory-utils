@@ -61,7 +61,15 @@ function runLocate(payload) {
     }
     worker.addEventListener('message', onMessage)
     worker.addEventListener('error', onError)
-    timer = setTimeout(() => finish([]), 15000) // 무응답 안전장치 — 오버레이 영구 잠금 방지
+    /*
+     * 무응답 안전장치. 그냥 포기만 하면 안 된다 — 워커는 모듈 전역 하나뿐이라,
+     * 아직 돌고 있는 계산 뒤에 재시도가 계속 쌓여 점점 더 밀린다. 끊고 새로 만든다.
+     */
+    timer = setTimeout(() => {
+      worker.terminate()
+      if (locateWorker === worker) locateWorker = null
+      finish([])
+    }, 15000)
     worker.postMessage({ id, payload })
   })
 }
@@ -320,11 +328,19 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
     const vh = video.videoHeight
     // ignoreSaved: 저장 모양이 엉뚱한 자리에 굳었을 때 내장 원본으로만 다시 찾는다
     const saved = ignoreSaved ? null : loadTemplate()
+    /*
+     * 정련은 원본 그대로가 아니라 최대 폭까지만 줄여서 본다.
+     * 4K를 그대로 보면 아이콘이 90px이라 창이 1080p의 4배가 되어 한 번에 20초가 걸렸다.
+     * 좌표는 정규화해서 돌려주므로 줄여 본 것이 밖으로 드러나지 않는다.
+     */
+    const fw2 = Math.min(vw, LOCATE.maxFullWidth)
+    const fullScale = fw2 / vw
+    const fh2 = Math.round(vh * fullScale)
     // 직접 지정한 적이 있으면 그때의 크기를 먼저 쓴다 — 추측보다 확실한 정보다
-    const savedSize = saved ? Math.round(saved.rw * vw) : null
+    const savedSize = saved ? Math.round(saved.rw * fw2) : null
     const sizes = [...new Set([
       ...(savedSize && savedSize >= 10 ? [savedSize] : []),
-      ...candidateSizes(vw, vh),
+      ...candidateSizes(fw2, fh2),
     ])].sort((a, b) => a - b)
     const probes = savedSize ? [...new Set([savedSize, ...probeSizes(sizes)])] : probeSizes(sizes)
     /*
@@ -332,8 +348,8 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
      * 640 고정은 1920 화면·45px 아이콘 기준 15px였는데, 확장 UI 대응으로 후보 하한이
      * 26px까지 내려가면서 640으로는 8px대로 뭉개져 성긴 단계가 놓칠 수 있다.
      */
-    const frameWidth = Math.min(vw, Math.max(LOCATE.frameWidth, Math.ceil((vw * 13) / sizes[0])))
-    const ratio = frameWidth / vw
+    const frameWidth = Math.min(fw2, Math.max(LOCATE.frameWidth, Math.ceil((fw2 * 13) / sizes[0])))
+    const ratio = frameWidth / fw2
 
     /** 화면을 주어진 폭으로 줄여 RGBA로 꺼낸다 */
     const grabFrame = (w) => {
@@ -351,7 +367,7 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
     }
 
     const coarse = grabFrame(frameWidth)
-    const full = grabFrame(vw)
+    const full = grabFrame(fw2)
     if (!coarse || !full) return null
 
     /**
@@ -444,11 +460,16 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
         const l = vecAt(src.key, src.el, src.w, src.h, size, toLumaPlane)
         if (l) lumaVecs[size] = l
       }
+      const coarseLumaVecs = {}
       for (const size of probes) {
-        const v = vecAt(src.key, src.el, src.w, src.h, Math.max(6, Math.round(size * ratio)))
+        const n = Math.max(6, Math.round(size * ratio))
+        const v = vecAt(src.key, src.el, src.w, src.h, n)
         if (v) coarseVecs[size] = v
+        // 자리를 줄 세울 때 밝기까지 보기 위한 것 (locateCore collectSpots 참고)
+        const l = vecAt(src.key, src.el, src.w, src.h, n, toLumaPlane)
+        if (l) coarseLumaVecs[size] = l
       }
-      return { vecs, coarseVecs, lumaVecs, mode: src.mode ?? null }
+      return { vecs, coarseVecs, coarseLumaVecs, lumaVecs, mode: src.mode ?? null }
     })
 
     /*
@@ -467,9 +488,10 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
       learned: Boolean(saved),
       // 이긴 모양이 내장 원본일 때만 모드를 알 수 있다 (저장 모양·쿨타임 모습엔 모드가 없다)
       detectedMode: hits[0].mode ?? null,
+      // 줄여 본 좌표를 화면 비율로 되돌린다 (아래에서 다시 원본 픽셀로 환산된다)
       hits: hits.map((c) => ({
         score: c.score,
-        region: { x: c.x / vw, y: c.y / vh, w: c.w / vw, h: c.h / vh },
+        region: { x: c.x / full.w, y: c.y / full.h, w: c.w / full.w, h: c.h / full.h },
       })),
     }
   }, [])

@@ -60,7 +60,12 @@ function runOp(op, payload, fallback) {
     }
     worker.addEventListener('message', onMessage)
     worker.addEventListener('error', onError)
-    timer = setTimeout(() => finish(null), 15000)
+    // 무응답 안전장치 — 워커를 끊어야 다음 스캔이 밀리지 않는다 (useJanusDetector 참고)
+    timer = setTimeout(() => {
+      worker.terminate()
+      if (markWorker === worker) markWorker = null
+      finish(null)
+    }, 15000)
     worker.postMessage({ id, op, payload })
   })
 }

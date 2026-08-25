@@ -8,6 +8,9 @@ import { TimerResetIcon, PipIcon, TargetIcon, ScreenOffIcon, BellIcon, IconButto
 import { useJanusDetector } from '../useJanusDetector'
 import { useRuneDetector, runeKindLabel } from '../useRuneDetector'
 import { useRuneMarkDetector } from '../useRuneMarkDetector'
+
+/** 문구·미니맵이 같은 룬을 각각 잡았을 때 알림을 한 번으로 합치는 창 */
+const RUNE_ALERT_GAP_MS = 60000
 import { useBoosterDetector } from '../useBoosterDetector'
 import { useExpStallDetector } from '../useExpStallDetector'
 import { usePipWindow } from '../usePipWindow'
@@ -216,15 +219,24 @@ export default function Timer() {
    * 룬 등장 감지 — 야누스와 독립으로, 공유 화면 상단 띠에서 "등장" 문구를 지켜본다.
    * 감지되면 즉시 울린다 (예약할 것이 없다 — 문구가 떴다는 것 자체가 알림 시점).
    */
+  /*
+   * 문구와 미니맵 표식은 **같은 룬**을 각자 잡을 수 있다. 그대로 두면 한 번의 룬에
+   * 알림이 두 번 울린다 — 먼저 울린 쪽이 이기고 잠시 다른 쪽을 막는다.
+   */
+  const runeFiredAtRef = useRef(0)
+  const fireRune = (label, detail) => {
+    if (Date.now() - runeFiredAtRef.current < RUNE_ALERT_GAP_MS) return
+    runeFiredAtRef.current = Date.now()
+    const s = settingsRef.current
+    playSound(resolveSound(s.runeSound), s.runeVolume)
+    log(label, detail, 'ok')
+  }
+
   useRuneDetector({
     videoRef,
     stream,
     enabled: settings.runeEnabled,
-    onRune: (hit) => {
-      const s = settingsRef.current
-      playSound(resolveSound(s.runeSound), s.runeVolume)
-      log(`${runeKindLabel(hit.kind)} 등장 감지`, `일치 ${hit.score.toFixed(2)}`, 'ok')
-    },
+    onRune: (hit) => fireRune(`${runeKindLabel(hit.kind)} 등장 감지`, `문구 · 일치 ${hit.score.toFixed(2)}`),
   })
 
   /*
@@ -248,11 +260,7 @@ export default function Timer() {
       if (info?.auto) log('미니맵 위치를 찾았습니다', `일치 ${info.score.toFixed(2)}`, 'muted')
     },
     onStatus: setMarkStatus,
-    onRune: (hit) => {
-      const s = settingsRef.current
-      playSound(resolveSound(s.runeSound), s.runeVolume)
-      log('룬 등장 감지', `미니맵 표식 · 일치 ${hit.score.toFixed(2)}`, 'ok')
-    },
+    onRune: (hit) => fireRune('룬 등장 감지', `미니맵 표식 · 일치 ${hit.score.toFixed(2)}`),
   })
 
   /*

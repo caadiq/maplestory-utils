@@ -60,7 +60,12 @@ function runScan(band, templates) {
     }
     worker.addEventListener('message', onMessage)
     worker.addEventListener('error', onError)
-    timer = setTimeout(() => finish(null), 10000) // 무응답 안전장치 — busy 잠금 방지
+    // 무응답 안전장치 — 워커를 끊어야 다음 스캔이 밀리지 않는다 (useJanusDetector 참고)
+    timer = setTimeout(() => {
+      worker.terminate()
+      if (runeWorker === worker) runeWorker = null
+      finish(null)
+    }, 10000)
     worker.postMessage({ id, band, templates })
   })
 }
