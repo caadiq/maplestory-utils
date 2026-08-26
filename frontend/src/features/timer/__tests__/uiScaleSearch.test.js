@@ -245,6 +245,17 @@ describe('창 크기가 바뀌었을 때 영역', () => {
     expect(moved.h).toBe(44)
   })
 
+  it('게임 화면 모서리를 못 쟀으면 픽셀 자리를 그대로 지킨다', () => {
+    /*
+     * 리사이즈 순간의 프레임을 못 읽는 경우가 있다. 그때 캡처 모서리로 대신하면
+     * 여백이 생겼을 때 상자를 여백 속으로 밀어 넣는다 — 실제로 그렇게 어긋났다.
+     */
+    const base = { w: 1920, h: 1080, right: 1920, bottom: 1080 }
+    const next = { w: 1920, h: 1280 }            // 못 잼
+    const r = icon(base, 201, 19)                // (1675, 1017)
+    expect(px(shiftRegion(r, base, next), next)).toEqual({ x: 1675, y: 1017, w: 44, h: 44 })
+  })
+
   it('창이 작아져 영역이 밖으로 나가면 안쪽으로 밀어 넣는다', () => {
     const base = { w: 1920, h: 1080, right: 1920, bottom: 1080 }
     const next = { w: 800, h: 600, right: 800, bottom: 600 }

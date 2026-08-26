@@ -248,17 +248,24 @@ export function contentBox(data, w, h) {
     return bestLen > 0 ? bestEnd : n
   }
 
-  // 행에서 밝은 픽셀이 차지하는 비율로 본다 — 행 평균 밝기로는 어두운 장면에서 게임이 통째로 빠졌다
+  /*
+   * 행에서 밝은 픽셀이 차지하는 **비율**로 본다 — 행 평균 밝기로는 어두운 장면에서
+   * 게임이 통째로 빠졌다. 비율이라 전부 셀 필요가 없어 몇 칸 걸러 센다.
+   * 1080p 한 장이면 460만 픽셀을 읽던 것이 30만으로 준다 — 창을 끌 때 화면이 끊기던 원인이었다.
+   */
+  const STEP = 4
   const rowHas = (y) => {
     let n = 0
+    let seen = 0
     const row = y * w * 4
-    for (let x = 0; x < w; x++) if (bright(row + x * 4)) n++
-    return n / w > 0.3
+    for (let x = 0; x < w; x += STEP, seen++) if (bright(row + x * 4)) n++
+    return n / seen > 0.3
   }
   const colHas = (x) => {
     let n = 0
-    for (let y = 0; y < h; y++) if (bright((y * w + x) * 4)) n++
-    return n / h > 0.3
+    let seen = 0
+    for (let y = 0; y < h; y += STEP, seen++) if (bright((y * w + x) * 4)) n++
+    return n / seen > 0.3
   }
   return { right: scan(w, colHas), bottom: scan(h, rowHas) }
 }
@@ -281,11 +288,20 @@ export function contentBox(data, w, h) {
 export function shiftRegion(region, base, next) {
   const w = region.w * base.w
   const h = region.h * base.h
-  // 게임 화면 우하단에서 얼마나 떨어져 있었는지 (px)
-  const fromRight = base.right - (region.x + region.w) * base.w
-  const fromBottom = base.bottom - (region.y + region.h) * base.h
-  const x = Math.min(Math.max(next.right - fromRight - w, 0), Math.max(0, next.w - w))
-  const y = Math.min(Math.max(next.bottom - fromBottom - h, 0), Math.max(0, next.h - h))
+  /*
+   * 게임 화면 모서리를 양쪽 다 재지 못했으면 **픽셀 자리를 그대로 지킨다**.
+   * 어설프게 캡처 모서리로 대신하면 여백이 생겼을 때 상자를 여백 속으로 밀어 넣는다 —
+   * 실제로 그렇게 어긋난 적이 있다(리사이즈 순간의 흐린 프레임을 재서 여백을 못 봤다).
+   */
+  const known = base.right != null && next.right != null
+  const px = known
+    ? {
+      x: next.right - (base.right - (region.x + region.w) * base.w) - w,
+      y: next.bottom - (base.bottom - (region.y + region.h) * base.h) - h,
+    }
+    : { x: region.x * base.w, y: region.y * base.h }
+  const x = Math.min(Math.max(px.x, 0), Math.max(0, next.w - w))
+  const y = Math.min(Math.max(px.y, 0), Math.max(0, next.h - h))
   return { x: x / next.w, y: y / next.h, w: w / next.w, h: h / next.h }
 }
 

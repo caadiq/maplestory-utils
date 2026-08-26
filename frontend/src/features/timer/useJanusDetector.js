@@ -4,7 +4,8 @@ import {
   saveTemplate, loadTemplate,
   saveCooldownSec, loadCooldownSec, joinElapsedMs,
 } from './logic'
-import { LOCATE, candidateSizes, probeSizes, normalize, toChroma, toLumaPlane, locateIcon, contentBox, shiftRegion } from './locateCore'
+import { LOCATE, candidateSizes, probeSizes, normalize, toChroma, toLumaPlane, locateIcon, shiftRegion } from './locateCore'
+import { measureFrame, settledFrame } from './frameGeometry'
 import { learnIconSize } from './uiCalibration'
 import { inspectCooldown, createCooldownTracker } from './digits'
 
@@ -109,27 +110,8 @@ const savedStamp = (rgba) => {
   return `${rgba.length}.${sum}`
 }
 
-/**
- * 지금 프레임의 캡처 크기와 **게임 화면 우하단**을 잰다.
- * 창 크기가 바뀌었을 때 지정 영역을 어디로 옮길지의 기준이 된다.
- */
-function measureFrame(video) {
-  const w = video.videoWidth
-  const h = video.videoHeight
-  if (!w || !h) return null
-  try {
-    const c = document.createElement('canvas')
-    c.width = w
-    c.height = h
-    const ctx = c.getContext('2d', { willReadFrequently: true })
-    ctx.drawImage(video, 0, 0, w, h)
-    const { right, bottom } = contentBox(ctx.getImageData(0, 0, w, h).data, w, h)
-    return { w, h, right, bottom }
-  } catch {
-    // 프레임을 못 읽으면 캡처 전체를 게임 화면으로 본다
-    return { w, h, right: w, bottom: h }
-  }
-}
+/** 창을 끄는 동안 이벤트가 연달아 온다 — 멎은 뒤에 한 번만 옮긴다 */
+const RESIZE_SETTLE_MS = 350
 
 /** 쿨타임 중 모습을 이만큼 모아 평균 내면 숫자가 흐려지고 아이콘만 남는다 */
 const DARK_SAMPLES = 8
@@ -556,17 +538,36 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
     if (!stream) return
     const video = videoRef.current
     if (!video) return
-    const onResize = () => {
-      const r = regionRef.current
+    let settle = null
+    let alive = true
+
+    /*
+     * 창을 끄는 동안 이벤트가 연달아 온다. 마지막 것 뒤에 한 번만,
+     * 그것도 **새 프레임이 올라온 뒤에** 재고 옮긴다.
+     */
+    let gen = 0
+    const apply = async () => {
       const base = regionBaseRef.current
-      const next = measureFrame(video)
-      if (!r || !base || !next) return
+      const mine = ++gen
+      if (!alive || !regionRef.current || !base) return
+      const next = await settledFrame(video, () => alive && gen === mine)
+      const r = regionRef.current
+      if (!r || !next || gen !== mine) return
       if (next.w === base.w && next.h === base.h) return
       setRegion(shiftRegion(r, base, next))
       regionBaseRef.current = next
     }
+
+    const onResize = () => {
+      clearTimeout(settle)
+      settle = setTimeout(apply, RESIZE_SETTLE_MS)
+    }
     video.addEventListener('resize', onResize)
-    return () => video.removeEventListener('resize', onResize)
+    return () => {
+      alive = false
+      clearTimeout(settle)
+      video.removeEventListener('resize', onResize)
+    }
   }, [stream])
 
 
