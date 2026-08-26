@@ -137,6 +137,18 @@ export function parseExpBonus(skills) {
   return sources.length ? { ...total, sources } : null;
 }
 
+/**
+ * 일자별 경험치 히스토리 — 과거 값은 불변이라 메모리에 캐시한다.
+ * `${ocid}:${date}` -> { level, rate } | 없음
+ */
+const historyCache = new Map();
+
+/** KST 기준 daysAgo 일 전의 YYYY-MM-DD */
+function kstDateStr(daysAgo) {
+  const d = new Date(Date.now() + 9 * 3600 * 1000 - daysAgo * 86400 * 1000);
+  return d.toISOString().slice(0, 10);
+}
+
 /** 일자별 경험치 히스토리 (최근 며칠) */
 export async function fetchHistory(ocid, days = 9) {
   /*
