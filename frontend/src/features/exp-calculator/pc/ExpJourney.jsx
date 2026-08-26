@@ -165,9 +165,9 @@ export default function ExpJourney({ char, history, dateCreate, breakdown, bonus
         {/* 세 값이 전부 같은 색이면 한 덩어리로 보인다 — 성격이 다르니 색도 나눈다 */}
         <Stat label="현재 경험치" value={`${char.exp_rate.toFixed(3)}%`} color={C_DAY} />
         <div className="w-px my-3" style={{ background: 'var(--panel-border)' }} />
-        <Stat label="최근 7일 획득" value={stats.week != null ? `+${stats.week.toFixed(1)}Lv` : '—'} color={C_WEEK} />
+        <Stat label="최근 7일 경험치" value={stats.week != null ? `+${(stats.week * 100).toFixed(1)}%p` : '—'} color={C_WEEK} />
         <div className="w-px my-3" style={{ background: 'var(--panel-border)' }} />
-        <Stat label="하루 평균 획득" value={stats.avg != null ? `+${(stats.avg * 100).toFixed(1)}%p` : '—'} color={C_PACE} />
+        <Stat label="일일 평균 경험치" value={stats.avg != null ? `+${(stats.avg * 100).toFixed(1)}%p` : '—'} color={C_PACE} />
       </div>
 
       {/* 차트 — 바깥 px-6로 위 통계 스트립과 좌우 경계를 맞추고,

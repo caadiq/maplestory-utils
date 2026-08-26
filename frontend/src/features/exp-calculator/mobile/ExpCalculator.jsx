@@ -570,8 +570,8 @@ export default function MobileExpCalculator() {
             <div className="grid grid-cols-3 mt-2.5 rounded-xl border overflow-hidden"
               style={{ borderColor: 'var(--panel-border)', background: 'linear-gradient(180deg, var(--mpl-row), var(--panel-bg))' }}>
               <MiniStat label="현재 경험치" value={`${char.exp_rate.toFixed(2)}%`} />
-              <MiniStat label="최근 7일" value={stats.week != null ? `+${stats.week.toFixed(1)}Lv` : '—'} color={C_WEEK} divider />
-              <MiniStat label="하루 평균" value={stats.avg != null ? `+${(stats.avg * 100).toFixed(1)}%p` : '—'} color={C_PACE} divider />
+              <MiniStat label="최근 7일 경험치" value={stats.week != null ? `+${(stats.week * 100).toFixed(1)}%p` : '—'} color={C_WEEK} divider />
+              <MiniStat label="일일 평균 경험치" value={stats.avg != null ? `+${(stats.avg * 100).toFixed(1)}%p` : '—'} color={C_PACE} divider />
             </div>
 
             <Chart char={char} history={history} nowMs={nowMs} />

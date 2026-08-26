@@ -18,7 +18,12 @@ export const fmtDate = (d) =>
 
 export const mdLabel = (iso) => `${+iso.slice(5, 7)}/${+iso.slice(8, 10)}`
 
-/** 실측 페이스 — 히스토리 첫 스냅샷 대비 하루 평균, 그리고 최근 7일 상승분 (단위: 레벨) */
+/**
+ * 실측 페이스 — 히스토리 첫 스냅샷 대비 하루 평균, 그리고 최근 7일 상승분.
+ *
+ * 반환값은 **누적 레벨** 단위다(1.0 = 한 레벨). 화면에서는 100을 곱해 %p로 보여준다 —
+ * 레벨로 표시하면 "+0.8Lv"처럼 뭉뚱그려져 하루하루의 차이가 안 보인다.
+ */
 export function journeyStats(history, nowCum, nowMs) {
   if (!history.length) return { avg: null, week: null }
   const first = history[0]
