@@ -106,12 +106,18 @@ const BONUS_PATTERNS = {
   epicDungeon: /에픽\s*던전\s*기본\s*경험치\s*보상\s*획득량\s*([\d.]+)%\s*증가/g,
   arcaneDaily: /아케인리버\s*일일퀘스트\s*완료\s*시\s*획득\s*경험치\s*([\d.]+)%/g,
   grandisDaily: /그란디스\s*일일퀘스트\s*완료\s*시\s*획득\s*경험치\s*([\d.]+)%/g,
-  /** 사냥으로 얻는 경험치에만 붙는다 — 이 계산기의 항목(컨텐츠·아이템)에는 적용하지 않고 참고로만 보여준다 */
-  hunting: /(?<!퇴장 시 획득하는 )경험치\s*획득량\s*([\d.]+)%\s*증가/g,
+  /*
+   * 사냥 경험치 보너스는 넣지 않는다.
+   *
+   * "경험치 획득량 N% 증가"로 긁으면 **트레져 헌터 경험치 획득량 25% 증가** 같은
+   * 다른 컨텐츠 줄까지 딸려와 값이 부풀고(실측 10%여야 할 것이 35%로 나왔다),
+   * 정작 큰 몫인 홀리 심볼·룬의 경험·솔 야누스는 0차 스킬이 아니라 빠진다.
+   * 계산기가 쓰는 항목도 아니어서(컨텐츠·아이템만 센다) 애초에 낼 이유가 없다.
+   */
 };
 
 export function parseExpBonus(skills) {
-  const total = { monsterPark: 0, epicDungeon: 0, arcaneDaily: 0, grandisDaily: 0, hunting: 0 };
+  const total = { monsterPark: 0, epicDungeon: 0, arcaneDaily: 0, grandisDaily: 0 };
   const sources = [];
 
   for (const s of skills || []) {
@@ -131,17 +137,7 @@ export function parseExpBonus(skills) {
   return sources.length ? { ...total, sources } : null;
 }
 
-/**
- * 일자별 경험치 히스토리 — 랭킹 API가 과거 날짜의 레벨·레벨 내 경험치(절대값)를 준다.
- * 성장 추이 차트용. 과거 값은 불변이라 메모리에 캐시한다.
- */
-const historyCache = new Map(); // `${ocid}:${date}` -> { level, exp } | null(데이터 없음)
-
-function kstDateStr(daysAgo) {
-  const d = new Date(Date.now() + 9 * 3600 * 1000 - daysAgo * 86400 * 1000);
-  return d.toISOString().slice(0, 10);
-}
-
+/** 일자별 경험치 히스토리 (최근 며칠) */
 export async function fetchHistory(ocid, days = 9) {
   /*
    * **캐릭터 기본정보의 date 조회**를 쓴다 (`character/basic?date=D`).
