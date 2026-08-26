@@ -144,38 +144,43 @@ function kstDateStr(daysAgo) {
 
 export async function fetchHistory(ocid, days = 9) {
   /*
-   * 랭킹 스냅샷의 date=D는 **D일 0시 시점**이다 — 곧 D-1일의 마감값이다.
-   * 실측(2026-08-24, 비머레테): API date=8/24가 83.553%인데, 인게임 접속 시
-   * 그날 시작 경험치가 정확히 83.553%였다.
+   * **캐릭터 기본정보의 date 조회**를 쓴다 (`character/basic?date=D`).
    *
-   * 그래서 조회는 오늘 것까지 하고, 라벨은 하루씩 당겨 붙인다.
-   * 이걸 안 하면 마지막 점이 그저께 마감값을 어제로 표시해, 오늘 상승분이
-   * 이틀치로 보인다(실측: +3.15%p가 +8.39%p로 나옴).
+   * 예전에는 랭킹 스냅샷(`ranking/overall`)을 썼는데, 그건 이 용도의 값이 아니다 —
+   * 같은 날짜에 대해 전혀 다른 값을 주고, 날짜를 하루 밀거나 당겨도 실제 기록과
+   * 맞지 않았다(실측 2026-08-22: 랭킹 69.137% / 실제 71.375%).
+   * 기본정보 date 조회는 츄츄지지·메이플로드 같은 조회 사이트와 소수점까지 일치한다.
+   *
+   * 경험치 비율도 API가 직접 준다(character_exp_rate) — 레벨별 요구량으로 나눌 필요가
+   * 없고, 구간이 바뀌어도 알아서 맞는다.
+   *
+   * 오늘 날짜는 아직 스냅샷이 없어 빈 값이 온다 — 그 점은 자연스럽게 빠지고,
+   * 현재 값은 화면에서 실시간 조회분(NOW)으로 따로 붙는다.
    */
-  const spans = Array.from({ length: days }, (_, i) => {
-    const back = days - 1 - i; // 오래된 것 → 오늘
-    return { date: kstDateStr(back), label: kstDateStr(back + 1) };
-  });
-  const rows = await Promise.all(spans.map(async ({ date, label }) => {
+  const dates = Array.from({ length: days }, (_, i) => kstDateStr(days - 1 - i));
+  const rows = await Promise.all(dates.map(async (date) => {
     const key = `${ocid}:${date}`;
-    if (historyCache.has(key)) return { date, label, ...historyCache.get(key) || {} };
+    if (historyCache.has(key)) return { date, ...(historyCache.get(key) || {}) };
     try {
-      const { data } = await nexonGet('/maplestory/v1/ranking/overall', { date, ocid });
-      const r = data.ranking?.[0];
-      const v = r ? { level: r.character_level, exp: Number(r.character_exp) } : null;
-      if (historyCache.size > 20000) historyCache.clear();
-      historyCache.set(key, v);
-      return { date, label, ...(v || {}) };
+      const { data } = await nexonGet('/maplestory/v1/character/basic', { date, ocid });
+      const v = data?.character_level != null
+        ? { level: data.character_level, rate: Number(data.character_exp_rate) }
+        : null;
+      /*
+       * 빈 값은 캐시하지 않는다. 오늘 날짜는 아직 스냅샷이 없어 빈 값이 오는데,
+       * 그걸 담아 두면 내일 그 날짜가 '어제'가 된 뒤에도 계속 빈 값으로 남는다.
+       */
+      if (v) {
+        if (historyCache.size > 20000) historyCache.clear();
+        historyCache.set(key, v);
+      }
+      return { date, ...(v || {}) };
     } catch {
-      // 랭킹은 매일 아침에 갱신된다 — 그 전이면 오늘 것이 아직 없다(그 점만 빠진다)
-      return { date, label };
+      // 아직 스냅샷이 없는 날(오늘 등) — 그 점만 빠진다
+      return { date };
     }
   }));
-  return rows.filter((r) => r.level != null).map((r) => ({
-    date: r.label,
-    level: r.level,
-    exp_rate: expData.levelExp[String(r.level)]
-      ? Math.round((r.exp / expData.levelExp[String(r.level)]) * 100000) / 1000
-      : 0,
-  }));
+  return rows
+    .filter((r) => r.level != null && Number.isFinite(r.rate))
+    .map((r) => ({ date: r.date, level: r.level, exp_rate: r.rate }));
 }
