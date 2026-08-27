@@ -2,11 +2,15 @@ import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
 /**
- * 자동 탐색에서 후보가 여러 개 나왔을 때 고르는 화면.
+ * 자동 탐색 결과 화면.
+ *
+ * 후보가 있으면 고르게 하고, **하나도 없으면 없다고 말한다**.
+ * 예전에는 못 찾으면 곧장 직접 지정 화면으로 보냈는데, 그러면 "왜 갑자기 이게 뜨지"가 된다.
  * 퀵슬롯 말고 스킬창·단축키 설정 같은 데도 같은 아이콘이 떠 있을 수 있어서
  * "어느 것이 퀵슬롯인지"는 사람이 골라야 한다.
  */
-export default function CandidatePicker({ videoRef, candidates, onPick, onManual, onClose }) {
+export default function CandidatePicker({ videoRef, candidates, onPick, onManual, onRetry, onClose }) {
+  const empty = candidates.length === 0
   const canvasRefs = useRef([])
 
   useEffect(() => {
@@ -49,10 +53,14 @@ export default function CandidatePicker({ videoRef, candidates, onPick, onManual
       <div className="flex flex-col items-center gap-4">
         <div className="text-center">
           <p className="text-[15px] font-extrabold" style={{ color: 'var(--mpl-title-yellow)' }}>
-            비슷한 아이콘을 {candidates.length}곳에서 찾았습니다
+            {empty
+              ? '야누스 아이콘을 찾지 못했습니다'
+              : `비슷한 아이콘을 ${candidates.length}곳에서 찾았습니다`}
           </p>
           <p className="text-[13px] mt-1" style={{ color: '#9db0c2' }}>
-            퀵슬롯에 있는 것을 골라주세요 — 스킬창에도 같은 아이콘이 떠 있을 수 있습니다
+            {empty
+              ? '퀵슬롯에 야누스가 없거나, 다른 창에 가려져 있을 수 있습니다'
+              : '퀵슬롯에 있는 것을 골라주세요 — 스킬창에도 같은 아이콘이 떠 있을 수 있습니다'}
           </p>
         </div>
 
@@ -80,11 +88,25 @@ export default function CandidatePicker({ videoRef, candidates, onPick, onManual
         </div>
 
         <div className="flex items-center gap-2">
+          {empty && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="rounded-lg px-4 py-2 text-[13px] font-extrabold text-white"
+              style={{ background: 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))' }}
+            >
+              다시 찾기
+            </button>
+          )}
           <button
             type="button"
             onClick={onManual}
             className="rounded-lg px-4 py-2 text-[13px] font-extrabold text-white"
-            style={{ background: 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))' }}
+            style={{
+              background: empty
+                ? 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))'
+                : 'linear-gradient(180deg, var(--mpl-sky-from), var(--mpl-sky-to))',
+            }}
           >
             직접 지정할게요
           </button>

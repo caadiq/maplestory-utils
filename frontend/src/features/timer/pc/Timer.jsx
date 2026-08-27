@@ -376,7 +376,8 @@ export default function Timer() {
     }
     const hits = found?.hits
     if (!hits?.length) {
-      if (!auto) setPicking(true)
+      // 자동 재탐색은 조용히 넘어가고, 사용자가 부른 경우에만 못 찾았다고 알린다
+      if (!auto) setCandidates([])
       return
     }
     const [best, second] = hits
@@ -408,6 +409,19 @@ export default function Timer() {
     await new Promise((r) => setTimeout(r, 50))
     clearTemplate()
     applyHits(await locateWithRetry({ ignoreSaved: true }))
+  }
+
+  /*
+   * 못 찾았을 때의 다시 찾기 — 기억해둔 모양은 그대로 둔다.
+   *
+   * 후보가 하나도 없었다는 건 저장 모양조차 통과선을 못 넘었다는 뜻이고,
+   * 저장 모양은 제 자리에서 0.9 이상이 나오므로 그건 곧 **아이콘이 화면에 없었다**는 뜻이다.
+   * 기억이 틀린 게 아니니 지울 이유가 없다 (지우면 멀쩡한 기억만 잃는다).
+   */
+  const searchAgain = async () => {
+    setLocating(true)
+    await new Promise((r) => setTimeout(r, 50))
+    applyHits(await locateWithRetry())
   }
 
   const handleTest = async () => {
@@ -773,6 +787,7 @@ export default function Timer() {
           candidates={candidates}
           onPick={(r) => { setRegion(r); setCandidates(null) }}
           onManual={() => { setCandidates(null); setPicking(true) }}
+          onRetry={() => { setCandidates(null); searchAgain() }}
           onClose={() => setCandidates(null)}
         />
       )}
