@@ -7,9 +7,11 @@ import { sequelize } from '../../lib/db.js';
 import { UPLOAD_FILE_SIZE_LIMIT } from '../../constants.js';
 
 const router = Router();
+/** 한 번에 올릴 수 있는 개수 — 알림음을 한 벌씩 갈아끼우는 정도면 충분하다 */
+const MAX_FILES = 20;
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: UPLOAD_FILE_SIZE_LIMIT },
+  limits: { fileSize: UPLOAD_FILE_SIZE_LIMIT, files: MAX_FILES },
 });
 
 const KINDS = ['alarm', 'tts'];
@@ -44,43 +46,59 @@ router.get('/sounds', async (_req, res) => {
   }
 });
 
-router.post('/sounds', upload.single('file'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: '파일이 없습니다' });
+router.post('/sounds', upload.array('files', MAX_FILES), async (req, res) => {
+  const files = req.files ?? [];
+  if (!files.length) return res.status(400).json({ error: '파일이 없습니다' });
 
   const kind = KINDS.includes(req.body.kind) ? req.body.kind : 'alarm';
-  // 이름은 따로 받지 않는다 — 화면에 보이는 건 순서대로 매기는 번호이고,
-  // 여기 이름은 "어떤 파일인지" 알아보기 위한 것이라 올린 파일명이 가장 정확하다
-  const name = req.file.originalname.trim() || '이름 없음';
 
-  const ext = (req.file.originalname.split('.').pop() || '').toLowerCase();
-  if (!EXT_TYPES[ext]) {
-    return res.status(400).json({ error: '지원하지 않는 형식입니다 (mp3 · ogg · wav · m4a)' });
-  }
+  /*
+   * 한 장씩 따로 처리한다 — 한 파일이 잘못돼도 나머지는 들어가야 한다.
+   * 열 개를 골랐는데 그중 하나가 지원 안 하는 형식이라고 전부 되돌리면,
+   * 뭐가 문제였는지도 모른 채 처음부터 다시 골라야 한다.
+   */
+  const added = [];
+  const failed = [];
 
-  // 설정에 저장되는 값이라 파일명·표시 이름과 무관하게 고정되어야 한다
-  const key = `s${crypto.randomBytes(6).toString('hex')}`;
-  const path = `timer-sounds/${key}.${ext}`;
+  // 순서는 한 번만 읽고 여기서 늘려 나간다 (파일마다 다시 읽으면 같은 번호가 겹친다)
+  const last = await TimerSound.findOne({ order: [['sort_order', 'DESC']] }).catch(() => null);
+  let order = (last?.sort_order ?? -1) + 1;
 
-  try {
-    const last = await TimerSound.findOne({ order: [['sort_order', 'DESC']] });
-    await uploadObject(path, req.file.buffer, EXT_TYPES[ext]);
-    let row;
-    try {
-      row = await TimerSound.create({
-        key, name, kind, path,
-        size: req.file.size,
-        sort_order: (last?.sort_order ?? -1) + 1,
-      });
-    } catch (dbErr) {
-      // DB 저장이 실패하면 방금 올린 파일은 아무도 못 찾는 쓰레기가 된다
-      await safeDelete(path);
-      throw dbErr;
+  for (const file of files) {
+    // 이름은 따로 받지 않는다 — 화면에 보이는 건 순서대로 매기는 번호이고,
+    // 여기 이름은 "어떤 파일인지" 알아보기 위한 것이라 올린 파일명이 가장 정확하다
+    const name = file.originalname.trim() || '이름 없음';
+    const ext = (file.originalname.split('.').pop() || '').toLowerCase();
+    if (!EXT_TYPES[ext]) {
+      failed.push({ name, error: '지원하지 않는 형식입니다 (mp3 · ogg · wav · m4a)' });
+      continue;
     }
-    res.json(serialize(row));
-  } catch (err) {
-    console.error('알림음 업로드 오류:', err.message);
-    res.status(500).json({ error: '알림음 업로드 실패' });
+
+    // 설정에 저장되는 값이라 파일명·표시 이름과 무관하게 고정되어야 한다
+    const key = `s${crypto.randomBytes(6).toString('hex')}`;
+    const path = `timer-sounds/${key}.${ext}`;
+    try {
+      await uploadObject(path, file.buffer, EXT_TYPES[ext]);
+      try {
+        const row = await TimerSound.create({
+          key, name, kind, path, size: file.size, sort_order: order,
+        });
+        order += 1;
+        added.push(serialize(row));
+      } catch (dbErr) {
+        // DB 저장이 실패하면 방금 올린 파일은 아무도 못 찾는 쓰레기가 된다
+        await safeDelete(path);
+        throw dbErr;
+      }
+    } catch (err) {
+      console.error('알림음 업로드 오류:', name, err.message);
+      failed.push({ name, error: '업로드 실패' });
+    }
   }
+
+  // 하나도 못 올렸으면 실패로 알린다 — 성공한 게 있으면 실패 목록만 딸려 보낸다
+  if (!added.length) return res.status(400).json({ error: failed[0]?.error || '업로드 실패', failed });
+  res.json({ added, failed });
 });
 
 /** 종류만 바꾼다 (이름은 파일명 그대로, 음원 교체는 새로 올리고 지우는 편이 안전하다) */

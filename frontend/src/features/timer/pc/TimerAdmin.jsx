@@ -125,7 +125,7 @@ export default function TimerAdmin() {
       {uploadOpen && (
         <UploadDialog
           onClose={() => setUploadOpen(false)}
-          onDone={() => { setUploadOpen(false); invalidate() }}
+          onDone={(opt) => { if (!opt?.keepOpen) setUploadOpen(false); invalidate() }}
         />
       )}
 
@@ -212,20 +212,22 @@ function IconBtn({ label, danger, onClick, children }) {
   )
 }
 
-/** 파일 하나를 올린다 — 종류만 정하면 된다 (이름은 파일명 그대로) */
+/** 한 번에 여러 개를 올린다 — 종류만 정하면 된다 (이름은 파일명 그대로) */
 function UploadDialog({ onClose, onDone }) {
-  const [file, setFile] = useState(null)
+  const [files, setFiles] = useState([])
   const [kind, setKind] = useState('alarm')
   const [error, setError] = useState(null)
+  const [failed, setFailed] = useState([])
   const [busy, setBusy] = useState(false)
 
   const submit = async () => {
-    if (!file) { setError('파일을 골라 주세요'); return }
+    if (!files.length) { setError('파일을 골라 주세요'); return }
     setBusy(true)
     setError(null)
+    setFailed([])
     try {
       const form = new FormData()
-      form.append('file', file)
+      for (const f of files) form.append('files', f)
       form.append('kind', kind)
       const res = await fetch('/api/admin/timer/sounds', {
         method: 'POST',
@@ -233,7 +235,20 @@ function UploadDialog({ onClose, onDone }) {
         body: form,
       })
       const result = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(result.error || '업로드 실패')
+      if (!res.ok) {
+        setFailed(result.failed ?? [])
+        throw new Error(result.error || '업로드 실패')
+      }
+      /*
+       * 일부만 실패했으면 창을 닫지 않고 뭐가 안 됐는지 보여준다 —
+       * 닫아 버리면 열 개 중 몇 개가 빠졌는지 목록에서 일일이 찾아야 한다.
+       */
+      if (result.failed?.length) {
+        setFailed(result.failed)
+        setFiles([])
+        onDone({ keepOpen: true })
+        return
+      }
       onDone()
     } catch (e) {
       setError(e.message || '업로드 실패')
@@ -261,11 +276,17 @@ function UploadDialog({ onClose, onDone }) {
             </span>
             <input
               type="file"
+              multiple
               accept=".mp3,.ogg,.wav,.m4a,audio/*"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => { setFiles([...(e.target.files ?? [])]); setError(null); setFailed([]) }}
               className="text-[13px]"
               style={{ color: 'var(--text-muted)' }}
             />
+            <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+              {files.length > 1
+                ? `${files.length}개 선택됨 — 고른 순서대로 목록 끝에 추가됩니다`
+                : '여러 개를 한 번에 고를 수 있습니다'}
+            </span>
           </label>
 
           <label className="flex flex-col gap-1.5">
@@ -275,9 +296,24 @@ function UploadDialog({ onClose, onDone }) {
 
           {error && <p className="text-[13px]" style={{ color: 'var(--danger-text)' }}>{error}</p>}
 
+          {failed.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <p className="text-[13px] font-bold" style={{ color: 'var(--danger-text)' }}>
+                {failed.length}개를 못 올렸습니다
+              </p>
+              {failed.map((f) => (
+                <p key={f.name} className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                  {f.name} — {f.error}
+                </p>
+              ))}
+            </div>
+          )}
+
           <div className="flex justify-end gap-2 pt-1">
-            <Button variant="ghost" onClick={onClose} disabled={busy}>취소</Button>
-            <Button onClick={submit} disabled={busy}>{busy ? '올리는 중…' : '올리기'}</Button>
+            <Button variant="ghost" onClick={onClose} disabled={busy}>{failed.length ? '닫기' : '취소'}</Button>
+            <Button onClick={submit} disabled={busy || !files.length}>
+              {busy ? '올리는 중…' : files.length > 1 ? `${files.length}개 올리기` : '올리기'}
+            </Button>
           </div>
         </div>
       </div>
