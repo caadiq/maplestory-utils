@@ -50,7 +50,20 @@ router.post('/sounds', upload.array('files', MAX_FILES), async (req, res) => {
   const files = req.files ?? [];
   if (!files.length) return res.status(400).json({ error: '파일이 없습니다' });
 
-  const kind = KINDS.includes(req.body.kind) ? req.body.kind : 'alarm';
+  /*
+   * 종류는 파일마다 다를 수 있다 — 알림음과 음성을 섞어 올리는 게 자연스럽다.
+   * kinds는 files와 같은 순서의 JSON 배열이다 (FormData는 넣은 순서를 지킨다).
+   * 없거나 깨졌으면 예전처럼 kind 하나를 전부에 적용한다.
+   */
+  const fallback = KINDS.includes(req.body.kind) ? req.body.kind : 'alarm';
+  let kinds = [];
+  try {
+    const parsed = JSON.parse(req.body.kinds ?? '[]');
+    if (Array.isArray(parsed)) kinds = parsed;
+  } catch {
+    kinds = [];
+  }
+  const kindAt = (i) => (KINDS.includes(kinds[i]) ? kinds[i] : fallback);
 
   /*
    * 한 장씩 따로 처리한다 — 한 파일이 잘못돼도 나머지는 들어가야 한다.
@@ -64,7 +77,7 @@ router.post('/sounds', upload.array('files', MAX_FILES), async (req, res) => {
   const last = await TimerSound.findOne({ order: [['sort_order', 'DESC']] }).catch(() => null);
   let order = (last?.sort_order ?? -1) + 1;
 
-  for (const file of files) {
+  for (const [index, file] of files.entries()) {
     // 이름은 따로 받지 않는다 — 화면에 보이는 건 순서대로 매기는 번호이고,
     // 여기 이름은 "어떤 파일인지" 알아보기 위한 것이라 올린 파일명이 가장 정확하다
     const name = file.originalname.trim() || '이름 없음';
@@ -81,7 +94,7 @@ router.post('/sounds', upload.array('files', MAX_FILES), async (req, res) => {
       await uploadObject(path, file.buffer, EXT_TYPES[ext]);
       try {
         const row = await TimerSound.create({
-          key, name, kind, path, size: file.size, sort_order: order,
+          key, name, kind: kindAt(index), path, size: file.size, sort_order: order,
         });
         order += 1;
         added.push(serialize(row));

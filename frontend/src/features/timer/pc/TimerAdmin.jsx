@@ -225,7 +225,6 @@ const extOf = (name) => (name.split('.').pop() || '').toLowerCase()
  */
 function UploadDialog({ onClose, onDone }) {
   const [items, setItems] = useState([])
-  const [kind, setKind] = useState('alarm')
   const [dragOver, setDragOver] = useState(false)
   const [skipped, setSkipped] = useState(0)
   const [error, setError] = useState(null)
@@ -246,13 +245,18 @@ function UploadDialog({ onClose, onDone }) {
         const sig = `${file.name}:${file.size}`
         if (seen.has(sig)) continue
         seen.add(sig)
-        add.push({ id: sig + Math.random(), file })
+        // 대부분 알림음이라 그걸 기본으로 두고, 음성만 바꾸면 된다
+        add.push({ id: sig + Math.random(), file, kind: 'alarm' })
       }
       return [...prev, ...add]
     })
   }
 
   const removeItem = (id) => setItems((prev) => prev.filter((it) => it.id !== id))
+  const setItemKind = (id, kind) =>
+    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, kind } : it)))
+  /** 하나씩 바꾸기 번거로울 때 — 음성만 여러 개 올리는 경우가 있다 */
+  const setAllKinds = (kind) => setItems((prev) => prev.map((it) => ({ ...it, kind })))
 
   const submit = async () => {
     if (!items.length) { setError('파일을 골라 주세요'); return }
@@ -262,7 +266,8 @@ function UploadDialog({ onClose, onDone }) {
     try {
       const form = new FormData()
       for (const it of items) form.append('files', it.file)
-      form.append('kind', kind)
+      // files와 같은 순서 (FormData는 넣은 순서를 지킨다)
+      form.append('kinds', JSON.stringify(items.map((it) => it.kind)))
       const res = await fetch('/api/admin/timer/sounds', {
         method: 'POST',
         credentials: 'include',
@@ -327,10 +332,22 @@ function UploadDialog({ onClose, onDone }) {
             </p>
           )}
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>종류</span>
-            <Select options={KIND_OPTIONS} value={kind} onChange={setKind} />
-          </label>
+          {items.length > 1 && (
+            <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-dim)' }}>
+              <span>모두</span>
+              {KIND_OPTIONS.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => setAllKinds(o.value)}
+                  className="rounded border px-2 py-1 hover:bg-[var(--btn-bg-hover)]"
+                  style={{ background: 'var(--btn-bg)', borderColor: 'var(--btn-border)', color: 'var(--text-emphasis)' }}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {items.length > 0 && (
             <div className="space-y-2">
@@ -351,6 +368,13 @@ function UploadDialog({ onClose, onDone }) {
                     <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-dim)' }}>
                       {(item.file.size / 1024).toFixed(0)} KB
                     </p>
+                  </div>
+                  <div className="w-[104px] shrink-0">
+                    <Select
+                      options={KIND_OPTIONS}
+                      value={item.kind}
+                      onChange={(v) => setItemKind(item.id, v)}
+                    />
                   </div>
                   <button
                     type="button"
