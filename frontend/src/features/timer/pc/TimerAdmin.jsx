@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Reorder, useDragControls } from 'framer-motion'
 import { api } from '../../../api/client'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
+import Modal from '../../../components/common/Modal'
 import Select from '../../../components/common/Select'
 import { PageHeader, Panel, Button, EmptyBox, GripIcon } from '../../admin/pc/components/ui'
 
@@ -212,22 +213,55 @@ function IconBtn({ label, danger, onClick, children }) {
   )
 }
 
-/** 한 번에 여러 개를 올린다 — 종류만 정하면 된다 (이름은 파일명 그대로) */
+/** 서버가 받아주는 형식 — 여기서 미리 걸러야 올리고 나서 실패하는 일이 없다 */
+const AUDIO_EXT = ['mp3', 'ogg', 'wav', 'm4a']
+const extOf = (name) => (name.split('.').pop() || '').toLowerCase()
+
+/**
+ * 한 번에 여러 개를 올린다 — 종류만 정하면 된다 (이름은 파일명 그대로).
+ *
+ * 고른 것을 목록으로 펼쳐 보여주고 하나씩 뺄 수 있게 한 건, 파일 선택창의
+ * "파일 3개"만으로는 뭘 골랐는지 알 수 없어서다. 이미지 업로드(UploadModal)와 같은 모양.
+ */
 function UploadDialog({ onClose, onDone }) {
-  const [files, setFiles] = useState([])
+  const [items, setItems] = useState([])
   const [kind, setKind] = useState('alarm')
+  const [dragOver, setDragOver] = useState(false)
+  const [skipped, setSkipped] = useState(0)
   const [error, setError] = useState(null)
   const [failed, setFailed] = useState([])
   const [busy, setBusy] = useState(false)
 
+  const addFiles = (fileList) => {
+    const picked = Array.from(fileList)
+    const ok = picked.filter((f) => AUDIO_EXT.includes(extOf(f.name)))
+    setSkipped(picked.length - ok.length)
+    setError(null)
+    setFailed([])
+    setItems((prev) => {
+      // 끌어다 놓기로 쌓다 보면 같은 파일을 두 번 넣기 쉽다 — 이름·크기가 같으면 한 번만
+      const seen = new Set(prev.map((it) => `${it.file.name}:${it.file.size}`))
+      const add = []
+      for (const file of ok) {
+        const sig = `${file.name}:${file.size}`
+        if (seen.has(sig)) continue
+        seen.add(sig)
+        add.push({ id: sig + Math.random(), file })
+      }
+      return [...prev, ...add]
+    })
+  }
+
+  const removeItem = (id) => setItems((prev) => prev.filter((it) => it.id !== id))
+
   const submit = async () => {
-    if (!files.length) { setError('파일을 골라 주세요'); return }
+    if (!items.length) { setError('파일을 골라 주세요'); return }
     setBusy(true)
     setError(null)
     setFailed([])
     try {
       const form = new FormData()
-      for (const f of files) form.append('files', f)
+      for (const it of items) form.append('files', it.file)
       form.append('kind', kind)
       const res = await fetch('/api/admin/timer/sounds', {
         method: 'POST',
@@ -245,7 +279,7 @@ function UploadDialog({ onClose, onDone }) {
        */
       if (result.failed?.length) {
         setFailed(result.failed)
-        setFiles([])
+        setItems([])
         onDone({ keepOpen: true })
         return
       }
@@ -258,41 +292,79 @@ function UploadDialog({ onClose, onDone }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center px-4" style={{ background: 'var(--dialog-backdrop)' }}>
-      <div
-        className="w-full max-w-[380px] rounded-xl overflow-hidden"
-        style={{ background: 'var(--mpl-card)', border: '1px solid var(--mpl-card-line)' }}
-      >
-        <div
-          className="px-4 py-3 text-[15px] font-bold"
-          style={{ background: 'linear-gradient(180deg, var(--mpl-slate-from), var(--mpl-slate-to))', color: '#fff' }}
-        >
-          알림음 추가
-        </div>
-        <div className="p-4 flex flex-col gap-3">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>
-              파일 (mp3 · ogg · wav · m4a)
-            </span>
+    <Modal
+      open
+      onClose={onClose}
+      title={`알림음 업로드${items.length > 0 ? ` (${items.length})` : ''}`}
+      maxWidth="max-w-2xl"
+    >
+      <div className="flex flex-col flex-1 min-h-0">
+        <div className="p-6 space-y-4 overflow-y-auto flex-1">
+          <label
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files) }}
+            className="relative rounded-xl border-2 border-dashed cursor-pointer min-h-[120px] flex flex-col items-center justify-center"
+            style={dragOver
+              ? { borderColor: 'var(--selected-border)', background: 'var(--selected-bg)' }
+              : { borderColor: 'var(--dashed-border)', background: 'var(--skeleton-bg)' }}
+          >
+            <div className="text-2xl mb-1 opacity-50">🎵</div>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>클릭하거나 음원을 끌어다 놓으세요</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-dim)' }}>여러 개 선택 가능 · mp3 · ogg · wav · m4a</p>
             <input
               type="file"
-              multiple
               accept=".mp3,.ogg,.wav,.m4a,audio/*"
-              onChange={(e) => { setFiles([...(e.target.files ?? [])]); setError(null); setFailed([]) }}
-              className="text-[13px]"
-              style={{ color: 'var(--text-muted)' }}
+              multiple
+              onChange={(e) => { addFiles(e.target.files); e.target.value = '' }}
+              className="hidden"
             />
-            <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-              {files.length > 1
-                ? `${files.length}개 선택됨 — 고른 순서대로 목록 끝에 추가됩니다`
-                : '여러 개를 한 번에 고를 수 있습니다'}
-            </span>
           </label>
+
+          {skipped > 0 && (
+            <p className="text-xs" style={{ color: 'var(--danger-text)' }}>
+              {skipped}개는 지원하지 않는 형식이라 제외했습니다
+            </p>
+          )}
 
           <label className="flex flex-col gap-1.5">
             <span className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>종류</span>
             <Select options={KIND_OPTIONS} value={kind} onChange={setKind} />
           </label>
+
+          {items.length > 0 && (
+            <div className="space-y-2">
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-3 rounded-lg border p-2"
+                  style={{ background: 'var(--surface-3)', borderColor: 'var(--panel-border)' }}
+                >
+                  <div
+                    className="w-12 h-12 rounded grid place-items-center shrink-0 text-lg"
+                    style={{ background: 'var(--surface-nested)' }}
+                  >
+                    🎵
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm truncate" style={{ color: 'var(--text-strong)' }}>{item.file.name}</p>
+                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-dim)' }}>
+                      {(item.file.size / 1024).toFixed(0)} KB
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="제외"
+                    onClick={() => removeItem(item.id)}
+                    className="w-7 h-7 rounded shrink-0 hover:bg-[var(--danger-bg-hover)] hover:text-[var(--danger-text)]"
+                    style={{ color: 'var(--text-dim)' }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           {error && <p className="text-[13px]" style={{ color: 'var(--danger-text)' }}>{error}</p>}
 
@@ -308,15 +380,33 @@ function UploadDialog({ onClose, onDone }) {
               ))}
             </div>
           )}
+        </div>
 
-          <div className="flex justify-end gap-2 pt-1">
-            <Button variant="ghost" onClick={onClose} disabled={busy}>{failed.length ? '닫기' : '취소'}</Button>
-            <Button onClick={submit} disabled={busy || !files.length}>
-              {busy ? '올리는 중…' : files.length > 1 ? `${files.length}개 올리기` : '올리기'}
-            </Button>
-          </div>
+        <div className="flex gap-2 px-6 py-4 border-t shrink-0" style={{ borderColor: 'var(--panel-border)' }}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+            className="flex-1 rounded-lg border px-4 py-2 text-sm hover:bg-[var(--btn-bg-hover)] disabled:opacity-50"
+            style={{ background: 'var(--btn-bg)', borderColor: 'var(--btn-border)', color: 'var(--text-emphasis)' }}
+          >
+            {failed.length ? '닫기' : '취소'}
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={busy || !items.length}
+            className="flex-1 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 hover:bg-[var(--btn-primary-bg-hover)]"
+            style={{
+              background: 'var(--btn-primary-bg)',
+              color: 'var(--btn-primary-text)',
+              boxShadow: 'var(--btn-primary-shadow)',
+            }}
+          >
+            {busy ? '업로드 중...' : `${items.length > 0 ? `${items.length}개 ` : ''}업로드`}
+          </button>
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }
