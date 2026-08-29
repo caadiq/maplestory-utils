@@ -30,12 +30,8 @@ docs/images/*
 # 작업용 시안 (커밋 제외)
 mockups/
 
-# 분석용 화면 캡처 — 결론은 코드·주석에 남기고 파일은 커밋하지 않는다.
-# 사이트 구동에는 쓰이지 않고(코드는 S3의 /api/images만 본다) 용량만 27MB였다.
-# 보스·난이도 아이콘은 S3에 올릴 원본이라 남긴다.
-images/*.mp4
-images/*.png
-images/resolution-reference/
-# 타이머 템플릿은 frontend/src/features/timer/{rune,booster}/ 가 원본 — 여기 사본은 중복
-images/rune-templates/
-images/booster-templates/
+# images/ 는 통째로 작업용이다 — 코드가 여기를 읽는 곳은 한 군데도 없다.
+#   화면에 나가는 보스 이미지: 관리자에서 등록할 때 S3로 올라가고 /api/images로 받는다
+#   난이도 표시: 이미지가 아니라 글자+색(pc/admin/constants.js)
+#   타이머 템플릿: frontend/src/features/timer/{icon,minimap,rune,booster}/ 가 원본
+images/
