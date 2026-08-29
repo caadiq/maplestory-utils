@@ -9,16 +9,19 @@ import { useBackClose } from '../../hooks/useBackClose'
 function SundayMapleDialog({ data, onClose }) {
   useBackClose(true, onClose)
 
-  // 배경 스크롤 잠금
+  /*
+   * 배경 스크롤 잠금은 **html에만** 건다.
+   *
+   * body에 overflow:hidden을 주면 body가 스크롤 컨테이너가 되면서 상단 sticky 헤더가
+   * 풀린다 — 실측: 헤더가 top 0에서 -150으로 밀려 화면 밖으로 나갔다.
+   * 열려 있는 동안엔 배경에 가려 안 보이다가, 배경이 걷히는 순간 헤더가 사라진 채로
+   * 한 프레임 그려져서 깜빡였다. html만 잠가도 스크롤은 그대로 막힌다(실측).
+   */
   useEffect(() => {
-    const prevBody = document.body.style.overflow
-    const prevHtml = document.documentElement.style.overflow
-    document.body.style.overflow = 'hidden'
-    document.documentElement.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = prevBody
-      document.documentElement.style.overflow = prevHtml
-    }
+    const root = document.documentElement
+    const prev = root.style.overflow
+    root.style.overflow = 'hidden'
+    return () => { root.style.overflow = prev }
   }, [])
 
   const iconBtn = "w-8 h-8 rounded-lg backdrop-blur-sm border flex items-center justify-center hover:bg-[var(--row-hover-bg)]"
