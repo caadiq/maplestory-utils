@@ -58,24 +58,6 @@ const SLATE_BAR = {
   textShadow: '0 1px 1px rgba(44,55,69,.3)',
 }
 
-/**
- * 쿨타임 숫자로 설치 시각을 맞추는 중일 때만 띄운다.
- * 맞춰지는 순간 타이머가 살짝 점프하는데, 이유를 모르면 오작동처럼 보인다.
- * 끝나고 나면 알릴 것이 없으므로 조용히 사라진다.
- */
-function SyncPill({ sync }) {
-  if (sync !== 'pending') return null
-  return (
-    <span
-      className="text-[12.5px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap animate-pulse"
-      style={{ color: '#ffd76a', background: 'rgba(255,215,106,.14)', borderColor: 'rgba(255,215,106,.38)' }}
-      title="쿨타임 숫자를 읽어 게임 시계에 맞추는 중입니다"
-    >
-      ⟳ 보정 중
-    </span>
-  )
-}
-
 export default function Timer() {
   const [settings, setSettings] = useState(loadSettings)
   const [picking, setPicking] = useState(false)
@@ -169,7 +151,7 @@ export default function Timer() {
   const cycleMs = (isDusk ? alarmAtSec : durationSec) * 1000
 
   const {
-    stream, region, setRegion, install, stale, error, iconLost, sync,
+    stream, region, setRegion, install, stale, error, iconLost,
     videoRef, start, stop, resetCycle, locate, hasTemplate, log,
   } = useJanusDetector({
     onInstall: handleInstall,
@@ -521,7 +503,6 @@ export default function Timer() {
                   <span className="text-[13px] font-extrabold tracking-wide" style={{ color: 'var(--mpl-title-yellow)' }}>
                     다음 알림까지
                   </span>
-                  <SyncPill sync={sync} />
                 </div>
                 {countdownMs != null && countdownMs > 0 ? (
                   <div
@@ -818,7 +799,6 @@ export default function Timer() {
             idleLabel={isDusk ? '쿨타임 대기' : '설치 대기'}
             progress={progress}
             cycleIndex={install?.index ?? 0}
-            sync={sync}
             onReset={resetCycle}
           />
         </div>,

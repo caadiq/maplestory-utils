@@ -140,7 +140,6 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
   const [install, setInstall] = useState(null) // {index, at}
   const [logs, setLogs] = useState([])
   const [stale, setStale] = useState(false)
-  const [sync, setSync] = useState(null)      // 쿨타임 숫자로 설치 시각 보정 — 'pending' | 'done' | null
   const [iconLost, setIconLost] = useState(false)
   const [error, setError] = useState(null)
   const [, setTick] = useState(0)
@@ -1031,11 +1030,6 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
           cbRef.current.onIconLostTooLong?.()
         }
       }
-      // 황혼은 쿨타임이 3초라 카운트다운으로 시각을 보정할 여지가 없다 — 보정 표시 자체를 쓰지 않는다
-      setSync(modeRef.current === 'dusk' || !installRef.current
-        ? null
-        : (trackerRef.current.locked ? 'done' : 'pending'))
-
       /*
        * 황혼 — 한 바퀴가 끝나면 곧바로 다음 바퀴로 잇는다.
        *
@@ -1093,7 +1087,7 @@ export function useJanusDetector({ onInstall, onModeMismatch, onIconLostTooLong,
 
   return {
     stream, region, setRegion,
-    install, logs, error, iconLost, sync,
+    install, logs, error, iconLost,
     // 공유가 끊기면 경고도 같이 내린다
     stale: stream ? stale : false,
     videoRef,

@@ -5,7 +5,7 @@ import { TimerResetIcon, IconButton } from './icons'
  * 미니 HUD — PiP 창으로 분리해 게임 위에 띄우는 타이머.
  * 본 화면의 오버레이 패널과 같은 모양으로 맞춰 둘 사이에 낯섦이 없게 한다.
  */
-export default function MiniBar({ active, remainingMs, progress, cycleIndex, sync, onReset, idleLabel = '설치 대기' }) {
+export default function MiniBar({ active, remainingMs, progress, cycleIndex, onReset, idleLabel = '설치 대기' }) {
   return (
     <div
       className="rounded-2xl px-5 py-4 flex flex-col gap-3"
@@ -20,14 +20,6 @@ export default function MiniBar({ active, remainingMs, progress, cycleIndex, syn
           다음 알림까지
         </span>
         <span className="flex-1" />
-        {sync === 'pending' && (
-          <span
-            className="text-[12.5px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap"
-            style={{ color: '#ffd76a', background: 'rgba(255,215,106,.14)', borderColor: 'rgba(255,215,106,.38)' }}
-          >
-            ⟳ 보정 중
-          </span>
-        )}
         <span
           className="text-[12.5px] font-extrabold px-2 py-0.5 rounded border"
           style={active
