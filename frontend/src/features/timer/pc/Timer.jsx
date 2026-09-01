@@ -6,6 +6,9 @@ import MapleWindow from '../../../components/pc/MapleWindow'
 import Select from '../../../components/common/Select'
 import { TimerResetIcon, PipIcon, TargetIcon, ScreenOffIcon, BellIcon, IconButton } from './icons'
 import { useJanusDetector } from '../useJanusDetector'
+import { useNameplateDetector } from '../useNameplateDetector'
+import { loadProfiles, saveProfiles, snapshot, newId, toRuntime } from '../profiles'
+import { useAuth } from '../../../hooks/useAuth'
 import { useRuneDetector, runeKindLabel } from '../useRuneDetector'
 import { useRuneMarkDetector } from '../useRuneMarkDetector'
 
@@ -17,6 +20,7 @@ import { usePipWindow } from '../usePipWindow'
 import { Toggle } from '../../../components/common/widgets'
 import RegionPicker from './RegionPicker'
 import RegionPickerModal from './RegionPickerModal'
+import ProfileDialog from './ProfileDialog'
 import CandidatePicker from './CandidatePicker'
 import MiniBar from './MiniBar'
 import {
@@ -193,6 +197,56 @@ export default function Timer() {
     // 스위치를 끄면 소리뿐 아니라 감지·타이머까지 멈춘다 (룬·부스터 스위치와 같은 동작)
     enabled: settings.alarmEnabled,
   })
+
+  /* ── 캐릭터 프로필 ──────────────────────────────────────── */
+
+  const { user } = useAuth()
+  const [profiles, setProfiles] = useState([])
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [currentProfile, setCurrentProfile] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    loadProfiles(user).then((list) => { if (alive) setProfiles(list) })
+    return () => { alive = false }
+  }, [user])
+
+  /** 저장은 항상 목록 통째로 — 서버도 한 덩어리로 받는다 */
+  const putProfiles = useCallback((next) => {
+    setProfiles(next)
+    saveProfiles(user, next)
+  }, [user])
+
+  // 감지에 넘길 모양 (patch를 Float32Array로) — 목록이 바뀔 때만 다시 만든다
+  const runtimeProfiles = useMemo(() => toRuntime(profiles), [profiles])
+  const current = profiles.find((p) => p.id === currentProfile) || null
+
+  const applyProfile = useCallback((id) => {
+    const p = profiles.find((x) => x.id === id)
+    if (!p) return
+    setCurrentProfile(id)
+    set(p.settings)
+    log(`${p.memo || '등록한 캐릭터'} 설정으로 바꿨습니다`, '자동', 'ok')
+  }, [profiles, set, log])
+
+  const { capture: captureNameplate, setCurrent: markCurrentProfile } = useNameplateDetector({
+    videoRef,
+    stream,
+    enabled: profiles.length >= 2,
+    profiles: runtimeProfiles,
+    onProfile: applyProfile,
+  })
+
+  const addProfile = useCallback(() => {
+    if (!stream) return '화면 공유를 먼저 시작해 주세요'
+    const shot = captureNameplate()
+    if (!shot) return '닉네임을 못 읽었습니다 — 좌하단 이름이 가려지지 않았는지 확인해 주세요'
+    const id = newId()
+    putProfiles([...profiles, { id, ...shot, memo: '', settings: snapshot(settings) }])
+    setCurrentProfile(id)
+    markCurrentProfile(id)
+    return null
+  }, [stream, captureNameplate, profiles, putProfiles, settings, markCurrentProfile])
 
   useEffect(() => { resetCycleRef.current = resetCycle }, [resetCycle])
 
@@ -471,6 +525,22 @@ export default function Timer() {
       titleRight={(
         <div className="flex items-center gap-2">
           {stale && <Badge tone="warn">⚠ 화면이 갱신되지 않음</Badge>}
+          {/* 지금 어느 캐릭터로 보고 있는지 — 잘라낸 조각이 곧 이름표다 */}
+          {current && (
+            <span className="flex items-center gap-1.5">
+              {current.thumb && (
+                <img
+                  src={current.thumb}
+                  alt=""
+                  style={{ height: 20, imageRendering: 'pixelated', borderRadius: 3, display: 'block' }}
+                />
+              )}
+              {current.memo && (
+                <span className="text-[12px] font-bold" style={{ color: '#cfe6f5' }}>{current.memo}</span>
+              )}
+            </span>
+          )}
+          <BarButton onClick={() => setProfileOpen(true)}>캐릭터 프로필</BarButton>
           <Badge tone={!settings.alarmEnabled ? 'wait' : active ? 'live' : 'wait'}>{!settings.alarmEnabled
             ? '○ 야누스 알림 꺼짐'
             : active
@@ -772,6 +842,26 @@ export default function Timer() {
           onClose={() => setCandidates(null)}
         />
       )}
+
+      <ProfileDialog
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        profiles={profiles}
+        currentId={currentProfile}
+        capturing={!stream}
+        onAdd={addProfile}
+        onMemo={(id, memo) => putProfiles(profiles.map((p) => (p.id === id ? { ...p, memo } : p)))}
+        onSaveSettings={(id) => {
+          putProfiles(profiles.map((p) => (p.id === id ? { ...p, settings: snapshot(settings) } : p)))
+          setCurrentProfile(id)
+          markCurrentProfile(id)
+        }}
+        onRemove={(id) => {
+          putProfiles(profiles.filter((p) => p.id !== id))
+          if (currentProfile === id) setCurrentProfile(null)
+        }}
+        onPick={(id) => { applyProfile(id); markCurrentProfile(id) }}
+      />
 
       {pickingMark && (
         <RegionPickerModal
