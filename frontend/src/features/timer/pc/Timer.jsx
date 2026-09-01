@@ -525,20 +525,45 @@ export default function Timer() {
       titleRight={(
         <div className="flex items-center gap-2">
           {stale && <Badge tone="warn">⚠ 화면이 갱신되지 않음</Badge>}
-          {/* 지금 어느 캐릭터로 보고 있는지 — 잘라낸 조각이 곧 이름표다 */}
-          {current && (
-            <span className="flex items-center gap-1.5">
-              {current.thumb && (
-                <img
-                  src={current.thumb}
-                  alt=""
-                  style={{ height: 20, imageRendering: 'pixelated', borderRadius: 3, display: 'block' }}
-                />
-              )}
-              {current.memo && (
-                <span className="text-[12px] font-bold" style={{ color: '#cfe6f5' }}>{current.memo}</span>
-              )}
-            </span>
+          {/*
+            * 지금 어느 캐릭터로 보고 있는지.
+            * 메모를 적었으면 그것만 배지로 — 조각까지 같이 두면 같은 말을 두 번 하는 셈이다.
+            * 안 적었으면 조각이 유일한 이름표라 그대로 띄운다.
+            */}
+          {current && (current.memo
+            ? (
+              <span
+                className="flex items-center gap-1 text-[12px] font-extrabold px-2 py-0.5 rounded border whitespace-nowrap"
+                style={{
+                  color: '#ffe9a8',
+                  background: 'rgba(255,214,106,.14)',
+                  borderColor: 'rgba(255,214,106,.38)',
+                }}
+                title="지금 이 캐릭터의 설정으로 돌고 있습니다"
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style={{ opacity: .85 }}>
+                  <path
+                    d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"
+                    stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                  />
+                </svg>
+                {current.memo}
+              </span>
+            )
+            : current.thumb && (
+              <img
+                src={current.thumb}
+                alt="지금 캐릭터"
+                title="지금 이 캐릭터의 설정으로 돌고 있습니다"
+                style={{
+                  height: 20,
+                  imageRendering: 'pixelated',
+                  borderRadius: 4,
+                  display: 'block',
+                  border: '1px solid rgba(255,255,255,.22)',
+                }}
+              />
+            )
           )}
           <BarButton onClick={() => setProfileOpen(true)}>캐릭터 프로필</BarButton>
           <Badge tone={!settings.alarmEnabled ? 'wait' : active ? 'live' : 'wait'}>{!settings.alarmEnabled
