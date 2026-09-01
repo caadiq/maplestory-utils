@@ -2,7 +2,8 @@ import { useEffect, useRef, useCallback } from 'react'
 import { contentBox } from './locateCore'
 import { measuredUiScale } from './uiCalibration'
 import {
-  NAMEPLATE, toGray, inkWidth, calibrate, scoreProfiles, decide, searchBand,
+  NAMEPLATE, toGray, calibrate, scoreProfiles, decide, searchBand,
+  findExpBar, findNameSpan,
 } from './nameplateCore'
 
 /**
@@ -49,18 +50,31 @@ export function useNameplateDetector({ videoRef, stream, enabled, profiles, onPr
     canvas.width = vw
     canvas.height = vh
     const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    let full
     try {
       ctx.drawImage(video, 0, 0, vw, vh)
+      full = ctx.getImageData(0, 0, vw, vh).data
     } catch {
       return null   // 프레임이 아직 안 왔다
     }
-    let bottom = vh
-    try {
-      bottom = contentBox(ctx.getImageData(0, 0, vw, vh).data, vw, vh).bottom
-    } catch {
-      // 못 재면 캡처 바닥을 쓴다 — 레터박스가 있으면 보정이 실패하고 다시 시도한다
+    /*
+     * 게임 화면 바닥은 경험치 바에서 얻는다 — contentBox는 확장 UI에서
+     * 옆에 뜬 창까지 화면으로 쳐서 어긋난다. 못 찾으면 contentBox로 물러선다.
+     */
+    const bar = findExpBar(full, vw, vh)
+    let bottom
+    let s
+    if (bar) {
+      s = (bar.top + 10) / 768
+      bottom = bar.top + Math.round(10.1 * s)
+    } else {
+      try {
+        bottom = contentBox(full, vw, vh).bottom
+      } catch {
+        bottom = vh
+      }
+      s = measuredUiScale(vw, vh) ?? Math.max(1, bottom / 768)
     }
-    const s = measuredUiScale(vw, vh) ?? Math.max(1, bottom / 768)
     const box = searchBand(vw, vh, bottom, s)
     let rgba
     try {
@@ -78,50 +92,53 @@ export function useNameplateDetector({ videoRef, stream, enabled, profiles, onPr
    * 등록은 조용한 화면에서 한 번 하는 일이라 그때만 쓰면 안전하다.
    */
   const capture = useCallback(() => {
-    const band = grabBand()
-    if (!band) return null
-    const { gray, rgba, w, h, s, box } = band
-
-    // 이미 자리를 알면 그 자리에서, 모르면 등록된 프로필로 훑어 본다
-    let x = spotRef.current?.x
-    let y = spotRef.current?.y
-    if (x == null) {
-      const list = profilesRef.current || []
-      const found = list.length ? calibrate(gray, w, h, list, s) : null
-      if (found) { x = found.x; y = found.y }
+    const video = videoRef.current
+    const vw = video?.videoWidth
+    const vh = video?.videoHeight
+    if (!vw || !vh) return null
+    const canvas = document.createElement('canvas')
+    canvas.width = vw
+    canvas.height = vh
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    let full
+    try {
+      ctx.drawImage(video, 0, 0, vw, vh)
+      full = ctx.getImageData(0, 0, vw, vh).data
+    } catch {
+      return null
     }
-    if (x == null) {
-      // 아무 단서도 없다 — 위컴알 좌표로 잡는다. 게임 화면이 캡처 왼쪽에 붙어 있을 때만 맞다
-      x = Math.round(NAMEPLATE.anchorX * s)
-      y = Math.max(0, Math.round(band.bottom - NAMEPLATE.anchorY * s) - box.y)
-    }
-    const ph = Math.min(h - y, Math.round(NAMEPLATE.fontHeight * s) + 2)
-    if (ph < 4) return null
 
-    // 넉넉히 떠서 잉크 폭을 잰다
-    const probeW = Math.min(w - x, Math.round(160 * s))
-    if (probeW < 8) return null
-    const strip = new Uint8ClampedArray(probeW * ph * 4)
-    for (let j = 0; j < ph; j++) {
-      const src = ((y + j) * w + x) * 4
-      strip.set(rgba.subarray(src, src + probeW * 4), j * probeW * 4)
-    }
-    const pw = inkWidth(strip, probeW, ph, s)
-    if (pw < 6) return null
+    /*
+     * 게임 화면 왼쪽 끝은 **경험치 바**로 잡는다.
+     * 캡처 왼쪽에 붙어 있다고 가정하면 확장 UI에서 검은 여백을 자른다
+     * (실사용 보고: 조각이 몇 px짜리로 잘렸다). contentBox의 left도 못 쓴다 —
+     * 게임 왼쪽에 뜬 UI 창을 화면 시작으로 잡는다(nameplateCore 주석 참고).
+     */
+    const bar = findExpBar(full, vw, vh)
+    if (!bar) return null
+    const span = findNameSpan(full, vw, vh, bar.left, bar.top)
+    if (!span) return null
 
-    const patch = new Float32Array(pw * ph)
-    for (let j = 0; j < ph; j++) {
-      for (let i = 0; i < pw; i++) patch[j * pw + i] = gray[(y + j) * w + x + i]
+    const s = (bar.top + 10) / 768
+    const patch = new Float32Array(span.w * span.h)
+    const thumbData = new Uint8ClampedArray(span.w * span.h * 4)
+    for (let j2 = 0; j2 < span.h; j2++) {
+      const src = ((span.y + j2) * vw + span.x) * 4
+      thumbData.set(full.subarray(src, src + span.w * 4), j2 * span.w * 4)
+      for (let i2 = 0; i2 < span.w; i2++) {
+        const p = src + i2 * 4
+        patch[j2 * span.w + i2] = 0.299 * full[p] + 0.587 * full[p + 1] + 0.114 * full[p + 2]
+      }
     }
     return {
       patch: Array.from(patch),   // JSON으로 저장하므로 일반 배열로
-      pw,
-      ph,
+      pw: span.w,
+      ph: span.h,
       scale: s,
       // 화면에 보여줄 조각 (사용자가 제대로 잘렸는지 눈으로 확인한다)
-      thumb: thumbOf(rgba, w, x, y, pw, ph),
+      thumb: thumbOf(thumbData, span.w, span.h),
     }
-  }, [grabBand])
+  }, [videoRef])
 
   /* ── 감지 루프 ─────────────────────────────────────────── */
 
@@ -199,17 +216,14 @@ export function useNameplateDetector({ videoRef, stream, enabled, profiles, onPr
 }
 
 /** 잘라낸 조각을 화면에 띄울 data URL로 (사용자가 눈으로 확인하는 용도) */
-function thumbOf(rgba, w, x, y, pw, ph) {
+function thumbOf(rgba, w, h) {
   try {
     const c = document.createElement('canvas')
-    c.width = pw
-    c.height = ph
+    c.width = w
+    c.height = h
     const ctx = c.getContext('2d')
-    const img = ctx.createImageData(pw, ph)
-    for (let j = 0; j < ph; j++) {
-      const src = ((y + j) * w + x) * 4
-      img.data.set(rgba.subarray(src, src + pw * 4), j * pw * 4)
-    }
+    const img = ctx.createImageData(w, h)
+    img.data.set(rgba)
     ctx.putImageData(img, 0, 0)
     return c.toDataURL('image/png')
   } catch {

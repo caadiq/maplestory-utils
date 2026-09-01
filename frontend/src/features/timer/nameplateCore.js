@@ -185,13 +185,25 @@ export function prepareTemplates(profile, widths) {
   return out
 }
 
-/** 배율 힌트로 폭 후보를 만든다. 배율이 틀려도 ±calibDw가 흡수한다 */
-export function widthCandidates(profile, s, spread = NAMEPLATE.calibDw) {
+/**
+ * 폭 후보를 만든다.
+ *
+ * 배율을 곱해 한 값으로 정하지 않고 **범위**로 둔다 — 경험치 바로 구한 배율은
+ * 확장 UI에서 8% 어긋난다(뷰포트는 902px인데 UI는 838px 상당으로 그려진다).
+ * 그대로 쓰면 폭이 68이 나와야 할 자리에 76이 필요해 못 맞춘다(실측).
+ */
+export function widthCandidates(profile, s, spread = 0.12) {
   const center = Math.max(6, Math.round(profile.pw * (s / profile.scale)))
+  const span = Math.max(4, Math.round(center * spread))
   const set = new Set()
-  for (let d = -spread; d <= spread; d++) set.add(Math.max(6, center + d))
+  for (let d = -span; d <= span; d++) set.add(Math.max(6, center + d))
   return [...set].sort((a, b) => a - b)
 }
+
+/** 성긴 단계에서 이 점수를 넘은 자리만 후보로 본다 (1~2px 어긋난 정답도 이 위에 있다) */
+const COARSE_MIN = 0.45
+/** 겹치지 않는 상위 이만큼을 정련한다 */
+const COARSE_KEEP = 10
 
 /**
  * 자리를 모른 채 화면 하단 띠를 훑어 닉네임 판을 찾는다.
@@ -205,37 +217,61 @@ export function widthCandidates(profile, s, spread = NAMEPLATE.calibDw) {
 export function calibrate(band, bw, bh, profiles, s) {
   /*
    * 성긴 훑기 → 정련. 전수로 하면 1920폭에서 3.6초가 걸린다(실측).
-   * 자리만 찾으면 되므로 폭 후보도 성긴 단계에서는 가운데 하나만 쓴다 —
-   * 폭이 몇 px 달라도 봉우리 자리는 그대로다.
+   *
+   * **x는 한 칸씩 훑는다.** 닉네임은 세로획이 촘촘해서 가로로 1px만 어긋나도
+   * NCC가 1.000 → 0.50으로 반토막 나고 2px면 −0.03이 된다(실측).
+   * 두 칸씩 건너뛰면 정답 봉우리를 통째로 지나쳐, 실제로 정답 자리가 1.000인데도
+   * 못 찾았다. 세로는 1px에 0.77이라 두 칸씩 봐도 된다.
+   *
+   * 최고점 하나만 남기지도 않는다 — 격자에 걸린 점수가 낮으면 엉뚱한 자리에 밀린다.
+   * 야누스 탐색처럼 **겹치지 않는 상위 여러 곳**을 남겨 전부 정련한다.
+   */
+  /*
+   * 성긴 단계도 **프로필 전부**로 훑는다. 대표 하나로 줄여 봤더니
+   * 화면에 있는 캐릭터가 그 대표가 아닐 때 자리를 통째로 놓쳤다.
+   * 폭도 몇 단 본다 — 배율 추정이 어긋날 수 있다(widthCandidates 참고).
+   * 보정은 공유를 시작할 때 한 번뿐이라 이 비용은 감당할 만하다(2개 기준 0.7초).
    */
   const coarse = []
   for (const p of profiles) {
     const mid = Math.max(6, Math.round(p.pw * (s / p.scale)))
-    const t = prepareTemplates(p, [mid])[0]
-    if (t && t.W <= bw && t.H <= bh) coarse.push({ p, t })
+    for (const k of [0.88, 1, 1.14]) {
+      const t = prepareTemplates(p, [Math.max(6, Math.round(mid * k))])[0]
+      if (t && t.W <= bw && t.H <= bh) coarse.push({ t })
+    }
   }
   if (!coarse.length) return null
 
-  let rough = null
-  for (const { p, t } of coarse) {
+  const hits = []
+  for (const { t } of coarse) {
     for (let y = 0; y + t.H <= bh; y += 2) {
-      for (let x = 0; x + t.W <= bw; x += 3) {
+      for (let x = 0; x + t.W <= bw; x++) {
         const sc = nccAt(band, bw, bh, t.v, t.W, t.H, x, y)
-        if (!rough || sc > rough.score) rough = { x, y, score: sc, id: p.id }
+        if (sc > COARSE_MIN) hits.push({ x, y, score: sc })
       }
     }
   }
-  if (!rough || rough.score < NAMEPLATE.absent * 0.6) return null
+  if (!hits.length) return null
+  hits.sort((a, b) => b.score - a.score)
 
-  // 정련 — 봉우리 둘레에서 폭까지 함께 맞춘다
+  // 같은 봉우리에서 나온 것들은 하나로 — 서로 떨어진 자리만 남긴다
+  const spots = []
+  for (const h of hits) {
+    if (spots.some((o) => Math.abs(o.x - h.x) < 12 && Math.abs(o.y - h.y) < 6)) continue
+    spots.push(h)
+    if (spots.length >= COARSE_KEEP) break
+  }
+
   let best = null
   for (const p of profiles) {
     for (const t of prepareTemplates(p, widthCandidates(p, s))) {
       if (t.W > bw || t.H > bh) continue
-      for (let y = rough.y - 3; y <= rough.y + 3; y++) {
-        for (let x = rough.x - 4; x <= rough.x + 4; x++) {
-          const sc = nccAt(band, bw, bh, t.v, t.W, t.H, x, y)
-          if (!best || sc > best.score) best = { x, y, W: t.W, H: t.H, score: sc, id: p.id }
+      for (const spot of spots) {
+        for (let y = spot.y - 3; y <= spot.y + 3; y++) {
+          for (let x = spot.x - 3; x <= spot.x + 3; x++) {
+            const sc = nccAt(band, bw, bh, t.v, t.W, t.H, x, y)
+            if (!best || sc > best.score) best = { x, y, W: t.W, H: t.H, score: sc, id: p.id }
+          }
         }
       }
     }
@@ -318,4 +354,121 @@ export function searchBand(vw, vh, bottom, s) {
   const y0 = Math.max(0, bottom - anchor - pad)
   const y1 = Math.min(vh, bottom - anchor + Math.round(NAMEPLATE.fontHeight * s) + pad)
   return { x: 0, y: y0, w: vw, h: Math.max(1, y1 - y0) }
+}
+
+/**
+ * 경험치 바로 **게임 화면 왼쪽 끝**과 바닥을 잡는다.
+ *
+ * 등록할 때 꼭 필요하다 — 그때는 대조할 조각이 없어서 하단 띠를 훑을 수가 없고,
+ * 게임 화면이 캡처 왼쪽에 붙어 있다고 가정하면 확장 UI에서 검은 여백을 자른다
+ * (실사용 보고: 조각이 몇 px짜리 조각으로 잘렸다).
+ *
+ * 노란 바는 게임 화면 왼쪽 끝에서 시작하고 진행도만큼 이어진다.
+ * 실측 18프레임(전체화면·확장 UI·정지화상) 전부 성공 — 확장 UI에서 454(정답 453~454).
+ *
+ * @returns {{left:number, top:number}|null} 캡처 좌표
+ */
+export function findExpBar(data, w, h) {
+  // 실측 RGB 범위 158~237 / 172~243 / 0~20
+  const isExp = (p) => {
+    const r = data[p]; const g = data[p + 1]; const b = data[p + 2]
+    return g > 140 && r > 110 && b < 90 && g - b > 110 && g >= r
+  }
+  /*
+   * 최소 길이는 배율을 곱하지 않는다 — 배율은 캡처 크기에서 어림하는데
+   * 게임이 캡처보다 작으면 과대평가돼 문턱이 너무 높아진다.
+   */
+  const MIN_RUN = 16
+  const rows = []
+  for (let y = 0; y < h; y++) {
+    let best = 0
+    let bestStart = 0
+    let cur = 0
+    let start = 0
+    const base = y * w * 4
+    for (let x = 0; x < w; x++) {
+      if (isExp(base + x * 4)) {
+        if (cur === 0) start = x
+        cur++
+        if (cur > best) { best = cur; bestStart = start }
+      } else cur = 0
+    }
+    if (best >= MIN_RUN) rows.push({ y, start: bestStart, run: best })
+  }
+  if (!rows.length) return null
+
+  // 세로로 이어지는 것끼리 묶는다
+  const groups = [[rows[0]]]
+  for (let i = 1; i < rows.length; i++) {
+    const g = groups[groups.length - 1]
+    if (rows[i].y - g[g.length - 1].y <= 3) g.push(rows[i])
+    else groups.push([rows[i]])
+  }
+  /*
+   * 가장 아래가 아니라 **가장 긴 런**을 가진 묶음을 고른다.
+   * 게임 아래에 분리된 UI 창(채팅 등)이 있으면 아래쪽이 틀린다 —
+   * 경험치 바는 런이 134~1802px인데 채팅 글자는 수십 px이라 확실히 갈린다.
+   */
+  let pick = null
+  for (const g of groups) {
+    if (g.length < 2) continue
+    const run = Math.max(...g.map((r) => r.run))
+    if (!pick || run > pick.run) pick = { g, run }
+  }
+  if (!pick) return null
+  return { left: Math.min(...pick.g.map((r) => r.start)), top: pick.g[0].y }
+}
+
+/**
+ * 등록할 때 닉네임 글자가 실제로 놓인 자리를 찾는다.
+ *
+ * 배율을 정확히 몰라도 된다 — 레벨과 닉네임 사이 틈(UI 13px)이 글자 사이 틈(UI 3px)이나
+ * 레벨 글자 사이 틈(최대 UI 8px)보다 확실히 커서, **처음 나오는 큰 틈**으로 가르면 된다.
+ * 확장 UI에서 배율이 8% 어긋나도 문턱(UI 10px)이 그 사이에 넉넉히 들어간다(실측).
+ *
+ * @returns {{x,y,w,h}|null} 캡처 좌표. 글자를 못 찾으면 null
+ */
+export function findNameSpan(data, w, h, expLeft, expTop) {
+  const s = (expTop + 10) / 768
+  const y0 = Math.round(expTop - 27.9 * s)
+  const hh = Math.round(NAMEPLATE.fontHeight * s) + 3
+  if (y0 < 0 || y0 + hh > h) return null
+  const x1 = Math.min(w, expLeft + Math.round(200 * s))
+
+  // 글자색 FFC4DAE1 — 두 줄 이상 있는 열만 글자로 본다
+  const ink = []
+  for (let x = expLeft; x < x1; x++) {
+    let n = 0
+    for (let y = y0; y < y0 + hh; y++) {
+      const p = (y * w + x) * 4
+      if (data[p + 2] > 140 && data[p + 1] > 130 && data[p] > 110 && data[p + 2] >= data[p]) n++
+    }
+    ink.push(n >= 2)
+  }
+  const runs = []
+  let cur = -1
+  for (let i = 0; i < ink.length; i++) {
+    if (ink[i] && cur < 0) cur = i
+    else if (!ink[i] && cur >= 0) { runs.push([cur, i - 1]); cur = -1 }
+  }
+  if (cur >= 0) runs.push([cur, ink.length - 1])
+  if (runs.length < 2) return null
+
+  const bound = Math.max(6, Math.round(10 * s))
+  let gi = -1
+  for (let i = 0; i < runs.length - 1; i++) {
+    if (runs[i + 1][0] - runs[i][1] >= bound) { gi = i; break }
+  }
+  if (gi < 0) return null
+
+  const start = runs[gi + 1][0]
+  const maxGap = Math.max(3, Math.round(4 * s))
+  let end = start
+  for (let j = gi + 1; j < runs.length; j++) {
+    if (runs[j][0] - end > maxGap) break
+    end = runs[j][1]
+  }
+  const pw = end - start + 1
+  if (pw < 6) return null
+  return { x: expLeft + start, y: y0, w: pw, h: hh }
 }

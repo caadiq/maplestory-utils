@@ -78,11 +78,19 @@ describe('resample · normalizePatch · nccAt', () => {
 describe('widthCandidates', () => {
   it('배율 힌트로 중심을 잡고 그 둘레를 준다', () => {
     const p = { pw: 76, scale: 1.406 }
-    const w = widthCandidates(p, 1.086, 4)
+    const w = widthCandidates(p, 1.086)
     expect(w).toContain(59)          // 76 × 1.086/1.406 ≈ 58.7
-    expect(w.length).toBe(9)
-    expect(Math.min(...w)).toBe(55)
-    expect(Math.max(...w)).toBe(63)
+    expect(Math.min(...w)).toBeLessThan(59)
+    expect(Math.max(...w)).toBeGreaterThan(59)
+  })
+
+  it('배율이 8% 어긋나도 후보 안에 정답 폭이 들어온다', () => {
+    /*
+     * 경험치 바로 구한 배율은 확장 UI에서 8% 높게 나온다(뷰포트 902px, UI는 838px 상당).
+     * 폭 68이 나오는 자리에 실제로는 76이 필요했다 — 절대 ±4로는 못 닿는다(실측).
+     */
+    const p = { pw: 57, scale: 1.174 }
+    expect(widthCandidates(p, 1.401)).toContain(76)
   })
 
   it('배율이 크게 틀려도 후보가 음수로 안 간다', () => {
