@@ -40,11 +40,21 @@ export const EXP_STALL = {
   /** 프로파일 상대차가 이보다 크면 '경험치가 올랐다' */
   changeThreshold: 0.10,
   /**
-   * 정체를 모르는 그림이 이만큼 이어져야 '새 화면'으로 받아들인다 (스캔 세 번).
+   * 정체를 모르는 그림이 **연속 이만큼의 스캔** 동안 그대로여야 새 화면으로 받아들인다.
    * 띠 위를 스쳐 가는 것들 — 획득 문구·데미지 숫자·마우스 커서·이펙트 — 은
    * 이보다 짧게 지나가므로 멈춤 시계를 건드리지 못한다.
+   *
+   * 벽시계가 아니라 스캔 횟수로 센다. 백그라운드 탭이 눌리면 스캔 간격이 몇 십 초로
+   * 늘어나는데, 시간으로 세면 3초 조건이 한 번의 스캔으로 무너져 가림이 바로 새 기준이 된다.
    */
-  settleMs: 3000,
+  settleScans: 3,
+  /**
+   * 두 스캔 사이가 이만큼 벌어지면 그 구간은 없던 것으로 본다.
+   * 절전에서 깨어나거나 탭이 얼었다 풀리면 Date.now() 가 몇 분씩 건너뛴다 —
+   * 그대로 두면 "603초째 멈춤"이 되어 그 자리에서 헛알림이 난다.
+   * 그동안 화면에 무슨 일이 있었는지는 알 수 없으므로 멈춤 시계를 다시 세운다.
+   */
+  maxGapMs: 5000,
   /**
    * 밀어둔 직전 그림을 이만큼까지만 붙잡고 있는다.
    * 가림은 길어야 몇 분이다. 더 오래 들고 있으면 한참 전의 경험치 값이 우연히
@@ -169,11 +179,16 @@ export function shouldAlert(stillMs, limitMs, sinceAlertMs, repeatMs) {
  * anchorAt 그 그림이 처음 나타난 시각 = 멈춤 시계의 출발점
  * alertAt null 이면 이번 멈춤에 대해 아직 안 울렸다
  * armed   한 번이라도 그림이 달라지는 걸 봤다 (= 여기가 정말 경험치 줄이다)
- * stash   직전 그림. 가림이 걷혀 되돌아오면 이걸로 복원한다
+ * stash   돌아갈 자리. 가림이 걷혀 되돌아오면 이걸로 복원한다
  * cand    아직 정체를 모르는 그림과 그게 처음 나타난 시각
+ * stable  지금 기준이 '자리를 잡은' 그림인가 — 같은 그림이 연속 몇 번 이어져서 채택됐으면 참.
+ *         매 스캔 갈아엎히는 와중에 스쳐 지나간 그림이면 거짓이고, 그런 건 돌아갈 자리가 못 된다
  */
 export function initialStall() {
-  return { anchor: null, anchorAt: 0, alertAt: null, armed: false, stash: null, cand: null, candAt: 0 }
+  return {
+    anchor: null, anchorAt: 0, alertAt: null, armed: false,
+    stash: null, cand: null, candAt: 0, candN: 0, lastAt: 0, stable: true,
+  }
 }
 
 /**
@@ -206,15 +221,26 @@ export function stepStall(st, frame, opts) {
   const { profile, strength, now } = frame
   const { limitMs, repeatMs } = opts
 
+  /*
+   * 스캔이 오래 끊겼다 (절전 복귀·탭 얼었다 풀림·창 최소화).
+   * 그동안 화면에 무슨 일이 있었는지 모르므로 멈춤 시계를 다시 세운다 —
+   * 그냥 두면 끊긴 시간이 통째로 '멈춰 있던 시간'이 되어 깨어나자마자 헛알림이 난다.
+   * '이미 울렸다'는 기록은 지우지 않는다. 지우면 같은 멈춤에 소리가 또 난다.
+   */
+  const gap = st.lastAt ? now - st.lastAt : 0
+  const jumped = st.lastAt && (gap < 0 || gap > EXP_STALL.maxGapMs)
+  let base = { ...st, lastAt: now }
+  if (jumped) base = { ...base, anchorAt: now, cand: null, candN: 0, stash: null }
+
   // 글자가 안 보이면 판정을 쉰다. **기준은 그대로 둔다** — 걷히면 이어서 봐야 한다
   if (strength < EXP_STALL.textFloor) {
-    return { state: st, status: { reason: 'notext' }, alert: false }
+    return { state: base, status: { reason: 'notext' }, alert: false }
   }
 
   // 첫 장은 기준만 잡는다 (비교 상대가 없을 때 profileDiff 는 1 이라 '변함'이 돼 버린다)
-  if (!st.anchor) {
+  if (!base.anchor) {
     return {
-      state: { ...st, anchor: profile, anchorAt: now, cand: null },
+      state: { ...base, anchor: profile, anchorAt: now, cand: null, candN: 0, stable: true },
       status: { reason: 'waiting' },
       alert: false,
     }
@@ -225,54 +251,73 @@ export function stepStall(st, frame, opts) {
    * 경험치가 올랐다는 증거는 없으므로 **시계와 알림 기록은 그대로 두고** 그림만 새로 잡는다.
    * 예전에는 이 경우 profileDiff 가 1 을 돌려줘 '경험치가 올랐다'로 읽혔다.
    */
-  if (st.anchor.length !== profile.length) {
+  if (base.anchor.length !== profile.length) {
     return {
-      state: { ...st, anchor: profile, stash: null, cand: null },
+      state: { ...base, anchor: profile, stash: null, cand: null, candN: 0, stable: true },
       status: { reason: 'waiting' },
       alert: false,
     }
   }
 
-  let next = st
-  if (profileDiff(st.anchor, profile) <= EXP_STALL.changeThreshold) {
+  const same = (a, b) => a && a.length === b.length && profileDiff(a, b) <= EXP_STALL.changeThreshold
+  const stashFresh = base.stash && now - base.stash.stashedAt <= EXP_STALL.stashMaxMs
+
+  /**
+   * 새 화면을 받아들인다. 돌아올 자리를 stash 에 남긴다 — 이게 가림이었다면 곧 되돌아온다.
+   *
+   * 밀어두는 건 **자리를 잡았던 그림**뿐이고(stable), 이미 밀어둔 것보다 **더 오래
+   * 자리를 지켰을 때**만 갈아끼운다. 창이 경험치 줄을 천천히 지나가면 매 초 다른 그림이 되고
+   * 그 사이 가림이 잠깐 자리를 잡기도 하는데, 그때마다 stash 를 덮으면 정작 돌아가야 할
+   * 원래 화면이 밀려난다 — 실측에서 밝은 창이 2~8초에 걸쳐 지나가자 걷힌 뒤 소리가 다시 났다.
+   */
+  const take = (at, stable) => {
+    let stash = stashFresh ? base.stash : null
+    if (base.stable) {
+      // 더 오래 자리를 지킨 쪽이 돌아갈 자리다 — 창이 지나가는 동안 잠깐 자리잡은 가림에
+      // 원래 화면이 밀려나면 안 된다(실측: 밝은 창이 8초에 걸쳐 지나가자 재알림)
+      const heldMs = now - base.anchorAt
+      if (!stash || heldMs >= stash.heldMs) {
+        stash = { anchor: base.anchor, anchorAt: base.anchorAt, alertAt: base.alertAt, stashedAt: now, heldMs }
+      }
+    }
+    return { ...base, stash, anchor: profile, anchorAt: at, alertAt: null, armed: true, stable, cand: null, candN: 0 }
+  }
+
+  let next = base
+  if (same(base.anchor, profile)) {
     // 기준 그대로 — 경험치가 안 움직였다
-    if (st.cand) next = { ...st, cand: null }
+    if (base.cand) next = { ...base, cand: null, candN: 0 }
   } else {
     // 한 번이라도 달라진 걸 봤다 = 안 변하는 자리(작업표시줄 등)가 아니다
-    next = st.armed ? st : { ...st, armed: true }
+    next = base.armed ? base : { ...base, armed: true }
 
-    const fresh = next.stash && now - next.stash.stashedAt <= EXP_STALL.stashMaxMs
-    if (fresh && next.stash.anchor.length === profile.length
-      && profileDiff(next.stash.anchor, profile) <= EXP_STALL.changeThreshold) {
+    if (stashFresh && same(next.stash.anchor, profile)) {
       // 가림이 걷혀 그 전 그림으로 되돌아왔다 — 시계도 알림 기록도 되살린다
       const back = next.stash
-      next = { ...next, anchor: back.anchor, anchorAt: back.anchorAt, alertAt: back.alertAt, stash: null, cand: null }
-    } else {
-      const held = next.cand && next.cand.length === profile.length
-        && profileDiff(next.cand, profile) <= EXP_STALL.changeThreshold
-      const candAt = held ? next.candAt : now
-      if (now - candAt < EXP_STALL.settleMs) {
-        // 아직 이게 뭔지 모른다 — 시계를 세우고 기다린다
-        return {
-          state: { ...next, cand: profile, candAt },
-          status: { reason: 'checking', stillSec: Math.floor((now - next.anchorAt) / 1000) },
-          alert: false,
-        }
-      }
+      next = { ...next, anchor: back.anchor, anchorAt: back.anchorAt, alertAt: back.alertAt, stash: null, cand: null, candN: 0, stable: true }
+    } else if (same(next.cand, profile)) {
       /*
-       * 같은 그림이 settleMs 동안 이어졌다 → 새 화면으로 받아들인다.
+       * 같은 그림이 이어진다. 연속 settleScans 번을 채우면 새 화면으로 받아들인다.
        * 시계는 그 그림이 **처음 나타난 시각**부터 센다 (기다린 만큼을 손해 보지 않게).
-       * 직전 그림은 stash 에 넣어 둔다 — 이게 가림이었다면 곧 되돌아온다.
        */
-      next = {
-        ...next,
-        stash: { anchor: next.anchor, anchorAt: next.anchorAt, alertAt: next.alertAt, stashedAt: now },
-        anchor: profile,
-        anchorAt: candAt,
-        alertAt: null,
-        cand: null,
+      const candN = next.candN + 1
+      if (candN < EXP_STALL.settleScans) {
+        return { state: { ...next, candN }, status: checking(next, now), alert: false }
       }
+      next = take(next.candAt, true)      // 연속으로 이어져 자리를 잡았다
       return { state: next, status: { reason: 'ok', stillSec: 0 }, alert: false }
+    } else if (next.cand) {
+      /*
+       * 후보가 또 다른 그림으로 바뀌었다 = 그림이 매 스캔 갈아엎히고 있다.
+       * 가림은 이렇게 계속 변하지 않는다 — **경험치가 오르는 중**이라는 뜻이다.
+       * 여기서 기다리면 정상 사냥 내내 '확인 중'에 머물고 기준이 옛날 그림에 박힌다
+       * (실측: 실제 사냥 40초 중 33초가 확인 중이었다).
+       */
+      next = take(now, false)             // 스쳐 가는 중 — 돌아갈 자리는 못 된다
+      return { state: next, status: { reason: 'ok', stillSec: 0 }, alert: false }
+    } else {
+      // 처음 보는 그림 — 정체를 알 때까지 얼어붙는다
+      return { state: { ...next, cand: profile, candAt: now, candN: 1 }, status: checking(next, now), alert: false }
     }
   }
 
@@ -286,4 +331,13 @@ export function stepStall(st, frame, opts) {
   const sinceAlertMs = next.alertAt == null ? null : now - next.alertAt
   if (!shouldAlert(stillMs, limitMs, sinceAlertMs, repeatMs)) return { state: next, status, alert: false }
   return { state: { ...next, alertAt: now }, status, alert: true, stillSec: Math.floor(stillMs / 1000) }
+}
+
+/**
+ * 정체를 모르는 동안의 상태. 멈춤 시계는 계속 돌고 있으므로 그 값을 같이 실어 보낸다.
+ * 이 상태는 길어야 연속 두 스캔이다 — 같은 그림이 이어지면 굳어서 받아들여지고,
+ * 다른 그림으로 바뀌면 그림이 갈아엎히는 중(= 경험치가 오르는 중)이라 바로 받아들인다.
+ */
+function checking(st, now) {
+  return { reason: 'checking', stillSec: st.anchorAt ? Math.floor((now - st.anchorAt) / 1000) : null }
 }

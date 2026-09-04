@@ -253,10 +253,9 @@ describe('stepStall — 멈춤 시계', () => {
     expect(run(frames).alerts).toEqual([18])
   })
 
-  it('기준이 자리잡기 전에 계속 깜빡이면 시계가 늦게 시작한다 (놓치지는 않는다)', () => {
+  it('기준이 자리잡기 전에 계속 깜빡여도 결국 울린다', () => {
     /*
-     * settleMs(3초)보다 짧은 간격으로 계속 뭔가 지나가면 어느 그림이 경험치 줄인지
-     * 정할 수 없다. 그동안은 checking 으로 기다리다가, 조용해지는 순간부터 시계가 선다.
+     * 어느 그림이 경험치 줄인지 정하기 전에 계속 뭔가 지나가면 시계가 늦게 선다.
      * 알림이 늦어질 뿐 사라지지는 않는다 — 예전 코드는 이 상황에서 아예 안 울렸다.
      */
     const frames = stalledFrom3(60)
@@ -328,6 +327,72 @@ describe('stepStall — 멈춤 시계', () => {
     const wide = new Float32Array(20)
     wide[0] = 100
     for (let t = 20; t < 30; t++) frames[t] = wide
+    expect(run(frames).alerts).toEqual([18])
+  })
+
+  /* ── 시계가 건너뛰는 경우 ─────────────────────────────── */
+
+  it('절전에서 깨어나 시계가 몇 분 건너뛰어도 헛알림이 없다', () => {
+    /*
+     * Date.now() 가 통째로 점프하면 그 구간이 '멈춰 있던 시간'이 되어
+     * 깨어나자마자 "603초째 멈춤"으로 울렸다. 그동안 화면을 못 봤으니 다시 센다.
+     */
+    let st = initialStall()
+    const alerts = []
+    const frames = stalledFrom3(40)
+    frames.forEach((f, t) => {
+      const now = t < 10 ? t * 1000 : t * 1000 + 600000     // 10초에 10분 점프
+      const r = stepStall(st, { profile: f, strength: 5, now }, OPTS)
+      st = r.state
+      if (r.alert) alerts.push(t)
+    })
+    expect(alerts).toHaveLength(1)
+    expect(alerts[0]).toBeGreaterThanOrEqual(25)            // 점프 직후가 아니라 다시 15초를 채운 뒤
+  })
+
+  it('시계가 뒤로 가도 무너지지 않는다', () => {
+    let st = initialStall()
+    const alerts = []
+    stalledFrom3(40).forEach((f, t) => {
+      const now = t < 10 ? t * 1000 : t * 1000 - 300000
+      const r = stepStall(st, { profile: f, strength: 5, now }, OPTS)
+      st = r.state
+      if (r.alert) alerts.push(t)
+    })
+    expect(alerts).toHaveLength(1)
+  })
+
+  /* ── 그림이 계속 갈아엎히는 경우 ──────────────────────────── */
+
+  it('매 스캔 새 그림이면 경험치가 오르는 중으로 본다', () => {
+    // 여기서 기다리면 정상 사냥 내내 '확인 중'에 머물고 기준이 옛 그림에 박힌다
+    const frames = Array.from({ length: 30 }, (_, t) => pic(t, 80))
+    const { alerts, statuses } = run(frames)
+    expect(alerts).toEqual([])
+    expect(statuses.slice(5).filter((r) => r === 'ok').length).toBeGreaterThan(9)
+  })
+
+  it('창이 여러 프레임에 걸쳐 지나가도 걷힌 뒤 다시 안 울린다', () => {
+    /*
+     * 창을 천천히 끌면 매 초 다른 그림이 된다. 그때마다 돌아갈 자리를 덮어쓰면
+     * 정작 원래 화면이 밀려나 걷힌 뒤 소리가 다시 났다(실측).
+     * 자리를 지킨 그림만 밀어두므로 원래 화면이 살아남는다.
+     */
+    const frames = stalledFrom3(60)
+    for (let i = 0; i < 6; i++) frames[25 + i] = pic(4 + i)        // 지나가는 창 6프레임
+    expect(run(frames).alerts).toEqual([18])
+  })
+
+  it('지나가던 창이 중간에 잠시 멈춰 자리를 잡아도 원래 화면이 밀려나지 않는다', () => {
+    /*
+     * 들어오는 중(스쳐 감) → 멈춰서 자리 잡음 → 나가는 중(스쳐 감) → 원래 화면.
+     * 가림이 자리를 잡는 순간 그걸 돌아갈 자리로 삼으면 원래 화면을 잃는다.
+     * 더 오래 자리를 지킨 쪽이 돌아갈 자리다 — 여기서는 18초를 지킨 원래 화면이다.
+     */
+    const frames = stalledFrom3(70)
+    frames[25] = pic(4); frames[26] = pic(5)                     // 들어오는 중
+    for (let t = 27; t < 34; t++) frames[t] = COVER              // 멈춰서 자리 잡음
+    frames[34] = pic(6); frames[35] = pic(7)                     // 나가는 중
     expect(run(frames).alerts).toEqual([18])
   })
 
