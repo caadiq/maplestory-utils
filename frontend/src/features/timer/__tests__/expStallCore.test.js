@@ -32,6 +32,30 @@ describe('stallBand', () => {
     expect(stallBand(1920, 1080)).toEqual({ x: 672, y: 1064, w: 634, h: 14 })
   })
 
+  it('게임 창을 주면 그 창의 경험치 바에 맞춘다', () => {
+    // 확장 해상도 실측: 캡처 1920x1080인데 게임은 x454~1920, 경험치 바가 y892
+    const b = stallBand(1920, 1080, { left: 454, right: 1920, top: 892 })
+    expect(b.y).toBeLessThanOrEqual(892)
+    expect(b.y + b.h).toBeGreaterThan(892)
+    // 글자는 게임 창 한가운데(1187)에 있다
+    const cx = b.x + b.w / 2
+    expect(Math.abs(cx - (454 + 1920) / 2)).toBeLessThanOrEqual(1)
+  })
+
+  it('예전처럼 캡처 바닥을 보면 확장 해상도에서 통째로 빗나간다', () => {
+    // 이게 확장 해상도에서 동꼽 알림이 아예 안 돌던 이유다 (그 자리 흰 정도 0.00)
+    const old = stallBand(1920, 1080)
+    expect(old.y).toBeGreaterThan(1000)          // 캡처 바닥
+    const fixed = stallBand(1920, 1080, { left: 454, right: 1920, top: 892 })
+    expect(old.y - fixed.y).toBeGreaterThan(150) // 178px 어긋났다
+  })
+
+  it('게임 창이 없으면 예전 방식으로 물러선다', () => {
+    expect(stallBand(1920, 1080, null)).toEqual(stallBand(1920, 1080))
+    expect(stallBand(1920, 1080, { left: 100, right: 50, top: 900 })).toEqual(stallBand(1920, 1080))
+    expect(stallBand(1920, 1080, { left: 0, right: 1920, top: 0 })).toEqual(stallBand(1920, 1080))
+  })
+
   it('해상도가 달라도 바닥에 붙어 가운데를 본다', () => {
     const b = stallBand(2560, 1440)
     // 맨 아래 몇 px은 일부러 뺀다 (1080p 기준 2px) — 글자는 그 위에 있다

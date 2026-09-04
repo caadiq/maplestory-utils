@@ -29,8 +29,12 @@ export const EXP_STALL = {
    * 글자 줄이 들어갈 띠. 1080p 실측으로 글자는 y 1067~1076(= 바닥에서 4~13px),
    * x는 화면 정중앙 기준 848~1073이다. 해상도 오차를 감안해 넉넉히 잡는다.
    */
-  // 확장 UI에서는 하단 UI 중심이 캡처 중심에서 벗어난다(실측 0.60~0.62 지점) — 좌우로 넓혀 둔다
-  band: { xFrom: 0.35, xTo: 0.68, bottomFrom: 16, bottomTo: 2 },
+  /*
+   * 게임 창을 못 찾았을 때만 쓰는 캡처 기준 값 (xFrom~xTo, bottomFrom~bottomTo).
+   * halfWidth 는 게임 창을 찾았을 때 가운데에서 좌우로 얼마나 볼지 — 게임 폭의 비율이다.
+   * 글자 자체는 게임 폭의 0.12 정도라(실측 234px / 1920px) 0.165 면 넉넉히 덮는다.
+   */
+  band: { xFrom: 0.35, xTo: 0.68, bottomFrom: 16, bottomTo: 2, halfWidth: 0.165 },
   /** 흰 글자로 칠 최소 밝기 — 이 아래는 배경으로 보고 버린다 */
   whiteFloor: 110,
   /** 프로파일 상대차가 이보다 크면 '경험치가 올랐다' */
@@ -55,8 +59,33 @@ export const EXP_STALL = {
   textFloor: 1.0,
 }
 
-/** 캡처 크기에 맞춘 띠의 픽셀 좌표 */
-export function stallBand(vw, vh) {
+/**
+ * 띠의 픽셀 좌표.
+ *
+ * game 을 주면 **게임 창 기준**으로 잡는다. 캡처 기준으로 잡으면 확장 해상도에서
+ * 통째로 빗나간다 — 게임 아래가 검은 여백이라 경험치 줄은 캡처 바닥이 아니라
+ * 그보다 178px 위에 있다(실측: 캡처 1920×1080, 경험치 바 y=892, 예전 띠 y=1064~1078,
+ * 그 자리의 흰 정도 0.00 = 글자 없음). 그래서 확장 해상도에서는 동꼽 알림이 아예 안 돌았다.
+ *
+ * 경험치 글자는 **게임 창 한가운데**에 놓인다 (실측: 일반 해상도에서 글자 843~1077,
+ * 가운데 960 = 게임 가운데. 확장에서도 게임 가운데 1187에 맞는다).
+ * 세로는 경험치 바 줄에 걸친다 — 바 위로 UI 4px, 아래로 UI 10px 안에 들어온다
+ * (실측 배율 1.401 에서 -4~+12, 1.174 에서 -1~+8).
+ *
+ * @param game { left, right, top } — top 은 경험치 바 줄. 없으면 캡처 기준으로 물러선다
+ */
+export function stallBand(vw, vh, game) {
+  if (game && game.right > game.left && game.top > 0) {
+    const s = (game.top + 10) / 768
+    const gw = game.right - game.left
+    const cx = (game.left + game.right) / 2
+    const half = Math.max(20, Math.round(gw * EXP_STALL.band.halfWidth))
+    const x0 = Math.max(0, Math.round(cx - half))
+    const x1 = Math.min(vw, Math.round(cx + half))
+    const y0 = Math.max(0, game.top - Math.round(4 * s))
+    const y1 = Math.min(vh, game.top + Math.round(10 * s))
+    if (x1 - x0 >= 20 && y1 - y0 >= 6) return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }
+  }
   const { xFrom, xTo, bottomFrom, bottomTo } = EXP_STALL.band
   const s = vh / 1080
   const y0 = Math.max(0, vh - Math.round(bottomFrom * s))
