@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { EXP_STALL, stallBand, whiteProfile, profileStrength, profileDiff, shouldAlert } from './expStallCore'
+import { EXP_STALL, stallBand, whiteProfile, profileStrength, initialStall, stepStall } from './expStallCore'
 
 /**
  * 화면 맨 아래 경험치 숫자를 지켜보다가, 일정 시간 동안 값이 안 오르면 알린다.
@@ -8,10 +8,8 @@ import { EXP_STALL, stallBand, whiteProfile, profileStrength, profileDiff, shoul
  * 소리는 예약하지 않고 그 순간에 바로 울린다. 부스터와 달리 "언제 끝날지"를
  * 미리 알 수 있는 값이 아니라, 지나고 나서야 알 수 있는 상태이기 때문이다.
  *
- * ### 헛알림을 막는 장치
- * 한 번이라도 변한 걸 본 뒤에야 알림을 건다. 게임 창이 아니라 화면 전체를 공유해서
- * 띠가 작업표시줄을 보고 있으면 그 자리는 원래 안 변하는데, 그걸 '멈췄다'로 치면
- * 가만히 있어도 계속 울린다. 처음 한 번의 변화가 "여기가 경험치 줄이 맞다"는 확인이 된다.
+ * 판정은 전부 expStallCore.stepStall 이 한다 — 여기서는 프레임을 떠서 넘기기만 한다.
+ * 그래야 "가렸다 치우면 다시 울린다" 같은 시나리오를 DOM 없이 테스트로 고정할 수 있다.
  */
 export function useExpStallDetector({ stream, enabled, videoRef, stallSec, repeat, repeatSec, onAlert, onStatus }) {
   const cbRef = useRef({ onAlert, onStatus })
@@ -31,10 +29,7 @@ export function useExpStallDetector({ stream, enabled, videoRef, stallSec, repea
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d', { willReadFrequently: true })
     let alive = true
-    let prev = null
-    let lastChangeAt = 0
-    let lastAlertAt = 0
-    let armed = false
+    let state = initialStall()
 
     const scan = () => {
       if (!alive) return
@@ -56,56 +51,19 @@ export function useExpStallDetector({ stream, enabled, videoRef, stallSec, repea
       }
 
       const profile = whiteProfile(img.data, box.w, box.h)
-      const strength = profileStrength(profile, box.w, box.h)
-      const now = Date.now()
-
-      // 글자가 안 보이면 판정을 아예 쉰다 — 경험치 표시를 꺼둔 경우가 여기 걸린다
-      if (strength < EXP_STALL.textFloor) {
-        prev = null
-        cbRef.current.onStatus?.({ reason: 'notext' })
-        return
-      }
-
-      /*
-       * 첫 장은 기준만 잡고 넘어간다. 비교 상대가 없을 때의 profileDiff는 1이라
-       * 그대로 두면 '변했다'가 되어 첫 스캔에 바로 무장돼 버린다 —
-       * 그러면 원래 안 변하는 자리(작업표시줄 등)를 봐도 알림이 울린다.
-       */
-      if (!prev) {
-        prev = profile
-        lastChangeAt = now
-        cbRef.current.onStatus?.({ reason: 'waiting' })
-        return
-      }
-
-      const diff = profileDiff(prev, profile)
-      prev = profile
-
-      if (diff > EXP_STALL.changeThreshold) {
-        lastChangeAt = now
-        lastAlertAt = 0
-        armed = true
-        cbRef.current.onStatus?.({ reason: 'ok', stillSec: 0 })
-        return
-      }
-      if (!armed) {
-        // 첫 변화를 아직 못 봤다 — 여기가 경험치 줄이 맞는지 확인되지 않은 상태
-        cbRef.current.onStatus?.({ reason: 'waiting' })
-        return
-      }
-
       const { stallSec: sec, repeat: rep, repeatSec: repSec } = optsRef.current
-      const stillMs = now - lastChangeAt
-      const limitMs = Math.max(3, sec || 15) * 1000
-      const stalled = stillMs >= limitMs
-      cbRef.current.onStatus?.({ reason: stalled ? 'stall' : 'ok', stillSec: Math.floor(stillMs / 1000) })
-      if (!stalled) return
-
-      // 반복을 켜두면 풀 때까지 다시 알린다 — 한 번 놓쳐도 결국 알게 된다
-      const repeatMs = rep ? Math.max(3, repSec || 20) * 1000 : 0
-      if (!shouldAlert(stillMs, limitMs, lastAlertAt ? now - lastAlertAt : null, repeatMs)) return
-      lastAlertAt = now
-      cbRef.current.onAlert?.(Math.floor(stillMs / 1000))
+      const res = stepStall(
+        state,
+        { profile, strength: profileStrength(profile, box.w, box.h), now: Date.now() },
+        {
+          limitMs: Math.max(3, sec || 15) * 1000,
+          // 반복을 켜두면 풀 때까지 다시 알린다 — 한 번 놓쳐도 결국 알게 된다
+          repeatMs: rep ? Math.max(3, repSec || 20) * 1000 : 0,
+        },
+      )
+      state = res.state
+      cbRef.current.onStatus?.(res.status)
+      if (res.alert) cbRef.current.onAlert?.(res.stillSec)
     }
 
     const timer = setInterval(scan, EXP_STALL.scanIntervalMs)

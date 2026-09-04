@@ -36,6 +36,18 @@ export const EXP_STALL = {
   /** 프로파일 상대차가 이보다 크면 '경험치가 올랐다' */
   changeThreshold: 0.10,
   /**
+   * 정체를 모르는 그림이 이만큼 이어져야 '새 화면'으로 받아들인다 (스캔 세 번).
+   * 띠 위를 스쳐 가는 것들 — 획득 문구·데미지 숫자·마우스 커서·이펙트 — 은
+   * 이보다 짧게 지나가므로 멈춤 시계를 건드리지 못한다.
+   */
+  settleMs: 3000,
+  /**
+   * 밀어둔 직전 그림을 이만큼까지만 붙잡고 있는다.
+   * 가림은 길어야 몇 분이다. 더 오래 들고 있으면 한참 전의 경험치 값이 우연히
+   * 다시 나타났을 때 그때의 시계를 되살려 "300초째 멈춤" 같은 엉뚱한 값이 된다.
+   */
+  stashMaxMs: 300000,
+  /**
    * 띠 한 칸당 평균 흰 정도가 이보다 낮으면 글자가 없는 것으로 본다.
    * 경험치 표시를 꺼둔 경우(퍼센트만 표시)나 띠가 엉뚱한 곳을 보는 경우다.
    * 실측: 글자 있을 때 5.2~10.3, 배경만 있을 때 0~3.0.
@@ -117,4 +129,132 @@ export function shouldAlert(stillMs, limitMs, sinceAlertMs, repeatMs) {
   if (sinceAlertMs == null) return true
   if (!repeatMs) return false
   return sinceAlertMs >= repeatMs
+}
+
+/* ── 멈춤 시계 ─────────────────────────────────────────────────────── */
+
+/**
+ * 멈춤 시계의 처음 상태.
+ *
+ * anchor  지금 경험치 줄이라고 보는 그림. **직전 프레임이 아니다.**
+ * anchorAt 그 그림이 처음 나타난 시각 = 멈춤 시계의 출발점
+ * alertAt null 이면 이번 멈춤에 대해 아직 안 울렸다
+ * armed   한 번이라도 그림이 달라지는 걸 봤다 (= 여기가 정말 경험치 줄이다)
+ * stash   직전 그림. 가림이 걷혀 되돌아오면 이걸로 복원한다
+ * cand    아직 정체를 모르는 그림과 그게 처음 나타난 시각
+ */
+export function initialStall() {
+  return { anchor: null, anchorAt: 0, alertAt: null, armed: false, stash: null, cand: null, candAt: 0 }
+}
+
+/**
+ * 멈춤 시계를 한 칸 굴린다. DOM 을 안 써서 그대로 테스트할 수 있다.
+ *
+ * ── 왜 직전 프레임이 아니라 기준 그림과 비교하는가 ──────────────────
+ * 무언가가 경험치 줄을 잠깐 가렸다 치우면 그림은 **가리기 전 값으로 정확히 되돌아온다**
+ * (실측: 같은 화면끼리 상대차 0.0000). 그런데 직전 프레임과 비교하면
+ * 가릴 때 한 번, 치울 때 한 번, 총 두 번이 '경험치가 올랐다'로 읽힌다.
+ * 그때마다 멈춤 시계가 0으로 돌아가고 '이미 울렸다'는 기록(alertAt)까지 지워져,
+ * 반복 알림을 꺼 뒀는데도 소리가 다시 났다 — 사용자가 보고한 증상이다.
+ * 기준 그림과 비교하면 되돌아온 순간 상대차가 0이라 '변한 적 없음'으로 이어진다.
+ *
+ * 가림을 그 자리에서 알아볼 방법은 없다. 한 장만 보고 가리는지 아닌지 가르려고
+ * 세기·형태를 재 봤지만 진짜 경험치 상승과 겹쳤다 (실측: 경험치 상승 상대차가
+ * 0.036~1.33 으로 가림의 0.63~1.03 을 통째로 덮는다. 세기도 부분 가림이 1.4 로
+ * 글자 있을 때의 3.3~7.6 사이에 들어온다). 그래서 **되돌아오는지**로 가른다.
+ *
+ * ── 정체를 모르면 얼어붙는다 ──────────────────────────────────────
+ * 기준과 다른 그림은 곧바로 받아들이지 않는다. settleMs 동안 같은 그림이 이어져야
+ * 새 화면으로 인정한다. 덕분에 띠 위를 스쳐 가는 것들(획득 문구·커서·이펙트)이
+ * 멈춤 시계를 계속 밀어내 **동꼽에 걸려도 안 울리던** 반대 방향 오류도 같이 막힌다.
+ *
+ * @param st     지금 상태 (initialStall 로 시작)
+ * @param frame  { profile, strength, now }
+ * @param opts   { limitMs, repeatMs } — repeatMs 0 이면 처음 한 번만
+ * @returns { state, status, alert }  status.reason = ok|stall|waiting|notext|checking
+ */
+export function stepStall(st, frame, opts) {
+  const { profile, strength, now } = frame
+  const { limitMs, repeatMs } = opts
+
+  // 글자가 안 보이면 판정을 쉰다. **기준은 그대로 둔다** — 걷히면 이어서 봐야 한다
+  if (strength < EXP_STALL.textFloor) {
+    return { state: st, status: { reason: 'notext' }, alert: false }
+  }
+
+  // 첫 장은 기준만 잡는다 (비교 상대가 없을 때 profileDiff 는 1 이라 '변함'이 돼 버린다)
+  if (!st.anchor) {
+    return {
+      state: { ...st, anchor: profile, anchorAt: now, cand: null },
+      status: { reason: 'waiting' },
+      alert: false,
+    }
+  }
+
+  /*
+   * 띠 크기가 달라졌다 (창 크기·해상도 변경). 옛 기준과는 길이가 달라 비교 자체가 안 된다.
+   * 경험치가 올랐다는 증거는 없으므로 **시계와 알림 기록은 그대로 두고** 그림만 새로 잡는다.
+   * 예전에는 이 경우 profileDiff 가 1 을 돌려줘 '경험치가 올랐다'로 읽혔다.
+   */
+  if (st.anchor.length !== profile.length) {
+    return {
+      state: { ...st, anchor: profile, stash: null, cand: null },
+      status: { reason: 'waiting' },
+      alert: false,
+    }
+  }
+
+  let next = st
+  if (profileDiff(st.anchor, profile) <= EXP_STALL.changeThreshold) {
+    // 기준 그대로 — 경험치가 안 움직였다
+    if (st.cand) next = { ...st, cand: null }
+  } else {
+    // 한 번이라도 달라진 걸 봤다 = 안 변하는 자리(작업표시줄 등)가 아니다
+    next = st.armed ? st : { ...st, armed: true }
+
+    const fresh = next.stash && now - next.stash.stashedAt <= EXP_STALL.stashMaxMs
+    if (fresh && next.stash.anchor.length === profile.length
+      && profileDiff(next.stash.anchor, profile) <= EXP_STALL.changeThreshold) {
+      // 가림이 걷혀 그 전 그림으로 되돌아왔다 — 시계도 알림 기록도 되살린다
+      const back = next.stash
+      next = { ...next, anchor: back.anchor, anchorAt: back.anchorAt, alertAt: back.alertAt, stash: null, cand: null }
+    } else {
+      const held = next.cand && next.cand.length === profile.length
+        && profileDiff(next.cand, profile) <= EXP_STALL.changeThreshold
+      const candAt = held ? next.candAt : now
+      if (now - candAt < EXP_STALL.settleMs) {
+        // 아직 이게 뭔지 모른다 — 시계를 세우고 기다린다
+        return {
+          state: { ...next, cand: profile, candAt },
+          status: { reason: 'checking', stillSec: Math.floor((now - next.anchorAt) / 1000) },
+          alert: false,
+        }
+      }
+      /*
+       * 같은 그림이 settleMs 동안 이어졌다 → 새 화면으로 받아들인다.
+       * 시계는 그 그림이 **처음 나타난 시각**부터 센다 (기다린 만큼을 손해 보지 않게).
+       * 직전 그림은 stash 에 넣어 둔다 — 이게 가림이었다면 곧 되돌아온다.
+       */
+      next = {
+        ...next,
+        stash: { anchor: next.anchor, anchorAt: next.anchorAt, alertAt: next.alertAt, stashedAt: now },
+        anchor: profile,
+        anchorAt: candAt,
+        alertAt: null,
+        cand: null,
+      }
+      return { state: next, status: { reason: 'ok', stillSec: 0 }, alert: false }
+    }
+  }
+
+  if (!next.armed) return { state: next, status: { reason: 'waiting' }, alert: false }
+
+  const stillMs = now - next.anchorAt
+  const stalled = stillMs >= limitMs
+  const status = { reason: stalled ? 'stall' : 'ok', stillSec: Math.floor(stillMs / 1000) }
+  if (!stalled) return { state: next, status, alert: false }
+
+  const sinceAlertMs = next.alertAt == null ? null : now - next.alertAt
+  if (!shouldAlert(stillMs, limitMs, sinceAlertMs, repeatMs)) return { state: next, status, alert: false }
+  return { state: { ...next, alertAt: now }, status, alert: true, stillSec: Math.floor(stillMs / 1000) }
 }

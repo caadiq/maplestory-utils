@@ -1036,12 +1036,15 @@ function BoosterStatus({ status }) {
  * 동꼽 감지 상태.
  * 'waiting'은 첫 변화를 아직 못 본 상태 — 게임 창이 아니라 화면 전체를 공유했거나
  * 경험치 표시가 꺼져 있으면 여기서 안 넘어간다. 그대로 보여줘야 원인을 알 수 있다.
+ * 'checking'은 경험치 줄 위로 뭔가 지나가거나 가려진 상태 — 멈춤 시계는 계속 돌고 있다.
  */
 function StallStatus({ status }) {
   if (!status) return null
   if (status.reason === 'stall') return <StatusPill tone="warn">경험치 {status.stillSec}초째 멈춤</StatusPill>
   if (status.reason === 'ok') return <StatusPill tone="live">경험치 오르는 중</StatusPill>
   if (status.reason === 'notext') return <StatusPill tone="wait">경험치 숫자 안 보임</StatusPill>
+  // 화면이 가려졌거나 뭔가 지나가는 중 — 시계는 그대로 돌고 있다
+  if (status.reason === 'checking') return <StatusPill tone="wait">화면 확인 중</StatusPill>
   return <StatusPill tone="wait">경험치 확인 중</StatusPill>
 }
 
