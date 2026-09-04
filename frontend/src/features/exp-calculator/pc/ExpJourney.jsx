@@ -273,19 +273,27 @@ export default function ExpJourney({ char, history, dateCreate, breakdown, bonus
        * 몬파는 일요일 경험치가 달라 하루로 못 쪼갠다 — 주간은 일퀘까지 한 주치로 합쳐서 본다.
        * 잠수(리조트·사우나)는 시간을 넣는 만큼이라 주·일 어디에도 안 붙어 따로 뺐다.
        */}
-      <div className="flex items-center border-t" style={{ borderColor: 'var(--row-divider)', background: 'var(--mpl-row)' }}>
+      <div className="flex items-stretch border-t" style={{ borderColor: 'var(--row-divider)', background: 'var(--mpl-row)' }}>
         {[
-          { label: '주간', value: breakdown.weeklyTotal, color: C_WEEK },
-          { label: '잠수', value: breakdown.divingTotal, color: C_DAY },
-          { label: '아이템', value: breakdown.onceTotal, color: C_ONCE },
+          { label: '주간', value: breakdown.weeklyTotal, reach: breakdown.reach.weekly, color: C_WEEK },
+          { label: '잠수', value: breakdown.divingTotal, reach: breakdown.reach.diving, color: C_DAY },
+          { label: '아이템', value: breakdown.onceTotal, reach: breakdown.reach.once, color: C_ONCE },
         ].map((m, i) => (
           <div
             key={m.label}
-            className={`flex-1 flex items-baseline justify-center gap-2.5 py-3.5 ${i > 0 ? 'border-l' : ''}`}
+            className={`flex-1 flex flex-col items-center justify-center py-3.5 ${i > 0 ? 'border-l' : ''}`}
             style={{ borderColor: 'var(--panel-border)' }}
           >
-            <span className="text-[15px] font-bold" style={{ color: 'var(--text-muted)' }}>{m.label}</span>
-            <span className="text-[19px] font-bold tabular-nums" style={{ color: m.color }}>{fmtPct(m.value)}</span>
+            <div className="flex items-baseline gap-2.5">
+              <span className="text-[15px] font-bold" style={{ color: 'var(--text-muted)' }}>{m.label}</span>
+              <span className="text-[19px] font-bold tabular-nums" style={{ color: m.color }}>{fmtPct(m.value)}</span>
+            </div>
+            {/* 레벨을 넘기는 합계는 도착점을 같이 — "2021%"가 20레벨이 아니라는 걸 여기서 보여준다 */}
+            {m.reach?.levels >= 1 && (
+              <span className="text-[12px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                Lv.{m.reach.level} {m.reach.rate.toFixed(2)}% 도달
+              </span>
+            )}
           </div>
         ))}
       </div>

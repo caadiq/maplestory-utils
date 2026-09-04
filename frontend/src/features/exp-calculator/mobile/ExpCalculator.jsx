@@ -51,10 +51,10 @@ function Ico({ id, size = 34 }) {
     : null
 }
 
-function MiniToggle({ on, onChange }) {
+function MiniToggle({ on, onChange, disabled }) {
   return (
-    <button type="button" onClick={() => onChange(!on)}
-      className="relative w-[33px] h-[21px] rounded-full shrink-0 transition-colors"
+    <button type="button" onClick={() => !disabled && onChange(!on)} disabled={disabled}
+      className={`relative w-[33px] h-[21px] rounded-full shrink-0 transition-colors ${disabled ? 'cursor-not-allowed opacity-45' : ''}`}
       style={{ background: on ? 'linear-gradient(180deg, var(--mpl-lime-from), var(--mpl-lime-to))' : 'var(--toggle-off, #c3ced9)' }}>
       <span className="absolute top-[3px] w-[15px] h-[15px] rounded-full bg-white transition-all"
         style={{ left: on ? 15 : 3, boxShadow: '0 1px 2px rgba(0,0,0,.25)' }} />
@@ -63,10 +63,11 @@ function MiniToggle({ on, onChange }) {
 }
 
 /** 컨텐츠 카드 — 헤더(아이콘·제목·스위치) + 본문 + 맨 아래 합계 줄 */
-function Card({ icon, grad, title, sub, pct, pctColor, totalLabel = '합계', totals, toggle, onToggle, children }) {
-  const off = toggle === false
+function Card({ icon, grad, title, sub, pct, pctColor, totalLabel = '합계', totals, toggle, onToggle, locked, reach, children }) {
+  // locked = 레벨이 안 돼서 못 하는 컨텐츠 — 스위치를 잠그고 본문을 접는다
+  const off = locked || toggle === false
   // 합계가 여러 줄인 카드(몬파의 평일/일요일)를 위해 목록으로 통일한다
-  const rows = totals ?? [{ label: totalLabel, value: pct }]
+  const rows = totals ?? [{ label: totalLabel, value: pct, reach }]
   return (
     <div className="rounded-2xl border p-3.5"
       style={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)', boxShadow: 'var(--panel-shadow)' }}>
@@ -79,17 +80,35 @@ function Card({ icon, grad, title, sub, pct, pctColor, totalLabel = '합계', to
           <div className="text-[14.5px] font-semibold truncate">{title}</div>
           <div className="text-[12px] mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{sub}</div>
         </div>
-        {toggle != null && <MiniToggle on={toggle} onChange={onToggle} />}
+        {toggle != null && <MiniToggle on={!locked && toggle} onChange={onToggle} disabled={locked} />}
       </div>
-      {children}
+      {!locked && children}
       {rows.map((row, i) => (
         <div key={row.label} className={`flex items-center justify-between ${i === 0 ? 'pt-2 mt-2.5 border-t' : 'pt-1.5'}`}
           style={i === 0 ? { borderColor: 'var(--row-divider)' } : undefined}>
           <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>{row.label}</span>
-          <span className="text-[15.5px] font-bold tabular-nums" style={{ color: off ? 'var(--text-dim)' : pctColor }}>{row.value}</span>
+          <span className="text-right">
+            <span className="block text-[15.5px] font-bold tabular-nums" style={{ color: off ? 'var(--text-dim)' : pctColor }}>
+              {locked ? '—' : row.value}
+            </span>
+            {!off && <Reach r={row.reach} />}
+          </span>
         </div>
       ))}
     </div>
+  )
+}
+
+/**
+ * 합계가 레벨을 넘길 때만 — 걸어서 어디까지 가는지 (logic.walk).
+ * "2021%"는 20레벨이 아니다. 렙업하면 필요량이 늘어 실제로는 13레벨이고, 그 도착점을 적는다.
+ */
+function Reach({ r }) {
+  if (!r || r.levels < 1) return null
+  return (
+    <span className="block text-[12px] tabular-nums leading-tight mt-0.5" style={{ color: 'var(--text-muted)' }}>
+      Lv.{r.level} {r.rate.toFixed(2)}% 도달
+    </span>
   )
 }
 
@@ -441,7 +460,15 @@ export default function MobileExpCalculator() {
 
   // 보약·아티팩트 보너스는 캐릭터를 골랐을 때만 반영한다 (서버·캐릭터마다 다르다)
   const bonus = char ? (fresh?.bonus ?? null) : null
-  const bd = useMemo(() => (data ? breakdown(data, level, s, bonus) : null), [data, level, s, bonus])
+  /*
+   * 합계는 캐릭터의 지금 경험치에서 출발해 걷는다(logic.walk) — 그래야 렙업을 넘는 합계가
+   * 실제 도착점을 가리킨다. 다른 레벨을 골라 보는 중이면 그 레벨 0%에서 출발한다.
+   */
+  const startRate = char && level === char.character_level ? (char.exp_rate || 0) : 0
+  const bd = useMemo(
+    () => (data ? breakdown(data, level, s, bonus, startRate) : null),
+    [data, level, s, bonus, startRate],
+  )
 
   const icons = data?.icons || {}
   if (!hydrated || !data) return null
@@ -583,18 +610,28 @@ export default function MobileExpCalculator() {
              */}
             {bd && (
               /* 카드 패딩을 상쇄해 PC처럼 패널 아래에 꽉 찬 띠로 붙인다 */
-              <div className="flex items-center border-t -mx-3.5 -mb-3.5 mt-3.5 rounded-b-2xl overflow-hidden"
+              <div className="flex items-stretch border-t -mx-3.5 -mb-3.5 mt-3.5 rounded-b-2xl overflow-hidden"
                 style={{ borderColor: 'var(--row-divider)', background: 'var(--mpl-row)' }}>
                 {[
-                  { label: '주간', value: bd.weeklyTotal, color: C_WEEK },
-                  { label: '잠수', value: bd.divingTotal, color: C_DAY },
-                  { label: '아이템', value: bd.onceTotal, color: C_ONCE },
+                  { label: '주간', value: bd.weeklyTotal, reach: bd.reach.weekly, color: C_WEEK },
+                  { label: '잠수', value: bd.divingTotal, reach: bd.reach.diving, color: C_DAY },
+                  { label: '아이템', value: bd.onceTotal, reach: bd.reach.once, color: C_ONCE },
                 ].map((m, i) => (
+                  /*
+                   * 한 칸이 120px 남짓이라 라벨·값을 한 줄에 두면 네 자리 값("1345.21%")이 잘린다 —
+                   * 라벨 / 값 / 도착점을 세로로 쌓는다.
+                   */
                   <div key={m.label}
-                    className={`flex-1 flex items-baseline justify-center gap-1.5 py-3 whitespace-nowrap ${i > 0 ? 'border-l' : ''}`}
+                    className={`flex-1 min-w-0 flex flex-col items-center justify-center py-2.5 leading-tight ${i > 0 ? 'border-l' : ''}`}
                     style={{ borderColor: 'var(--panel-border)' }}>
-                    <span className="text-[13px] font-bold" style={{ color: 'var(--text-muted)' }}>{m.label}</span>
-                    <span className="text-[16.5px] font-bold tabular-nums" style={{ color: m.color }}>{fmtPct(m.value)}</span>
+                    <span className="text-[12px] font-bold" style={{ color: 'var(--text-muted)' }}>{m.label}</span>
+                    <span className="text-[16.5px] font-bold tabular-nums mt-0.5" style={{ color: m.color }}>{fmtPct(m.value)}</span>
+                    {/* 레벨을 넘기는 합계는 도착점을 같이 — "2021%"가 20레벨이 아니라는 걸 여기서 보여준다 */}
+                    {m.reach?.levels >= 1 && (
+                      <span className="text-[11px] tabular-nums mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        Lv.{m.reach.level} {m.reach.rate.toFixed(1)}% 도달
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -607,11 +644,12 @@ export default function MobileExpCalculator() {
             {zoneGroups.map((g) => {
               const open = g.src.flatMap((k) => data.daily[k].map((z) => ({ ...z, srcKey: k })))
                 .filter((z) => level >= z.minLevel)
-              const on = open.filter((z) => zoneOn(s.daily, z.id)).length
+              const on = open.filter((z) => zoneOn(s, z.id)).length
+              const gt = bd.daily.of(g.src)   // 묶은 그룹을 한 번에 걷는다 (걸은 값끼리는 더할 수 없다)
               return (
                 <Card key={g.key} icon={g.icon} grad={QUEST} title={g.title}
                   sub={`${on}/${open.length} 지역 선택됨`}
-                  pct={fmtPct(g.src.reduce((sum, k) => sum + (bd.zones[`${k}Total`] || 0), 0))} pctColor={C_DAY}>
+                  pct={fmtPct(gt.pct)} reach={gt} pctColor={C_DAY}>
                   <div>
                     {open.map((z) => {
                       const zb = bd.zones[z.id]
@@ -635,8 +673,8 @@ export default function MobileExpCalculator() {
             <Card icon="mp" grad="linear-gradient(180deg,#b98fdd,#9868c7)" title="몬스터파크"
               sub="일 2회 무료 · 최대 7회" pctColor={C_WEEK}
               totals={[
-                { label: '월~토요일', value: fmtPct(bd.park.dayNormal) },
-                { label: '일요일', value: fmtPct(bd.park.daySunday) },
+                { label: '월~토요일', value: fmtPct(bd.park.dayNormal), reach: bd.reach.parkNormal },
+                { label: '일요일', value: fmtPct(bd.park.daySunday), reach: bd.reach.parkSunday },
               ]}>
               <div className="grid grid-cols-[1fr_86px] gap-2">
                 <Field label="지역">
@@ -665,7 +703,7 @@ export default function MobileExpCalculator() {
             </Card>
 
             <Card icon="sauna" grad={PUR} title="리조트 · 사우나" sub="잠수 경험치"
-              pct={fmtPct(bd.mvp + bd.vip)} pctColor={C_WEEK}>
+              pct={fmtPct(bd.divingTotal)} reach={bd.reach.diving} pctColor={C_WEEK}>
               <div>
                 {/* 단위 글자 수가 달라(시간/주 vs 개) 폭이 어긋났다 — 박스 폭을 맞추고 오른쪽 정렬 */}
                 <TwoLineRow icon="sauna" label="MVP 리조트" note={`1시간당 ${fmtPct(bd.saunaHourPct)}`}
@@ -678,21 +716,25 @@ export default function MobileExpCalculator() {
             </Card>
 
             <Card icon="mp_extreme" grad="linear-gradient(180deg,#b98fdd,#9868c7)" title="익스트림 몬스터파크"
-              sub={bd.extreme.locked ? 'Lv.260 필요' : '주간 1회 · 목요일 초기화'}
-              pct={fmtPct(bd.extreme.total)} pctColor={C_WEEK} totalLabel="주간 합계"
+              sub={bd.extreme.locked ? `Lv.${data.extremePark.minLevel} 필요` : '주간 1회 · 목요일 초기화'}
+              pct={fmtPct(bd.extreme.total)} reach={bd.reach.extreme} pctColor={C_WEEK} totalLabel="주간 합계"
+              locked={bd.extreme.locked}
               toggle={!!s.weekly.extreme.on} onToggle={(v) => patchDeep('weekly', { extreme: { on: v } })} />
 
+            {/* 에픽던전 — 던전 목록은 몬파처럼 입장 가능한 것만 */}
             <Card icon="ed_nightmare" grad="linear-gradient(180deg,#b98fdd,#9868c7)" title="에픽던전"
-              sub="주간 1회 · 목요일 초기화" pct={fmtPct(bd.epic.total)} pctColor={C_WEEK} totalLabel="주간 합계"
-              toggle={s.weekly.epic.on} onToggle={(v) => patchDeep('weekly', { epic: { ...s.weekly.epic, on: v } })}>
+              sub={bd.epic.locked ? `Lv.${bd.epic.minLevel} 필요` : '주간 1회 · 목요일 초기화'}
+              pct={fmtPct(bd.epic.total)} reach={bd.reach.epic} pctColor={C_WEEK} totalLabel="주간 합계"
+              locked={bd.epic.locked}
+              toggle={!!s.weekly.epic.on} onToggle={(v) => patchDeep('weekly', { epic: { ...s.weekly.epic, on: v } })}>
               <div className="grid grid-cols-2 gap-2">
                 <Field label="던전">
                   <Select
-                    value={s.weekly.epic.dungeon}
+                    value={bd.epic.dungeon?.id || ''}
                     onChange={(v) => patchDeep('weekly', { epic: { ...s.weekly.epic, dungeon: v } })}
-                    options={data.epicDungeon.dungeons.map((d) => ({
+                    options={data.epicDungeon.dungeons.filter((d) => level >= d.minLevel).map((d) => ({
                       value: d.id,
-                      label: level >= d.minLevel ? d.name : `${d.name} (Lv.${d.minLevel})`,
+                      label: d.name,
                       subIcon: icons[EPIC_ICON[d.id]],
                     }))}
                   />
@@ -705,7 +747,7 @@ export default function MobileExpCalculator() {
             </Card>
 
             <Card icon="elixir" grad={TAN} title="성장의 비약" sub="아이템 사용"
-              pct={fmtPct(bd.elixir + bd.e200 + bd.e250)} pctColor={C_ONCE}>
+              pct={fmtPct(bd.elixirTotal)} reach={bd.reach.elixir} pctColor={C_ONCE}>
               <div>
                 {data.elixirs.map((e) => (
                   <TwoLineRow key={e.id} icon={`elixir_${e.id}`} label={e.name} note={`1개당 ${fmtPct(bd.elixirOne[e.id])}`}
@@ -717,26 +759,28 @@ export default function MobileExpCalculator() {
                 <TwoLineRow icon="elixir200" label="200레벨 달성의 비약" note={`1개당 ${fmtPct(bd.e200One)}`}
                   control={<NumInput value={s.items.e200lv} onChange={(v) => patchDeep('items', { e200lv: v })} min={0} max={999} chars={3} unit="개" />}
                   value={fmtPct(bd.e200)} valueColor={C_ONCE} />
-                <TwoLineRow icon="elixir250" label="250레벨 달성의 비약" note={`1개당 ${fmtPct(bd.e250One)}`}
+                <TwoLineRow icon="elixir250" label="250레벨 달성의 비약" locked={bd.e250Locked}
+                  note={bd.e250Locked ? 'Lv.250 필요' : `1개당 ${fmtPct(bd.e250One)}`}
                   control={<NumInput value={s.items.e250lv} onChange={(v) => patchDeep('items', { e250lv: v })} min={0} max={999} chars={3} unit="개" />}
                   value={fmtPct(bd.e250)} valueColor={C_ONCE} />
               </div>
             </Card>
 
             <Card icon="coupon" grad={TAN} title="EXP 교환권" sub="아이템 사용"
-              pct={fmtPct(bd.couponN + bd.couponU)} pctColor={C_ONCE}>
+              pct={fmtPct(bd.couponTotal)} reach={bd.reach.coupon} pctColor={C_ONCE}>
               <div>
                 <TwoLineRow icon="coupon" label="EXP 교환권" note={`1개당 ${fmtPct(bd.couponNOne)}`}
                   control={<NumInput value={s.items.couponNormal} onChange={(v) => patchDeep('items', { couponNormal: v })} min={0} max={99999} chars={5} unit="개" />}
                   value={fmtPct(bd.couponN)} valueColor={C_ONCE} />
-                <TwoLineRow icon="coupon_up" label="상급 EXP 교환권" note={`1개당 ${fmtPct(bd.couponUOne)}`}
+                <TwoLineRow icon="coupon_up" label="상급 EXP 교환권" locked={bd.couponULocked}
+                  note={bd.couponULocked ? `Lv.${data.coupons.upper.minLevel} 필요` : `1개당 ${fmtPct(bd.couponUOne)}`}
                   control={<NumInput value={s.items.couponUpper} onChange={(v) => patchDeep('items', { couponUpper: v })} min={0} max={99999} chars={5} unit="개" />}
                   value={fmtPct(bd.couponU)} valueColor={C_ONCE} />
               </div>
             </Card>
 
             <Card icon="farm_mech" grad={TAN} title="농장" sub="입장권 소모"
-              pct={fmtPct(bd.golden.total + bd.blue.total + bd.mech.total + bd.crimson.total)} pctColor={C_ONCE}>
+              pct={fmtPct(bd.farmTotal)} reach={bd.reach.farm} pctColor={C_ONCE}>
               <div>
                 <TwoLineRow icon="farm_gold" label="황금 딸기 농장" locked={bd.golden.locked}
                   note={bd.golden.locked ? '최대 레벨 초과' : `1회당 ${fmtPct(bd.golden.one)}`}
