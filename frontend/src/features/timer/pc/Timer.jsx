@@ -1000,10 +1000,15 @@ function Badge({ tone, children }) {
 }
 
 
-/** 알림 카드 머리띠 — 제목과 켬/끔 스위치. 꺼도 감지·표시는 돌고 소리만 쉰다 */
+/**
+ * 알림 카드 머리띠 — 제목과 켬/끔 스위치. 꺼도 감지·표시는 돌고 소리만 쉰다.
+ *
+ * 높이를 고정한다. right 자리에 들어오는 상태 알약·버튼이 24px이라 제목(20.3px)보다 커서,
+ * 스위치를 켜고 끌 때마다 바가 36.3px ↔ 40px으로 움찔거렸다(실측).
+ */
 function SectionBar({ icon, title, on, onChange, right }) {
   return (
-    <div className="px-4 py-2 flex items-center justify-between" style={SLATE_BAR}>
+    <div className="px-4 flex items-center justify-between" style={{ ...SLATE_BAR, minHeight: 40 }}>
       <span className="flex items-center gap-2 text-[13.5px] font-extrabold">{icon}{title}</span>
       <span className="flex items-center gap-2.5">
         {right}
