@@ -6,6 +6,9 @@
  * 공지의 '기존 가격'과 우리 값이 다르면 둘 중 하나가 틀렸다는 뜻이라
  * 그대로 덮어쓰면 조용히 잘못된 값이 들어간다.
  *
+ * 어긋났을 때는 **우리 값을 먼저 바로잡고 다시 돌린다**. 예외 필드를 둬서 통과시키면
+ * 가드가 있으나 마나다 (실제로 벨로나 노멀에서 그렇게 했다가 되돌렸다).
+ *
  *   node scripts/apply-crystal-prices.js <표.json>          # 확인만
  *   node scripts/apply-crystal-prices.js <표.json> --apply   # 실제 반영
  *
@@ -29,7 +32,6 @@ const byKey = new Map(cur.map((r) => [`${r.name}|${r.difficulty}`, r]));
 
 const plan = [];
 const problems = [];
-const notes = [];
 const done = [];
 for (const row of table) {
   const key = `${row.boss}|${row.difficulty}`;
@@ -41,18 +43,9 @@ for (const row of table) {
   // 바뀐 값이 '기존 가격 불일치'로 잡혀 멀쩡한 행이 전부 문제로 보고된다.
   if (price === row.newPrice) { done.push(key); continue; }
 
-  /*
-   * dbPriceWas 는 "공지의 기존 가격과 우리 DB 값이 다르다는 걸 알고 있고,
-   * 우리 값은 이것이었다"는 기록이다. 확인 없이 덮어쓰지 않게 하려고 둔 것이라
-   * 이 값도 DB와 맞아야 통과한다. 없으면 공지의 기존 가격과 맞아야 한다.
-   */
-  const expect = row.dbPriceWas ?? row.oldPrice;
-  if (price !== expect) {
-    problems.push(`${key} — 기존 가격 불일치 (DB ${price.toLocaleString()} / 기대 ${expect.toLocaleString()})`);
+  if (price !== row.oldPrice) {
+    problems.push(`${key} — 기존 가격 불일치 (DB ${price.toLocaleString()} / 공지 ${row.oldPrice.toLocaleString()})`);
     continue;
-  }
-  if (row.dbPriceWas != null) {
-    notes.push(`${key} — 공지 기존가 ${row.oldPrice.toLocaleString()} 와 우리 값 ${price.toLocaleString()} 이 달랐다. 변경가는 공지를 따른다.`);
   }
   plan.push({ id: db.id, key, from: price, to: row.newPrice });
 }
@@ -61,10 +54,6 @@ console.log(`표 ${table.length}행 · 바꿀 것 ${plan.length}행 · 이미 �
 for (const p of plan) {
   const pct = ((p.to / p.from - 1) * 100).toFixed(1);
   console.log(`  ${p.key.padEnd(28)} ${p.from.toLocaleString().padStart(15)} → ${p.to.toLocaleString().padStart(15)}  (${pct}%)`);
-}
-if (notes.length) {
-  console.log('\n확인하고 넘어간 것:');
-  for (const n of notes) console.log(`  ${n}`);
 }
 if (problems.length) {
   console.log('\n문제:');
