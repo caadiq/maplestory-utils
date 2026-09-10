@@ -29,22 +29,42 @@ const byKey = new Map(cur.map((r) => [`${r.name}|${r.difficulty}`, r]));
 
 const plan = [];
 const problems = [];
+const notes = [];
+const done = [];
 for (const row of table) {
   const key = `${row.boss}|${row.difficulty}`;
   const db = byKey.get(key);
   if (!db) { problems.push(`${key} — DB에 없는 보스`); continue; }
-  if (Number(db.crystal_price) !== row.oldPrice) {
-    problems.push(`${key} — 기존 가격 불일치 (DB ${Number(db.crystal_price).toLocaleString()} / 공지 ${row.oldPrice.toLocaleString()})`);
+  const price = Number(db.crystal_price);
+
+  // 이미 반영된 행을 먼저 걸러낸다. 이걸 뒤에 두면 재실행할 때마다
+  // 바뀐 값이 '기존 가격 불일치'로 잡혀 멀쩡한 행이 전부 문제로 보고된다.
+  if (price === row.newPrice) { done.push(key); continue; }
+
+  /*
+   * dbPriceWas 는 "공지의 기존 가격과 우리 DB 값이 다르다는 걸 알고 있고,
+   * 우리 값은 이것이었다"는 기록이다. 확인 없이 덮어쓰지 않게 하려고 둔 것이라
+   * 이 값도 DB와 맞아야 통과한다. 없으면 공지의 기존 가격과 맞아야 한다.
+   */
+  const expect = row.dbPriceWas ?? row.oldPrice;
+  if (price !== expect) {
+    problems.push(`${key} — 기존 가격 불일치 (DB ${price.toLocaleString()} / 기대 ${expect.toLocaleString()})`);
     continue;
   }
-  if (Number(db.crystal_price) === row.newPrice) continue;   // 이미 반영됨
-  plan.push({ id: db.id, key, from: Number(db.crystal_price), to: row.newPrice });
+  if (row.dbPriceWas != null) {
+    notes.push(`${key} — 공지 기존가 ${row.oldPrice.toLocaleString()} 와 우리 값 ${price.toLocaleString()} 이 달랐다. 변경가는 공지를 따른다.`);
+  }
+  plan.push({ id: db.id, key, from: price, to: row.newPrice });
 }
 
-console.log(`표 ${table.length}행 · 바꿀 것 ${plan.length}행 · 문제 ${problems.length}건\n`);
+console.log(`표 ${table.length}행 · 바꿀 것 ${plan.length}행 · 이미 반영됨 ${done.length}행 · 문제 ${problems.length}건\n`);
 for (const p of plan) {
   const pct = ((p.to / p.from - 1) * 100).toFixed(1);
   console.log(`  ${p.key.padEnd(28)} ${p.from.toLocaleString().padStart(15)} → ${p.to.toLocaleString().padStart(15)}  (${pct}%)`);
+}
+if (notes.length) {
+  console.log('\n확인하고 넘어간 것:');
+  for (const n of notes) console.log(`  ${n}`);
 }
 if (problems.length) {
   console.log('\n문제:');

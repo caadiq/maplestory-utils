@@ -6,12 +6,6 @@
     "newPrice": 4040000
   },
   {
-    "boss": "피에르",
-    "difficulty": "chaos",
-    "oldPrice": 8170000,
-    "newPrice": 4080000
-  },
-  {
     "boss": "반반",
     "difficulty": "chaos",
     "oldPrice": 8150000,
@@ -24,16 +18,22 @@
     "newPrice": 4070000
   },
   {
-    "boss": "벨룸",
+    "boss": "피에르",
     "difficulty": "chaos",
-    "oldPrice": 9280000,
-    "newPrice": 4640000
+    "oldPrice": 8170000,
+    "newPrice": 4080000
   },
   {
     "boss": "매그너스",
     "difficulty": "hard",
     "oldPrice": 8560000,
     "newPrice": 4280000
+  },
+  {
+    "boss": "벨룸",
+    "difficulty": "chaos",
+    "oldPrice": 9280000,
+    "newPrice": 4640000
   },
   {
     "boss": "파풀라투스",
@@ -108,12 +108,6 @@
     "newPrice": 48900000
   },
   {
-    "boss": "진 힐라",
-    "difficulty": "normal",
-    "oldPrice": 71200000,
-    "newPrice": 67600000
-  },
-  {
     "boss": "루시드",
     "difficulty": "hard",
     "oldPrice": 62900000,
@@ -124,6 +118,12 @@
     "difficulty": "chaos",
     "oldPrice": 69800000,
     "newPrice": 66300000
+  },
+  {
+    "boss": "진 힐라",
+    "difficulty": "normal",
+    "oldPrice": 71200000,
+    "newPrice": 67600000
   },
   {
     "boss": "가디언 엔젤 슬라임",
@@ -214,6 +214,14 @@
     "difficulty": "normal",
     "oldPrice": 625000000,
     "newPrice": 593000000
+  },
+  {
+    "boss": "벨로나",
+    "difficulty": "normal",
+    "oldPrice": 850000000,
+    "newPrice": 824000000,
+    "dbPriceWas": 890000000,
+    "_note": "공지의 기존 가격은 850,000,000 인데 우리 DB 는 890,000,000 이었다. 공지 안에서는 850 기준이 앞뒤가 맞는다(850×0.97=824.5→824, 같은 구간 림보 노멀 1,026×0.97=995.2→995). 890 기준이면 863 이 나와 안 맞는다. 우리 값이 틀렸던 것으로 보고 변경가는 공지를 따랐다."
   },
   {
     "boss": "림보",
