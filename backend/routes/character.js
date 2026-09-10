@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   attachWorldIcons, extractAccountCharacters, parseArtifactBonus, parseEventSkillBonus,
+  refreshCachedCharacter,
 } from '../services/character.js';
 import { nexonGet, getOcid, handleNexonError } from '../lib/nexon.js';
 
@@ -23,6 +24,9 @@ router.get('/search', async (req, res) => {
       character_level: basic.character_level,
       character_image: basic.character_image,
     }]);
+    // 자동완성 목록이 옛 월드·레벨을 들고 있지 않게 이 한 명분을 갱신한다 (응답은 안 기다린다)
+    refreshCachedCharacter(req.user?.id, character);
+
     res.json(character);
   } catch (err) {
     handleNexonError(err, res, { label: '캐릭터 조회 오류', notFound: '존재하지 않는 캐릭터입니다', failMsg: '캐릭터 조회 실패' });

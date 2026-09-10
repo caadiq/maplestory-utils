@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { attachWorldIcons } from '../services/character.js';
+import { attachWorldIcons, refreshCachedCharacter } from '../services/character.js';
 import { nexonGet, getOcid, handleNexonError } from '../lib/nexon.js';
 import { parseCores } from '../services/hexa.js';
 
@@ -36,6 +36,9 @@ router.get('/lookup', async (req, res) => {
       character_level: basic.character_level,
       character_image: basic.character_image,
     }]);
+
+    // 자동완성 목록이 옛 월드·레벨을 들고 있지 않게 이 한 명분을 갱신한다 (응답은 안 기다린다)
+    refreshCachedCharacter(req.user?.id, character);
 
     res.json({ character, cores });
   } catch (err) {

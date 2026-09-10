@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import { Image } from '../models/index.js';
+import { Image, UserCharacter } from '../models/index.js';
 import { getPublicUrl } from '../lib/s3.js';
 
 // 넥슨 character/list 응답에서 계정 캐릭터 추출 (스페셜/리부트 월드 제외, 레벨 내림차순)
@@ -20,6 +20,47 @@ export function extractAccountCharacters(listData) {
   }
   characters.sort((a, b) => b.character_level - a.character_level);
   return characters;
+}
+
+/**
+ * 조회로 알게 된 최신값을 계정 캐릭터 캐시(user_characters)에 흘려 넣는다.
+ *
+ * 이 캐시는 **로그인할 때만** 채워진다. 그래서 월드 이전(챌린저스 → 본섭)이나
+ * 전직·레벨업을 하면 다시 로그인하기 전까지 자동완성 목록이 옛 값을 보여준다.
+ * 실제로 리프한 캐릭터가 목록에서 계속 챌섭 아이콘으로 나왔다.
+ *
+ * 계정 캐릭터 목록을 통째로 다시 받으려면 사용자의 API 키가 필요한데 그건 보관하지 않는다.
+ * 대신 캐릭터를 조회할 때마다 그 한 명분을 갱신한다 — 넥슨 호출이 늘지 않는다.
+ *
+ * ocid 로 먼저 찾고, 없으면 이름으로 찾는다. 둘 다 필요하다:
+ *   - **월드를 옮기면 ocid 가 바뀐다** (실측: 챌린저스 c9b46d… → 크로아 67d03f…).
+ *     그래서 ocid 로만 찾으면 정작 고쳐야 할 행을 못 찾는다.
+ *   - 이름을 바꾸면 ocid 는 그대로다. 그래서 이름으로만 찾아도 놓친다.
+ * 이름은 계정 캐시 안에서 유일하다(실측 52행 / 이름 52종).
+ *
+ * 응답을 막지 않도록 실패는 삼킨다.
+ *
+ * @param userId 로그인 사용자 id. 비로그인이면 아무것도 안 한다
+ * @param char   { ocid, character_name, world_name, job_name, character_level }
+ */
+export async function refreshCachedCharacter(userId, char) {
+  if (!userId || !char?.ocid || !char.character_name) return;
+  try {
+    const row = await UserCharacter.findOne({ where: { user_id: userId, ocid: char.ocid } })
+      ?? await UserCharacter.findOne({ where: { user_id: userId, character_name: char.character_name } });
+    if (!row) return;   // 이 계정 캐릭터가 아니다
+    const next = {
+      ocid: char.ocid,
+      character_name: char.character_name,
+      world_name: char.world_name ?? row.world_name,
+      job_name: char.job_name ?? row.job_name,
+      character_level: char.character_level ?? row.character_level,
+    };
+    if (Object.entries(next).every(([k, v]) => row[k] === v)) return;
+    await row.update(next);
+  } catch (e) {
+    console.error('캐릭터 캐시 갱신 실패:', e.message);
+  }
 }
 
 // 각 캐릭터에 월드 아이콘 URL(world_icon) 부여

@@ -27,6 +27,15 @@ function CharacterCard({ char, active, onSelect, onRemove }) {
         boxShadow: active
           ? 'inset 0 0 0 2.5px var(--selected-border), 0 3px 10px rgba(134,201,62,.25)'
           : 'inset 0 0 0 1px var(--mpl-card-line)',
+        /*
+         * 카드를 독립된 쌓임 맥락으로 만든다.
+         * 안의 ✕·드래그 핸들이 z-index 10 인데 카드 자신은 z-index 가 auto 라,
+         * 그 10 이 카드 밖(목록 전체)으로 새어 나가 **옆 카드 위에** 그려졌다.
+         * 끌고 있는 카드 위로 다른 카드의 ✕ 가 비쳐 보이던 게 이것이다.
+         */
+        isolation: 'isolate',
+        // 끄는 동안은 옆 카드보다 위에 (framer-motion 이 올려주지 않는 경우 대비)
+        zIndex: dragged ? 2 : undefined,
       }}
     >
       {/* 드래그 핸들 */}
