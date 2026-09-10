@@ -1,0 +1,260 @@
+[
+  {
+    "boss": "자쿰",
+    "difficulty": "chaos",
+    "oldPrice": 8080000,
+    "newPrice": 4040000
+  },
+  {
+    "boss": "피에르",
+    "difficulty": "chaos",
+    "oldPrice": 8170000,
+    "newPrice": 4080000
+  },
+  {
+    "boss": "반반",
+    "difficulty": "chaos",
+    "oldPrice": 8150000,
+    "newPrice": 4070000
+  },
+  {
+    "boss": "블러디퀸",
+    "difficulty": "chaos",
+    "oldPrice": 8140000,
+    "newPrice": 4070000
+  },
+  {
+    "boss": "벨룸",
+    "difficulty": "chaos",
+    "oldPrice": 9280000,
+    "newPrice": 4640000
+  },
+  {
+    "boss": "매그너스",
+    "difficulty": "hard",
+    "oldPrice": 8560000,
+    "newPrice": 4280000
+  },
+  {
+    "boss": "파풀라투스",
+    "difficulty": "chaos",
+    "oldPrice": 13100000,
+    "newPrice": 6550000
+  },
+  {
+    "boss": "스우",
+    "difficulty": "normal",
+    "oldPrice": 16700000,
+    "newPrice": 8350000
+  },
+  {
+    "boss": "데미안",
+    "difficulty": "normal",
+    "oldPrice": 17500000,
+    "newPrice": 8750000
+  },
+  {
+    "boss": "가디언 엔젤 슬라임",
+    "difficulty": "normal",
+    "oldPrice": 25500000,
+    "newPrice": 12700000
+  },
+  {
+    "boss": "루시드",
+    "difficulty": "easy",
+    "oldPrice": 29800000,
+    "newPrice": 14900000
+  },
+  {
+    "boss": "윌",
+    "difficulty": "easy",
+    "oldPrice": 32300000,
+    "newPrice": 16100000
+  },
+  {
+    "boss": "루시드",
+    "difficulty": "normal",
+    "oldPrice": 35600000,
+    "newPrice": 17800000
+  },
+  {
+    "boss": "윌",
+    "difficulty": "normal",
+    "oldPrice": 41100000,
+    "newPrice": 20500000
+  },
+  {
+    "boss": "더스크",
+    "difficulty": "normal",
+    "oldPrice": 44000000,
+    "newPrice": 22000000
+  },
+  {
+    "boss": "듄켈",
+    "difficulty": "normal",
+    "oldPrice": 47500000,
+    "newPrice": 23700000
+  },
+  {
+    "boss": "데미안",
+    "difficulty": "hard",
+    "oldPrice": 48900000,
+    "newPrice": 46400000
+  },
+  {
+    "boss": "스우",
+    "difficulty": "hard",
+    "oldPrice": 51500000,
+    "newPrice": 48900000
+  },
+  {
+    "boss": "진 힐라",
+    "difficulty": "normal",
+    "oldPrice": 71200000,
+    "newPrice": 67600000
+  },
+  {
+    "boss": "루시드",
+    "difficulty": "hard",
+    "oldPrice": 62900000,
+    "newPrice": 59700000
+  },
+  {
+    "boss": "더스크",
+    "difficulty": "chaos",
+    "oldPrice": 69800000,
+    "newPrice": 66300000
+  },
+  {
+    "boss": "가디언 엔젤 슬라임",
+    "difficulty": "chaos",
+    "oldPrice": 75100000,
+    "newPrice": 71300000
+  },
+  {
+    "boss": "윌",
+    "difficulty": "hard",
+    "oldPrice": 77100000,
+    "newPrice": 73200000
+  },
+  {
+    "boss": "듄켈",
+    "difficulty": "hard",
+    "oldPrice": 94400000,
+    "newPrice": 89600000
+  },
+  {
+    "boss": "진 힐라",
+    "difficulty": "hard",
+    "oldPrice": 106000000,
+    "newPrice": 100000000
+  },
+  {
+    "boss": "선택받은 세렌",
+    "difficulty": "normal",
+    "oldPrice": 239000000,
+    "newPrice": 167000000
+  },
+  {
+    "boss": "감시자 칼로스",
+    "difficulty": "easy",
+    "oldPrice": 280000000,
+    "newPrice": 238000000
+  },
+  {
+    "boss": "최초의 대적자",
+    "difficulty": "easy",
+    "oldPrice": 308000000,
+    "newPrice": 261000000
+  },
+  {
+    "boss": "선택받은 세렌",
+    "difficulty": "hard",
+    "oldPrice": 356000000,
+    "newPrice": 302000000
+  },
+  {
+    "boss": "카링",
+    "difficulty": "easy",
+    "oldPrice": 377000000,
+    "newPrice": 320000000
+  },
+  {
+    "boss": "벨로나",
+    "difficulty": "easy",
+    "oldPrice": 440000000,
+    "newPrice": 396000000
+  },
+  {
+    "boss": "감시자 칼로스",
+    "difficulty": "normal",
+    "oldPrice": 505000000,
+    "newPrice": 479000000
+  },
+  {
+    "boss": "최초의 대적자",
+    "difficulty": "normal",
+    "oldPrice": 560000000,
+    "newPrice": 532000000
+  },
+  {
+    "boss": "스우",
+    "difficulty": "extreme",
+    "oldPrice": 574000000,
+    "newPrice": 545000000
+  },
+  {
+    "boss": "카링",
+    "difficulty": "normal",
+    "oldPrice": 678000000,
+    "newPrice": 576000000
+  },
+  {
+    "boss": "찬란한 흉성",
+    "difficulty": "normal",
+    "oldPrice": 625000000,
+    "newPrice": 593000000
+  },
+  {
+    "boss": "림보",
+    "difficulty": "normal",
+    "oldPrice": 1026000000,
+    "newPrice": 995000000
+  },
+  {
+    "boss": "감시자 칼로스",
+    "difficulty": "chaos",
+    "oldPrice": 1273000000,
+    "newPrice": 1230000000
+  },
+  {
+    "boss": "발드릭스",
+    "difficulty": "normal",
+    "oldPrice": 1368000000,
+    "newPrice": 1320000000
+  },
+  {
+    "boss": "최초의 대적자",
+    "difficulty": "hard",
+    "oldPrice": 1435000000,
+    "newPrice": 1390000000
+  },
+  {
+    "boss": "유피테르",
+    "difficulty": "normal",
+    "oldPrice": 1615000000,
+    "newPrice": 1560000000
+  },
+  {
+    "boss": "카링",
+    "difficulty": "hard",
+    "oldPrice": 1739000000,
+    "newPrice": 1560000000
+  },
+  {
+    "boss": "선택받은 세렌",
+    "difficulty": "extreme",
+    "oldPrice": 2835000000,
+    "newPrice": 1840000000
+  }
+]
