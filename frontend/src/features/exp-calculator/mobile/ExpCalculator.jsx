@@ -35,7 +35,7 @@ const C_WEEK = '#9247c9'
 const C_ONCE = '#e8a20c'
 const C_PACE = '#3f9e57'
 
-const EPIC_ICON = { high_mountain: 'ed_highmountain', angler_company: 'ed_angler', nightmare_paradise: 'ed_nightmare' }
+const EPIC_ICON = { high_mountain: 'ed_highmountain', angler_company: 'ed_angler', nightmare_paradise: 'ed_nightmare', aurum_regis: 'ed_aurum' }
 /* 몬파 드롭다운은 심볼이 아니라 지역 그림을 쓴다 (관리자 이미지의 '지역 : …') */
 const parkIconId = (id) => `region_${id}`
 
@@ -702,7 +702,7 @@ export default function MobileExpCalculator() {
               </div>
             </Card>
 
-            <Card icon="sauna" grad={PUR} title="리조트 · 사우나" sub="잠수 경험치"
+            <Card icon="sauna" grad={PUR} title="리조트 · 사우나" sub="차감되는 이용 시간 기준 · 2배속도 총 경험치 동일"
               pct={fmtPct(bd.divingTotal)} reach={bd.reach.diving} pctColor={C_WEEK}>
               <div>
                 {/* 단위 글자 수가 달라(시간/주 vs 개) 폭이 어긋났다 — 박스 폭을 맞추고 오른쪽 정렬 */}
@@ -722,12 +722,12 @@ export default function MobileExpCalculator() {
               toggle={!!s.weekly.extreme.on} onToggle={(v) => patchDeep('weekly', { extreme: { on: v } })} />
 
             {/* 에픽던전 — 던전 목록은 몬파처럼 입장 가능한 것만 */}
-            <Card icon="ed_nightmare" grad="linear-gradient(180deg,#b98fdd,#9868c7)" title="에픽던전"
+            <Card icon={EPIC_ICON[bd.epic.dungeon?.id] || 'ed_nightmare'} grad="linear-gradient(180deg,#b98fdd,#9868c7)" title="에픽던전"
               sub={bd.epic.locked ? `Lv.${bd.epic.minLevel} 필요` : '주간 1회 · 목요일 초기화'}
               pct={fmtPct(bd.epic.total)} reach={bd.reach.epic} pctColor={C_WEEK} totalLabel="주간 합계"
               locked={bd.epic.locked}
               toggle={!!s.weekly.epic.on} onToggle={(v) => patchDeep('weekly', { epic: { ...s.weekly.epic, on: v } })}>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-2">
                 <Field label="던전">
                   <Select
                     value={bd.epic.dungeon?.id || ''}

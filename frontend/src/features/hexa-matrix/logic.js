@@ -75,6 +75,7 @@ export const EPIC_DUNGEONS = [
   // 솔 에르다 [1, 5, 9] + 짙은 기운 [1, 5, 9] × 0.5
   { id: 'angler', name: '앵글러 컴퍼니', erda: [1.5, 7.5, 13.5], frag: 15 },
   { id: 'nightmare', name: '악몽선경', erda: [2, 10, 18], frag: 15 },
+  { id: 'aurum', name: '아우룸 레기스', erda: [2.5, 12.5, 22.5], frag: 15 },
 ]
 export const EPIC_MULTIPLIERS = [1, 4, 8]
 

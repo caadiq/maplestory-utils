@@ -261,8 +261,9 @@ export function breakdown(data, level, s, bonus, startRate = 0) {
   /* ── 잠수 ── */
   const saunaAbs = (l) => byLevel(data.sauna.hourly, l)
   const saunaHour = saunaAbs(L)
+  const resortAbs = (l) => byLevel(data.mvpResort?.hourly || data.sauna.hourly, l)
   // 분 단위로 걷는다 — 시간 단위면 렙업 시점의 오차가 한 시간치까지 벌어진다
-  const mvpChunks = rep(Math.round((w.mvpHours || 0) * 60), (l) => saunaAbs(l) / 60)
+  const mvpChunks = rep(Math.round((w.mvpHours || 0) * 60), (l) => resortAbs(l) / 60)
   const it = s.items
   const vipChunks = rep(it.vipTickets || 0, (l) => saunaAbs(l) * 0.5)   // 이용권 1개 = 30분
   const gMvp = go(mvpChunks)
@@ -390,7 +391,7 @@ export function breakdown(data, level, s, bonus, startRate = 0) {
     mvp: gMvp.pct,
     vip: gVip.pct,
     vipOne: pct(saunaHour * 0.5),
-    saunaHourPct: pct(saunaHour), // 잠수 1시간당 획득 (사우나·리조트 공통)
+    saunaHourPct: pct(resortAbs(L)),
     divingTotal: gDiving.pct,
     weeklyTotal: gWeekly.pct,
     elixirEach,

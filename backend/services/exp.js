@@ -38,6 +38,7 @@ const ICON_NAMES = {
   ed_highmountain: '에픽던전 : 하이마운틴',
   ed_angler: '에픽던전 : 앵글러 컴퍼니',
   ed_nightmare: '에픽던전 : 악몽선경',
+  ed_aurum: '에픽던전 : 아우름 레기스',
   elixir: '성장의 비약',
   elixir_e249: '성장의 비약 (200~249)',
   elixir_e259: '성장의 비약 (200~259)',
@@ -72,6 +73,7 @@ const ICON_NAMES = {
   region_arteria: '지역 : 아르테리아',
   region_carcion: '지역 : 카르시온',
   region_tallahart: '지역 : 탈라하트',
+  region_geardrak: '지역 : 기어드락',
 };
 
 // 이름→URL은 거의 안 바뀌므로 한 번 조회해 캐시한다.

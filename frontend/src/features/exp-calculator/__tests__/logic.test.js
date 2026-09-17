@@ -154,3 +154,36 @@ describe('breakdown', () => {
     expect(g.pct).toBeCloseTo(((1e9 + 2e9) / levelExp[212]) * 100, 6)
   })
 })
+
+describe('separate resort and sauna rewards', () => {
+  it('applies the resort table only to deducted MVP time, keeping VIP tickets unchanged', () => {
+    const updated = { ...data, mvpResort: { hourly: flat(6e8) } }
+    const s = settings({ weekly: { mvpHours: 1 }, items: { vipTickets: 1 } })
+    const before = breakdown(data, 212, s)
+    const after = breakdown(updated, 212, s)
+    expect(after.saunaHourPct).toBeCloseTo(6e8 / levelExp[212] * 100)
+    expect(after.vipOne).toBe(before.vipOne)
+  })
+})
+
+it('unlocks Aurum at 290 and Geardrak at 295, preserving explicit older dungeon choices', () => {
+  const updated = {
+    ...data,
+    levelExp: { 289: 1e15, 290: 1e15, 294: 1e15, 295: 1e15, 299: 1e15 },
+    monsterPark: { zones: [
+      { id: 'tallahart', minLevel: 290, exp: { normal: 218575316000, sunday: 327862974000 } },
+      { id: 'geardrak', minLevel: 295, exp: { normal: 316934208200, sunday: 475401312300 } },
+    ] },
+    epicDungeon: { ...data.epicDungeon, dungeons: [...data.epicDungeon.dungeons,
+      { id: 'aurum_regis', minLevel: 290, base: { 290: 2174400000000, 295: 2559900000000 } },
+    ] },
+  }
+  expect(epicAt(289, updated, 'auto').id).toBe('nightmare_paradise')
+  expect(epicAt(290, updated, 'auto').id).toBe('aurum_regis')
+  expect(epicAt(299, updated, 'high_mountain').id).toBe('high_mountain')
+  const s = settings({ weekly: { epic: { on: true, dungeon: 'auto', stage: 2 } } })
+  expect(breakdown(updated, 294, s).park.zone.id).toBe('tallahart')
+  const bd = breakdown(updated, 295, s, { epicDungeon: 50 })
+  expect(bd.park.zone.id).toBe('geardrak')
+  expect(bd.epic.total).toBeCloseTo(2559900000000 * 9.5 / 1e15 * 100)
+})
