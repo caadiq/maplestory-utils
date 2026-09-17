@@ -109,6 +109,7 @@ export function parseArtifactBonus(skills) {
 }
 
 export function parseEventSkillBonus(skills) {
+  const sources = [];
   for (const s of skills || []) {
     if (s.skill_name === ARTIFACT_SKILL_NAME) continue; // 아티팩트는 별도 파싱
     const eff = s.skill_effect || '';
@@ -121,13 +122,21 @@ export function parseEventSkillBonus(skills) {
         AUTHENTIC_SYMBOL_TO_LEVEL[authenticDaily] ||
         ARCANE_SYMBOL_TO_LEVEL[arcaneDaily] ||
         0;
-      return {
+      sources.push({
         skill_name: s.skill_name,
         skill_level: derivedLevel,
         arcane_daily: arcaneDaily,
         authentic_daily: authenticDaily,
-      };
+      });
     }
   }
-  return null;
+  if (!sources.length) return null;
+  if (sources.length === 1) return sources[0];
+  return {
+    skill_name: sources.map((s) => s.skill_name).join(' + '),
+    skill_level: null,
+    arcane_daily: sources.reduce((sum, s) => sum + s.arcane_daily, 0),
+    authentic_daily: sources.reduce((sum, s) => sum + s.authentic_daily, 0),
+    sources,
+  };
 }

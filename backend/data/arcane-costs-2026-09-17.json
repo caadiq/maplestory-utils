@@ -1,0 +1,686 @@
+[
+  {
+    "region": "소멸의 여로",
+    "level": 1,
+    "oldCost": 970000,
+    "newCost": 679000
+  },
+  {
+    "region": "소멸의 여로",
+    "level": 2,
+    "oldCost": 1230000,
+    "newCost": 861000
+  },
+  {
+    "region": "소멸의 여로",
+    "level": 3,
+    "oldCost": 1660000,
+    "newCost": 1162000
+  },
+  {
+    "region": "소멸의 여로",
+    "level": 4,
+    "oldCost": 2260000,
+    "newCost": 1582000
+  },
+  {
+    "region": "소멸의 여로",
+    "level": 5,
+    "oldCost": 3060000,
+    "newCost": 2142000
+  },
+  {
+    "region": "소멸의 여로",
+    "level": 6,
+    "oldCost": 4040000,
+    "newCost": 2828000
+  },
+  {
+    "region": "소멸의 여로",
+    "level": 7,
+    "oldCost": 5220000,
+    "newCost": 3654000
+  },
+  {
+    "region": "소멸의 여로",
+    "level": 8,
+    "oldCost": 6600000,
+    "newCost": 4620000
+  },
+  {
+    "region": "소멸의 여로",
+    "level": 9,
+    "oldCost": 8180000,
+    "newCost": 5726000
+  },
+  {
+    "region": "소멸의 여로",
+    "level": 10,
+    "oldCost": 9990000,
+    "newCost": 6993000
+  },
+  {
+    "region": "소멸의 여로",
+    "level": 11,
+    "oldCost": 12010000,
+    "newCost": 8407000
+  },
+  {
+    "region": "소멸의 여로",
+    "level": 12,
+    "oldCost": 14260000,
+    "newCost": 9982000
+  },
+  {
+    "region": "소멸의 여로",
+    "level": 13,
+    "oldCost": 16740000,
+    "newCost": 11718000
+  },
+  {
+    "region": "소멸의 여로",
+    "level": 14,
+    "oldCost": 19450000,
+    "newCost": 13615000
+  },
+  {
+    "region": "소멸의 여로",
+    "level": 15,
+    "oldCost": 22420000,
+    "newCost": 15694000
+  },
+  {
+    "region": "소멸의 여로",
+    "level": 16,
+    "oldCost": 25630000,
+    "newCost": 17941000
+  },
+  {
+    "region": "소멸의 여로",
+    "level": 17,
+    "oldCost": 29100000,
+    "newCost": 20370000
+  },
+  {
+    "region": "소멸의 여로",
+    "level": 18,
+    "oldCost": 32830000,
+    "newCost": 22981000
+  },
+  {
+    "region": "소멸의 여로",
+    "level": 19,
+    "oldCost": 36820000,
+    "newCost": 25774000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 1,
+    "oldCost": 1210000,
+    "newCost": 847000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 2,
+    "oldCost": 1530000,
+    "newCost": 1071000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 3,
+    "oldCost": 2060000,
+    "newCost": 1442000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 4,
+    "oldCost": 2800000,
+    "newCost": 1960000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 5,
+    "oldCost": 3780000,
+    "newCost": 2646000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 6,
+    "oldCost": 4980000,
+    "newCost": 3486000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 7,
+    "oldCost": 6420000,
+    "newCost": 4494000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 8,
+    "oldCost": 8100000,
+    "newCost": 5670000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 9,
+    "oldCost": 10020000,
+    "newCost": 7014000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 10,
+    "oldCost": 12210000,
+    "newCost": 8547000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 11,
+    "oldCost": 14650000,
+    "newCost": 10255000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 12,
+    "oldCost": 17360000,
+    "newCost": 12152000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 13,
+    "oldCost": 20340000,
+    "newCost": 14238000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 14,
+    "oldCost": 23590000,
+    "newCost": 16513000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 15,
+    "oldCost": 27140000,
+    "newCost": 18998000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 16,
+    "oldCost": 30970000,
+    "newCost": 21679000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 17,
+    "oldCost": 35100000,
+    "newCost": 24570000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 18,
+    "oldCost": 39530000,
+    "newCost": 27671000
+  },
+  {
+    "region": "츄츄 아일랜드",
+    "level": 19,
+    "oldCost": 44260000,
+    "newCost": 30982000
+  },
+  {
+    "region": "레헬른",
+    "level": 1,
+    "oldCost": 1450000,
+    "newCost": 1015000
+  },
+  {
+    "region": "레헬른",
+    "level": 2,
+    "oldCost": 1830000,
+    "newCost": 1281000
+  },
+  {
+    "region": "레헬른",
+    "level": 3,
+    "oldCost": 2460000,
+    "newCost": 1722000
+  },
+  {
+    "region": "레헬른",
+    "level": 4,
+    "oldCost": 3340000,
+    "newCost": 2338000
+  },
+  {
+    "region": "레헬른",
+    "level": 5,
+    "oldCost": 4500000,
+    "newCost": 3150000
+  },
+  {
+    "region": "레헬른",
+    "level": 6,
+    "oldCost": 5920000,
+    "newCost": 4144000
+  },
+  {
+    "region": "레헬른",
+    "level": 7,
+    "oldCost": 7620000,
+    "newCost": 5334000
+  },
+  {
+    "region": "레헬른",
+    "level": 8,
+    "oldCost": 9600000,
+    "newCost": 6720000
+  },
+  {
+    "region": "레헬른",
+    "level": 9,
+    "oldCost": 11860000,
+    "newCost": 8302000
+  },
+  {
+    "region": "레헬른",
+    "level": 10,
+    "oldCost": 14430000,
+    "newCost": 10101000
+  },
+  {
+    "region": "레헬른",
+    "level": 11,
+    "oldCost": 17290000,
+    "newCost": 12103000
+  },
+  {
+    "region": "레헬른",
+    "level": 12,
+    "oldCost": 20460000,
+    "newCost": 14322000
+  },
+  {
+    "region": "레헬른",
+    "level": 13,
+    "oldCost": 23940000,
+    "newCost": 16758000
+  },
+  {
+    "region": "레헬른",
+    "level": 14,
+    "oldCost": 27730000,
+    "newCost": 19411000
+  },
+  {
+    "region": "레헬른",
+    "level": 15,
+    "oldCost": 31860000,
+    "newCost": 22302000
+  },
+  {
+    "region": "레헬른",
+    "level": 16,
+    "oldCost": 36310000,
+    "newCost": 25417000
+  },
+  {
+    "region": "레헬른",
+    "level": 17,
+    "oldCost": 41100000,
+    "newCost": 28770000
+  },
+  {
+    "region": "레헬른",
+    "level": 18,
+    "oldCost": 46230000,
+    "newCost": 32361000
+  },
+  {
+    "region": "레헬른",
+    "level": 19,
+    "oldCost": 51700000,
+    "newCost": 36190000
+  },
+  {
+    "region": "아르카나",
+    "level": 1,
+    "oldCost": 1690000,
+    "newCost": 1183000
+  },
+  {
+    "region": "아르카나",
+    "level": 2,
+    "oldCost": 2130000,
+    "newCost": 1491000
+  },
+  {
+    "region": "아르카나",
+    "level": 3,
+    "oldCost": 2860000,
+    "newCost": 2002000
+  },
+  {
+    "region": "아르카나",
+    "level": 4,
+    "oldCost": 3880000,
+    "newCost": 2716000
+  },
+  {
+    "region": "아르카나",
+    "level": 5,
+    "oldCost": 5220000,
+    "newCost": 3654000
+  },
+  {
+    "region": "아르카나",
+    "level": 6,
+    "oldCost": 6860000,
+    "newCost": 4802000
+  },
+  {
+    "region": "아르카나",
+    "level": 7,
+    "oldCost": 8820000,
+    "newCost": 6174000
+  },
+  {
+    "region": "아르카나",
+    "level": 8,
+    "oldCost": 11100000,
+    "newCost": 7770000
+  },
+  {
+    "region": "아르카나",
+    "level": 9,
+    "oldCost": 13700000,
+    "newCost": 9590000
+  },
+  {
+    "region": "아르카나",
+    "level": 10,
+    "oldCost": 16650000,
+    "newCost": 11655000
+  },
+  {
+    "region": "아르카나",
+    "level": 11,
+    "oldCost": 19930000,
+    "newCost": 13951000
+  },
+  {
+    "region": "아르카나",
+    "level": 12,
+    "oldCost": 23560000,
+    "newCost": 16492000
+  },
+  {
+    "region": "아르카나",
+    "level": 13,
+    "oldCost": 27540000,
+    "newCost": 19278000
+  },
+  {
+    "region": "아르카나",
+    "level": 14,
+    "oldCost": 31870000,
+    "newCost": 22309000
+  },
+  {
+    "region": "아르카나",
+    "level": 15,
+    "oldCost": 36580000,
+    "newCost": 25606000
+  },
+  {
+    "region": "아르카나",
+    "level": 16,
+    "oldCost": 41650000,
+    "newCost": 29155000
+  },
+  {
+    "region": "아르카나",
+    "level": 17,
+    "oldCost": 47100000,
+    "newCost": 32970000
+  },
+  {
+    "region": "아르카나",
+    "level": 18,
+    "oldCost": 52930000,
+    "newCost": 37051000
+  },
+  {
+    "region": "아르카나",
+    "level": 19,
+    "oldCost": 59140000,
+    "newCost": 41398000
+  },
+  {
+    "region": "모라스",
+    "level": 1,
+    "oldCost": 1930000,
+    "newCost": 1351000
+  },
+  {
+    "region": "모라스",
+    "level": 2,
+    "oldCost": 2430000,
+    "newCost": 1701000
+  },
+  {
+    "region": "모라스",
+    "level": 3,
+    "oldCost": 3260000,
+    "newCost": 2282000
+  },
+  {
+    "region": "모라스",
+    "level": 4,
+    "oldCost": 4420000,
+    "newCost": 3094000
+  },
+  {
+    "region": "모라스",
+    "level": 5,
+    "oldCost": 5940000,
+    "newCost": 4158000
+  },
+  {
+    "region": "모라스",
+    "level": 6,
+    "oldCost": 7800000,
+    "newCost": 5460000
+  },
+  {
+    "region": "모라스",
+    "level": 7,
+    "oldCost": 10020000,
+    "newCost": 7014000
+  },
+  {
+    "region": "모라스",
+    "level": 8,
+    "oldCost": 12600000,
+    "newCost": 8820000
+  },
+  {
+    "region": "모라스",
+    "level": 9,
+    "oldCost": 15540000,
+    "newCost": 10878000
+  },
+  {
+    "region": "모라스",
+    "level": 10,
+    "oldCost": 18870000,
+    "newCost": 13209000
+  },
+  {
+    "region": "모라스",
+    "level": 11,
+    "oldCost": 22570000,
+    "newCost": 15799000
+  },
+  {
+    "region": "모라스",
+    "level": 12,
+    "oldCost": 26660000,
+    "newCost": 18662000
+  },
+  {
+    "region": "모라스",
+    "level": 13,
+    "oldCost": 31140000,
+    "newCost": 21798000
+  },
+  {
+    "region": "모라스",
+    "level": 14,
+    "oldCost": 36010000,
+    "newCost": 25207000
+  },
+  {
+    "region": "모라스",
+    "level": 15,
+    "oldCost": 41300000,
+    "newCost": 28910000
+  },
+  {
+    "region": "모라스",
+    "level": 16,
+    "oldCost": 46990000,
+    "newCost": 32893000
+  },
+  {
+    "region": "모라스",
+    "level": 17,
+    "oldCost": 53100000,
+    "newCost": 37170000
+  },
+  {
+    "region": "모라스",
+    "level": 18,
+    "oldCost": 59630000,
+    "newCost": 41741000
+  },
+  {
+    "region": "모라스",
+    "level": 19,
+    "oldCost": 66580000,
+    "newCost": 46606000
+  },
+  {
+    "region": "에스페라",
+    "level": 1,
+    "oldCost": 2170000,
+    "newCost": 1519000
+  },
+  {
+    "region": "에스페라",
+    "level": 2,
+    "oldCost": 2730000,
+    "newCost": 1911000
+  },
+  {
+    "region": "에스페라",
+    "level": 3,
+    "oldCost": 3660000,
+    "newCost": 2562000
+  },
+  {
+    "region": "에스페라",
+    "level": 4,
+    "oldCost": 4960000,
+    "newCost": 3472000
+  },
+  {
+    "region": "에스페라",
+    "level": 5,
+    "oldCost": 6660000,
+    "newCost": 4662000
+  },
+  {
+    "region": "에스페라",
+    "level": 6,
+    "oldCost": 8740000,
+    "newCost": 6118000
+  },
+  {
+    "region": "에스페라",
+    "level": 7,
+    "oldCost": 11220000,
+    "newCost": 7854000
+  },
+  {
+    "region": "에스페라",
+    "level": 8,
+    "oldCost": 14100000,
+    "newCost": 9870000
+  },
+  {
+    "region": "에스페라",
+    "level": 9,
+    "oldCost": 17380000,
+    "newCost": 12166000
+  },
+  {
+    "region": "에스페라",
+    "level": 10,
+    "oldCost": 21090000,
+    "newCost": 14763000
+  },
+  {
+    "region": "에스페라",
+    "level": 11,
+    "oldCost": 25210000,
+    "newCost": 17647000
+  },
+  {
+    "region": "에스페라",
+    "level": 12,
+    "oldCost": 29760000,
+    "newCost": 20832000
+  },
+  {
+    "region": "에스페라",
+    "level": 13,
+    "oldCost": 34740000,
+    "newCost": 24318000
+  },
+  {
+    "region": "에스페라",
+    "level": 14,
+    "oldCost": 40150000,
+    "newCost": 28105000
+  },
+  {
+    "region": "에스페라",
+    "level": 15,
+    "oldCost": 46020000,
+    "newCost": 32214000
+  },
+  {
+    "region": "에스페라",
+    "level": 16,
+    "oldCost": 52330000,
+    "newCost": 36631000
+  },
+  {
+    "region": "에스페라",
+    "level": 17,
+    "oldCost": 59100000,
+    "newCost": 41370000
+  },
+  {
+    "region": "에스페라",
+    "level": 18,
+    "oldCost": 66330000,
+    "newCost": 46431000
+  },
+  {
+    "region": "에스페라",
+    "level": 19,
+    "oldCost": 74020000,
+    "newCost": 51814000
+  }
+]

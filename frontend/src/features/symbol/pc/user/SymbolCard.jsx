@@ -35,7 +35,7 @@ function SymbolCard({ symbol, equipped, charId }) {
   const dailyTooltip = !hasDailyOverride && (eventBonus > 0 || artifactBonus > 0)
     ? [
         `기본 ${baseDefault}`,
-        eventBonus > 0 && eventSkill ? `보약 ${eventBonus} (${eventSkill.skill_name} Lv.${eventSkill.skill_level})` : null,
+        eventBonus > 0 && eventSkill ? `보약 ${eventBonus} (${eventSkill.skill_name}${eventSkill.skill_level == null ? '' : ` Lv.${eventSkill.skill_level}`})` : null,
         artifactBonus > 0 ? `아티팩트 ${artifactBonus}` : null,
       ].filter(Boolean).join(' + ')
     : null
