@@ -246,12 +246,12 @@ function EmptyBox({ text }) {
   )
 }
 
-/** 수단별 사용량 (재설정 횟수 / 큐브 개수) */
+/** 수단별 사용량 (재설정 수단별 사용 횟수) */
 function MethodPanel({ methods, methodIcons }) {
   if (!methods?.length) return null
   return (
     <div className="rounded-xl overflow-hidden" style={CARD}>
-      <PanelHead title="재설정 횟수 / 큐브 개수" />
+      <PanelHead title="재설정 수단별 사용 횟수" />
       <div className="grid grid-cols-5 gap-x-1 gap-y-2.5 p-2.5">
         {methods.map((m) => (
           <div key={m.iconName} className="flex flex-col items-center gap-0.5">
@@ -426,7 +426,7 @@ const SfLogRow = memo(function SfLogRow({ r }) {
 
 /** 수단 아이콘 이름 (큐브명 또는 재설정 종류) */
 function methodIconName(r) {
-  return r.method === 'cube' ? r.cube_type : (r.kind === 'additional' ? '에디셔널 잠재능력 재설정' : '잠재능력 재설정')
+  return r.method !== 'meso' ? r.cube_type : (r.kind === 'additional' ? '에디셔널 잠재능력 재설정' : '잠재능력 재설정')
 }
 
 function PotentialDetail({ group, icon, worldIcon, methodIcons, onBack, nav }) {

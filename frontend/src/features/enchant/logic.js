@@ -85,13 +85,12 @@ export function isDrop(item) {
 export function sfCost(item) {
   const superior = flagApplied(item.superior_item_flag)
   const base = starforceCost(item.target_item, item.before_starforce_count, superior)
-  if (base == null) return null
-
   const reasons = []
   // 강화권으로 올린 단계는 메소를 쓰지 않는다
   if (item.upgrade_item) {
     return { base, final: 0, discounted: true, reasons: [{ label: item.upgrade_item, effect: '메소 소모 없음' }] }
   }
+  if (base == null) return null
   if (superior) reasons.push({ label: '슈페리얼 장비', effect: '전용 비용표' })
 
   let rate = 0
@@ -226,9 +225,16 @@ export function normalizePotential(cubeItems, potentialItems) {
   for (const it of cubeItems) {
     rows.push({
       ...it,
-      method: 'cube',
+      method: (it.cube_type || '').includes('펄스 인핸서') ? 'special' : 'cube',
       methodName: it.cube_type,
-      kind: isAdditionalCube(it.cube_type) ? 'additional' : 'potential',
+      kind: isAdditionalCube(it.cube_type) || (
+        (it.cube_type || '').includes('펄스 인핸서') &&
+        (it.after_additional_potential_option || []).length > 0 &&
+        (!(it.after_potential_option || []).length || (
+          JSON.stringify(it.before_potential_option) === JSON.stringify(it.after_potential_option) &&
+          JSON.stringify(it.before_additional_potential_option) !== JSON.stringify(it.after_additional_potential_option)
+        ))
+      ) ? 'additional' : 'potential',
     })
   }
   for (const it of potentialItems) {
@@ -245,6 +251,7 @@ export function normalizePotential(cubeItems, potentialItems) {
 
 /** 재설정 1회 비용 (계산 불가 시 null) */
 export function potentialCost(row) {
+  if (row.method === 'special') return 0
   if (row.method === 'meso') {
     const grade = row.kind === 'additional' ? row.additional_potential_option_grade : row.potential_option_grade
     return potentialResetCost(row.kind, grade, row.item_level)
@@ -304,7 +311,7 @@ export function groupPotential(rows) {
     // 수단별 사용 횟수 (아이콘 표시용) — 메소 재설정은 잠재/에디 구분
     const counts = new Map()
     for (const r of recs) {
-      const iconName = r.method === 'cube'
+      const iconName = r.method !== 'meso'
         ? r.cube_type
         : (r.kind === 'additional' ? '에디셔널 잠재능력 재설정' : '잠재능력 재설정')
       counts.set(iconName, (counts.get(iconName) || 0) + 1)
@@ -333,10 +340,11 @@ export function groupPotential(rows) {
 
 /** 잠재 전체 요약 */
 export function potentialSummary(rows) {
-  const s = { tries: rows.length, cube: 0, meso: 0, gradeUps: 0, miracle: 0, cost: 0, resetCost: 0, feeCost: 0 }
+  const s = { tries: rows.length, cube: 0, meso: 0, special: 0, gradeUps: 0, miracle: 0, cost: 0, resetCost: 0, feeCost: 0 }
   for (const r of rows) {
     if (r.method === 'cube') s.cube += 1
-    else s.meso += 1
+    else if (r.method === 'meso') s.meso += 1
+    else s.special += 1
     if (isGradeUp(r)) s.gradeUps += 1
     if (flagApplied(r.miracle_time_flag)) s.miracle += 1
     const c = potentialCost(r)
@@ -432,7 +440,7 @@ export function potentialStats(rows) {
     // 시도: 현재 등급이 최고 등급이 아니면 등급업 시도로 집계
     if (grade && upgrade[kind][grade]) upgrade[kind][grade].tries += 1
 
-    const iconName = r.method === 'cube'
+    const iconName = r.method !== 'meso'
       ? r.cube_type
       : (kind === 'additional' ? '에디셔널 잠재능력 재설정' : '잠재능력 재설정')
     methodCounts.set(iconName, (methodCounts.get(iconName) || 0) + 1)

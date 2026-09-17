@@ -148,7 +148,7 @@ function StatCell({ label, value, sub, color, first }) {
 
 /** 수단 아이콘 이름 (큐브명 또는 재설정 종류) */
 function methodIconName(r) {
-  return r.method === 'cube' ? r.cube_type : (r.kind === 'additional' ? '에디셔널 잠재능력 재설정' : '잠재능력 재설정')
+  return r.method !== 'meso' ? r.cube_type : (r.kind === 'additional' ? '에디셔널 잠재능력 재설정' : '잠재능력 재설정')
 }
 
 /** 스타포스 카드 하단 — 성공 / 실패 / 파괴 횟수 */
@@ -550,7 +550,7 @@ function PotentialStatsPanel({ stat, methodIcons, compact = false }) {
 
       <div className="grid grid-cols-2 gap-3 items-start">
         <div className="rounded-xl overflow-hidden" style={box}>
-          <div className="px-4 py-2 text-[13px] font-bold" style={head}>재설정 횟수 / 큐브 개수</div>
+          <div className="px-4 py-2 text-[13px] font-bold" style={head}>재설정 수단별 사용 횟수</div>
           <div className="p-3 grid grid-cols-6 gap-x-2 gap-y-3">
             {stat.methods.map((m) => (
               <div key={m.iconName} className="flex flex-col items-center gap-1" title={m.iconName}>

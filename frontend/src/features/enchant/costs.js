@@ -7,6 +7,7 @@
 /** 장비 이름 접두사/이름 → 착용 레벨 (스타포스 비용 계산용) */
 export const ITEM_LEVELS = {
   '네크로': 120,
+  '어센던트 펄스 링': 130,
   '시그너스 여제': 140,
   '펜살리르': 140,
   '루타비스': 150,
@@ -174,6 +175,7 @@ const CEILING = {
 /** 수단명(cube_type 또는 '메소 재설정') → 천장 테이블 키. 천장 없는 수단은 null */
 function ceilingKind(methodName, kind) {
   const n = methodName || ''
+  if (n.includes('펄스 인핸서') || n.includes('프라임')) return null
   if (n === '메소 재설정' || n.includes('잠재능력 재설정')) {
     return kind === 'additional' ? 'additionalReset' : 'potentialReset'
   }
