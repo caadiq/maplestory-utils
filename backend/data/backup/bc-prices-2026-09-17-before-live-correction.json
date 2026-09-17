@@ -1,0 +1,338 @@
+[
+  {
+    "name": "매그너스",
+    "id": 2,
+    "difficulty": "hard",
+    "crystal_price": 4280000
+  },
+  {
+    "name": "파풀라투스",
+    "id": 4,
+    "difficulty": "chaos",
+    "crystal_price": 6550000
+  },
+  {
+    "name": "피에르",
+    "id": 5,
+    "difficulty": "chaos",
+    "crystal_price": 4080000
+  },
+  {
+    "name": "반반",
+    "id": 6,
+    "difficulty": "chaos",
+    "crystal_price": 4070000
+  },
+  {
+    "name": "블러디퀸",
+    "id": 7,
+    "difficulty": "chaos",
+    "crystal_price": 4070000
+  },
+  {
+    "name": "벨룸",
+    "id": 8,
+    "difficulty": "chaos",
+    "crystal_price": 4640000
+  },
+  {
+    "name": "스우",
+    "id": 12,
+    "difficulty": "normal",
+    "crystal_price": 8350000
+  },
+  {
+    "name": "스우",
+    "id": 13,
+    "difficulty": "hard",
+    "crystal_price": 48900000
+  },
+  {
+    "name": "스우",
+    "id": 14,
+    "difficulty": "extreme",
+    "crystal_price": 545000000
+  },
+  {
+    "name": "데미안",
+    "id": 15,
+    "difficulty": "normal",
+    "crystal_price": 8750000
+  },
+  {
+    "name": "데미안",
+    "id": 16,
+    "difficulty": "hard",
+    "crystal_price": 46400000
+  },
+  {
+    "name": "루시드",
+    "id": 29,
+    "difficulty": "easy",
+    "crystal_price": 14900000
+  },
+  {
+    "name": "루시드",
+    "id": 30,
+    "difficulty": "normal",
+    "crystal_price": 17800000
+  },
+  {
+    "name": "루시드",
+    "id": 31,
+    "difficulty": "hard",
+    "crystal_price": 59700000
+  },
+  {
+    "name": "윌",
+    "id": 32,
+    "difficulty": "easy",
+    "crystal_price": 16100000
+  },
+  {
+    "name": "윌",
+    "id": 33,
+    "difficulty": "normal",
+    "crystal_price": 20500000
+  },
+  {
+    "name": "윌",
+    "id": 34,
+    "difficulty": "hard",
+    "crystal_price": 73200000
+  },
+  {
+    "name": "더스크",
+    "id": 35,
+    "difficulty": "normal",
+    "crystal_price": 22000000
+  },
+  {
+    "name": "더스크",
+    "id": 36,
+    "difficulty": "chaos",
+    "crystal_price": 66300000
+  },
+  {
+    "name": "진 힐라",
+    "id": 37,
+    "difficulty": "normal",
+    "crystal_price": 67600000
+  },
+  {
+    "name": "진 힐라",
+    "id": 38,
+    "difficulty": "hard",
+    "crystal_price": 100000000
+  },
+  {
+    "name": "듄켈",
+    "id": 39,
+    "difficulty": "normal",
+    "crystal_price": 23700000
+  },
+  {
+    "name": "듄켈",
+    "id": 40,
+    "difficulty": "hard",
+    "crystal_price": 89600000
+  },
+  {
+    "name": "카링",
+    "id": 52,
+    "difficulty": "easy",
+    "crystal_price": 320000000
+  },
+  {
+    "name": "카링",
+    "id": 53,
+    "difficulty": "normal",
+    "crystal_price": 576000000
+  },
+  {
+    "name": "카링",
+    "id": 54,
+    "difficulty": "hard",
+    "crystal_price": 1560000000
+  },
+  {
+    "name": "카링",
+    "id": 55,
+    "difficulty": "extreme",
+    "crystal_price": 5387000000
+  },
+  {
+    "name": "최초의 대적자",
+    "id": 58,
+    "difficulty": "easy",
+    "crystal_price": 261000000
+  },
+  {
+    "name": "최초의 대적자",
+    "id": 59,
+    "difficulty": "normal",
+    "crystal_price": 532000000
+  },
+  {
+    "name": "최초의 대적자",
+    "id": 60,
+    "difficulty": "hard",
+    "crystal_price": 1390000000
+  },
+  {
+    "name": "최초의 대적자",
+    "id": 61,
+    "difficulty": "extreme",
+    "crystal_price": 4712000000
+  },
+  {
+    "name": "림보",
+    "id": 62,
+    "difficulty": "normal",
+    "crystal_price": 995000000
+  },
+  {
+    "name": "림보",
+    "id": 63,
+    "difficulty": "hard",
+    "crystal_price": 2385000000
+  },
+  {
+    "name": "유피테르",
+    "id": 66,
+    "difficulty": "normal",
+    "crystal_price": 1560000000
+  },
+  {
+    "name": "유피테르",
+    "id": 67,
+    "difficulty": "hard",
+    "crystal_price": 4845000000
+  },
+  {
+    "name": "발드릭스",
+    "id": 68,
+    "difficulty": "normal",
+    "crystal_price": 1320000000
+  },
+  {
+    "name": "발드릭스",
+    "id": 69,
+    "difficulty": "hard",
+    "crystal_price": 3078000000
+  },
+  {
+    "name": "가디언 엔젤 슬라임",
+    "id": 70,
+    "difficulty": "normal",
+    "crystal_price": 12700000
+  },
+  {
+    "name": "가디언 엔젤 슬라임",
+    "id": 71,
+    "difficulty": "chaos",
+    "crystal_price": 71300000
+  },
+  {
+    "name": "선택받은 세렌",
+    "id": 75,
+    "difficulty": "normal",
+    "crystal_price": 167000000
+  },
+  {
+    "name": "선택받은 세렌",
+    "id": 76,
+    "difficulty": "hard",
+    "crystal_price": 302000000
+  },
+  {
+    "name": "선택받은 세렌",
+    "id": 77,
+    "difficulty": "extreme",
+    "crystal_price": 1840000000
+  },
+  {
+    "name": "감시자 칼로스",
+    "id": 78,
+    "difficulty": "easy",
+    "crystal_price": 238000000
+  },
+  {
+    "name": "감시자 칼로스",
+    "id": 79,
+    "difficulty": "normal",
+    "crystal_price": 479000000
+  },
+  {
+    "name": "감시자 칼로스",
+    "id": 80,
+    "difficulty": "chaos",
+    "crystal_price": 1230000000
+  },
+  {
+    "name": "감시자 칼로스",
+    "id": 81,
+    "difficulty": "extreme",
+    "crystal_price": 4104000000
+  },
+  {
+    "name": "찬란한 흉성",
+    "id": 82,
+    "difficulty": "normal",
+    "crystal_price": 593000000
+  },
+  {
+    "name": "찬란한 흉성",
+    "id": 83,
+    "difficulty": "hard",
+    "crystal_price": 2678000000
+  },
+  {
+    "name": "자쿰",
+    "id": 85,
+    "difficulty": "chaos",
+    "crystal_price": 4040000
+  },
+  {
+    "name": "메이린",
+    "id": 88,
+    "difficulty": "normal",
+    "crystal_price": 300000000
+  },
+  {
+    "name": "메이린",
+    "id": 89,
+    "difficulty": "hard",
+    "crystal_price": 600000000
+  },
+  {
+    "name": "카이",
+    "id": 90,
+    "difficulty": "normal",
+    "crystal_price": 300000000
+  },
+  {
+    "name": "카이",
+    "id": 91,
+    "difficulty": "hard",
+    "crystal_price": 600000000
+  },
+  {
+    "name": "벨로나",
+    "id": 92,
+    "difficulty": "easy",
+    "crystal_price": 396000000
+  },
+  {
+    "name": "벨로나",
+    "id": 93,
+    "difficulty": "normal",
+    "crystal_price": 824000000
+  },
+  {
+    "name": "벨로나",
+    "id": 94,
+    "difficulty": "hard",
+    "crystal_price": 2950000000
+  }
+]

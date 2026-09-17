@@ -1,0 +1,14 @@
+[
+  {
+    "boss": "카링",
+    "difficulty": "normal",
+    "oldPrice": 576000000,
+    "newPrice": 593000000
+  },
+  {
+    "boss": "찬란한 흉성",
+    "difficulty": "normal",
+    "oldPrice": 593000000,
+    "newPrice": 576000000
+  }
+]
